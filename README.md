@@ -1,6 +1,6 @@
 # Handy Tools
 
-A collection of 32 small, useful everyday tools — age calculator, unit converter, password generator, QR code generator, Bangladesh income tax calculator, space calculator, and more. **Zero dependencies, fully offline, hosted on GitHub Pages.**
+A collection of 33 small, useful everyday tools — age calculator, unit converter, password generator, QR code generator, Bangladesh income tax calculator, space calculator, animal race, and more. **Zero dependencies, fully offline, hosted on GitHub Pages.**
 
 ## What's inside
 
@@ -48,6 +48,7 @@ A collection of 32 small, useful everyday tools — age calculator, unit convert
 
 **Fun & Curious**
 - Space Calculator (age, weight, jump, free-fall on every planet)
+- Animal Race (frame-perfect 100 m race with a custom human runner)
 
 **Developer**
 - Base64 Codec
