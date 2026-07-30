@@ -25,13 +25,21 @@
 
     <div class="warning">
       Speeds are widely cited top speeds. Times are scaled so the slowest selected racer finishes in
-      exactly 60 wall-clock seconds, with the fastest clamped to no less than 2 seconds. Choose
-      close-speed matchups (e.g. horse vs. lion) for the most watchable races.
+      exactly the chosen race length (30 or 60 seconds), with the fastest clamped to no less than 2 seconds.
+      Choose close-speed matchups (e.g. horse vs. lion) for the most watchable races.
     </div>
 
     <div class="panel" id="setup-panel">
       <div class="panel-title">1. Choose your racers</div>
       <div class="animal-grid" id="animal-grid"></div>
+
+      <div class="row" style="margin-top:16px">
+        <label class="field-label" for="race-duration">Race length</label>
+        <select id="race-duration" class="select">
+          <option value="30" selected>30 seconds (snappy)</option>
+          <option value="60">60 seconds (relaxed)</option>
+        </select>
+      </div>
 
       <div class="panel-title" style="margin-top:24px">2. Add a human runner (optional)</div>
       <div class="human-row">
@@ -64,7 +72,7 @@
           <div class="race-clock-label">Race clock</div>
           <div class="race-clock" id="race-clock">00.00s</div>
         </div>
-        <div class="race-scale">Track: 100 m</div>
+        <div class="race-scale">Track: 100 m · <span id="race-target-label">30s race</span></div>
       </div>
       <div class="track" id="track">
         <div class="finish-line" aria-hidden="true">
