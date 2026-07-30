@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Estimate personal income tax for Bangladesh Assessment Year 2026-27 (FY 2025-26). Bilingual English/Bangla, printable report, all rules editable.">
+  <title>Bangladesh Income Tax Calculator · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23006a4e'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3E৳%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./bd-tax-calculator.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <div class="tool-title-row">
+        <div>
+          <h1 data-i18n="pageTitle">Bangladesh Income Tax Calculator</h1>
+          <p class="tool-subtitle" data-i18n="pageSubtitle">Estimate your personal income tax for Assessment Year 2026-27 (FY 2025-26).</p>
+        </div>
+        <button id="lang-toggle" class="btn btn-ghost btn-sm" type="button" aria-label="Toggle language">বাংলা</button>
+      </div>
+    </header>
+
+    <div class="warning" data-i18n="disclaimer">
+      AY 2026-27 estimates based on best-available data. Verify thresholds, slabs, and rebate rules with NBR / Finance Act 2025 before filing. Rules are editable in bd-tax-calculator.js.
+    </div>
+
+    <div class="panel">
+      <div class="panel-title" data-i18n="secTaxpayer">Taxpayer information</div>
+      <div class="preset-row no-print" id="preset-row">
+        <span class="preset-label" data-i18n="presetLabel">Try an example:</span>
+        <button class="btn btn-sm btn-ghost" type="button" data-preset="salaried" data-i18n="presetSalaried">Salaried employee</button>
+        <button class="btn btn-sm btn-ghost" type="button" data-preset="senior" data-i18n="presetSenior">Senior citizen</button>
+        <button class="btn btn-sm btn-ghost" type="button" data-preset="business" data-i18n="presetBusiness">Business owner</button>
+        <button class="btn btn-sm btn-ghost" type="button" data-preset="investor" data-i18n="presetInvestor">Young investor</button>
+      </div>
+      <div class="grid-3">
+        <div class="field">
+          <label class="field-label" for="rulesKey" data-i18n="lblRulesKey">Assessment year</label>
+          <select id="rulesKey" class="select">
+            <option value="2026-27" data-i18n="optAYCurrent">AY 2026-27 (current)</option>
+            <option value="2024-25" data-i18n="optAYPrevious">AY 2024-25 (previous)</option>
+          </select>
+          <div class="field-hint" data-i18n="rulesHint">Switch ruleset to compare years.</div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="category" data-i18n="lblCategory">Taxpayer category</label>
+          <select id="category" class="select">
+            <option value="male" data-i18n="optMale">Male</option>
+            <option value="female" data-i18n="optFemale">Female</option>
+            <option value="senior" data-i18n="optSenior">Senior citizen (65+)</option>
+            <option value="disabled" data-i18n="optDisabled">Person with disability</option>
+            <option value="freedom" data-i18n="optFreedom">Freedom fighter</option>
+            <option value="third" data-i18n="optThird">Third gender</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label" for="age" data-i18n="lblAge">Age</label>
+          <input id="age" class="input" type="number" min="0" max="120" step="1" value="35">
+          <div class="field-hint" data-i18n="ageHint">Affects senior-citizen status (65+).</div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="area" data-i18n="lblArea">Residential area</label>
+          <select id="area" class="select">
+            <option value="urban" data-i18n="optUrban">Urban</option>
+            <option value="rural" data-i18n="optRural">Rural</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title" data-i18n="secSalary">Salary income</div>
+      <div class="grid-3">
+        <div class="field">
+          <label class="field-label" for="salaryBasic" data-i18n="lblBasic">Basic salary</label>
+          <input id="salaryBasic" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="salaryHouseRent" data-i18n="lblHouseRent">House rent allowance (received)</label>
+          <input id="salaryHouseRent" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="salaryMedical" data-i18n="lblMedical">Medical allowance</label>
+          <input id="salaryMedical" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="salaryTransport" data-i18n="lblTransport">Transport allowance</label>
+          <input id="salaryTransport" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="salaryOtherAllow" data-i18n="lblOtherAllow">Other allowances</label>
+          <input id="salaryOtherAllow" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="salaryBonus" data-i18n="lblBonus">Bonus / festival bonus</label>
+          <input id="salaryBonus" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="salaryPfEmployer" data-i18n="lblPfEmployer">Employer PF contribution (above statutory)</label>
+          <input id="salaryPfEmployer" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field" style="grid-column: 1/-1">
+          <label class="field-label" for="salaryStdDedOverride" data-i18n="lblStdDedOverride">Standard deduction (override — leave blank for auto 1/3 of basic)</label>
+          <input id="salaryStdDedOverride" class="input" type="number" min="0" step="any" placeholder="auto">
+          <div class="field-hint">
+            <span data-i18n="salaryHint">A 1/3 standard deduction on basic is applied automatically.</span>
+            &nbsp;·&nbsp; <span data-i18n="stdDedPreviewLabel">Auto-calculated:</span> <strong id="std-ded-preview">৳0</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title" data-i18n="secInterest">Interest income</div>
+      <div class="grid-2">
+        <div class="field">
+          <label class="field-label" for="interestSec" data-i18n="lblInterestSec">Interest on securities / bonds</label>
+          <input id="interestSec" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="interestSavings" data-i18n="lblInterestSavings">Interest on savings / FDR</label>
+          <input id="interestSavings" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title" data-i18n="secHouse">House property income</div>
+      <div class="grid-3">
+        <div class="field">
+          <label class="field-label" for="grossRent" data-i18n="lblGrossRent">Annual gross rent received</label>
+          <input id="grossRent" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="municipalTax" data-i18n="lblMunicipalTax">Municipal / local tax paid</label>
+          <input id="municipalTax" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="insurance" data-i18n="lblInsurance">Insurance premium paid</label>
+          <input id="insurance" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="interestBorrowed" data-i18n="lblInterestBorrowed">Interest on borrowed capital (loan)</label>
+          <input id="interestBorrowed" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+      </div>
+      <div class="field-hint" style="margin-top:8px" data-i18n="houseHint">A 30% standard deduction on net rent is applied automatically.</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title" data-i18n="secBusiness">Business / professional income</div>
+      <div class="field">
+        <label class="field-label" for="businessProfit" data-i18n="lblBusinessProfit">Net profit (before tax)</label>
+        <input id="businessProfit" class="input" type="number" min="0" step="any" placeholder="0">
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title" data-i18n="secCapitalGains">Capital gains</div>
+      <div class="grid-2">
+        <div class="field">
+          <label class="field-label" for="listedGains" data-i18n="lblListedGains">Gains on listed shares (flat 15%)</label>
+          <input id="listedGains" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="unlistedGains" data-i18n="lblUnlistedGains">Gains on unlisted assets / property</label>
+          <input id="unlistedGains" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title" data-i18n="secAgriculture">Agricultural income</div>
+      <div class="field">
+        <label class="field-label" for="agriculture" data-i18n="lblAgriculture">Net agricultural income</label>
+        <input id="agriculture" class="input" type="number" min="0" step="any" placeholder="0">
+        <div class="field-hint" data-i18n="agriHint">First ৳60,000 is exempt without inclusion in total income.</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title" data-i18n="secOther">Other sources</div>
+      <div class="grid-3">
+        <div class="field">
+          <label class="field-label" for="dividend" data-i18n="lblDividend">Dividend income</label>
+          <input id="dividend" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="royalty" data-i18n="lblRoyalty">Royalty / honorarium</label>
+          <input id="royalty" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="otherSources" data-i18n="lblOtherSources">Any other taxable income</label>
+          <input id="otherSources" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title" data-i18n="secInvestments">Eligible investments</div>
+      <div class="field">
+        <label class="field-label" for="investment" data-i18n="lblInvestment">Eligible investment amount (this year)</label>
+        <input id="investment" class="input" type="number" min="0" step="any" placeholder="0">
+        <div class="field-hint" data-i18n="investHint">Up to ৳20,00,000 qualifies for 15% rebate.</div>
+      </div>
+      <div class="rebate-gauge" id="rebate-gauge">
+        <div class="rebate-bar"><div class="rebate-fill" id="gauge-fill"></div></div>
+        <div class="rebate-stats">
+          <span><strong id="gauge-used">৳0</strong> used</span>
+          <span class="muted">of <span id="gauge-cap">৳0</span> cap</span>
+        </div>
+        <div class="muted text-sm" style="margin-top:6px">
+          Raw rebate value: <strong id="gauge-raw">৳0</strong> &nbsp;·&nbsp; Applied: <strong id="gauge-applied">৳0</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title" data-i18n="secTaxesPaid">Taxes already paid</div>
+      <div class="grid-3">
+        <div class="field">
+          <label class="field-label" for="tdsSalary" data-i18n="lblTdsSalary">TDS on salary</label>
+          <input id="tdsSalary" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="tdsOther" data-i18n="lblTdsOther">TDS on other sources</label>
+          <input id="tdsOther" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="field-label" for="advanceTax" data-i18n="lblAdvanceTax">Advance tax paid</label>
+          <input id="advanceTax" class="input" type="number" min="0" step="any" placeholder="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-main" id="r-headline">৳0</div>
+      <div class="result-sub" id="r-headline-label" data-i18n="tFinal">Tax payable</div>
+      <div class="result-sub" id="r-subtitle">Enter your income to begin.</div>
+
+      <hr class="divider">
+
+      <div class="result-grid">
+        <div class="result-tile"><div class="result-tile-label" data-i18n="tGross">Gross income</div><div class="result-tile-value" id="t-gross">৳0</div></div>
+        <div class="result-tile"><div class="result-tile-label" data-i18n="tExemption">Less: basic exemption</div><div class="result-tile-value" id="t-exemption">− ৳0</div></div>
+        <div class="result-tile"><div class="result-tile-label" data-i18n="tTaxable">Taxable income</div><div class="result-tile-value" id="t-taxable">৳0</div></div>
+        <div class="result-tile"><div class="result-tile-label" data-i18n="tSlabTax">Tax on slabs</div><div class="result-tile-value" id="t-slab">৳0</div></div>
+        <div class="result-tile"><div class="result-tile-label" data-i18n="tListedGainTax">Listed gains tax</div><div class="result-tile-value" id="t-listed">৳0</div></div>
+        <div class="result-tile"><div class="result-tile-label" data-i18n="tSurcharge">Surcharge (10% over ৳50L)</div><div class="result-tile-value" id="t-surcharge">৳0</div></div>
+        <div class="result-tile"><div class="result-tile-label" data-i18n="tTotalTax">Total tax</div><div class="result-tile-value" id="t-total">৳0</div></div>
+        <div class="result-tile"><div class="result-tile-label" data-i18n="tRebate">Investment rebate</div><div class="result-tile-value" id="t-rebate">− ৳0</div></div>
+        <div class="result-tile"><div class="result-tile-label" data-i18n="tAfterRebate">Tax after rebate</div><div class="result-tile-value" id="t-after-rebate">৳0</div></div>
+        <div class="result-tile"><div class="result-tile-label" data-i18n="tMinimum">Minimum tax</div><div class="result-tile-value" id="t-min">৳0</div></div>
+        <div class="result-tile"><div class="result-tile-label" data-i18n="tTaxesPaid">Taxes paid</div><div class="result-tile-value" id="t-taxes-paid">− ৳0</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title" data-i18n="secSummary">Income summary by source</div>
+      <table class="tax-table">
+        <thead>
+          <tr>
+            <th data-i18n="summaryCols.0">Source</th>
+            <th class="num" data-i18n="summaryCols.1">Taxable amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td data-i18n="lblBasic">Salary (after standard deduction)</td><td class="num" id="sum-salary">৳0</td></tr>
+          <tr><td data-i18n="lblInterestSavings">Interest</td><td class="num" id="sum-interest">৳0</td></tr>
+          <tr><td data-i18n="lblGrossRent">House property</td><td class="num" id="sum-house">৳0</td></tr>
+          <tr><td data-i18n="lblBusinessProfit">Business / profession</td><td class="num" id="sum-business">৳0</td></tr>
+          <tr><td data-i18n="lblUnlistedGains">Capital gains (unlisted)</td><td class="num" id="sum-unlisted">৳0</td></tr>
+          <tr><td data-i18n="lblListedGains">Capital gains (listed, separate)</td><td class="num" id="sum-listed">৳0</td></tr>
+          <tr><td data-i18n="lblAgriculture">Agriculture (taxable)</td><td class="num" id="sum-agri">৳0</td></tr>
+          <tr><td data-i18n="lblOtherSources">Other sources</td><td class="num" id="sum-other">৳0</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title" data-i18n="secBreakdown">Slab-wise breakdown</div>
+      <table class="tax-table" id="slab-table">
+        <thead>
+          <tr>
+            <th data-i18n="breakdownCols.0">Slab</th>
+            <th data-i18n="breakdownCols.1">Rate</th>
+            <th class="num" data-i18n="breakdownCols.2">Amount in slab</th>
+            <th class="num" data-i18n="breakdownCols.3">Tax in slab</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title" data-i18n="secInsights">Insights</div>
+      <div id="insights" class="insights-list"></div>
+    </div>
+
+    <div class="row no-print" style="margin-top:24px">
+      <button id="share-btn" class="btn btn-ghost" type="button" data-i18n="btnShare">Copy share link</button>
+      <button id="print-btn" class="btn btn-primary" type="button" data-i18n="btnPrint">Print / Save as PDF</button>
+      <button id="copy-summary-btn" class="btn btn-ghost" type="button" data-i18n="btnCopySummary">Copy summary</button>
+      <span class="spacer"></span>
+      <button id="reset-btn" class="btn btn-ghost" type="button" data-i18n="btnReset">Reset all</button>
+    </div>
+
+    <!-- Print-only report (hidden on screen, rendered fully on @media print) -->
+    <div id="print-view" class="print-only" aria-hidden="true"></div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./bd-tax-calculator.js"></script>
+</body>
+</html>

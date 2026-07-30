@@ -1,6 +1,6 @@
 # Handy Tools
 
-A collection of 30 small, useful everyday tools — age calculator, unit converter, password generator, QR code generator, and more. **Zero dependencies, fully offline, hosted on GitHub Pages.**
+A collection of 31 small, useful everyday tools — age calculator, unit converter, password generator, QR code generator, Bangladesh income tax calculator, and more. **Zero dependencies, fully offline, hosted on GitHub Pages.**
 
 ## What's inside
 
@@ -21,6 +21,7 @@ A collection of 30 small, useful everyday tools — age calculator, unit convert
 - Compound Interest
 - Loan Calculator
 - Calorie Estimator
+- Bangladesh Tax Calculator (AY 2026-27, bilingual EN/BN)
 
 **Text & Writing**
 - Word & Character Counter
