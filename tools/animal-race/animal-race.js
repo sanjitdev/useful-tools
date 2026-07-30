@@ -258,10 +258,11 @@
       if (!(kmh > 0)) return;
       var lane = document.createElement('div');
       lane.className = 'lane';
+      lane.setAttribute('data-id', a.id);
       lane.innerHTML =
-        '<span class="lane-label">' + a.name + '</span>' +
         '<div class="racer" data-id="' + a.id + '" style="--animal-color:' + a.color + '">' +
           '<span class="racer-icon">' + a.svg + '</span>' +
+          '<span class="racer-name">' + a.name + '</span>' +
         '</div>';
       lanes.appendChild(lane);
       var racerEl = HT.$('.racer', lane);
@@ -338,7 +339,7 @@
       r.finished = false;
       r.finishElapsedS = null;
       r.racerEl.classList.remove('is-finished');
-      r.racerEl.style.setProperty('--p', 0);
+      r.racerEl.style.setProperty('--x', '0px');
     });
 
     HT.$('#results-panel').hidden = true;
@@ -378,7 +379,12 @@
       } else {
         allDone = false;
       }
-      r.racerEl.style.setProperty('--p', r.progress);
+      // Compute pixel offset from the lane's client width minus the racer's
+      // own width so the racer stops flush against the finish line at p=1.
+      var laneW = r.laneEl.clientWidth;
+      var racerW = r.racerEl.clientWidth || 60;
+      var x = r.progress * Math.max(0, laneW - racerW);
+      r.racerEl.style.setProperty('--x', x + 'px');
     }
 
     if (allDone) {
