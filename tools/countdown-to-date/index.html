@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Count down to a future date and time with a live days/hours/minutes/seconds display and progress bar.">
+  <title>Countdown to Date · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./countdown-to-date.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Countdown to Date</h1>
+      <p class="tool-subtitle">Watch the seconds tick down to a moment that matters to you.</p>
+    </header>
+
+    <div class="panel">
+      <div class="panel-title">Target</div>
+      <div class="grid-3">
+        <div class="field">
+          <label class="field-label" for="cd-date">Date</label>
+          <input id="cd-date" class="input" type="date">
+        </div>
+        <div class="field">
+          <label class="field-label" for="cd-time">Time</label>
+          <input id="cd-time" class="input" type="time" value="23:59">
+        </div>
+        <div class="field">
+          <label class="field-label" for="cd-label">Label</label>
+          <input id="cd-label" class="input" type="text" placeholder="e.g. New Year" value="End of year">
+        </div>
+      </div>
+      <div id="cd-warning"></div>
+      <div class="row" style="margin-top: var(--space-3); flex-wrap: wrap;">
+        <button class="btn btn-ghost btn-sm" data-quick="end-of-day" type="button">End of today</button>
+        <button class="btn btn-ghost btn-sm" data-quick="end-of-week" type="button">End of week</button>
+        <button class="btn btn-ghost btn-sm" data-quick="end-of-month" type="button">End of month</button>
+        <button class="btn btn-ghost btn-sm" data-quick="end-of-year" type="button">End of year</button>
+        <button class="btn btn-ghost btn-sm" data-quick="in-30" type="button">In 30 days</button>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-main" id="cd-primary">—</div>
+      <div class="result-sub" id="cd-sub">—</div>
+      <div class="progress-track" aria-label="Time elapsed">
+        <div class="progress-fill" id="cd-fill" style="width: 0%;"></div>
+      </div>
+      <div class="progress-meta">
+        <span id="cd-progress-pct">0%</span>
+        <span id="cd-progress-window">—</span>
+      </div>
+      <hr class="divider">
+      <div class="result-grid">
+        <div class="result-tile"><div class="result-tile-label">Days</div><div class="result-tile-value" id="cd-days">—</div></div>
+        <div class="result-tile"><div class="result-tile-label">Hours</div><div class="result-tile-value" id="cd-hours">—</div></div>
+        <div class="result-tile"><div class="result-tile-label">Minutes</div><div class="result-tile-value" id="cd-minutes">—</div></div>
+        <div class="result-tile"><div class="result-tile-label">Seconds</div><div class="result-tile-value" id="cd-seconds">—</div></div>
+      </div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./countdown-to-date.js"></script>
+</body>
+</html>

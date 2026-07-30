@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Generate a QR code from any text or URL. Pick an error-correction level and download as SVG or PNG.">
+  <title>QR Code Generator · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./qr-code-generator.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>QR Code Generator</h1>
+      <p class="tool-subtitle">Generate a QR code for any text or URL. Download as SVG or PNG.</p>
+    </header>
+
+    <div class="qr-layout">
+      <div class="panel">
+        <div class="panel-title">Input</div>
+        <div class="field">
+          <label class="field-label" for="qr-text">Text or URL</label>
+          <textarea id="qr-text" class="textarea" spellcheck="false"></textarea>
+        </div>
+        <div class="grid-2" style="margin-top: var(--space-3);">
+          <div class="field">
+            <label class="field-label" for="qr-ecc">Error correction</label>
+            <select id="qr-ecc" class="select">
+              <option value="L">L · ~7% recovery</option>
+              <option value="M" selected>M · ~15% recovery</option>
+              <option value="Q">Q · ~25% recovery</option>
+              <option value="H">H · ~30% recovery</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="qr-margin">Quiet zone (modules)</label>
+            <input id="qr-margin" class="input" type="number" min="0" max="16" step="1" value="4">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel qr-output-panel">
+        <div class="panel-title">QR Code</div>
+        <div id="qr-output" class="qr-output" aria-label="Generated QR code"></div>
+        <div class="result-sub" id="qr-meta">—</div>
+        <div class="qr-actions">
+          <button id="qr-download-svg" class="btn btn-primary" type="button">Download SVG</button>
+          <button id="qr-download-png" class="btn" type="button">Download PNG</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="../../assets/js/qrcode.js"></script>
+  <script src="./qr-code-generator.js"></script>
+</body>
+</html>

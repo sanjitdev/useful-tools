@@ -1,0 +1,50 @@
+/* Stopwatch & Timer — tool-specific tweaks */
+
+.display {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(2rem, 7vw, 4rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: center;
+  padding: var(--space-4, 16px) var(--space-3, 12px);
+  border-radius: 12px;
+  background: var(--color-surface-2, #f4f4f5);
+  border: 1px solid var(--color-border, #e5e7eb);
+  margin-bottom: var(--space-3, 12px);
+  color: var(--color-text);
+}
+
+.display.is-done {
+  color: var(--color-success, #10b981);
+}
+
+.laps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.laps li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: 8px 12px;
+  background: var(--color-surface-2, #f4f4f5);
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.laps li.is-fastest {
+  border-left: 4px solid var(--color-success, #10b981);
+}
+
+.laps li.is-slowest {
+  border-left: 4px solid var(--color-danger, #ef4444);
+}

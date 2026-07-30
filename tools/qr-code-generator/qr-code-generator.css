@@ -1,0 +1,44 @@
+/* QR Code Generator — tool-specific tweaks */
+
+.qr-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 800px) {
+  .qr-layout { grid-template-columns: 1fr; }
+}
+
+.qr-output-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qr-output {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: white;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.qr-output svg {
+  width: 100%;
+  height: auto;
+  max-width: 320px;
+  display: block;
+}
+
+.qr-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}

@@ -1,0 +1,21 @@
+/* Word Counter — tool-specific tweaks */
+
+.textarea {
+  min-height: 220px;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.result-grid .result-tile-value {
+  font-variant-numeric: tabular-nums;
+}
+
+#longest mark.longest {
+  background: var(--color-accent, #fde68a);
+  color: var(--color-text);
+  padding: 0 4px;
+  border-radius: 4px;
+  font-weight: 700;
+}

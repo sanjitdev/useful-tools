@@ -1,0 +1,97 @@
+/* Eisenhower Matrix — tool-specific tweaks */
+
+.matrix-grid {
+  margin-top: var(--space-4);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.quadrant {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border-top-width: 4px;
+  min-height: 220px;
+}
+
+.quadrant.q1 { border-top-color: var(--color-danger); }
+.quadrant.q2 { border-top-color: var(--color-accent); }
+.quadrant.q3 { border-top-color: var(--color-warning); }
+.quadrant.q4 { border-top-color: var(--color-muted); }
+
+.quadrant-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.quadrant-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.quadrant-sub {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 10px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+}
+
+.task-item.is-done .task-text {
+  text-decoration: line-through;
+  color: var(--color-muted);
+}
+
+.task-text {
+  flex: 1;
+}
+
+.task-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.task-actions button {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+}
+
+.quadrant-empty {
+  display: none;
+}
+
+.quadrant.is-empty .quadrant-empty {
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .matrix-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, auto);
+  }
+}

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Calculate semester GPA weighted by credits and combine it with a previous cumulative GPA.">
+  <title>GPA Calculator · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./gpa-calculator.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>GPA Calculator</h1>
+      <p class="tool-subtitle">Weighted-by-credit semester GPA and an optional cumulative GPA combiner.</p>
+    </header>
+
+    <div class="panel">
+      <div class="panel-title">Courses</div>
+      <div class="rows-head">
+        <div>Course</div>
+        <div>Credits</div>
+        <div>Grade</div>
+        <div></div>
+      </div>
+      <div id="rows" class="rows"></div>
+      <div style="display:flex; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap;">
+        <button id="add-row" class="btn btn-sm" type="button">+ Add course</button>
+        <button id="clear-all" class="btn btn-sm btn-ghost" type="button">Clear all</button>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-main" id="gpa">—</div>
+      <div class="result-sub" id="gpa-sub">Add courses to compute your semester GPA.</div>
+      <div class="result-grid">
+        <div class="result-tile"><div class="result-tile-label">Total credits</div><div class="result-tile-value" id="total-credits">—</div></div>
+        <div class="result-tile"><div class="result-tile-label">Total grade points</div><div class="result-tile-value" id="grade-points">—</div></div>
+        <div class="result-tile"><div class="result-tile-label">Courses counted</div><div class="result-tile-value" id="course-count">—</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Combine with previous cumulative GPA (optional)</div>
+      <div class="grid-3">
+        <div class="field">
+          <label class="field-label" for="prev-credits">Previous credits</label>
+          <input id="prev-credits" class="input" type="number" min="0" step="any" value="30">
+        </div>
+        <div class="field">
+          <label class="field-label" for="prev-gpa">Previous cumulative GPA</label>
+          <input id="prev-gpa" class="input" type="number" min="0" max="5" step="any" value="3.4">
+        </div>
+        <div class="field">
+          <label class="field-label" for="prev-scale">Scale</label>
+          <select id="prev-scale" class="select">
+            <option value="4" selected>4.0 scale</option>
+            <option value="5">5.0 scale</option>
+            <option value="10">10.0 scale</option>
+            <option value="100">100-point scale</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-main" id="cum-gpa">—</div>
+      <div class="result-sub" id="cum-gpa-sub">Enter your previous GPA to see the new cumulative.</div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./gpa-calculator.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+/* Age Calculator — tool-specific tweaks */
+
+#age-primary {
+  line-height: 1.1;
+}
+
+.result-grid .result-tile-value {
+  font-variant-numeric: tabular-nums;
+}
+
+#next-bday strong, #born-dow strong, #target-dow strong, #target-age-label strong {
+  font-weight: 700;
+  color: var(--color-text);
+}

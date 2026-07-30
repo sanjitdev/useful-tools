@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Generate placeholder text in paragraphs, sentences, or words — optionally wrapped as HTML and starting with the classic Lorem ipsum.">
+  <title>Lorem Ipsum · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./lorem-ipsum.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Lorem Ipsum</h1>
+      <p class="tool-subtitle">Placeholder text for designs and prototypes.</p>
+    </header>
+
+    <div class="panel">
+      <div class="panel-title">Options</div>
+      <div class="grid-3">
+        <div class="field">
+          <label class="field-label" for="count">Count</label>
+          <input id="count" class="input" type="number" min="1" max="500" step="1" value="3">
+        </div>
+        <div class="field">
+          <label class="field-label" for="unit">Unit</label>
+          <select id="unit" class="select">
+            <option value="paragraphs" selected>Paragraphs</option>
+            <option value="sentences">Sentences</option>
+            <option value="words">Words</option>
+          </select>
+        </div>
+        <div class="field" style="justify-content:flex-end;">
+          <label class="field-label">&nbsp;</label>
+          <div style="display:flex; flex-direction:column; gap: 6px;">
+            <label class="checkbox">
+              <input id="classic" type="checkbox" checked>
+              <span>Start with Lorem ipsum</span>
+            </label>
+            <label class="checkbox">
+              <input id="html" type="checkbox">
+              <span>Output as HTML &lt;p&gt;</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap;">
+        <button id="generate" class="btn btn-primary" type="button">Generate</button>
+        <button id="copy" class="btn" type="button">Copy output</button>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-main" id="output-title">Your text</div>
+      <div class="result-sub" id="output-sub">Click Generate to produce placeholder text.</div>
+      <hr class="divider">
+      <div id="output" class="code-block" style="max-height: 480px; overflow:auto;">—</div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./lorem-ipsum.js"></script>
+</body>
+</html>

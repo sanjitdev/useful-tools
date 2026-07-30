@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="A Pomodoro timer with focus, short break, long break, and full state persistence across reloads.">
+  <title>Pomodoro Timer · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./pomodoro-timer.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Pomodoro Timer</h1>
+      <p class="tool-subtitle">Focus, then break. Cycles through short and long breaks automatically.</p>
+    </header>
+
+    <div class="panel">
+      <div class="panel-title">Durations</div>
+      <div class="grid-3">
+        <div class="field">
+          <label class="field-label" for="d-focus">Focus (min)</label>
+          <input id="d-focus" class="input" type="number" min="1" max="180" step="1" value="25">
+        </div>
+        <div class="field">
+          <label class="field-label" for="d-short">Short break (min)</label>
+          <input id="d-short" class="input" type="number" min="1" max="60" step="1" value="5">
+        </div>
+        <div class="field">
+          <label class="field-label" for="d-long">Long break (min)</label>
+          <input id="d-long" class="input" type="number" min="1" max="120" step="1" value="15">
+        </div>
+      </div>
+      <div class="field" style="margin-top: var(--space-3); max-width: 240px;">
+        <label class="field-label" for="d-cycles">Focus cycles before long break</label>
+        <input id="d-cycles" class="input" type="number" min="2" max="10" step="1" value="4">
+      </div>
+      <button id="apply-durations" class="btn btn-sm" style="margin-top: var(--space-3);" type="button">Apply durations</button>
+    </div>
+
+    <div class="result-card">
+      <div class="phase-tag" id="phase-tag">Focus</div>
+      <div class="display" id="display">25:00</div>
+      <div class="controls">
+        <button id="start" class="btn btn-primary" type="button">Start</button>
+        <button id="pause" class="btn" type="button">Pause</button>
+        <button id="reset" class="btn" type="button">Reset</button>
+        <button id="skip" class="btn btn-ghost" type="button">Skip →</button>
+      </div>
+      <div class="cycles" id="cycles">Cycle 1 of 4 toward next long break</div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./pomodoro-timer.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+/* Countdown to Date — tool-specific tweaks */
+
+.result-card .result-tile-value {
+  font-variant-numeric: tabular-nums;
+}
+
+#cd-primary {
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.progress-track {
+  margin-top: var(--space-4);
+  height: 10px;
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-accent), #8b5cf6);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}

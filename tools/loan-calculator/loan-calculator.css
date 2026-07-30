@@ -1,0 +1,54 @@
+/* Loan Calculator — tool-specific tweaks */
+
+.result-main,
+.result-tile-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.schedule-wrap {
+  overflow-x: auto;
+}
+
+.schedule {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+}
+
+.schedule th,
+.schedule td {
+  padding: 8px 12px;
+  text-align: right;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.schedule th:first-child,
+.schedule td:first-child {
+  text-align: left;
+}
+
+.schedule thead th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.schedule tbody tr:hover {
+  background: var(--color-surface-2);
+}
+
+.schedule-section + .schedule-section {
+  margin-top: var(--space-4);
+}
+
+.schedule-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  margin-bottom: var(--space-2);
+}

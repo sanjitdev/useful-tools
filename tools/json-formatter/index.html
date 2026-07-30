@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Format, minify, and validate JSON. Includes a collapsible tree view.">
+  <title>JSON Formatter · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./json-formatter.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>JSON Formatter</h1>
+      <p class="tool-subtitle">Format, minify, validate, and explore JSON.</p>
+    </header>
+
+    <div class="panel">
+      <div class="panel-title">Input</div>
+      <textarea id="json-input" class="textarea" spellcheck="false"></textarea>
+      <div style="display:flex; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap;">
+        <button id="format" class="btn btn-primary" type="button">Format</button>
+        <button id="minify" class="btn" type="button">Minify</button>
+        <button id="validate" class="btn" type="button">Validate</button>
+        <button id="tree" class="btn btn-ghost" type="button">Toggle tree view</button>
+        <button id="copy-out" class="btn btn-ghost" type="button">Copy output</button>
+      </div>
+      <div id="status"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Output</div>
+      <div id="output" class="code-block" style="max-height:520px; overflow:auto;">—</div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./json-formatter.js"></script>
+</body>
+</html>

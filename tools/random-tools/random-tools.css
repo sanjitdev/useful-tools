@@ -1,0 +1,72 @@
+/* Random Tools — tool-specific tweaks */
+
+.result-main {
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.strength-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--color-surface-2, #e5e7eb);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: var(--space-3, 12px);
+}
+.strength-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--color-danger, #ef4444);
+  transition: width 0.2s, background 0.2s;
+}
+.strength-bar-fill.s-weak   { background: var(--color-danger, #ef4444); }
+.strength-bar-fill.s-medium { background: var(--color-warning, #f59e0b); }
+.strength-bar-fill.s-strong { background: var(--color-success, #10b981); }
+
+.bar-chart {
+  display: flex;
+  height: 28px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: var(--space-3, 12px);
+  background: var(--color-surface-2, #e5e7eb);
+}
+.bar-chart .bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+  transition: width 0.25s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.bar-chart .bar-heads { background: var(--color-primary, #4f46e5); width: 50%; }
+.bar-chart .bar-tails { background: var(--color-accent, #10b981); width: 50%; }
+
+.die {
+  display: inline-block;
+  min-width: 40px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--color-surface-2, #eef2ff);
+  color: var(--color-text);
+  font-weight: 700;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  border: 1px solid var(--color-border, #e5e7eb);
+}
+
+.die.is-max {
+  background: var(--color-primary, #4f46e5);
+  color: white;
+  border-color: var(--color-primary, #4f46e5);
+}
+
+.die.is-min {
+  background: var(--color-warning, #f59e0b);
+  color: white;
+  border-color: var(--color-warning, #f59e0b);
+}

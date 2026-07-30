@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Convert between units of length, mass, temperature, volume, time, and data. Live conversion as you type.">
+  <title>Unit Converter · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./unit-converter.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Unit Converter</h1>
+      <p class="tool-subtitle">Convert between units of length, mass, temperature, volume, time, and data.</p>
+    </header>
+
+    <div class="tabs" role="tablist" id="cat-tabs">
+      <button class="tab is-active" data-tab="length" type="button" role="tab">Length</button>
+      <button class="tab" data-tab="mass" type="button" role="tab">Mass</button>
+      <button class="tab" data-tab="temperature" type="button" role="tab">Temperature</button>
+      <button class="tab" data-tab="volume" type="button" role="tab">Volume</button>
+      <button class="tab" data-tab="time" type="button" role="tab">Time</button>
+      <button class="tab" data-tab="data" type="button" role="tab">Data</button>
+    </div>
+
+    <div data-tab-panel="length">
+      <div class="panel">
+        <div class="panel-title">Length</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="l-from">From</label>
+            <select id="l-from" class="select"></select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="l-input">Amount</label>
+            <input id="l-input" class="input" type="number" step="any" value="1">
+          </div>
+          <div class="field">
+            <label class="field-label" for="l-to">To</label>
+            <select id="l-to" class="select"></select>
+          </div>
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-main" id="l-result">—</div>
+        <div class="result-sub" id="l-sub">Live conversion</div>
+      </div>
+    </div>
+
+    <div data-tab-panel="mass" style="display:none">
+      <div class="panel">
+        <div class="panel-title">Mass</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="m-from">From</label>
+            <select id="m-from" class="select"></select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="m-input">Amount</label>
+            <input id="m-input" class="input" type="number" step="any" value="1">
+          </div>
+          <div class="field">
+            <label class="field-label" for="m-to">To</label>
+            <select id="m-to" class="select"></select>
+          </div>
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-main" id="m-result">—</div>
+        <div class="result-sub" id="m-sub">Live conversion</div>
+      </div>
+    </div>
+
+    <div data-tab-panel="temperature" style="display:none">
+      <div class="panel">
+        <div class="panel-title">Temperature</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="t-from">From</label>
+            <select id="t-from" class="select"></select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="t-input">Amount</label>
+            <input id="t-input" class="input" type="number" step="any" value="0">
+          </div>
+          <div class="field">
+            <label class="field-label" for="t-to">To</label>
+            <select id="t-to" class="select"></select>
+          </div>
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-main" id="t-result">—</div>
+        <div class="result-sub" id="t-sub">Live conversion</div>
+      </div>
+    </div>
+
+    <div data-tab-panel="volume" style="display:none">
+      <div class="panel">
+        <div class="panel-title">Volume</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="v-from">From</label>
+            <select id="v-from" class="select"></select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="v-input">Amount</label>
+            <input id="v-input" class="input" type="number" step="any" value="1">
+          </div>
+          <div class="field">
+            <label class="field-label" for="v-to">To</label>
+            <select id="v-to" class="select"></select>
+          </div>
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-main" id="v-result">—</div>
+        <div class="result-sub" id="v-sub">Live conversion</div>
+      </div>
+    </div>
+
+    <div data-tab-panel="time" style="display:none">
+      <div class="panel">
+        <div class="panel-title">Time</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="ti-from">From</label>
+            <select id="ti-from" class="select"></select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ti-input">Amount</label>
+            <input id="ti-input" class="input" type="number" step="any" value="1">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ti-to">To</label>
+            <select id="ti-to" class="select"></select>
+          </div>
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-main" id="ti-result">—</div>
+        <div class="result-sub" id="ti-sub">Live conversion</div>
+      </div>
+    </div>
+
+    <div data-tab-panel="data" style="display:none">
+      <div class="panel">
+        <div class="panel-title">Data</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="d-from">From</label>
+            <select id="d-from" class="select"></select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="d-input">Amount</label>
+            <input id="d-input" class="input" type="number" step="any" value="1">
+          </div>
+          <div class="field">
+            <label class="field-label" for="d-to">To</label>
+            <select id="d-to" class="select"></select>
+          </div>
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-main" id="d-result">—</div>
+        <div class="result-sub" id="d-sub">Live conversion</div>
+      </div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./unit-converter.js"></script>
+</body>
+</html>

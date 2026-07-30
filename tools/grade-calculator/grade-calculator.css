@@ -1,0 +1,28 @@
+/* Grade Calculator — tool-specific tweaks */
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.row .input { min-width: 0; }
+
+.row .btn-danger {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: 1fr 1fr auto;
+  }
+  .row .name { grid-column: 1 / -1; }
+}

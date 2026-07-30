@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Weigh the pros and cons of a decision with adjustable weights, a running score, and a verdict.">
+  <title>Pros &amp; Cons · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./pros-cons.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Pros &amp; Cons</h1>
+      <p class="tool-subtitle">List the ups and downs, weight each, and watch the verdict tilt.</p>
+    </header>
+
+    <div class="panel">
+      <div class="panel-title">The decision</div>
+      <input id="pc-question" class="input" type="text" placeholder="e.g. Should I move to a new city?">
+      <div class="score-row">
+        <div class="score-tile">
+          <div class="score-label">Pros</div>
+          <div class="score-value" id="pc-pros-score">0</div>
+        </div>
+        <div class="score-tile">
+          <div class="score-label">Cons</div>
+          <div class="score-value" id="pc-cons-score">0</div>
+        </div>
+        <div class="score-tile">
+          <div class="score-label">Score</div>
+          <div class="score-value" id="pc-net">0</div>
+        </div>
+        <div class="score-tile">
+          <div class="score-label">Verdict</div>
+          <div class="score-value score-verdict" id="pc-verdict">Toss-up</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="pc-column pc-pros">
+        <div class="panel">
+          <div class="panel-title pc-title-pros">Pros</div>
+          <div class="row" style="gap: var(--space-2);">
+            <input id="pc-pro-input" class="input" type="text" placeholder="Add a pro…" style="flex:1;">
+            <button id="pc-pro-add" class="btn btn-primary btn-sm" type="button">Add</button>
+          </div>
+          <ul id="pc-pro-list" class="list-reset" style="margin-top: var(--space-3);"></ul>
+        </div>
+      </div>
+
+      <div class="pc-column pc-cons">
+        <div class="panel">
+          <div class="panel-title pc-title-cons">Cons</div>
+          <div class="row" style="gap: var(--space-2);">
+            <input id="pc-con-input" class="input" type="text" placeholder="Add a con…" style="flex:1;">
+            <button id="pc-con-add" class="btn btn-primary btn-sm" type="button">Add</button>
+          </div>
+          <ul id="pc-con-list" class="list-reset" style="margin-top: var(--space-3);"></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top: var(--space-4);">
+      <button id="pc-clear" class="btn btn-ghost btn-sm" type="button">Clear all</button>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./pros-cons.js"></script>
+</body>
+</html>

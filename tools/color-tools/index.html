@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Pick colors and convert between HEX, RGB, and HSL. Random color generator with copy-to-clipboard.">
+  <title>Color Tools · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./color-tools.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Color Tools</h1>
+      <p class="tool-subtitle">Pick a color and convert between HEX, RGB, and HSL. Copy any format with one click.</p>
+    </header>
+
+    <div class="panel">
+      <div class="panel-title">Pick a color</div>
+      <div class="grid-3">
+        <div class="field">
+          <label class="field-label" for="c-picker">Color picker</label>
+          <input id="c-picker" class="color-picker" type="color" value="#4f46e5">
+        </div>
+        <div class="field">
+          <label class="field-label" for="c-hex">HEX</label>
+          <input id="c-hex" class="input" type="text" value="#4f46e5" maxlength="7">
+        </div>
+        <div class="field">
+          <label class="field-label">Actions</label>
+          <div class="row" style="gap: 8px;">
+            <button id="c-random" class="btn btn-primary" type="button">Random</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="swatch-large" id="c-swatch" aria-hidden="true"></div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-title">RGB</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="c-r">R</label>
+            <input id="c-r" class="input" type="number" min="0" max="255" value="79">
+          </div>
+          <div class="field">
+            <label class="field-label" for="c-g">G</label>
+            <input id="c-g" class="input" type="number" min="0" max="255" value="70">
+          </div>
+          <div class="field">
+            <label class="field-label" for="c-b">B</label>
+            <input id="c-b" class="input" type="number" min="0" max="255" value="229">
+          </div>
+        </div>
+        <div class="row" style="margin-top: var(--space-3); gap: var(--space-3); flex-wrap: wrap;">
+          <code class="code-block" id="c-rgb-str">rgb(79, 70, 229)</code>
+          <button id="c-copy-rgb" class="btn btn-ghost btn-sm" type="button">Copy RGB</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">HSL</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="c-h">H (°)</label>
+            <input id="c-h" class="input" type="number" min="0" max="360" value="243">
+          </div>
+          <div class="field">
+            <label class="field-label" for="c-s">S (%)</label>
+            <input id="c-s" class="input" type="number" min="0" max="100" value="76">
+          </div>
+          <div class="field">
+            <label class="field-label" for="c-l">L (%)</label>
+            <input id="c-l" class="input" type="number" min="0" max="100" value="59">
+          </div>
+        </div>
+        <div class="row" style="margin-top: var(--space-3); gap: var(--space-3); flex-wrap: wrap;">
+          <code class="code-block" id="c-hsl-str">hsl(243, 76%, 59%)</code>
+          <button id="c-copy-hsl" class="btn btn-ghost btn-sm" type="button">Copy HSL</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top: var(--space-3); gap: var(--space-3); flex-wrap: wrap;">
+      <button id="c-copy-hex" class="btn btn-primary" type="button">Copy HEX</button>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./color-tools.js"></script>
+</body>
+</html>

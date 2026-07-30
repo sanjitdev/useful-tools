@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Count characters, words, sentences, paragraphs, and reading time as you type.">
+  <title>Word Counter · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./word-counter.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Word Counter</h1>
+      <p class="tool-subtitle">Live counts of characters, words, sentences, paragraphs, and reading time.</p>
+    </header>
+
+    <div class="panel">
+      <div class="field">
+        <label class="field-label" for="text">Type or paste your text</label>
+        <textarea id="text" class="textarea" rows="12" placeholder="Start typing here…"></textarea>
+      </div>
+      <div class="row" style="margin-top: var(--space-3); gap: var(--space-4); flex-wrap: wrap;">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input id="highlight" type="checkbox">
+          <span>Highlight the longest word</span>
+        </label>
+        <button id="clear" class="btn btn-ghost btn-sm" type="button">Clear text</button>
+      </div>
+    </div>
+
+    <div class="result-grid">
+      <div class="result-tile"><div class="result-tile-label">Characters</div><div class="result-tile-value" id="c-chars">0</div></div>
+      <div class="result-tile"><div class="result-tile-label">Characters (no spaces)</div><div class="result-tile-value" id="c-chars-ns">0</div></div>
+      <div class="result-tile"><div class="result-tile-label">Words</div><div class="result-tile-value" id="c-words">0</div></div>
+      <div class="result-tile"><div class="result-tile-label">Sentences</div><div class="result-tile-value" id="c-sentences">0</div></div>
+      <div class="result-tile"><div class="result-tile-label">Paragraphs</div><div class="result-tile-value" id="c-paragraphs">0</div></div>
+      <div class="result-tile"><div class="result-tile-label">Reading time</div><div class="result-tile-value" id="c-reading">0 sec</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Longest word</div>
+      <div id="longest" class="result-main" style="font-size: 1.4rem;">—</div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./word-counter.js"></script>
+</body>
+</html>

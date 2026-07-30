@@ -1,0 +1,20 @@
+/* JSON Formatter — tool-specific tweaks */
+
+.tree { font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.5; }
+.tree ul { list-style: none; padding-left: 18px; margin: 0; border-left: 1px dashed var(--color-border); }
+.tree > ul { border-left: none; padding-left: 0; }
+.tree .row { display: flex; align-items: flex-start; gap: 4px; }
+.tree .toggle {
+  cursor: pointer;
+  user-select: none;
+  width: 14px;
+  display: inline-block;
+  color: var(--color-muted);
+}
+.tree .key { color: var(--color-accent); }
+.tree .str { color: var(--color-success); word-break: break-all; }
+.tree .num { color: var(--color-warning); }
+.tree .bool { color: var(--color-accent); }
+.tree .null { color: var(--color-muted); font-style: italic; }
+.tree .collapsed > ul { display: none; }
+.tree .meta { color: var(--color-muted); margin-left: 4px; }

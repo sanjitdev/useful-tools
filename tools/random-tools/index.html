@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Generate random numbers, secure passwords, dice rolls, and coin flips — all in one tool.">
+  <title>Random Tools · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./random-tools.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Random Tools</h1>
+      <p class="tool-subtitle">Generate random numbers, passwords, dice rolls, and coin flips.</p>
+    </header>
+
+    <div class="tabs" role="tablist" id="mode-tabs">
+      <button class="tab is-active" data-tab="number" type="button" role="tab">Number</button>
+      <button class="tab" data-tab="password" type="button" role="tab">Password</button>
+      <button class="tab" data-tab="dice" type="button" role="tab">Dice</button>
+      <button class="tab" data-tab="coin" type="button" role="tab">Coin</button>
+    </div>
+
+    <div data-tab-panel="number">
+      <div class="panel">
+        <div class="panel-title">Generate random numbers</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="n-min">Min</label>
+            <input id="n-min" class="input" type="number" value="1">
+          </div>
+          <div class="field">
+            <label class="field-label" for="n-max">Max</label>
+            <input id="n-max" class="input" type="number" value="100">
+          </div>
+          <div class="field">
+            <label class="field-label" for="n-count">How many?</label>
+            <input id="n-count" class="input" type="number" min="1" max="100" value="5">
+          </div>
+        </div>
+        <div class="row" style="margin-top: var(--space-3); gap: var(--space-4); flex-wrap: wrap;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input id="n-int" type="checkbox" checked>
+            <span>Integers only</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input id="n-unique" type="checkbox">
+            <span>Unique values only</span>
+          </label>
+          <button id="n-gen" class="btn btn-primary" type="button">Generate</button>
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-main" id="n-result">—</div>
+        <div class="result-sub" id="n-sub">Click generate to draw numbers.</div>
+      </div>
+    </div>
+
+    <div data-tab-panel="password" style="display:none">
+      <div class="panel">
+        <div class="panel-title">Generate a secure password</div>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="p-len">Length: <span id="p-len-val">16</span></label>
+            <input id="p-len" class="input" type="range" min="6" max="64" value="16">
+          </div>
+          <div class="field">
+            <label class="field-label">Character types</label>
+            <div class="stack" style="gap: 4px;">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input id="p-up" type="checkbox" checked><span>Uppercase A–Z</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input id="p-lo" type="checkbox" checked><span>Lowercase a–z</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input id="p-num" type="checkbox" checked><span>Digits 0–9</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input id="p-sym" type="checkbox" checked><span>Symbols !@#$…</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="row" style="margin-top: var(--space-3); gap: var(--space-3);">
+          <button id="p-gen" class="btn btn-primary" type="button">Regenerate</button>
+          <button id="p-copy" class="btn btn-ghost" type="button">Copy</button>
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-main" id="p-result" style="font-family: ui-monospace, Menlo, Consolas, monospace; word-break: break-all;">—</div>
+        <div class="result-sub" id="p-sub">Pick your options and generate.</div>
+        <div class="strength-bar" aria-hidden="true">
+          <div class="strength-bar-fill" id="p-strength"></div>
+        </div>
+        <div class="row" style="margin-top: var(--space-2); gap: var(--space-3);">
+          <span class="badge" id="p-strength-label">Strength: —</span>
+        </div>
+      </div>
+    </div>
+
+    <div data-tab-panel="dice" style="display:none">
+      <div class="panel">
+        <div class="panel-title">Roll dice</div>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="d-type">Dice type</label>
+            <select id="d-type" class="select">
+              <option value="4">d4</option>
+              <option value="6" selected>d6</option>
+              <option value="8">d8</option>
+              <option value="10">d10</option>
+              <option value="12">d12</option>
+              <option value="20">d20</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="d-count">Number of dice</label>
+            <input id="d-count" class="input" type="number" min="1" max="20" value="2">
+          </div>
+        </div>
+        <div class="row" style="margin-top: var(--space-3); gap: var(--space-3);">
+          <button id="d-roll" class="btn btn-primary" type="button">Roll</button>
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-main" id="d-result">—</div>
+        <div class="result-sub" id="d-sub">Roll to see results.</div>
+        <div id="d-list" class="row" style="margin-top: var(--space-3); flex-wrap: wrap; gap: 8px;"></div>
+      </div>
+    </div>
+
+    <div data-tab-panel="coin" style="display:none">
+      <div class="panel">
+        <div class="panel-title">Flip coins</div>
+        <div class="field">
+          <label class="field-label" for="c-count">Number of flips</label>
+          <input id="c-count" class="input" type="number" min="1" max="100" value="20">
+        </div>
+        <div class="row" style="margin-top: var(--space-3); gap: var(--space-3);">
+          <button id="c-flip" class="btn btn-primary" type="button">Flip</button>
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-grid">
+          <div class="result-tile"><div class="result-tile-label">Heads</div><div class="result-tile-value" id="c-heads">—</div></div>
+          <div class="result-tile"><div class="result-tile-label">Tails</div><div class="result-tile-value" id="c-tails">—</div></div>
+          <div class="result-tile"><div class="result-tile-label">Total</div><div class="result-tile-value" id="c-total">—</div></div>
+        </div>
+        <div class="bar-chart" id="c-chart" aria-hidden="true">
+          <div class="bar bar-heads" id="c-bar-heads"><span id="c-pct-heads">0%</span></div>
+          <div class="bar bar-tails" id="c-bar-tails"><span id="c-pct-tails">0%</span></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./random-tools.js"></script>
+</body>
+</html>

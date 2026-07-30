@@ -1,0 +1,92 @@
+/* Habit Tracker — tool-specific tweaks */
+
+.habit-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.habit-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.habit-emoji {
+  font-size: 1.5rem;
+}
+
+.habit-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.habit-stats {
+  display: flex;
+  gap: var(--space-3);
+  margin-left: auto;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.habit-stats strong {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.habit-grid {
+  margin-top: var(--space-3);
+  display: grid;
+  grid-template-columns: repeat(30, 1fr);
+  gap: 3px;
+  max-width: 100%;
+}
+
+.habit-cell {
+  aspect-ratio: 1 / 1;
+  border-radius: 4px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  position: relative;
+  cursor: default;
+  min-width: 0;
+}
+
+.habit-cell.is-done {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.habit-cell.is-today {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.habit-actions {
+  margin-top: var(--space-3);
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.habit-actions .checkbox {
+  font-size: 0.95rem;
+}
+
+.empty {
+  text-align: center;
+  color: var(--color-muted);
+  padding: var(--space-5);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .habit-grid { gap: 2px; }
+  .habit-stats { margin-left: 0; width: 100%; }
+}

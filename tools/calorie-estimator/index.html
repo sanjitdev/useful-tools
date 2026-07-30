@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Estimate daily calorie needs with BMR and TDEE using the Mifflin-St Jeor equation, plus macro split suggestions.">
+  <title>Calorie Estimator · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./calorie-estimator.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Calorie Estimator</h1>
+      <p class="tool-subtitle">Estimate daily calorie needs with BMR, TDEE, and macro split guidance.</p>
+    </header>
+
+    <div class="tabs" role="tablist" id="unit-tabs">
+      <button class="tab is-active" data-tab="metric" type="button" role="tab">Metric (cm / kg)</button>
+      <button class="tab" data-tab="imperial" type="button" role="tab">Imperial (ft+in / lb)</button>
+    </div>
+
+    <div data-tab-panel="metric">
+      <div class="panel">
+        <div class="panel-title">About you</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label">Sex</label>
+            <div class="row" style="gap: var(--space-3);">
+              <label class="radio"><input type="radio" name="sex" value="male" checked> Male</label>
+              <label class="radio"><input type="radio" name="sex" value="female"> Female</label>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="age-m">Age (years)</label>
+            <input id="age-m" class="input" type="number" min="10" max="120" step="1" value="30">
+          </div>
+          <div class="field">
+            <label class="field-label" for="activity-m">Activity level</label>
+            <select id="activity-m" class="select">
+              <option value="1.2">Sedentary (desk job)</option>
+              <option value="1.375">Light (1-3 days/wk)</option>
+              <option value="1.55" selected>Moderate (3-5 days/wk)</option>
+              <option value="1.725">Active (6-7 days/wk)</option>
+              <option value="1.9">Very active (twice/day)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="h-cm">Height (cm)</label>
+            <input id="h-cm" class="input" type="number" min="50" max="260" step="any" value="180">
+          </div>
+          <div class="field">
+            <label class="field-label" for="w-kg">Weight (kg)</label>
+            <input id="w-kg" class="input" type="number" min="20" max="500" step="any" value="75">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div data-tab-panel="imperial" style="display:none">
+      <div class="panel">
+        <div class="panel-title">About you</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label">Sex</label>
+            <div class="row" style="gap: var(--space-3);">
+              <label class="radio"><input type="radio" name="sex-i" value="male" checked> Male</label>
+              <label class="radio"><input type="radio" name="sex-i" value="female"> Female</label>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="age-i">Age (years)</label>
+            <input id="age-i" class="input" type="number" min="10" max="120" step="1" value="30">
+          </div>
+          <div class="field">
+            <label class="field-label" for="activity-i">Activity level</label>
+            <select id="activity-i" class="select">
+              <option value="1.2">Sedentary (desk job)</option>
+              <option value="1.375">Light (1-3 days/wk)</option>
+              <option value="1.55" selected>Moderate (3-5 days/wk)</option>
+              <option value="1.725">Active (6-7 days/wk)</option>
+              <option value="1.9">Very active (twice/day)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="h-ft">Height (ft)</label>
+            <input id="h-ft" class="input" type="number" min="1" max="8" value="5">
+          </div>
+          <div class="field">
+            <label class="field-label" for="h-in">Height (in)</label>
+            <input id="h-in" class="input" type="number" min="0" max="11" value="11">
+          </div>
+          <div class="field">
+            <label class="field-label" for="w-lb">Weight (lb)</label>
+            <input id="w-lb" class="input" type="number" min="40" max="1100" step="any" value="165">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-main" id="tdee">—</div>
+      <div class="result-sub" id="tdee-sub">Enter your stats to see your daily energy needs.</div>
+      <div class="result-grid">
+        <div class="result-tile"><div class="result-tile-label">BMR</div><div class="result-tile-value" id="bmr">—</div></div>
+        <div class="result-tile"><div class="result-tile-label">Activity multiplier</div><div class="result-tile-value" id="multiplier">—</div></div>
+        <div class="result-tile"><div class="result-tile-label">BMI</div><div class="result-tile-value" id="bmi">—</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Daily calorie targets</div>
+      <div class="targets">
+        <div class="target-row" data-goal="loss-fast">
+          <div class="target-label">To lose 1 kg/week</div>
+          <div class="target-value" id="loss-fast">—</div>
+          <div class="target-note muted text-sm">~1,000 kcal deficit</div>
+        </div>
+        <div class="target-row" data-goal="loss-half">
+          <div class="target-label">To lose 0.5 kg/week</div>
+          <div class="target-value" id="loss-half">—</div>
+          <div class="target-note muted text-sm">~500 kcal deficit</div>
+        </div>
+        <div class="target-row" data-goal="maint">
+          <div class="target-label">Maintain weight</div>
+          <div class="target-value" id="maint">—</div>
+          <div class="target-note muted text-sm">Match TDEE</div>
+        </div>
+        <div class="target-row" data-goal="gain-half">
+          <div class="target-label">To gain 0.5 kg/week</div>
+          <div class="target-value" id="gain-half">—</div>
+          <div class="target-note muted text-sm">~500 kcal surplus</div>
+        </div>
+        <div class="target-row" data-goal="gain-fast">
+          <div class="target-label">To gain 1 kg/week</div>
+          <div class="target-value" id="gain-fast">—</div>
+          <div class="target-note muted text-sm">~1,000 kcal surplus</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Suggested macro split at maintenance</div>
+      <p class="muted text-sm" style="margin-bottom: var(--space-3);">40% carbs · 30% protein · 30% fat</p>
+      <div class="grid-3">
+        <div class="result-tile">
+          <div class="result-tile-label">Carbs (40%)</div>
+          <div class="result-tile-value" id="macro-carbs">—</div>
+          <div class="muted text-sm" id="macro-carbs-g">—</div>
+        </div>
+        <div class="result-tile">
+          <div class="result-tile-label">Protein (30%)</div>
+          <div class="result-tile-value" id="macro-protein">—</div>
+          <div class="muted text-sm" id="macro-protein-g">—</div>
+        </div>
+        <div class="result-tile">
+          <div class="result-tile-label">Fat (30%)</div>
+          <div class="result-tile-value" id="macro-fat">—</div>
+          <div class="muted text-sm" id="macro-fat-g">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="warning"></div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./calorie-estimator.js"></script>
+</body>
+</html>

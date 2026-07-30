@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Calculate percentages three ways: X% of Y, X is what % of Y, and the percent change between two values.">
+  <title>Percentage Calculator · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./percentage-calculator.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Percentage Calculator</h1>
+      <p class="tool-subtitle">Three everyday percentage problems, with the formula shown for each.</p>
+    </header>
+
+    <div class="tabs" id="mode-tabs" role="tablist">
+      <button class="tab is-active" data-tab="of" type="button" role="tab">X% of Y</button>
+      <button class="tab" data-tab="is" type="button" role="tab">X is what % of Y</button>
+      <button class="tab" data-tab="change" type="button" role="tab">% change</button>
+    </div>
+
+    <div data-tab-panel="of">
+      <div class="panel">
+        <div class="panel-title">What is X% of Y?</div>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="of-x">Percentage (X)</label>
+            <input id="of-x" class="input" type="number" step="any" value="15">
+          </div>
+          <div class="field">
+            <label class="field-label" for="of-y">Number (Y)</label>
+            <input id="of-y" class="input" type="number" step="any" value="240">
+          </div>
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-main" id="of-result">—</div>
+        <div class="result-sub" id="of-sub">—</div>
+        <hr class="divider">
+        <div class="code-block" id="of-formula">Formula: (X / 100) × Y</div>
+      </div>
+    </div>
+
+    <div data-tab-panel="is" style="display:none">
+      <div class="panel">
+        <div class="panel-title">X is what % of Y?</div>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="is-x">Number (X)</label>
+            <input id="is-x" class="input" type="number" step="any" value="36">
+          </div>
+          <div class="field">
+            <label class="field-label" for="is-y">Number (Y)</label>
+            <input id="is-y" class="input" type="number" step="any" value="240">
+          </div>
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-main" id="is-result">—</div>
+        <div class="result-sub" id="is-sub">—</div>
+        <hr class="divider">
+        <div class="code-block" id="is-formula">Formula: (X / Y) × 100</div>
+      </div>
+    </div>
+
+    <div data-tab-panel="change" style="display:none">
+      <div class="panel">
+        <div class="panel-title">Percent change from X to Y</div>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="ch-old">Original value (X)</label>
+            <input id="ch-old" class="input" type="number" step="any" value="80">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ch-new">New value (Y)</label>
+            <input id="ch-new" class="input" type="number" step="any" value="100">
+          </div>
+        </div>
+      </div>
+      <div class="result-card">
+        <div class="result-main" id="ch-result">—</div>
+        <div class="result-sub" id="ch-sub">—</div>
+        <hr class="divider">
+        <div class="code-block" id="ch-formula">Formula: ((Y − X) / |X|) × 100</div>
+      </div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./percentage-calculator.js"></script>
+</body>
+</html>

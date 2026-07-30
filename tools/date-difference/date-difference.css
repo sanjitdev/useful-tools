@@ -1,0 +1,9 @@
+/* Date Difference — tool-specific tweaks */
+
+.result-grid .result-tile-value {
+  font-variant-numeric: tabular-nums;
+}
+
+#primary {
+  line-height: 1.1;
+}

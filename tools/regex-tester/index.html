@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Test JavaScript regular expressions against a test string with live match highlighting and capture group details.">
+  <title>Regex Tester · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./regex-tester.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Regex Tester</h1>
+      <p class="tool-subtitle">Test a regular expression against a sample string with live match highlighting.</p>
+    </header>
+
+    <div class="panel">
+      <div class="panel-title">Pattern</div>
+      <div class="grid-2">
+        <div class="field">
+          <label class="field-label" for="pattern">Pattern</label>
+          <input id="pattern" class="input text-mono" type="text" value="\b\w+@\w+\.\w+\b">
+        </div>
+        <div class="field">
+          <label class="field-label" for="flags">Flags</label>
+          <input id="flags" class="input text-mono" type="text" value="gi">
+        </div>
+      </div>
+      <div class="row" style="margin-top: var(--space-3);">
+        <label class="checkbox">
+          <input id="live" type="checkbox" checked> Live test
+        </label>
+        <div class="spacer"></div>
+        <button id="run" class="btn btn-sm btn-primary" type="button">Run</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Test string</div>
+      <textarea id="test" class="textarea" rows="6">Contact alice@example.com or bob@hello.org for details.</textarea>
+    </div>
+
+    <div id="status-wrap"></div>
+
+    <div class="panel">
+      <div class="panel-title">Highlighted output</div>
+      <div id="highlighted" class="highlighted code-block"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Match details</div>
+      <div id="matches"></div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./regex-tester.js"></script>
+</body>
+</html>

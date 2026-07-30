@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Precision stopwatch with laps and a countdown timer with a chime when it hits zero.">
+  <title>Stopwatch &amp; Timer · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./stopwatch.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Stopwatch &amp; Timer</h1>
+      <p class="tool-subtitle">Precision stopwatch with laps, and a countdown timer that chimes when it finishes.</p>
+    </header>
+
+    <div class="tabs" role="tablist" id="mode-tabs">
+      <button class="tab is-active" data-tab="stopwatch" type="button" role="tab">Stopwatch</button>
+      <button class="tab" data-tab="timer" type="button" role="tab">Timer</button>
+    </div>
+
+    <div data-tab-panel="stopwatch">
+      <div class="panel">
+        <div class="display" id="sw-display">00:00:00.00</div>
+        <div class="row" style="gap: var(--space-3); flex-wrap: wrap;">
+          <button id="sw-start" class="btn btn-primary" type="button">Start</button>
+          <button id="sw-lap" class="btn btn-ghost" type="button" disabled>Lap</button>
+          <button id="sw-reset" class="btn btn-ghost" type="button" disabled>Reset</button>
+        </div>
+        <div id="sw-stats" class="row" style="gap: var(--space-4); margin-top: var(--space-3); flex-wrap: wrap;">
+          <span class="badge">Laps: <strong id="sw-lap-count">0</strong></span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Laps</div>
+        <ul id="sw-laps" class="laps"></ul>
+      </div>
+    </div>
+
+    <div data-tab-panel="timer" style="display:none">
+      <div class="panel">
+        <div class="display" id="t-display">00:00</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="t-min">Minutes</label>
+            <input id="t-min" class="input" type="number" min="0" max="99" value="5">
+          </div>
+          <div class="field">
+            <label class="field-label" for="t-sec">Seconds</label>
+            <input id="t-sec" class="input" type="number" min="0" max="59" value="0">
+          </div>
+          <div class="field">
+            <label class="field-label">&nbsp;</label>
+            <button id="t-set" class="btn btn-ghost" type="button">Set</button>
+          </div>
+        </div>
+        <div class="row" style="gap: var(--space-3); margin-top: var(--space-3); flex-wrap: wrap;">
+          <button id="t-start" class="btn btn-primary" type="button">Start</button>
+          <button id="t-pause" class="btn btn-ghost" type="button" disabled>Pause</button>
+          <button id="t-reset" class="btn btn-ghost" type="button">Reset</button>
+        </div>
+        <div id="t-msg" class="muted" style="margin-top: var(--space-3);"></div>
+      </div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./stopwatch.js"></script>
+</body>
+</html>

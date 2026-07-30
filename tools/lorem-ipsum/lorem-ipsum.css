@@ -1,0 +1,6 @@
+/* Lorem Ipsum — tool-specific tweaks */
+
+#output {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
