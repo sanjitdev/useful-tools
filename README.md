@@ -1,6 +1,6 @@
 # Handy Tools
 
-A collection of 33 small, useful everyday tools — age calculator, unit converter, password generator, QR code generator, Bangladesh income tax calculator, space calculator, animal race, and more. **Zero dependencies, fully offline, hosted on GitHub Pages.**
+A collection of 34 small, useful everyday tools — age calculator, unit converter, password generator, QR code generator, Bangladesh income tax calculator, space calculator, animal race, lifespan simulator, and more. **Zero dependencies, fully offline, hosted on GitHub Pages.**
 
 ## What's inside
 
@@ -14,14 +14,17 @@ A collection of 33 small, useful everyday tools — age calculator, unit convert
 
 **Converters & Calculators**
 - Unit Converter
-- BMI Calculator
 - Tip Calculator
 - Percentage Calculator
 - Grade Calculator
 - Compound Interest
 - Loan Calculator
-- Calorie Estimator
 - Bangladesh Tax Calculator (AY 2026-27, bilingual EN/BN)
+
+**Health & Body**
+- Lifespan Simulator (statistical lifespan estimate from lifestyle, health, and habits)
+- BMI Calculator
+- Calorie Estimator
 
 **Text & Writing**
 - Word & Character Counter
@@ -75,7 +78,7 @@ python -m http.server 8080
 
 ```
 useful-tools/
-├── index.html              # Home page — grid of 20 tools, grouped by category
+├── index.html              # Home page — grid of tools, grouped by category
 ├── assets/
 │   ├── css/                # base.css, components.css, tools.css
 │   ├── js/                 # layout.js, utils.js, theme.js, qrcode.js

@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Estimate your statistical lifespan based on your lifestyle, health, and habits. A statistical model that explains why it reached its estimate.">
+  <title>Lifespan Simulator · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <script>(function(){try{var t=localStorage.getItem("ht.theme");t=t||(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var d=document.documentElement;d.setAttribute("data-theme",t);d.style.backgroundColor=t==="dark"?"#0f1117":"#f7f8fb";d.style.color=t==="dark"?"#e8eaf0":"#1a1d29"}catch(e){document.documentElement.setAttribute("data-theme","light")}})();</script>
+
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./lifespan-simulator.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Lifespan Simulator</h1>
+      <p class="tool-subtitle">Estimate your statistical lifespan based on your lifestyle, health, and habits.</p>
+    </header>
+
+    <div class="warning">
+      <strong>For educational purposes only.</strong> This is a statistical model based on population-level research (WHO, GBD 2019, UK Biobank). It is <em>not</em> a medical prediction and cannot account for individual genetics, family history, undiagnosed conditions, or chance. If anything here worries you, talk to a clinician — not a calculator.
+    </div>
+
+    <div class="tabs" role="tablist" id="ls-mode-tabs">
+      <button class="tab is-active" data-tab="quick" type="button" role="tab">Quick estimate</button>
+      <button class="tab" data-tab="full" type="button" role="tab">Full assessment</button>
+    </div>
+
+    <!-- ============================================================
+         QUICK TAB — Personal + Lifestyle + Habits
+         ============================================================ -->
+    <div data-tab-panel="quick">
+      <div class="panel">
+        <div class="panel-title">About you</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="ls-dob">Date of birth</label>
+            <input id="ls-dob" class="input" type="date" value="1995-01-15">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-sex">Sex</label>
+            <select id="ls-sex" class="select">
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-country">Country</label>
+            <select id="ls-country" class="select">
+              <!-- populated by JS -->
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-height">Height (cm)</label>
+            <input id="ls-height" class="input" type="number" min="80" max="250" step="any" value="165">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-weight">Weight (kg)</label>
+            <input id="ls-weight" class="input" type="number" min="20" max="300" step="any" value="62">
+          </div>
+          <div class="field">
+            <label class="field-label">BMI (auto)</label>
+            <input id="ls-bmi" class="input" type="text" value="—" readonly tabindex="-1" aria-readonly="true">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Lifestyle</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="ls-smoking">Smoking</label>
+            <select id="ls-smoking" class="select">
+              <option value="never">Never</option>
+              <option value="former">Former (quit)</option>
+              <option value="occasional">Occasional</option>
+              <option value="daily" selected>Daily</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-alcohol">Alcohol (drinks/week)</label>
+            <input id="ls-alcohol" class="input" type="number" min="0" max="50" step="any" value="0">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-exercise">Moderate exercise (min/day)</label>
+            <input id="ls-exercise" class="input" type="number" min="0" max="300" step="any" value="15">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-sleep">Sleep (hours/night)</label>
+            <input id="ls-sleep" class="input" type="number" min="3" max="13" step="any" value="7">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-stress">Stress level</label>
+            <select id="ls-stress" class="select">
+              <option value="low">Low</option>
+              <option value="moderate" selected>Moderate</option>
+              <option value="high">High</option>
+              <option value="extreme">Extreme</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-fruitveg">Fruit &amp; veg</label>
+            <select id="ls-fruitveg" class="select">
+              <option value="daily" selected>Daily (5+ servings)</option>
+              <option value="weekly">A few times/week</option>
+              <option value="rarely">Rarely</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Habits</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="ls-seatbelt">Seatbelt use</label>
+            <select id="ls-seatbelt" class="select">
+              <option value="always" selected>Always</option>
+              <option value="sometimes">Sometimes</option>
+              <option value="never">Never</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-checkups">Medical checkups</label>
+            <select id="ls-checkups" class="select">
+              <option value="yearly" selected>Yearly</option>
+              <option value="irregular">Irregular</option>
+              <option value="never">Never</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-drugs">Recreational drug use</label>
+            <select id="ls-drugs" class="select">
+              <option value="never" selected>Never</option>
+              <option value="former">Former</option>
+              <option value="current">Current</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         FULL TAB — Quick + Medical + Environment
+         ============================================================ -->
+    <div data-tab-panel="full" style="display:none">
+      <div class="panel">
+        <div class="panel-title">About you</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="ls-dob-f">Date of birth</label>
+            <input id="ls-dob-f" class="input" type="date" value="1995-01-15">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-sex-f">Sex</label>
+            <select id="ls-sex-f" class="select">
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-country-f">Country</label>
+            <select id="ls-country-f" class="select">
+              <!-- populated by JS -->
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-height-f">Height (cm)</label>
+            <input id="ls-height-f" class="input" type="number" min="80" max="250" step="any" value="165">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-weight-f">Weight (kg)</label>
+            <input id="ls-weight-f" class="input" type="number" min="20" max="300" step="any" value="62">
+          </div>
+          <div class="field">
+            <label class="field-label">BMI (auto)</label>
+            <input id="ls-bmi-f" class="input" type="text" value="—" readonly tabindex="-1" aria-readonly="true">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Lifestyle</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="ls-smoking-f">Smoking</label>
+            <select id="ls-smoking-f" class="select">
+              <option value="never">Never</option>
+              <option value="former">Former (quit)</option>
+              <option value="occasional">Occasional</option>
+              <option value="daily" selected>Daily</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-alcohol-f">Alcohol (drinks/week)</label>
+            <input id="ls-alcohol-f" class="input" type="number" min="0" max="50" step="any" value="0">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-exercise-f">Moderate exercise (min/day)</label>
+            <input id="ls-exercise-f" class="input" type="number" min="0" max="300" step="any" value="15">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-sleep-f">Sleep (hours/night)</label>
+            <input id="ls-sleep-f" class="input" type="number" min="3" max="13" step="any" value="7">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-stress-f">Stress level</label>
+            <select id="ls-stress-f" class="select">
+              <option value="low">Low</option>
+              <option value="moderate" selected>Moderate</option>
+              <option value="high">High</option>
+              <option value="extreme">Extreme</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-fruitveg-f">Fruit &amp; veg</label>
+            <select id="ls-fruitveg-f" class="select">
+              <option value="daily" selected>Daily (5+ servings)</option>
+              <option value="weekly">A few times/week</option>
+              <option value="rarely">Rarely</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-fastfood-f">Fast food (meals/week)</label>
+            <input id="ls-fastfood-f" class="input" type="number" min="0" max="30" step="any" value="1">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-water-f">Water (litres/day)</label>
+            <input id="ls-water-f" class="input" type="number" min="0" max="8" step="any" value="1.8">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-sitting-f">Sitting (hours/day)</label>
+            <input id="ls-sitting-f" class="input" type="number" min="0" max="20" step="any" value="7">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-steps-f">Steps/day (thousands)</label>
+            <input id="ls-steps-f" class="input" type="number" min="0" max="30" step="any" value="6">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-sun-f">Sun exposure</label>
+            <select id="ls-sun-f" class="select">
+              <option value="low">Low</option>
+              <option value="moderate" selected>Moderate</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Medical</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="ls-bp-f">Blood pressure</label>
+            <select id="ls-bp-f" class="select">
+              <option value="normal" selected>Normal</option>
+              <option value="elevated">Elevated</option>
+              <option value="high">High (hypertension)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-diabetes-f">Diabetes</label>
+            <select id="ls-diabetes-f" class="select">
+              <option value="no" selected>No</option>
+              <option value="prediabetes">Pre-diabetes</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-heart-f">Heart disease</label>
+            <select id="ls-heart-f" class="select">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes (existing)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-cholesterol-f">High cholesterol</label>
+            <select id="ls-cholesterol-f" class="select">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-cancer-f">Cancer history</label>
+            <select id="ls-cancer-f" class="select">
+              <option value="no" selected>No</option>
+              <option value="family">Family only</option>
+              <option value="personal">Personal history</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-depression-f">Depression</label>
+            <select id="ls-depression-f" class="select">
+              <option value="no" selected>No</option>
+              <option value="treated">Yes, treated</option>
+              <option value="untreated">Yes, untreated</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-familyheart-f">Family hx — heart disease</label>
+            <select id="ls-familyheart-f" class="select">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-familycancer-f">Family hx — cancer</label>
+            <select id="ls-familycancer-f" class="select">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-familydiabetes-f">Family hx — diabetes</label>
+            <select id="ls-familydiabetes-f" class="select">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Habits</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="ls-seatbelt-f">Seatbelt use</label>
+            <select id="ls-seatbelt-f" class="select">
+              <option value="always" selected>Always</option>
+              <option value="sometimes">Sometimes</option>
+              <option value="never">Never</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-motorcycle-f">Motorcycle / scooter</label>
+            <select id="ls-motorcycle-f" class="select">
+              <option value="none" selected>Don't ride</option>
+              <option value="occasional">Occasional</option>
+              <option value="frequent">Frequent</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-drugs-f">Recreational drug use</label>
+            <select id="ls-drugs-f" class="select">
+              <option value="never" selected>Never</option>
+              <option value="former">Former</option>
+              <option value="current">Current</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-checkups-f">Medical checkups</label>
+            <select id="ls-checkups-f" class="select">
+              <option value="yearly" selected>Yearly</option>
+              <option value="irregular">Irregular</option>
+              <option value="never">Never</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-vaccines-f">Vaccinations up to date</label>
+            <select id="ls-vaccines-f" class="select">
+              <option value="yes" selected>Yes</option>
+              <option value="partial">Partial</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-dental-f">Dental care</label>
+            <select id="ls-dental-f" class="select">
+              <option value="regular" selected>Regular (twice/yr)</option>
+              <option value="occasional">Occasional</option>
+              <option value="rare">Rare</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-screen-f">Screen time (hrs/day)</label>
+            <input id="ls-screen-f" class="input" type="number" min="0" max="20" step="any" value="6">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Environment</div>
+        <div class="grid-3">
+          <div class="field">
+            <label class="field-label" for="ls-pollution-f">Air pollution (where you live)</label>
+            <select id="ls-pollution-f" class="select">
+              <option value="low" selected>Low</option>
+              <option value="moderate">Moderate</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-income-f">Income level</label>
+            <select id="ls-income-f" class="select">
+              <option value="low">Low</option>
+              <option value="middle" selected>Middle</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-education-f">Education</label>
+            <select id="ls-education-f" class="select">
+              <option value="none">None / primary</option>
+              <option value="secondary" selected>Secondary</option>
+              <option value="tertiary">Tertiary / university</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="ls-relationship-f">Relationship status</label>
+            <select id="ls-relationship-f" class="select">
+              <option value="partner" selected>Partner / married</option>
+              <option value="single">Single</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         RESULTS
+         ============================================================ -->
+    <div class="result-card" id="ls-result" aria-live="polite">
+      <div class="result-main" id="ls-years">—</div>
+      <div class="result-sub" id="ls-range">Fill in the form to see your statistical estimate.</div>
+
+      <div class="result-grid" style="margin-top: var(--space-3);">
+        <div class="result-tile">
+          <div class="result-tile-label">Estimated date</div>
+          <div class="result-tile-value" id="ls-date">—</div>
+        </div>
+        <div class="result-tile">
+          <div class="result-tile-label">Confidence</div>
+          <div class="result-tile-value" id="ls-confidence">—</div>
+        </div>
+        <div class="result-tile">
+          <div class="result-tile-label">Healthy Habit Score</div>
+          <div class="result-tile-value" id="ls-score">—</div>
+        </div>
+      </div>
+
+      <p class="muted text-sm" style="margin-top: var(--space-3);">
+        <em>Statistical estimate, not a prediction. Range widens with fewer filled fields.</em>
+      </p>
+    </div>
+
+    <div class="ls-grid">
+      <div class="contributors-block">
+        <div class="panel-title" style="color: var(--color-success);">✓ Biggest life extenders</div>
+        <ul class="contributors-list" id="ls-extenders"></ul>
+      </div>
+      <div class="contributors-block">
+        <div class="panel-title" style="color: var(--color-danger);">⚠ Biggest risk factors</div>
+        <ul class="contributors-list" id="ls-risks"></ul>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         WHAT-IF SLIDERS
+         ============================================================ -->
+    <div class="panel">
+      <div class="panel-title">What if you changed one habit?</div>
+      <p class="muted text-sm" style="margin-bottom: var(--space-3);">
+        Baseline estimate before sliders: <strong id="ls-baseline">—</strong>.
+        Toggling a slider shows the projected change against the baseline.
+      </p>
+
+      <div class="slider-grid" id="ls-sliders"></div>
+
+      <div class="row" style="margin-top: var(--space-3);">
+        <button class="btn btn-ghost" type="button" id="ls-reset-sliders">Reset to baseline</button>
+        <span class="muted" id="ls-applied" style="margin-left: var(--space-3);">No changes applied.</span>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         SHARE SUMMARY
+         ============================================================ -->
+    <div class="panel">
+      <div class="panel-title">Shareable summary</div>
+      <div class="share-summary" id="ls-share">—</div>
+      <div class="row" style="margin-top: var(--space-3);">
+        <button class="btn" type="button" id="ls-copy">Copy summary</button>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         SOURCES (collapsed by default)
+         ============================================================ -->
+    <div class="panel">
+      <details>
+        <summary class="panel-title" style="cursor: pointer; list-style: none;">Sources &amp; methodology</summary>
+        <p class="muted text-sm" style="margin-top: var(--space-2);">
+          Effect sizes are taken from large cohort studies and meta-analyses.
+          Country baselines are life expectancy at birth from the WHO Global Health Observatory (latest available year per country).
+          Where evidence is mixed (e.g. light-to-moderate alcohol), the conservative effect is used.
+        </p>
+        <ul class="sources-list">
+          <li><strong>WHO Global Health Observatory</strong> — life expectancy at birth by country and sex (2021/2023).</li>
+          <li><strong>GBD 2019 Risk Factors Collaborators</strong> (Lancet 2020) — population-attributable years of life lost for smoking, high BMI, high blood pressure, alcohol, air pollution, and other risk factors.</li>
+          <li><strong>Doll et al., BMJ 2004</strong> — 50-year follow-up of British doctors; smoking-attributable mortality.</li>
+          <li><strong>Jha et al., NEJM 2013</strong> — hazards of continuing vs quitting smoking by age.</li>
+          <li><strong>Inoue-Choi et al., 2020</strong> — mortality in "social" occasional smokers.</li>
+          <li><strong>Arem et al., JAMA 2019</strong> — dose-response of leisure-time physical activity and all-cause mortality.</li>
+          <li><strong>Cappuccio et al., Sleep 2010</strong> — short and long sleep duration and all-cause mortality.</li>
+          <li><strong>Aune et al., Int J Epidemiol 2017</strong> — fruit/vegetable intake and cardiovascular and all-cause mortality.</li>
+          <li><strong>Russ et al., BMJ 2012</strong> — psychological distress / self-reported stress and mortality.</li>
+          <li><strong>Cutler &amp; Lleras-Muney, 2006</strong> — education and health outcomes.</li>
+          <li><strong>Holt-Lunstad et al., 2010</strong> — social relationships and all-cause mortality.</li>
+          <li><strong>WHO Global status report on road safety</strong> — seatbelt, helmet, and motorcycle risk factors.</li>
+          <li><strong>Liss et al., 2021</strong> — annual physical exams and mortality outcomes.</li>
+        </ul>
+        <p class="muted text-sm" style="margin-top: var(--space-2);">
+          This is a teaching tool, not a clinical risk score. Many risk factors interact (for example, smoking + heavy alcohol multiplies risk beyond simple addition), and the model caps the additive contribution of any single cluster to avoid implausible extremes. Numbers are intentionally rounded to half-year precision.
+        </p>
+      </details>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./lifespan-simulator.js"></script>
+</body>
+</html>
