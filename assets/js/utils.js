@@ -199,7 +199,9 @@ HT.makeTabs = function (container, onChange) {
       HT.qsa('.tab', container).forEach(function (t) { t.classList.remove('is-active'); });
       tab.classList.add('is-active');
       var target = tab.getAttribute('data-tab');
-      HT.qsa('[data-tab-panel]', container).forEach(function (p) {
+      // Panels are typically siblings of the tabs container, not descendants,
+      // so search document-wide. (Both selectors are still respected.)
+      HT.qsa('[data-tab-panel]').forEach(function (p) {
         p.style.display = p.getAttribute('data-tab-panel') === target ? '' : 'none';
       });
       if (onChange) onChange(target);
