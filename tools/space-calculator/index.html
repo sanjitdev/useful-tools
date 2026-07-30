@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="See your age, weight, jump height, and free-fall on every planet, Pluto, and the Moon. Fun, instantly updated, fully offline.">
+  <title>Space Calculator · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23111827'/%3E%3Cg transform='translate(50,50)'%3E%3Ccircle cx='-14' cy='0' r='4' fill='%234f46e5'/%3E%3Ccircle cx='0' cy='-6' r='6' fill='%23e8c170'/%3E%3Ccircle cx='14' cy='4' r='3' fill='%2360a5fa'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./space-calculator.css">
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="container">
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Space Calculator</h1>
+      <p class="tool-subtitle">Your age, weight, jump, and free-fall on every planet, Pluto, and the Moon.</p>
+    </header>
+
+    <div class="warning">
+      Fun estimates only. Physics assumes no atmosphere and same muscle strength across worlds.
+      Real jump heights on Mars would be lower due to the pressure suit. Source: NASA fact sheets.
+    </div>
+
+    <div class="tabs" role="tablist" id="mode-tabs">
+      <button class="tab is-active" data-tab="age"    type="button" role="tab">Age on planets</button>
+      <button class="tab"           data-tab="weight" type="button" role="tab">Weight on planets</button>
+      <button class="tab"           data-tab="jump"   type="button" role="tab">Jump height</button>
+      <button class="tab"           data-tab="fall"   type="button" role="tab">Free-fall</button>
+    </div>
+
+    <!-- ===== Age tab ===== -->
+    <div data-tab-panel="age">
+      <div class="panel">
+        <div class="panel-title">Your age on Earth</div>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="age-dob">Date of birth</label>
+            <input id="age-dob" class="input" type="date" max="2099-12-31">
+            <div class="field-hint">Used if filled; otherwise the field below is used.</div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="age-years">…or enter your age directly (years)</label>
+            <input id="age-years" class="input" type="number" min="0" max="120" step="any" placeholder="e.g. 30">
+          </div>
+        </div>
+      </div>
+
+      <div class="result-card">
+        <div class="result-sub" id="age-summary">Enter your date of birth or age to begin.</div>
+      </div>
+
+      <div class="planet-grid" id="age-grid"></div>
+    </div>
+
+    <!-- ===== Weight tab ===== -->
+    <div data-tab-panel="weight" style="display:none">
+      <div class="panel">
+        <div class="panel-title">Your mass on Earth</div>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="weight-kg">Mass (kg)</label>
+            <input id="weight-kg" class="input" type="number" min="1" max="500" step="any" placeholder="e.g. 70">
+            <div class="field-hint">Mass stays the same everywhere. Weight is mass × local gravity.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-card">
+        <div class="result-sub" id="weight-summary">Enter your mass in kg to see your weight across the solar system.</div>
+      </div>
+
+      <div class="planet-grid" id="weight-grid"></div>
+    </div>
+
+    <!-- ===== Jump tab ===== -->
+    <div data-tab-panel="jump" style="display:none">
+      <div class="panel">
+        <div class="panel-title">Your jump on Earth</div>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="jump-m">Vertical jump height (m)</label>
+            <input id="jump-m" class="input" type="number" min="0" max="3" step="any" placeholder="e.g. 0.4">
+            <div class="field-hint">How high you can jump straight up on Earth. Average adult: 0.3–0.6 m.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-card">
+        <div class="result-sub" id="jump-summary">Enter how high you can jump on Earth (typical adults: 0.3–0.6 m).</div>
+      </div>
+
+      <div class="planet-grid" id="jump-grid"></div>
+    </div>
+
+    <!-- ===== Free-fall tab ===== -->
+    <div data-tab-panel="fall" style="display:none">
+      <div class="panel">
+        <div class="panel-title">Free-fall in vacuum</div>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="fall-time">…time (seconds)</label>
+            <input id="fall-time" class="input" type="number" min="0" step="any" placeholder="e.g. 3">
+          </div>
+          <div class="field">
+            <label class="field-label" for="fall-dist">…or distance (meters)</label>
+            <input id="fall-dist" class="input" type="number" min="0" step="any" placeholder="e.g. 100">
+          </div>
+        </div>
+        <div class="field-hint">If you fill both, distance is shown. If neither, no results.</div>
+      </div>
+
+      <div class="result-card">
+        <div class="result-sub" id="fall-summary">Enter either a time (seconds) or a distance (meters) — see the result on every body.</div>
+      </div>
+
+      <div class="planet-grid" id="fall-grid"></div>
+    </div>
+
+    <div class="footer-note muted">
+      <p>All bodies shown are to approximate scale of orbital period and surface gravity. Moons, dwarf planets, and excluded bodies (Triton, Europa, Titan, etc.) could be added in <code>space-calculator.js</code> — see the <code>BODIES</code> array.</p>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/layout.js"></script>
+  <script src="./space-calculator.js"></script>
+</body>
+</html>

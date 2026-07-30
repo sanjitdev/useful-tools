@@ -1,0 +1,158 @@
+/* ============================================
+   Space Calculator — tool CSS
+   Themed planet cards, results grid, hero numbers.
+   ============================================ */
+
+.tool-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.tool-title-row > div { flex: 1; min-width: 0; }
+
+/* ---------- Planet grid ---------- */
+
+.planet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.planet-card {
+  --planet-color: #888;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.planet-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--planet-color);
+  opacity: 0.85;
+}
+
+.planet-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--planet-color) 50%, var(--color-border));
+}
+
+.planet-card-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.planet-emoji {
+  font-size: 1.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+}
+
+.planet-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--color-text);
+  flex: 1 1 auto;
+}
+
+.planet-kind {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--planet-color) 15%, transparent);
+  color: color-mix(in srgb, var(--planet-color) 70%, var(--color-text));
+}
+
+.planet-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.planet-row-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.planet-row-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.1rem;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.planet-card.is-earth {
+  background: color-mix(in srgb, #4a90e2 8%, var(--color-surface));
+  border-color: color-mix(in srgb, #4a90e2 35%, var(--color-border));
+}
+
+.planet-card .planet-tag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  background: var(--color-surface-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ---------- Result card content ---------- */
+
+.result-card .result-main {
+  /* Smaller since we don't have a single hero number for these tabs */
+  font-size: 1.4rem;
+}
+
+.result-card .result-sub {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+/* ---------- Footer note ---------- */
+
+.footer-note {
+  margin-top: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.footer-note code {
+  background: var(--color-bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.85em;
+  border: 1px solid var(--color-border);
+}
