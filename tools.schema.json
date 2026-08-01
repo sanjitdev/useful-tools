@@ -1,0 +1,253 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://handy.tools/tools.schema.json",
+  "title": "Handy Tools Site Data",
+  "description": "Single source of truth for tool metadata. Every tools.json entry must validate against this schema. Drives home grid, command palette, pack pages, and embed catalog.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schemaVersion", "releaseVersion", "generated", "tools"],
+  "properties": {
+    "$schema": {
+      "description": "Self-reference to this schema file.",
+      "const": "tools.schema.json"
+    },
+    "schemaVersion": {
+      "description": "Schema version. Bump only on breaking schema changes.",
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)*$"
+    },
+    "releaseVersion": {
+      "description": "Release identity mirrored in sw.js CACHE_VERSION (per AD-8). CI rejects divergence between the two.",
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-z0-9.-]+)?(\\+[a-z0-9.-]+)?$"
+    },
+    "generated": {
+      "description": "ISO-8601 timestamp at which tools.json was last regenerated.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "tools": {
+      "description": "Array of tool entries. Adding a tool requires only an entry here (and a folder).",
+      "type": "array",
+      "items": { "$ref": "#/definitions/tool-entry" }
+    }
+  },
+  "definitions": {
+    "tool-entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "slug",
+        "title",
+        "description",
+        "category",
+        "pack",
+        "icon",
+        "keywords",
+        "last-updated",
+        "ready",
+        "score",
+        "urlState",
+        "shortcuts",
+        "history-keys",
+        "view-source",
+        "embed-snippet",
+        "search-priority"
+      ],
+      "properties": {
+        "id": {
+          "description": "Globally unique tool identifier (immutable).",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+        },
+        "slug": {
+          "description": "URL slug; kebab-case, immutable post-launch (UX-DR-8). Resolves to tools/<slug>/index.html.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+        },
+        "title": {
+          "description": "Display name (English source of truth; translated per FR-17).",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "description": {
+          "description": "One-line description. Used in tool card, search match, pack card, and palette result (FR-5, UX-DR-11).",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "category": {
+          "description": "Taxonomic category (e.g., 'developer', 'finance'). Free-form short string.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "pack": {
+          "description": "Pack tag(s). A tool may appear in multiple packs. Empty array means tool is uncategorized (not allowed for ready=true).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["travel", "finance", "study", "developer", "household"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "icon": {
+          "description": "Inline SVG data-URL or path to icon asset under assets/icons/.",
+          "type": "string",
+          "minLength": 1
+        },
+        "keywords": {
+          "description": "Search keywords (FR-5). Matched by the search engine alongside title and description.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "last-updated": {
+          "description": "ISO-8601 timestamp of the last meaningful update to the tool (rendered on the tool page and used by FR-1's last-updated column).",
+          "type": "string",
+          "format": "date-time"
+        },
+        "ready": {
+          "description": "True iff score >= 8 with no expired waiver. Drives visibility in home grid, palette, pack pages, search, and embed catalog (AD-2).",
+          "type": "boolean"
+        },
+        "score": {
+          "description": "Quality score 0-10 against the 10-criterion rubric (FR-1). ready=true requires score >= 8.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "score-waiver": {
+          "description": "Structured waiver object (per AD-2 and AI-1 readiness fix). Allows a tool below 8/10 to ship with justification. Waivers expire after a configurable number of releases.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reason", "since-release", "reviewer", "expires-after-releases"],
+          "properties": {
+            "reason": { "type": "string", "minLength": 1 },
+            "since-release": {
+              "type": "string",
+              "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-z0-9.-]+)?(\\+[a-z0-9.-]+)?$"
+            },
+            "reviewer": { "type": "string", "minLength": 1 },
+            "expires-after-releases": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "urlState": {
+          "description": "Per-tool URL state codec schema (AD-5). default is merged into decoded state on load; encode list maps form fields to URL hash keys; decode list maps URL hash keys back to form fields.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["default", "encode", "decode"],
+          "properties": {
+            "default": { "type": "object" },
+            "encode": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["key", "type"],
+                "properties": {
+                  "key": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+                  "type": {
+                    "type": "string",
+                    "enum": ["string", "number", "boolean", "date"]
+                  },
+                  "from": {
+                    "type": "string",
+                    "description": "DOM field selector or input id. Omit if same as key."
+                  }
+                }
+              }
+            },
+            "decode": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["key", "type"],
+                "properties": {
+                  "key": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+                  "type": {
+                    "type": "string",
+                    "enum": ["string", "number", "boolean", "date"]
+                  },
+                  "to": {
+                    "type": "string",
+                    "description": "DOM field selector or input id. Omit if same as key."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "shortcuts": {
+          "description": "Per-tool keyboard shortcuts. Surfaced in the keyboard help overlay (Story 3.3) and globally via the command palette.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["key", "label", "action"],
+            "properties": {
+              "key": { "type": "string", "minLength": 1 },
+              "label": { "type": "string", "minLength": 1 },
+              "action": {
+                "type": "string",
+                "enum": ["share", "print", "history", "copy", "reset", "sample", "embed", "view-source"]
+              }
+            }
+          }
+        },
+        "history-keys": {
+          "description": "Ordered list of input field ids that participate in the tool's history entry. Capped at 10 entries per tool (FR-12).",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "maxItems": 10
+        },
+        "view-source": {
+          "description": "Trust surface (FR-16). Every tool footer links to its source.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled", "path"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "path": {
+              "type": "string",
+              "pattern": "^tools/[a-z][a-z0-9-]*/index\\.html$"
+            }
+          }
+        },
+        "embed-snippet": {
+          "description": "Embed mode settings (FR-10, Story 4.1). badge-default controls the 'Powered by handy.tools' link; min-width/min-height enforce the per-B3 a11y minimum of 240x240.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled", "badge-default", "min-width", "min-height"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "badge-default": { "type": "boolean" },
+            "min-width": { "type": "integer", "minimum": 240 },
+            "min-height": { "type": "integer", "minimum": 240 }
+          }
+        },
+        "search-priority": {
+          "description": "Integer 0-10; higher values are ranked higher in the search engine (Story 1.11). Default is 5.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 5
+        },
+        "legacy": {
+          "description": "Brownfield flag (AD-15). True if the tool folder pre-dates the new contract. Populated by docs/tool-inventory.md.",
+          "type": "boolean"
+        },
+        "migrated": {
+          "description": "Brownfield flag (AD-15). True if the tool has been promoted to the new contract. Inverse of legacy for migrated tools.",
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
