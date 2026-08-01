@@ -1,0 +1,457 @@
+# generated: 2026-07-31
+# last_updated: 2026-07-31
+# project: useful-tools
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story starts (via build's sprint sync)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story starts (via build's sprint sync)
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; sprint-status surfaces open ones
+
+generated: 2026-07-31
+last_updated: 2026-08-01T02:00:00Z
+project: useful-tools
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # =========================================================================
+  # Epic 1: Trusted Browser Suite — Shell + Tool Contract Foundation
+  # FRs: FR-1, FR-2, FR-3 (audit scaffold), FR-4, FR-5 (engine), FR-7 (skel), FR-9, FR-20
+  # ADs: AD-1, AD-2, AD-3, AD-4, AD-6, AD-12, AD-13, AD-14, AD-15
+  # UX-DRs: UX-DR-1, -2, -3, -4, -5, -6 (skel), -7, -8, -10, -11, -12, -13, -15, -16, -17, -18, -19, -20
+  # =========================================================================
+  epic-1: in-progress
+  1-1-establish-greenfield-tool-contract-schema: done
+  1-2-codify-the-8-10-quality-rubric-as-test-cases: done
+  1-3-tool-contract-ci-gate-github-actions: done
+  1-4-brownfield-migration-inventory-and-rollout-order: backlog
+  1-5-shell-html-skeleton-with-cobalt-tokens: backlog
+  1-6-theme-system-with-light-dark-and-auto-modes: backlog
+  1-7-command-palette-skeleton-with-cmd-k-ctrl-k-bind: backlog
+  1-8-settings-modal-skeleton-with-persisted-preferences: backlog
+  1-9-home-grid-rendering-from-tools-json: backlog
+  1-10-storage-registry-with-namespaced-keys: backlog
+  1-11-search-engine-backend-with-ranking-and-normalization: backlog
+  1-12-view-source-route-for-every-tool: backlog
+  1-13-audit-scaffold-and-initial-tool-audit-results: backlog
+  1-14-shell-public-api-and-bypass-prohibition: backlog
+  1-15-first-promoted-tool-lands-on-home-grid: backlog
+  epic-1-retrospective: optional
+
+  # =========================================================================
+  # Epic 2: Promoted Tool Suite — Bring 33 Tools to the 8/10 Bar
+  # FRs: FR-3 (audit completion), FR-4 (33 entries), FR-5 (real data), FR-20
+  # ADs: AD-2, AD-3, AD-15 (staged rollout)
+  # =========================================================================
+  epic-2: backlog
+  2-1-per-tool-url-state-codec-wiring: backlog
+  2-2-per-tool-sample-data-and-reset-button: backlog
+  2-3-per-tool-history-panel: backlog
+  2-4-per-tool-keyboard-complete-surface: backlog
+  2-5-per-tool-share-dialog-with-url-and-print: backlog
+  2-6-promote-wave-1-tools-3-tools: backlog
+  2-7-promote-wave-2-tools-15-tools: backlog
+  2-8-promote-wave-3-tools-15-tools: backlog
+  2-9-existing-tool-pack-tag-wiring: backlog
+  2-10-shared-layout-theme-utils-migration-to-modern-js: backlog
+  2-11-brownfield-tool-inventory-view-in-quality: backlog
+  2-12-cross-cutting-regression-sweep: backlog
+  epic-2-retrospective: optional
+
+  # =========================================================================
+  # Epic 3: Keyboard-First UX — Command Palette, Settings, History, Share
+  # FRs: FR-5 (warm path), FR-7 (full), FR-8, FR-12, FR-13, FR-16
+  # ADs: AD-4, AD-14 (Shell Public API)
+  # UX-DRs: UX-DR-6 (full), UX-DR-14 (offline banner), UX-DR-19 (palette on every page)
+  # =========================================================================
+  epic-3: backlog
+  3-1-full-command-palette-with-top-5-fuzzy-matches-and-footer-hints: backlog
+  3-2-command-palette-global-actions: backlog
+  3-3-per-tool-keyboard-shortcuts-overlay: backlog
+  3-4-global-keyboard-chords-for-cross-page-navigation: backlog
+  3-5-settings-modal-full-control-surface: backlog
+  3-6-history-panel-with-timestamps-and-restore-confirmation: backlog
+  3-7-user-data-export-to-json: backlog
+  3-8-user-data-import-from-json-with-schema-validation: backlog
+  3-9-share-dialog-with-copy-url-print-and-embed-code: backlog
+  3-10-print-stylesheet-for-clean-output: backlog
+  3-11-view-source-route-with-syntax-highlighting-and-download: backlog
+  3-12-recent-and-pinned-tracking: backlog
+  epic-3-retrospective: optional
+
+  # =========================================================================
+  # Epic 4: Embed Everywhere — Any Tool Usable on Any Third-Party Site
+  # FRs: FR-10, FR-11
+  # ADs: AD-7 (full protocol contract)
+  # UX-DRs: UX-DR-10 (embed URL), UX-DR-3 (embed modal = overlay)
+  # =========================================================================
+  epic-4: backlog
+  4-1-embed-url-router-strips-chrome-and-loads-tool: backlog
+  4-2-embed-snippet-modal-on-every-tool: backlog
+  4-3-postmessage-protocol-envelope-v1: backlog
+  4-4-postmessage-setinput-and-result-subscription: backlog
+  4-5-instance-scoped-uuid-and-origin-checks: backlog
+  4-6-embed-demo-page-with-multiple-instances: backlog
+  4-7-embed-accessibility-fallback-badge-0: backlog
+  epic-4-retrospective: optional
+
+  # =========================================================================
+  # Epic 5: PWA + Offline — Install, Cache, and the Trust Surface
+  # FRs: FR-14, FR-15, FR-16
+  # ADs: AD-8 (CACHE_VERSION + SW), AD-11 (trust surface)
+  # UX-DRs: UX-DR-14 (PWA install), UX-DR-7 (surface list, including /404, /about, /changelog)
+  # =========================================================================
+  epic-5: backlog
+  5-1-manifest-with-icons-and-standalone-display: backlog
+  5-2-service-worker-registration-and-cache-version: backlog
+  5-3-per-tool-asset-caching: backlog
+  5-4-pwa-install-ux-per-browser: backlog
+  5-5-offline-fallback-page: backlog
+  5-6-privacy-page-with-generated-storage-key-list: backlog
+  5-7-privacy-page-live-wire-log: backlog
+  5-8-quality-page-public-scorecard: backlog
+  5-9-forced-colors-and-reduced-motion-respect: backlog
+  5-10-trust-surface-pages-404-about-changelog: backlog
+  epic-5-retrospective: optional
+
+  # =========================================================================
+  # Epic 6: Packs and New Tools — 5 Packs Live + 12–15 New Tools
+  # FRs: FR-6, FR-19, FR-20, FR-21 (15 new tools)
+  # ADs: AD-9 (cross-Tool via Site Data only), AD-5 (pack defaults under Tool state)
+  # UX-DRs: UX-DR-2 (Pack Card), UX-DR-9 (pack composition), UX-DR-7 (pack page surface)
+  # =========================================================================
+  epic-6: backlog
+  6-1-pack-card-component-on-home-grid: backlog
+  6-2-pack-page-renderer: backlog
+  6-3-pack-taxonomy-documentation: backlog
+  6-4-json-formatter-enhancements-sort-keys-schema-validate-diff: backlog
+  6-5-citation-formatter-apa-mla-chicago: backlog
+  6-6-diff-viewer-text-line-word-char: backlog
+  6-7-uuid-generator-v1-v4-v7-ulid: backlog
+  6-8-jwt-inspector-decode-verify-signature-offline-capable: backlog
+  6-9-timestamp-converter-unix-iso-rfc-human: backlog
+  6-10-flashcard-timer-pomodoro-variant: backlog
+  6-11-exam-countdown: backlog
+  6-12-recipe-scaler-n-unit-conversion: backlog
+  6-13-grocery-list-builder-categorized-shareable: backlog
+  6-14-paint-calculator-walls-doors-windows: backlog
+  6-15-area-and-volume-calculator-rooms-irregular-shapes: backlog
+  6-16-budget-planner-income-expenses-savings-rate: backlog
+  6-17-savings-goal-target-months-monthly-contribution: backlog
+  6-18-currency-converter-live-rates-offline-fallback: backlog
+  6-19-travel-pack-composition: backlog
+  6-20-finance-study-developer-household-pack-composition: backlog
+  epic-6-retrospective: optional
+
+  # =========================================================================
+  # Epic 7: Internationalization — 5 Starter Locales with One Fully-Translated Tool
+  # FRs: FR-17, FR-18, FR-19
+  # ADs: AD-10 (Intl.* + i18n catalogs)
+  # =========================================================================
+  epic-7: backlog
+  7-1-locale-catalog-and-string-registry: backlog
+  7-2-shell-copy-translation-across-5-locales: backlog
+  7-3-intl-based-number-date-and-currency-formatting: backlog
+  7-4-rtl-layout-mirror-with-css-logical-properties: backlog
+  7-5-qr-generator-fully-translated: backlog
+  7-6-tip-calculator-fully-translated: backlog
+  7-7-locale-picker-and-url-state-locale-preservation: backlog
+  7-8-locale-fallback-chain: backlog
+  epic-7-retrospective: optional
+
+  # =========================================================================
+  # Cross-Epic Verification Stories (X.1, X.2, X.3)
+  # =========================================================================
+  epic-x: backlog
+  x-1-end-to-end-smoke-test-on-staging: backlog
+  x-2-privacy-audit-sweep: backlog
+  x-3-bundle-size-budget: backlog
+  epic-x-retrospective: optional
+
+# -----------------------------------------------------------------------------
+# Action Items
+# -----------------------------------------------------------------------------
+# Carried over from prior readiness pass. These are open items the team committed
+# to address before kickoff or in the first sprint of each owning epic.
+# -----------------------------------------------------------------------------
+action_items:
+  # === Drift fixes (LOW severity) — flagged for first sprint of owning epic ===
+  - id: AI-1
+    title: "Update PRD FR-2 to use structured waiver object"
+    description: "PRD says `[WAIVER: reason]`; architecture and Story 1.3 use `waiver: { reason, since-release, reviewer }`. Update PRD FR-2 to match architecture."
+    severity: low
+    status: open
+    owner: PRD author
+    epic: 1
+    story: 1-3
+    revisit_condition: "Before sprint planning starts Epic 1"
+
+  - id: AI-2
+    title: "Add 8-level nesting depth validation to Story 4.3"
+    description: "AD-7 specifies 8-level nesting limit for postMessage payload. Story 4.3 AC must enforce it."
+    severity: low
+    status: open
+    owner: epic-4 author
+    epic: 4
+    story: 4-3
+    revisit_condition: "When Story 4.3 is pulled into first sprint"
+
+  - id: AI-3
+    title: "Close PRD Open Q1 — Travel vs Household pack taxonomy"
+    description: "PRD §8 Open Q1 unresolved. PRD §4.2 Note proposes orthogonal split. Adopt the Note as authoritative OR defer to Story 6.3's docs/pack-taxonomy.md."
+    severity: low
+    status: open
+    owner: PRD author or Story 6.3
+    epic: 6
+    story: 6-3
+    revisit_condition: "When Story 6.3 is pulled into first sprint"
+
+  - id: AI-4
+    title: "Extend Story 3.3 AC to include non-tool pages for `?` overlay"
+    description: "Story 3.3 specifies `?` on tool pages only. UX implies home, pack pages, /privacy, /quality should also trigger."
+    severity: low
+    status: open
+    owner: epic-3 author
+    epic: 3
+    story: 3-3
+    revisit_condition: "When Story 3.3 is pulled into first sprint"
+
+  - id: AI-5
+    title: "Reconcile UX-DR-11 wording with PRD FR-5"
+    description: "PRD: ≤50ms cold / ≤10ms warm, matches title/description/keywords. UX-DR-11: ≤30ms single number, matches name/desc/tags/pack. Reconcile to PRD; add pack name."
+    severity: low
+    status: open
+    owner: UX + PRD
+    epic: 1
+    story: 1-11
+    revisit_condition: "Before Epic 1 sprint planning"
+
+  - id: AI-6
+    title: "Reconcile recent tool cap UX-DR-11 (5) vs Story 3.12 (5 after Drift 10 fix)"
+    description: "After drift fix, both align at 5 distinct. Confirm in UX review."
+    severity: low
+    status: open
+    owner: UX
+    epic: 3
+    story: 3-12
+    revisit_condition: "After Story 3.12 lands"
+
+  # === Accessibility recommendations (from review-accessibility.md) ===
+  - id: AI-7
+    title: "B1 — Add contrast table to Story 1.6 (Theme System)"
+    description: "Generate a contrast table per published token pair (light + dark). Pass/fail per AA thresholds (4.5:1 body, 3:1 large/non-text). Required for AA conformance on rubric #9."
+    severity: medium
+    status: open
+    owner: epic-1 author
+    epic: 1
+    story: 1-6
+    revisit_condition: "When Story 1.6 is pulled"
+
+  - id: AI-8
+    title: "B2 — Confirm Story 3.1 palette uses combobox/listbox (no Tab between groups)"
+    description: "EXPERIENCE.md §6.2 #3 and §7.1 contradict on Tab behavior. Pick WAI-ARIA combobox/listbox (recommended) and remove Tab cycling. Document in Story 3.1 AC."
+    severity: medium
+    status: open
+    owner: epic-3 author
+    epic: 3
+    story: 3-1
+    revisit_condition: "When Story 3.1 is pulled"
+
+  - id: AI-9
+    title: "B3 — Embed accessibility: title + aria-label, badge=0 fallback, focus management on first focus"
+    description: "Add to Story 4.1 (embed router) and Story 4.7 (embed accessibility). Per review-accessibility.md §B3."
+    severity: medium
+    status: open
+    owner: epic-4 author
+    epic: 4
+    story: 4-1
+    revisit_condition: "When Story 4.1 is pulled"
+
+  - id: AI-10
+    title: "H1 — Add aria-invalid + aria-describedby error association"
+    description: "EXPERIENCE.md §4 Input row mentions aria-describedby but not aria-invalid. Add per review-accessibility.md §H1."
+    severity: medium
+    status: open
+    owner: epic-3 author
+    epic: 3
+    story: 3-5
+    revisit_condition: "When Story 3.5 is pulled"
+
+  - id: AI-11
+    title: "H2 — Separate visually-hidden live region from result tile"
+    description: "Result tile live-region behavior contradicts itself in EXPERIENCE.md §4 and §7.1. Move aria-live to separate <output role='status'> element."
+    severity: medium
+    status: open
+    owner: epic-3 author
+    epic: 3
+    story: 3-5
+    revisit_condition: "When Story 3.5 is pulled"
+
+  - id: AI-12
+    title: "H3 — Document 400% zoom / 320 CSS px reflow plan"
+    description: "WCAG 1.4.10 — at 400% zoom, two-column layouts reflow to one column, modals become full-width sheets, palette goes bottom-sheet. Add statement in Story 1.5 (Shell Skeleton) and Story 3.1 (palette)."
+    severity: medium
+    status: open
+    owner: epic-1 + epic-3 authors
+    epic: 1
+    story: 1-5
+    revisit_condition: "When Story 1.5 is pulled"
+
+  - id: AI-13
+    title: "H4 — aria-live on history panel restore"
+    description: "History restore announces via toast only. Add aria-live='polite' to result tile or a status region on restore. Mark active row aria-current='true'."
+    severity: medium
+    status: open
+    owner: epic-3 author
+    epic: 3
+    story: 3-6
+    revisit_condition: "When Story 3.6 is pulled"
+
+  - id: AI-14
+    title: "H5 — Print stylesheet accessibility (11pt minimum, color-adjust:exact, link URLs)"
+    description: "Per review-accessibility.md §H5. Confirm in Story 3.10 (print stylesheet)."
+    severity: low
+    status: open
+    owner: epic-3 author
+    epic: 3
+    story: 3-10
+    revisit_condition: "When Story 3.10 is pulled"
+
+  - id: AI-15
+    title: "H6 — Embed 'Open in handy.tools' link target=_blank or postMessage"
+    description: "EXPERIENCE.md §10.4 specifies but is silent on target. Use target='_blank' to avoid breaking host page. Per review-accessibility.md §H6."
+    severity: low
+    status: open
+    owner: epic-4 author
+    epic: 4
+    story: 4-1
+    revisit_condition: "When Story 4.1 is pulled"
+
+  - id: AI-16
+    title: "H7 — Numeric stepper / toggle aria-label + spinbutton pattern"
+    description: "Add aria-label to +/- buttons, inputmode='decimal', aria-valuenow/max. Toggle needs visible on/off labels. Per review-accessibility.md §H7."
+    severity: low
+    status: open
+    owner: epic-3 author
+    epic: 3
+    story: 3-5
+    revisit_condition: "When Story 3.5 is pulled"
+
+  - id: AI-17
+    title: "H8 — Forced-colors keyboard cursor: 2px border on cursor row"
+    description: "Cursor row maps to Highlight+HighlightText under forced-colors but non-cursor rows must remain distinguishable by shape/label. Add 2px border on cursor row under @media (forced-colors: active)."
+    severity: low
+    status: open
+    owner: epic-3 author
+    epic: 3
+    story: 3-1
+    revisit_condition: "When Story 3.1 is pulled"
+
+  - id: AI-18
+    title: "H9 — Reduced-motion: 80ms cross-fade on toasts/result tiles allowed"
+    description: "EXPERIENCE.md §5 says 0ms everywhere. Per WCAG 2.3.3 intent, allow 80ms cross-fade on toast + result tile for change registration. Drop transitions on cards/hover."
+    severity: low
+    status: open
+    owner: UX + epic-1 author
+    epic: 1
+    story: 1-6
+    revisit_condition: "When Story 1.6 is pulled"
+
+  - id: AI-19
+    title: "H10 — Pin/star button: aria-label with state + visible icon change"
+    description: "Tooltips not always announced by SR. Add aria-label='Pin Bill Splitter to home' / 'Unpin Bill Splitter'. Per review-accessibility.md §H10."
+    severity: low
+    status: open
+    owner: epic-3 author
+    epic: 3
+    story: 3-12
+    revisit_condition: "When Story 3.12 is pulled"
+
+  # === Cross-cutting / carries over from readiness report ===
+  - id: AI-20
+    title: "Run bmad-generate-project-context for brownfield ground truth"
+    description: "NOTE: This has been completed — project-context.md exists at project root. Mark done."
+    severity: informational
+    status: done
+    owner: Sanjit (executed during readiness pass)
+    epic: 1
+    story: null
+    revisit_condition: "Resolving — mark done; project-context.md is in place"
+
+  - id: AI-21
+    title: "Scan UX review files (review-rubric.md, review-accessibility.md) before sprint planning"
+    description: "NOTE: This has been completed during the readiness pass. Findings cross-checked against final spines; addressed in AI-7 through AI-19."
+    severity: informational
+    status: done
+    owner: Sanjit (executed during readiness pass)
+    epic: 0
+    story: null
+    revisit_condition: "Resolving — done"
+
+# -----------------------------------------------------------------------------
+# Suggested Sprint Sequencing (Reference)
+# -----------------------------------------------------------------------------
+# Sprint planning should sequence epics 1 → 2 → 3 → 4 → 5 → 6 → 7 to preserve
+# dependency order. Kickoff ticket: Story 1.1 (Greenfield Tool Contract Schema).
+#
+# EPIC ORDER WITH DEPENDENCIES
+#   Epic 1 → standalone (Shell bootstrap)
+#   Epic 2 → depends on Epic 1 (schema, Shell bootstrap)
+#   Epic 3 → depends on Epic 1 (palette skeleton) + Epic 2 (real Tool entries)
+#   Epic 4 → soft dep on Epics 1+2+3 (embed router disables palette/settings/history)
+#   Epic 5 → depends on Epic 1 (manifest/SW) + Epic 2 (per-Tool cache)
+#   Epic 6 → depends on Epic 1 (Site Data) + Epic 2 (existing-tool pack tags)
+#   Epic 7 → depends on Epic 1 (catalogs keyed off Shell strings)
+#   Cross-Epic X.* → after Epic 5 (need SW + embed mode for E2E tests)
+#
+# INSIDE EPIC 1 (recommended first sprint)
+#   Story 1.1 → Schema (kickoff)
+#   Story 1.2 → Rubric test cases
+#   Story 1.3 → CI gate
+#   Story 1.4 → Brownfield inventory doc
+#   Story 1.5 → Shell HTML skeleton
+#   Story 1.6 → Theme system (with contrast table per AI-7)
+#   Story 1.10 → Storage registry
+#
+# INSIDE EPIC 2 (recommended second sprint)
+#   Stories 2.1-2.5 → Per-tool substrate
+#   Story 2.6 → Wave-1 tools (3 tools)
+#   Story 2.7 → Wave-2 tools (15 tools)
+#   Story 2.8 → Wave-3 tools (15 tools)
+#   Story 2.10 → Shared layout/theme/utils migration
+#   Story 2.12 → Cross-cutting regression sweep
+# -----------------------------------------------------------------------------

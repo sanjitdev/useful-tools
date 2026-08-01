@@ -1,0 +1,103 @@
+name: Tool Contract Gate
+
+# Application-layer enforcement of the Tool Contract (AD-2). The workflow
+# runs on every PR that touches anything that affects the gate: tools.json,
+# the schema, the validator, the linter, the gate script, the rubric doc,
+# the workflow itself, and the tool folders. It also runs on push to main
+# as a safety net.
+#
+# Source of truth: docs/quality-rubric.md#Scoring & Gate
+#                 docs/ci-gate.md (the contract doc)
+
+on:
+  pull_request:
+    paths:
+      - "tools.json"
+      - "tools.schema.json"
+      - "scripts/validate-tools-json.py"
+      - "scripts/rubric-lint.py"
+      - "scripts/tool-contract-gate.py"
+      - "docs/quality-rubric.md"
+      - "docs/ci-gate.md"
+      - ".github/workflows/tool-contract-gate.yml"
+      - "tools/**"
+      - "Makefile"
+  push:
+    branches: [ main ]
+    paths:
+      - "tools.json"
+      - "tools.schema.json"
+      - "scripts/validate-tools-json.py"
+      - "scripts/rubric-lint.py"
+      - "scripts/tool-contract-gate.py"
+      - "docs/quality-rubric.md"
+      - "docs/ci-gate.md"
+      - ".github/workflows/tool-contract-gate.yml"
+      - "tools/**"
+      - "Makefile"
+  workflow_dispatch:
+
+# Read-only against the repo. The gate does not modify tools.json; it
+# only inspects it. If a future change needs write access, scope it to
+# the narrowest permission set possible (e.g., `contents: write` only
+# for a release-tag job).
+permissions:
+  contents: read
+
+# Don't cancel a running gate if a new commit lands on the same PR —
+# cancellation can produce a misleading "cancelled" status in the PR
+# check UI and obscure the real failure.
+concurrency:
+  group: tool-contract-gate
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Tool Contract Gate
+    runs-on: ubuntu-latest
+
+    # Bounded runtime: the gate is pure-stdlib Python + a workflow file
+    # parse; 10 minutes is generous (a fresh checkout + setup-python
+    # install finishes in ~30s) and protects the runner from a hung
+    # `pip install` or runaway script.
+    timeout-minutes: 10
+
+    # The gate is a required status check on main (per FR-2). It is
+    # wired in the repo's branch-protection settings; not in code.
+
+    steps:
+      # actions/checkout is pinned to a commit SHA for supply-chain
+      # safety. The mutable tag v4.2.2 resolves to:
+      #   11bd71901bbe5b1630ceea73d27597364c9af683
+      # Bump the SHA only after auditing the new tag's diff against
+      # the previously-pinned version.
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # actions/setup-python is pinned to a commit SHA. The mutable tag
+      # v5.3.0 resolves to:
+      #   0b93645e9fea7318ecaed2b359559ac225c90a2b
+      - name: Setup Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.11"
+
+      - name: Validate Site Data
+        # Story 1.1: validate tools.json against tools.schema.json.
+        # The validator's exit code propagates as the step's exit code;
+        # any non-zero result fails the job and the PR check.
+        run: make validate
+
+      - name: Score all tools (mechanical)
+        # Story 1.2: run the rubric linter for every entry in tools.json.
+        # The report is informational at this step; the gate's
+        # application-layer check (next step) is the enforcement point.
+        run: make rubric-all
+
+      - name: Enforce AD-2 gate
+        # Story 1.3: the gate script reproduces the truth table from
+        # docs/quality-rubric.md#Scoring & Gate. Exit 0 = all entries
+        # pass (or all sub-8 entries are under unexpired waivers).
+        # Non-zero = at least one entry violates the contract; the
+        # PR cannot merge.
+        run: make gate
