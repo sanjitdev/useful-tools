@@ -17,3 +17,11 @@ npm-debug.log*
 # Misc
 .env
 .env.local
+
+# Build artifacts
+__pycache__/
+*.pyc
+*.pyo
+
+# Local agent / IDE state
+.puku-cli/
