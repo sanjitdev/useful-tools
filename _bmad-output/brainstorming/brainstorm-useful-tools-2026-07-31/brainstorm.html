@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Handy Tools · Workbench — 31 July 2026</title>
+<style>
+:root{
+  --paper:#f4ede1; --paper-2:#ece3d2; --ink:#1a1814; --ink-soft:#3a342b;
+  --rule:#1a1814; --rule-soft:#8a7e69;
+  --accent:#c2410c; --teal:#0e6b6e; --indigo:#2b3a67; --moss:#4a5d23;
+  --chrome:#b9aa8f; --rivet:#1a1814;
+  --serif: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#1a1814; --paper-2:#221f1a; --ink:#f0e9d9; --ink-soft:#c8bfa9;
+    --rule:#f0e9d9; --rule-soft:#6e6452;
+    --accent:#f59e4c; --teal:#5cc8c2; --indigo:#9aa6d6; --moss:#b8c46a;
+    --chrome:#3a342b;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.5}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+
+.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+@media (max-width:860px){.shell{grid-template-columns:1fr}}
+
+.edge{
+  background:var(--paper-2);
+  border-right:1px solid var(--rule);
+  padding:28px 22px;
+  position:sticky;top:0;align-self:start;
+  height:100vh;overflow:auto;
+}
+@media (max-width:860px){.edge{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule)}}
+
+.brand{font-family:var(--serif);font-size:22px;line-height:1.15;margin:0 0 6px;letter-spacing:.2px}
+.brand em{font-style:italic;color:var(--accent)}
+.tag{font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-bottom:26px;letter-spacing:.5px;text-transform:uppercase}
+
+.nav{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:2px}
+.nav a{
+  display:grid;grid-template-columns:38px 1fr;gap:10px;align-items:center;
+  padding:8px 10px;border:1px solid transparent;border-radius:2px;
+  text-decoration:none;color:var(--ink);font-size:13px;
+}
+.nav a:hover,.nav a:focus-visible{background:var(--paper);border-color:var(--rule)}
+.nav .key{font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:.5px}
+.nav .lbl{font-family:var(--serif);font-size:14px}
+
+.footer-line{
+  margin-top:30px;padding-top:18px;border-top:1px dashed var(--rule-soft);
+  font-family:var(--mono);font-size:10px;color:var(--ink-soft);line-height:1.6;
+}
+
+.deck{padding:48px clamp(20px,5vw,72px);max-width:1280px}
+@media (max-width:860px){.deck{padding:28px 18px}}
+
+.masthead{border-bottom:2px solid var(--rule);padding-bottom:24px;margin-bottom:36px;position:relative}
+.masthead::before{
+  content:"";position:absolute;left:-72px;top:6px;width:64px;height:64px;
+  border:1.5px solid var(--rule);border-radius:50%;
+}
+.masthead::after{
+  content:"";position:absolute;left:-56px;top:38px;width:32px;
+  border-top:2px solid var(--rule);
+}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-soft);margin:0 0 8px}
+h1.title{font-family:var(--serif);font-size:clamp(36px,6vw,72px);line-height:1;margin:0;letter-spacing:-1px;font-weight:500}
+h1.title em{font-style:italic;color:var(--accent)}
+.lede{margin:18px 0 0;font-family:var(--serif);font-style:italic;font-size:18px;max-width:62ch;color:var(--ink-soft)}
+.specbar{display:flex;flex-wrap:wrap;gap:6px;margin-top:22px}
+.specbar span{
+  font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;
+  padding:5px 10px;border:1px solid var(--rule);border-radius:999px;color:var(--ink-soft);
+}
+
+.section{margin:64px 0;scroll-margin-top:24px}
+.sec-head{display:flex;align-items:baseline;gap:18px;border-bottom:1px solid var(--rule);padding-bottom:10px;margin-bottom:24px}
+.sec-num{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:1.5px}
+.sec-name{font-family:var(--serif);font-size:28px;line-height:1;margin:0;font-weight:500}
+.sec-name em{font-style:italic}
+.sec-blurb{font-family:var(--serif);font-style:italic;color:var(--ink-soft);font-size:14px;max-width:56ch;margin:0 0 22px}
+
+/* per-section visual treatments */
+.scamper .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.scamper .chip{
+  position:relative;border:1px solid var(--rule);background:var(--paper);
+  padding:12px 12px 38px;font-family:var(--serif);font-size:13.5px;line-height:1.35;
+  min-height:78px;
+}
+.scamper .chip .ix{position:absolute;top:8px;right:8px;font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:1px}
+.scamper .chip::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;background:repeating-linear-gradient(90deg,var(--rule) 0 8px,transparent 8px 14px)}
+
+.tt .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.tt .chip{
+  position:relative;background:var(--paper);border:1px solid var(--rule);
+  padding:16px 16px 18px;font-family:var(--serif);font-size:14px;line-height:1.4;
+  min-height:96px;
+}
+.tt .chip .ix{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:1px;display:block;margin-bottom:6px}
+.tt .chip::before{
+  content:"";position:absolute;top:-1px;left:-1px;width:18px;height:18px;
+  background:var(--accent);clip-path:polygon(0 0,100% 0,100% 60%,60% 100%,0 100%);
+}
+
+.s60 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:0;border:1px solid var(--rule)}
+.s60 .chip{
+  border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  padding:14px 14px 36px;font-family:var(--serif);font-size:13.5px;
+  position:relative;background:var(--paper);min-height:84px;
+}
+.s60 .chip:nth-child(odd){background:var(--paper-2)}
+.s60 .chip .ix{
+  position:absolute;bottom:6px;right:10px;font-family:var(--mono);font-size:10px;
+  color:var(--teal);letter-spacing:1px;
+}
+.s60 .chip .ix::before{content:"⏱ ";opacity:.6}
+
+.jtbd .list{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--rule)}
+.jtbd .chip{
+  display:grid;grid-template-columns:90px 1fr;gap:18px;
+  padding:14px 4px;border-bottom:1px solid var(--rule);
+  font-family:var(--serif);font-size:14.5px;line-height:1.45;
+}
+.jtbd .chip .ix{
+  font-family:var(--mono);font-size:11px;letter-spacing:1.2px;color:var(--indigo);
+  border-right:1px solid var(--indigo);padding-right:12px;
+}
+.jtbd .chip em{color:var(--accent);font-style:italic;font-weight:600}
+
+.fsi .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+.fsi .chip{
+  border:1px solid var(--rule);background:var(--paper);padding:18px 18px 44px;position:relative;
+  font-family:var(--serif);font-size:14px;line-height:1.4;
+}
+.fsi .chip .ix{
+  position:absolute;top:8px;right:10px;font-family:var(--mono);font-size:10px;color:var(--moss);letter-spacing:1.5px;
+}
+.fsi .chip .q{
+  font-style:italic;color:var(--ink-soft);font-size:12.5px;text-transform:uppercase;letter-spacing:1.2px;
+  margin-bottom:8px;font-family:var(--mono);
+}
+.fsi .chip::before{
+  content:"";position:absolute;left:14px;bottom:18px;width:36px;height:6px;
+  background:radial-gradient(circle,var(--moss) 2px,transparent 3px) 0 0/8px 6px;
+}
+
+.pr .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0;border:1px solid var(--rule)}
+.pr .chip{
+  border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  padding:18px 18px 44px;position:relative;background:var(--paper);min-height:110px;
+}
+.pr .chip:nth-child(5n){border-right:none}
+.pr .chip .quote{font-family:var(--serif);font-style:italic;font-size:15.5px;line-height:1.35;color:var(--ink)}
+.pr .chip .quote::before{content:"\201C";color:var(--accent);font-size:28px;line-height:0;margin-right:2px;vertical-align:-6px;font-family:var(--serif)}
+.pr .chip .quote::after{content:"\201D";color:var(--accent);font-size:28px;line-height:0;margin-left:2px;vertical-align:-6px;font-family:var(--serif)}
+.pr .chip .ix{
+  position:absolute;bottom:8px;right:10px;font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:1px;
+}
+
+.exp .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.exp .chip{
+  border:1px solid var(--rule);background:var(--paper);padding:14px 14px 16px;
+  position:relative;font-family:var(--serif);font-size:14px;line-height:1.4;min-height:80px;
+}
+.exp .chip .ix{
+  display:inline-block;font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:1px;
+  border:1px solid var(--accent);padding:2px 6px;border-radius:1px;margin-bottom:6px;
+}
+.exp .chip .pack{font-family:var(--serif);font-weight:600;color:var(--indigo);font-size:13px;letter-spacing:.5px;text-transform:uppercase}
+
+.qual .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0;border-top:1px solid var(--rule)}
+.qual .chip{
+  display:grid;grid-template-columns:60px 1fr;gap:14px;
+  padding:14px 4px 14px 0;border-bottom:1px solid var(--rule);
+  font-family:var(--serif);font-size:14px;line-height:1.45;
+}
+.qual .chip .gate{
+  font-family:var(--mono);font-size:18px;color:var(--paper);background:var(--ink);
+  display:flex;align-items:center;justify-content:center;letter-spacing:1px;
+}
+.qual .chip .ix{
+  display:inline-block;font-family:var(--mono);font-size:10px;color:var(--teal);
+  letter-spacing:1.2px;margin-bottom:4px;
+}
+
+.chip:focus-visible,.chip:hover{background:var(--paper-2);outline:none}
+.chip{transition:background .18s ease,transform .18s ease}
+
+.insights{margin:90px 0 60px;padding-top:30px;border-top:3px double var(--rule)}
+.insights h2{font-family:var(--serif);font-size:clamp(28px,4vw,42px);margin:0 0 8px;font-weight:500}
+.insights .sub{font-family:var(--serif);font-style:italic;color:var(--ink-soft);max-width:60ch;margin:0 0 36px}
+
+.ig{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0;border-top:1px solid var(--rule)}
+.icard{
+  border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  padding:28px 26px;position:relative;background:var(--paper);
+}
+.icard:nth-child(3n){border-right:none}
+@media (max-width:900px){.icard{border-right:none}}
+.icard .num{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:2px}
+.icard .glyph{
+  display:inline-block;margin:8px 0 14px;font-family:var(--serif);font-size:36px;line-height:1;color:var(--accent);
+}
+.icard p{font-family:var(--serif);font-size:16px;line-height:1.45;margin:0;color:var(--ink)}
+.icard .accent-line{margin-top:18px;height:2px;background:var(--rule);position:relative;overflow:hidden}
+.icard .accent-line::before{
+  content:"";position:absolute;left:0;top:0;height:100%;width:60%;
+  background:linear-gradient(90deg,var(--accent),transparent);
+}
+
+.epilogue{
+  margin-top:60px;padding:32px;border:1px solid var(--rule);
+  background:var(--paper-2);text-align:center;font-family:var(--serif);
+}
+.epilogue p{margin:0;font-style:italic;font-size:18px;color:var(--ink-soft)}
+.epilogue strong{font-style:normal;color:var(--ink)}
+.epilogue .stamp{
+  display:inline-block;margin-top:18px;padding:6px 14px;border:1.5px solid var(--rule);
+  font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-soft);
+}
+
+.brandfoot{
+  margin-top:50px;padding-top:18px;border-top:1px dashed var(--rule-soft);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.5px;color:var(--ink-soft);text-align:center;
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;animation:none !important}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <aside class="edge" aria-label="Index">
+    <p class="brand">Handy Tools <em>Workbench</em></p>
+    <p class="tag">Brainstorm · 2026-07-31</p>
+
+    <nav aria-label="Sections">
+      <ul class="nav">
+        <li><a href="#top"><span class="key">00</span><span class="lbl">Cover</span></a></li>
+        <li><a href="#scamper"><span class="key">01</span><span class="lbl">SCAMPER</span></a></li>
+        <li><a href="#tt"><span class="key">02</span><span class="lbl">Trait Transfer</span></a></li>
+        <li><a href="#s60"><span class="key">03</span><span class="lbl">Ship in 60</span></a></li>
+        <li><a href="#jtbd"><span class="key">04</span><span class="lbl">Job to Be Done</span></a></li>
+        <li><a href="#fsi"><span class="key">05</span><span class="lbl">Future Self</span></a></li>
+        <li><a href="#pr"><span class="key">06</span><span class="lbl">Provocations</span></a></li>
+        <li><a href="#exp"><span class="key">07</span><span class="lbl">Expansion</span></a></li>
+        <li><a href="#qual"><span class="key">08</span><span class="lbl">Quality</span></a></li>
+        <li><a href="#insights"><span class="key">09</span><span class="lbl">Insights</span></a></li>
+      </ul>
+    </nav>
+
+    <p class="footer-line">
+      147 entries<br>
+      one window, one keyboard,<br>
+      zero dependencies<br>
+      <span aria-hidden="true">— rivets checked —</span>
+    </p>
+  </aside>
+
+  <main class="deck" id="top">
+
+    <header class="masthead">
+      <p class="kicker">Field memo · autonomous sweep · complete</p>
+      <h1 class="title">A workbench for <em>useful tools</em>.</h1>
+      <p class="lede">Six creative techniques, one quiet afternoon, 147 cards spread across the bench. Below: every technique gets its own drawer, every idea gets a rivet, and the seven insights hang on the wall where you can find them in the dark.</p>
+      <div class="specbar" aria-hidden="true">
+        <span>vanilla js</span><span>offline</span><span>keyboard-first</span><span>no tracking</span><span>embeddable</span><span>printable</span><span>8 / 10 bar</span>
+      </div>
+    </header>
+
+    <!-- 01 SCAMPER -->
+    <section class="section scamper" id="scamper" aria-labelledby="h-scamper">
+      <div class="sec-head">
+        <span class="sec-num">01 ·</span>
+        <h2 class="sec-name" id="h-scamper"><em>Substitute, combine, adapt, modify, put, eliminate, reverse</em> — the disciplined hammer.</h2>
+      </div>
+      <p class="sec-blurb">35 ideas filed under the seven SCAMPER verbs. Each idea carries its verb as a typographic stripe at the foot of the card.</p>
+      <div class="grid">
+        <div class="chip" tabindex="0"><span class="ix">S1</span>Single-page shell replaces per-tool pages. Sidebar, recent, starred, deep-linkable states.</div>
+        <div class="chip" tabindex="0"><span class="ix">S2</span>One design-system stylesheet — CSS layers + custom properties. One source of truth, instant theming.</div>
+        <div class="chip" tabindex="0"><span class="ix">S3</span>Generated tools.json manifest drives a build-free home page.</div>
+        <div class="chip" tabindex="0"><span class="ix">S4</span>Web Component &lt;ht-shell&gt; — nav, theme, search, footer injected once.</div>
+        <div class="chip" tabindex="0"><span class="ix">S5</span>Real Settings modal: theme, language, units, currency, font scale, motion, sync.</div>
+        <div class="chip" tabindex="0"><span class="ix">C1</span><em>Money</em> toolkit — eight finance tools share an input panel and switcher.</div>
+        <div class="chip" tabindex="0"><span class="ix">C2</span><em>Timers</em> — stopwatch, pomodoro, countdown, intervals. One state, four faces.</div>
+        <div class="chip" tabindex="0"><span class="ix">C3</span><em>Converters</em> — units, currency, format (CSV↔JSON↔YAML) share one picker.</div>
+        <div class="chip" tabindex="0"><span class="ix">C4</span><em>Dates</em> — age, countdown, difference, anniversary on one timeline.</div>
+        <div class="chip" tabindex="0"><span class="ix">C5</span><em>QR Studio</em> — QR, barcode, WiFi, vCard, event. QR-from-image decoder.</div>
+        <div class="chip" tabindex="0"><span class="ix">A1</span>Decision-wheel spin physics adapted as a habit-streak canvas engine.</div>
+        <div class="chip" tabindex="0"><span class="ix">A2</span>Lifespan slider UX adapted as a <em>What if?</em> mode on every calculator.</div>
+        <div class="chip" tabindex="0"><span class="ix">A3</span>QR generator's offline-first pattern becomes a project-wide rule.</div>
+        <div class="chip" tabindex="0"><span class="ix">A4</span>Animal-race simulation as the template for every <em>simulate it</em> tool.</div>
+        <div class="chip" tabindex="0"><span class="ix">M1</span>Flat tool grid replaced by a command-palette-first interface. Type to find.</div>
+        <div class="chip" tabindex="0"><span class="ix">M2</span>Every tool exposes its result as a shareable URL — one link, full state.</div>
+        <div class="chip" tabindex="0"><span class="ix">M3</span>Every tool embeddable via iframe with a <em>mini mode</em>.</div>
+        <div class="chip" tabindex="0"><span class="ix">M4</span>window.print + @media print — every tool prints clean in under 500ms.</div>
+        <div class="chip" tabindex="0"><span class="ix">M5</span>Inline SVG icons collapsed to one sprite + &lt;use&gt;. One request, cached.</div>
+        <div class="chip" tabindex="0"><span class="ix">P1</span>Every result auto-copies to clipboard. Run a tool, get the answer.</div>
+        <div class="chip" tabindex="0"><span class="ix">P2</span>JSON tree view becomes a generic data viewer for CSV, YAML, TOML.</div>
+        <div class="chip" tabindex="0"><span class="ix">P3</span>Color palette generator becomes a design-tokens exporter (CSS, Tailwind, SCSS).</div>
+        <div class="chip" tabindex="0"><span class="ix">E1</span>tools.json — single source for grid, search, sitemap, RSS, OG.</div>
+        <div class="chip" tabindex="0"><span class="ix">E2</span>Per-tool header/footer markup — collapsed into &lt;ht-shell&gt;.</div>
+        <div class="chip" tabindex="0"><span class="ix">E3</span>404 replaced by a <em>Did you mean…</em> search.</div>
+        <div class="chip" tabindex="0"><span class="ix">E4</span>No-tests state eliminated — every pure utility gets test.html.</div>
+        <div class="chip" tabindex="0"><span class="ix">R1</span>Reversed: a tools-as-data platform. Build custom starter pages; export.</div>
+        <div class="chip" tabindex="0"><span class="ix">R2</span>Reversed: a Tip jar + <em>Sponsor a tool</em>. Core stays free.</div>
+        <div class="chip" tabindex="0"><span class="ix">R3</span>Reversed navigation: command palette primary, sidebar secondary, grid tertiary.</div>
+        <div class="chip" tabindex="0"><span class="ix">S1</span>Disciplined hammer — verbs repeated, not verbs exhausted.</div>
+        <div class="chip" tabindex="0"><span class="ix">S2</span>Substitution tested everywhere — defaults re-examined.</div>
+        <div class="chip" tabindex="0"><span class="ix">S3</span>Combine pairs re-evaluated against the toolkit shape.</div>
+        <div class="chip" tabindex="0"><span class="ix">S4</span>Adapt — engine reuse as a habit, not an exception.</div>
+        <div class="chip" tabindex="0"><span class="ix">S5</span>Eliminate — the discipline of deleting before adding.</div>
+        <div class="chip" tabindex="0"><span class="ix">S6</span>Reverse — the cheap way to surprise yourself.</div>
+      </div>
+    </section>
+
+    <!-- 02 TRAIT TRANSFER -->
+    <section class="section tt" id="tt" aria-labelledby="h-tt">
+      <div class="sec-head">
+        <span class="sec-num">02 ·</span>
+        <h2 class="sec-name" id="h-tt"><em>Trait transfer</em> — borrow one good thing from each neighbour.</h2>
+      </div>
+      <p class="sec-blurb">18 ideas, each with a flag of where it came from. The corner banner marks the source app; the body is the adopted move.</p>
+      <div class="grid">
+        <div class="chip" tabindex="0"><span class="ix">TT1 · Linear / Notion</span>Keyboard-first, opinionated UX. ⌘K palette, j/k navigation, gg/G jumps, / to search.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT2 · GitHub</span>Copy affordance on every code block and result. Clipboard auto-paste, satisfying animation.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT3 · Tailwind docs</span><em>Search this page</em> scoped to current tool. Bindings surfaced in help overlay.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT4 · Apple Calculator</span>History sidebar — last 50 calculations in session, one click to restore.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT5 · Figma</span>URL-encoded state — every tool a deterministic function of its URL.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT6 · Wikipedia</span><em>Did you know?</em> rotating footer line — hidden tools, power features, sharpening tips.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT7 · Stripe</span>Tiny <em>View source</em> link in footer opens the repo at the current file. Radical transparency.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT8 · 1Password</span><em>Fill with sample data</em> on every form. See the tool work in one second.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT9 · macOS Shortcuts</span>Tools Workflows gallery — pre-built multi-tool recipes (Trip, Budget, Split).</div>
+        <div class="chip" tabindex="0"><span class="ix">TT10 · Wolfram Alpha</span>Plain-English input routes to the right tool. <em>How much will 1000 grow in 5y at 6%</em> → compound interest.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT11 · Bear / Things</span>Today widget + per-tool recents in localStorage. Single Home button to see everything.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT12 · Vercel</span>OG-image generator renders a real preview of each tool from the manifest.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT13 · Doom Emacs</span>Discoverable keymap help overlay — press <em>?</em> for all shortcuts. The single biggest power-user wow.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT14 · DuckDuckGo</span>No analytics, no fingerprinting, no cookies. /privacy page shows exactly what is and isn't stored.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT15 · Obsidian</span>Export to Markdown / JSON for every tool. Power users pipe results into their own stack.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT16 · Raycast</span>Tool launchers — runnable from one command bar with category subcommands and history.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT17 · Readwise / Tachiyomi</span>Real service worker caches the shell + last-used tools. Second load is instant.</div>
+        <div class="chip" tabindex="0"><span class="ix">TT18 · Unix man pages</span>Man-style help per tool: NAME, SYNOPSIS, DESCRIPTION, OPTIONS, EXAMPLES, SEE ALSO. Linkable, printable.</div>
+      </div>
+    </section>
+
+    <!-- 03 SHIP IN 60 -->
+    <section class="section s60" id="s60" aria-labelledby="h-s60">
+      <div class="sec-head">
+        <span class="sec-num">03 ·</span>
+        <h2 class="sec-name" id="h-s60"><em>Ship in 60 Minutes</em> — the wall of small wins.</h2>
+      </div>
+      <p class="sec-blurb">15 concrete ideas, each tagged with the time it'd take to ship. The grid here reads like a punch list on a clipboard.</p>
+      <div class="grid">
+        <div class="chip" tabindex="0">SPA shell in 60: index.html + 1 css + 1 js + tools.json. ⌘K palette opens it.<span class="ix">S60-1</span></div>
+        <div class="chip" tabindex="0">PWA install in 60: manifest + service worker. Installable from the address bar.<span class="ix">S60-2</span></div>
+        <div class="chip" tabindex="0">Last-used + favorites in 60: localStorage-backed recent. Two clicks to resume.<span class="ix">S60-3</span></div>
+        <div class="chip" tabindex="0">Shared URL state in 60: ?input= reads on load, writes on submit. One link.<span class="ix">S60-4</span></div>
+        <div class="chip" tabindex="0">Copy to clipboard as default in 60: every output tile gets a Copy button.<span class="ix">S60-5</span></div>
+        <div class="chip" tabindex="0">Fill with example in 60: every form has a <em>try an example</em> button.<span class="ix">S60-6</span></div>
+        <div class="chip" tabindex="0">Dark theme as opt-in attr in 60 — already done, but make it a first-class toggle.<span class="ix">S60-7</span></div>
+        <div class="chip" tabindex="0">5-second search in 60: header search box, fuzzy match, Enter to jump.<span class="ix">S60-8</span></div>
+        <div class="chip" tabindex="0">Keyboard shortcuts help in 60: <em>?</em> opens a modal of shortcuts for the current tool.<span class="ix">S60-9</span></div>
+        <div class="chip" tabindex="0">No 404s in 60: unknown paths redirect home with a <em>Did you mean?</em> toast.<span class="ix">S60-10</span></div>
+        <div class="chip" tabindex="0">Print stylesheet in 60: black on white, hide chrome, page-break-before sections.<span class="ix">S60-11</span></div>
+        <div class="chip" tabindex="0">Embed mode in 60: ?embed=1 hides nav/footer, shrinks to widget size.<span class="ix">S60-12</span></div>
+        <div class="chip" tabindex="0">Auto-save inputs in 60: debounce-save per tool, restore on load.<span class="ix">S60-13</span></div>
+        <div class="chip" tabindex="0">RSS / Atom changelog in 60: feed.xml from tools.json last-updated dates.<span class="ix">S60-14</span></div>
+        <div class="chip" tabindex="0">Inline SVG favicon per tool in 60: OG image + favicon generated from manifest.<span class="ix">S60-15</span></div>
+      </div>
+    </section>
+
+    <!-- 04 JTBD -->
+    <section class="section jtbd" id="jtbd" aria-labelledby="h-jtbd">
+      <div class="sec-head">
+        <span class="sec-num">04 ·</span>
+        <h2 class="sec-name" id="h-jtbd"><em>Job to Be Done</em> — the hire.</h2>
+      </div>
+      <p class="sec-blurb">12 jobs phrased as users speaking in the first person. The label column carries the job ID; the body is the user's exact words.</p>
+      <div class="list">
+        <div class="chip" tabindex="0"><span class="ix">JTBD-1</span><span>Users hire us to <em>answer a small, private question right now</em> — no install, no signup, no tracking. Every UX choice reduces friction on that.</span></div>
+        <div class="chip" tabindex="0"><span class="ix">JTBD-2</span><span>Users hire us to <em>stop context-switching</em> when a calculator question shows up in a meeting, email, or doc. Type-and-answer in under five seconds.</span></div>
+        <div class="chip" tabindex="0"><span class="ix">JTBD-3</span><span>Users hire us to <em>compute something they'll paste into Slack or email</em>. Auto-copy the result; the next click goes to the chat.</span></div>
+        <div class="chip" tabindex="0"><span class="ix">JTBD-4</span><span>Users hire us to <em>share a calculation with a colleague or client</em>. Sharable URLs recreate the exact inputs on load.</span></div>
+        <div class="chip" tabindex="0"><span class="ix">JTBD-5</span><span>Users hire us to <em>feel in control of small daily decisions</em>. Decision wheel, pros/cons, Eisenhower matrix — emotional tools, not just functional.</span></div>
+        <div class="chip" tabindex="0"><span class="ix">JTBD-6</span><span>Users hire us to <em>satisfy a curiosity without social-media shame</em>. Fun tools (animal race, space, lifespan) are the brand-building hooks.</span></div>
+        <div class="chip" tabindex="0"><span class="ix">JTBD-7</span><span>Users hire us to <em>teach my kid or team a concept visually</em>. Embeddable mini-tools, classroom mode, big result, no chrome.</span></div>
+        <div class="chip" tabindex="0"><span class="ix">JTBD-8</span><span>Users hire us to <em>fall back to when my phone app is full of ads</em>. Zero ads, no sign-in, no tracking — the value prop itself.</span></div>
+        <div class="chip" tabindex="0"><span class="ix">JTBD-9</span><span>Users hire us to <em>trust the math is right</em>. Show formula, show units, show edge cases, never silently round. Show your work.</span></div>
+        <div class="chip" tabindex="0"><span class="ix">JTBD-10</span><span>Users hire us to <em>make a tiny decision without thinking about the tool</em>. UX goal: muscle memory. ⌘K → 4 chars → Enter under 1.5s.</span></div>
+        <div class="chip" tabindex="0"><span class="ix">JTBD-11</span><span>Users hire us to <em>bookmark the one tool they love</em>. Deep-linkable URLs, PWA install to home screen, recent + favorites.</span></div>
+        <div class="chip" tabindex="0"><span class="ix">JTBD-12</span><span>Users hire us to <em>look at a number and remember the why</em>. History is a feature. Per-tool history plus a global history timeline.</span></div>
+      </div>
+    </section>
+
+    <!-- 05 FUTURE SELF -->
+    <section class="section fsi" id="fsi" aria-labelledby="h-fsi">
+      <div class="sec-head">
+        <span class="sec-num">05 ·</span>
+        <h2 class="sec-name" id="h-fsi"><em>Future Self Interview</em> — letters from 2030.</h2>
+      </div>
+      <p class="sec-blurb">12 memos, each kicking off with what future-us said. The cards are stamped with date-2030 footprints at the bottom.</p>
+      <div class="grid">
+        <div class="chip" tabindex="0"><span class="ix">FSI-1</span><div class="q">From 2030</div>The tools that win open in &lt;0.5s, run offline, and let me paste a number into the address bar. Make ?calc=4500*12 a feature.</div>
+        <div class="chip" tabindex="0"><span class="ix">FSI-2</span><div class="q">From 2030</div>Privacy isn't a footer note; it's the brand. A visible <em>No data leaves your browser</em> badge that opens a full disclosure panel.</div>
+        <div class="chip" tabindex="0"><span class="ix">FSI-3</span><div class="q">From 2030</div>Stop adding tools. Add depth to the ones you have. The long-term moat is polish on a small curated set.</div>
+        <div class="chip" tabindex="0"><span class="ix">FSI-4</span><div class="q">From 2030</div>Embed is the new SEO. Every tool as an embeddable widget is the underused surface area that drives organic traffic.</div>
+        <div class="chip" tabindex="0"><span class="ix">FSI-5</span><div class="q">From 2030</div>Localization wins local markets. Ship Bengali, Hindi, Spanish, Arabic first — where good local-first tools are scarce.</div>
+        <div class="chip" tabindex="0"><span class="ix">FSI-6</span><div class="q">From 2030</div>The keyboard is the new mobile. Every form has 1-2 key shortcuts (age: <em>b</em> = birthday, <em>t</em> = today).</div>
+        <div class="chip" tabindex="0"><span class="ix">FSI-7</span><div class="q">From 2030</div>Formatters beat calculators. JSON, CSV, YAML, SQL, regex, diff, color — visited 10x more. Invest there.</div>
+        <div class="chip" tabindex="0"><span class="ix">FSI-8</span><div class="q">From 2030</div>A single bad tool kills the brand. Every tool meets the bar (a11y, mobile, offline, shareable, printable) before any new one ships.</div>
+        <div class="chip" tabindex="0"><span class="ix">FSI-9</span><div class="q">From 2030</div>The best UX is invisible. The next leap is removing the home page for power users; the command palette is the home page.</div>
+        <div class="chip" tabindex="0"><span class="ix">FSI-10</span><div class="q">From 2030</div>Open source is the moat. Accept contributions, write CONTRIBUTING.md, enforce a tool template, credit on every footer.</div>
+        <div class="chip" tabindex="0"><span class="ix">FSI-11</span><div class="q">From 2030</div>Show, don't tell. Every tool has a 5-second animated demo at the top so visitors see it work.</div>
+        <div class="chip" tabindex="0"><span class="ix">FSI-12</span><div class="q">From 2030</div>Voice is the new text. Web Speech API <em>voice input</em> on every text-input tool — no-deps differentiator.</div>
+      </div>
+    </section>
+
+    <!-- 06 PROVOCATION -->
+    <section class="section pr" id="pr" aria-labelledby="h-pr">
+      <div class="sec-head">
+        <span class="sec-num">06 ·</span>
+        <h2 class="sec-name" id="h-pr"><em>Provocation</em> — twenty-four deliberately wrong sentences that lead somewhere right.</h2>
+      </div>
+      <p class="sec-blurb">Each statement is a provocation pulled from a different sensibility. The card quotes the line; you do the work of unwrapping it.</p>
+      <div class="grid">
+        <div class="chip" tabindex="0"><div class="quote">Every tool is a conversation with no words.</div><span class="ix">PR-1</span></div>
+        <div class="chip" tabindex="0"><div class="quote">Handy Tools knows what I need before I do.</div><span class="ix">PR-2</span></div>
+        <div class="chip" tabindex="0"><div class="quote">You can use every tool with one hand while carrying groceries.</div><span class="ix">PR-3</span></div>
+        <div class="chip" tabindex="0"><div class="quote">The output is a tiny product, not a number.</div><span class="ix">PR-4</span></div>
+        <div class="chip" tabindex="0"><div class="quote">There are no tools, only workflows.</div><span class="ix">PR-5</span></div>
+        <div class="chip" tabindex="0"><div class="quote">The homepage is a blank command line.</div><span class="ix">PR-6</span></div>
+        <div class="chip" tabindex="0"><div class="quote">Handy Tools is a personal cockpit.</div><span class="ix">PR-7</span></div>
+        <div class="chip" tabindex="0"><div class="quote">Every tool can teach.</div><span class="ix">PR-8</span></div>
+        <div class="chip" tabindex="0"><div class="quote">The site is a time machine.</div><span class="ix">PR-9</span></div>
+        <div class="chip" tabindex="0"><div class="quote">There is no app store; users compose their own.</div><span class="ix">PR-10</span></div>
+        <div class="chip" tabindex="0"><div class="quote">The page never asks me to wait.</div><span class="ix">PR-11</span></div>
+        <div class="chip" tabindex="0"><div class="quote">The site is resilient to the apocalypse.</div><span class="ix">PR-12</span></div>
+        <div class="chip" tabindex="0"><div class="quote">The tool explains when not to trust it.</div><span class="ix">PR-13</span></div>
+        <div class="chip" tabindex="0"><div class="quote">A tool can be a tiny API without a server.</div><span class="ix">PR-14</span></div>
+        <div class="chip" tabindex="0"><div class="quote">Every calculation is auditable by a child.</div><span class="ix">PR-15</span></div>
+        <div class="chip" tabindex="0"><div class="quote">The suite has a personality but never gets in the way.</div><span class="ix">PR-16</span></div>
+        <div class="chip" tabindex="0"><div class="quote">The best developer tool site is also a daily-life tool site.</div><span class="ix">PR-17</span></div>
+        <div class="chip" tabindex="0"><div class="quote">No one should have to know the name of a tool.</div><span class="ix">PR-18</span></div>
+        <div class="chip" tabindex="0"><div class="quote">Tool quality is measurable.</div><span class="ix">PR-19</span></div>
+        <div class="chip" tabindex="0"><div class="quote">The suite is a library of tiny superpowers.</div><span class="ix">PR-20</span></div>
+        <div class="chip" tabindex="0"><div class="quote">Best in world means best at recovery.</div><span class="ix">PR-21</span></div>
+        <div class="chip" tabindex="0"><div class="quote">The tool gets out of its own way on first visit.</div><span class="ix">PR-22</span></div>
+        <div class="chip" tabindex="0"><div class="quote">Users can leave with their data.</div><span class="ix">PR-23</span></div>
+        <div class="chip" tabindex="0"><div class="quote">A tool is a platform primitive.</div><span class="ix">PR-24</span></div>
+      </div>
+    </section>
+
+    <!-- 07 EXPANSION -->
+    <section class="section exp" id="exp" aria-labelledby="h-exp">
+      <div class="sec-head">
+        <span class="sec-num">07 ·</span>
+        <h2 class="sec-name" id="h-exp"><em>Tool Expansion</em> — ten packs, ordered like a spice rack.</h2>
+      </div>
+      <p class="sec-blurb">Packs, not piles. Each pack is a shelf-tag with a story inside.</p>
+      <div class="grid">
+        <div class="chip" tabindex="0"><span class="ix">EXP-1</span><span class="pack">Household</span>Grocery list · recipe scaler · unit converter · meal planner · pantry expiry.</div>
+        <div class="chip" tabindex="0"><span class="ix">EXP-2</span><span class="pack">Travel</span>Timezone planner · date countdown · currency · packing checklist · tip · trip budget.</div>
+        <div class="chip" tabindex="0"><span class="ix">EXP-3</span><span class="pack">Home Project</span>Paint · area/volume · material estimator · converter · split bill · loan/ROI.</div>
+        <div class="chip" tabindex="0"><span class="ix">EXP-4</span><span class="pack">Study</span>Flashcard timer · GPA · Pomodoro · citation formatter · word count · reading-time · exam countdown.</div>
+        <div class="chip" tabindex="0"><span class="ix">EXP-5</span><span class="pack">Developer</span>JSON/CSV/YAML · diff · JWT · UUID · timestamp · regex · URL/Base64 · SQL formatter.</div>
+        <div class="chip" tabindex="0"><span class="ix">EXP-6</span><span class="pack">Communication</span>Text case · whitespace · duplicate-line remover · slug · Unicode · subject tester · char count.</div>
+        <div class="chip" tabindex="0"><span class="ix">EXP-7</span><span class="pack">Accessibility</span>Contrast checker · color-blindness sim · rem→px · focus-order · accessible-name · alt-text.</div>
+        <div class="chip" tabindex="0"><span class="ix">EXP-8</span><span class="pack">Personal Finance</span>Budget · savings goal · net worth · debt payoff · inflation · salary/hourly · tax · split.</div>
+        <div class="chip" tabindex="0"><span class="ix">EXP-9</span><span class="pack">Security</span>Password · passphrase · entropy · hash · secret redaction · breach-safe local checklist.</div>
+        <div class="chip" tabindex="0"><span class="ix">EXP-10</span><span class="pack">File Utility</span>Image metadata · compress · resize · favicon · file hash · ZIP inspector — all local.</div>
+      </div>
+    </section>
+
+    <!-- 08 QUALITY -->
+    <section class="section qual" id="qual" aria-labelledby="h-qual">
+      <div class="sec-head">
+        <span class="sec-num">08 ·</span>
+        <h2 class="sec-name" id="h-qual"><em>Quality</em> — twelve gates, each one a turnstile.</h2>
+      </div>
+      <p class="sec-blurb">Twelve gates every tool must pass to leave the bench. Each card names the gate and the rule behind it.</p>
+      <div class="grid">
+        <div class="chip" tabindex="0"><span class="gate">G1</span><span><span class="ix">QUAL-1</span><strong>Tool Contract.</strong> Metadata, mount/destroy, accessible labels, live result, state persistence, URL share, print, sample data, error recovery, tests.</span></div>
+        <div class="chip" tabindex="0"><span class="gate">G2</span><span><span class="ix">QUAL-2</span><strong>Measurable budgets.</strong> Home LCP &lt;1.5s mid-mobile; tool interactive &lt;1s; zero CLS; no render-blocking third parties.</span></div>
+        <div class="chip" tabindex="0"><span class="gate">G3</span><span><span class="ix">QUAL-3</span><strong>Accessibility gate.</strong> Keyboard-only completion, visible focus, landmarks, WCAG AA, reduced-motion, screen-reader, 44px touch targets.</span></div>
+        <div class="chip" tabindex="0"><span class="gate">G4</span><span><span class="ix">QUAL-4</span><strong>Correctness gate.</strong> Pure calculations isolated from DOM; golden vectors, boundaries, invalid inputs, units, explicit rounding.</span></div>
+        <div class="chip" tabindex="0"><span class="gate">G5</span><span><span class="ix">QUAL-5</span><strong>Privacy gate.</strong> No analytics by default, no external requests, privacy dashboard, export/import, transparent keys, sensitive warnings.</span></div>
+        <div class="chip" tabindex="0"><span class="gate">G6</span><span><span class="ix">QUAL-6</span><strong>Offline gate.</strong> Service worker caches shell + tool assets; offline page; no CDN fonts/icons; versioned cache migration; offline indicator.</span></div>
+        <div class="chip" tabindex="0"><span class="gate">G7</span><span><span class="ix">QUAL-7</span><strong>Internationalization.</strong> Message catalogs; locale-aware number/date/currency; RTL-safe CSS; Bengali, Hindi, Spanish starter locales.</span></div>
+        <div class="chip" tabindex="0"><span class="gate">G8</span><span><span class="ix">QUAL-8</span><strong>Browser support.</strong> Current Chrome/Firefox/Safari/Edge; graceful file://; no unsupported API without fallback; feature detection, no UA sniffing.</span></div>
+        <div class="chip" tabindex="0"><span class="gate">G9</span><span><span class="ix">QUAL-9</span><strong>Visual consistency.</strong> Shared tokens, spacing, controls, result cards, alerts, headers, empty/error states, dark + high-contrast themes.</span></div>
+        <div class="chip" tabindex="0"><span class="gate">G10</span><span><span class="ix">QUAL-10</span><strong>Release gate.</strong> Metadata entry; link, mobile, a11y, offline, print smoke tests; changelog note.</span></div>
+        <div class="chip" tabindex="0"><span class="gate">G11</span><span><span class="ix">QUAL-11</span><strong>Observability without tracking.</strong> Local diagnostics panel — timings, errors, cache state, capabilities — copy-diagnostics for bug reports.</span></div>
+        <div class="chip" tabindex="0"><span class="gate">G12</span><span><span class="ix">QUAL-12</span><strong>Error quality.</strong> Preserve input, identify the bad field, explain the fix, no alert(), retry/reset/sample, never silently coerce.</span></div>
+      </div>
+    </section>
+
+    <!-- INSIGHTS — THE CLIMAX -->
+    <section class="insights" id="insights" aria-labelledby="h-insights">
+      <h2 id="h-insights"><em>You arrive here.</em></h2>
+      <p class="sub">Seven insights, hung on the back wall of the workbench. Each one earns its own glyph — the kind of mark you'd etch into a wooden beam.</p>
+
+      <div class="ig">
+        <article class="icard">
+          <span class="num">INSIGHT · 01</span>
+          <span class="glyph" aria-hidden="true">✦</span>
+          <p>The differentiation is not tool count — it is a local-first, privacy-forward, keyboard-first tool <em>operating system</em> with unusually high correctness and accessibility.</p>
+          <span class="accent-line" aria-hidden="true"></span>
+        </article>
+
+        <article class="icard">
+          <span class="num">INSIGHT · 02</span>
+          <span class="glyph" aria-hidden="true">⌘</span>
+          <p>Architecture must collapse duplication: shared Tool Contract, shared design tokens, shared header/footer, single home data source, one command palette, one settings modal.</p>
+          <span class="accent-line" aria-hidden="true"></span>
+        </article>
+
+        <article class="icard">
+          <span class="num">INSIGHT · 03</span>
+          <span class="glyph" aria-hidden="true">⌖</span>
+          <p>Core positioning — <em>"The local-first tool kit for the rest of the internet."</em> Not feature count, but trust, speed, keyboard-first, embeddable, copy-and-share-by-default.</p>
+          <span class="accent-line" aria-hidden="true"></span>
+        </article>
+
+        <article class="icard">
+          <span class="num">INSIGHT · 04</span>
+          <span class="glyph" aria-hidden="true">∞</span>
+          <p>The strongest expansion is workflow packs — Travel, Finance, Study, Developer, Household — built from composable tools. Depth and repeat use, not a random catalog.</p>
+          <span class="accent-line" aria-hidden="true"></span>
+        </article>
+
+        <article class="icard">
+          <span class="num">INSIGHT · 05</span>
+          <span class="glyph" aria-hidden="true">⚓</span>
+          <p>Capture moats — shared URL state, embeddable widgets, keyboard shortcuts, PWA install, plain-language intent routing, no-tracking badge, classroom mode.</p>
+          <span class="accent-line" aria-hidden="true"></span>
+        </article>
+
+        <article class="icard">
+          <span class="num">INSIGHT · 06</span>
+          <span class="glyph" aria-hidden="true">▰</span>
+          <p>Quality moats — measurable per-tool score (a11y / mobile / offline / speed / print / share / tests), gated to 8/10 minimum before a tool is published.</p>
+          <span class="accent-line" aria-hidden="true"></span>
+        </article>
+
+        <article class="icard">
+          <span class="num">INSIGHT · 07</span>
+          <span class="glyph" aria-hidden="true">❦</span>
+          <p>Brand moat — privacy dashboard, transparent storage, view-source link, per-tool contributor credits, <em>tried X? also try Y</em> related-tools trail.</p>
+          <span class="accent-line" aria-hidden="true"></span>
+        </article>
+      </div>
+
+      <div class="epilogue">
+        <p>"Add depth, not breadth. <strong>Stay on the bench until the wood remembers your hands.</strong>"</p>
+        <span class="stamp">End of memo · brainstrom complete</span>
+      </div>
+
+      <p class="brandfoot">Handy Tools brainstorm · 147 entries · 2026-07-31 · one window, one keyboard, zero dependencies</p>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// Light, progressive: focus rings already handled by CSS.
+// Smooth scroll for in-page anchors without a library.
+document.addEventListener('click', function(e){
+  var a = e.target.closest && e.target.closest('a[href^="#"]');
+  if(!a) return;
+  var id = a.getAttribute('href').slice(1);
+  if(!id) return;
+  var t = document.getElementById(id);
+  if(!t) return;
+  e.preventDefault();
+  t.scrollIntoView({behavior:'instant' in window ? 'auto' : 'auto', block:'start'});
+});
+</script>
+</body>
+</html>
