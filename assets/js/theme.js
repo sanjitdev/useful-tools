@@ -25,6 +25,10 @@
   }
 
   function init() {
+    if (window.__htShellReplacesTheme) {
+      apply(getPreferred());
+      return;
+    }
     apply(getPreferred());
     document.addEventListener('click', function (e) {
       var btn = e.target.closest && e.target.closest('.theme-toggle');

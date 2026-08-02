@@ -17,6 +17,13 @@ on:
       - "scripts/validate-tools-json.py"
       - "scripts/rubric-lint.py"
       - "scripts/tool-contract-gate.py"
+      - "scripts/shell-template.py"
+      - "scripts/shell-drift-check.py"
+      - "scripts/shell-a11y-check.py"
+      - "assets/shell/**"
+      - "assets/js/shell.js"
+      - "assets/js/api-contract.js"
+      - "index.html"
       - "docs/quality-rubric.md"
       - "docs/ci-gate.md"
       - ".github/workflows/tool-contract-gate.yml"
@@ -30,6 +37,13 @@ on:
       - "scripts/validate-tools-json.py"
       - "scripts/rubric-lint.py"
       - "scripts/tool-contract-gate.py"
+      - "scripts/shell-template.py"
+      - "scripts/shell-drift-check.py"
+      - "scripts/shell-a11y-check.py"
+      - "assets/shell/**"
+      - "assets/js/shell.js"
+      - "assets/js/api-contract.js"
+      - "index.html"
       - "docs/quality-rubric.md"
       - "docs/ci-gate.md"
       - ".github/workflows/tool-contract-gate.yml"
@@ -101,3 +115,20 @@ jobs:
         # Non-zero = at least one entry violates the contract; the
         # PR cannot merge.
         run: make gate
+
+      - name: Check Shell chrome drift (Story 1.5)
+        # Verifies that every page's chrome (index.html + 34 tool pages)
+        # matches the canonical bytes in assets/shell/chrome.html. The
+        # check is substring-based: any drift exits 2 with a
+        # `CHROME DRIFT: <path>` line per offending file. The check
+        # runs after make gate so a tool contract violation short-
+        # circuits before the chrome scan.
+        run: make shell-drift
+
+      - name: Check Shell a11y invariants (Story 1.5 code review)
+        # Verifies AC #1's structural invariants that the byte-level
+        # drift check cannot catch: <main aria-label> non-empty on
+        # every page, plus the cobalt token block and dark-theme
+        # override in assets/css/base.css. Added after the Story 1.5
+        # code review (Decision #1).
+        run: make shell-a11y

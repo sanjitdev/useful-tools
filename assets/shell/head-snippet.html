@@ -1,0 +1,8 @@
+<!-- shell:head-snippet -->
+<!-- Blocking inline FOUC script. Must run before any stylesheet <link>.
+     Reads localStorage.ht.theme (grandfathered per project-context.md §3),
+     sets data-theme on <html>, and applies a first-paint background so the
+     page never flashes white. ES5 syntax: this runs before shell.js (ES2018)
+     and must not depend on anything external. -->
+<script>(function(){try{var t=localStorage.getItem("ht.theme");t=t||(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var d=document.documentElement;d.setAttribute("data-theme",t);d.style.backgroundColor=t==="dark"?"#0f1117":"#f7f8fb";d.style.color=t==="dark"?"#e8eaf0":"#1a1d29";try{var po=window.PerformanceObserver?new PerformanceObserver(function(list){try{var e=list.getEntries().find(function(x){return x.name==="first-paint"});if(e){d.dispatchEvent(new CustomEvent("ht:fouc-resolved",{detail:{elapsedMs:e.startTime}}));po.disconnect();}}catch(_){}}):null;if(po){po.observe({type:"paint",buffered:true});}}catch(_){}}catch(e){document.documentElement.setAttribute("data-theme","light")}})();</script>
+<!-- /shell:head-snippet -->

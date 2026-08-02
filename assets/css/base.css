@@ -3,6 +3,19 @@
    Reset, CSS variables, typography, layout
    ============================================ */
 
+/* ---------- Cobalt palette (UX-DR-1) ----------
+   Declared above the reset (per Story 1.5 Subtask 1.1) so tool styles
+   that read var(--color-primary*) at first paint get the right values. */
+
+:root {
+  --color-primary: #2F5BFF;
+  --color-primary-hover: #1F46DB;
+  --color-primary-pressed: #1736B8;
+  --color-on-primary: #FFFFFF;
+  --color-primary-soft: #E5ECFF;
+  --color-primary-soft-strong: #C7D4FF;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -107,7 +120,7 @@ a:hover {
   --header-height: 64px;
 }
 
-[data-theme="dark"] {
+:root[data-theme="dark"] {
   --color-bg: #0f1117;
   --color-surface: #181b24;
   --color-surface-2: #21252f;
@@ -123,6 +136,147 @@ a:hover {
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- Cobalt palette (UX-DR-1) ---------- */
+
+/* ---------- Shell chrome (skip link, header, footer, landmarks) ---------- */
+
+.shell-skip {
+  position: absolute;
+  inset-inline-start: var(--space-3);
+  inset-block-start: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  clip-path: inset(50%);
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.shell-skip:focus-visible {
+  clip-path: none;
+  inline-size: auto;
+  block-size: auto;
+  outline: 3px solid var(--color-primary-soft-strong);
+  outline-offset: 2px;
+  text-decoration: none;
+}
+
+.shell-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.shell-brand:hover {
+  color: var(--color-primary-hover);
+  text-decoration: none;
+}
+
+.shell-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.shell-search-trigger,
+.shell-locale,
+.shell-settings {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid transparent;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.shell-search-trigger:hover,
+.shell-locale:not([disabled]):hover,
+.shell-settings:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-soft-strong);
+  color: var(--color-primary-pressed);
+}
+
+.shell-locale[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.site-footer {
+  border-block-start: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding-block: var(--space-5);
+}
+
+.shell-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.shell-footer-nav a {
+  color: var(--color-primary);
+}
+
+.shell-footer-nav a[aria-disabled="true"] {
+  color: var(--color-muted);
+  pointer-events: none;
+}
+
+.shell-footer-copy {
+  display: block;
+  margin-block-start: var(--space-3);
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 767px) {
+  .shell-search-trigger,
+  .shell-locale,
+  .shell-settings {
+    padding: var(--space-2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-search-trigger,
+  .shell-locale,
+  .shell-settings,
+  .shell-skip,
+  .site-header,
+  .site-footer,
+  .theme-toggle {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .theme-toggle {
+    display: none !important;
+  }
 }
 
 /* ---------- Layout primitives ---------- */

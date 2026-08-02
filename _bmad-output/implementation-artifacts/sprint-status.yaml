@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-31
-last_updated: 2026-08-01T02:00:00Z
+last_updated: 2026-08-01T18:30:00Z
 project: useful-tools
 project_key: NOKEY
 tracking_system: file-system
@@ -58,8 +58,8 @@ development_status:
   1-1-establish-greenfield-tool-contract-schema: done
   1-2-codify-the-8-10-quality-rubric-as-test-cases: done
   1-3-tool-contract-ci-gate-github-actions: done
-  1-4-brownfield-migration-inventory-and-rollout-order: backlog
-  1-5-shell-html-skeleton-with-cobalt-tokens: backlog
+  1-4-brownfield-migration-inventory-and-rollout-order: done
+  1-5-shell-html-skeleton-with-cobalt-tokens: review
   1-6-theme-system-with-light-dark-and-auto-modes: backlog
   1-7-command-palette-skeleton-with-cmd-k-ctrl-k-bind: backlog
   1-8-settings-modal-skeleton-with-persisted-preferences: backlog
@@ -73,8 +73,8 @@ development_status:
   epic-1-retrospective: optional
 
   # =========================================================================
-  # Epic 2: Promoted Tool Suite — Bring 33 Tools to the 8/10 Bar
-  # FRs: FR-3 (audit completion), FR-4 (33 entries), FR-5 (real data), FR-20
+  # Epic 2: Promoted Tool Suite — Bring 34 Tools to the 8/10 Bar
+  # FRs: FR-3 (audit completion), FR-4 (34 entries), FR-5 (real data), FR-20
   # ADs: AD-2, AD-3, AD-15 (staged rollout)
   # =========================================================================
   epic-2: backlog
@@ -85,7 +85,7 @@ development_status:
   2-5-per-tool-share-dialog-with-url-and-print: backlog
   2-6-promote-wave-1-tools-3-tools: backlog
   2-7-promote-wave-2-tools-15-tools: backlog
-  2-8-promote-wave-3-tools-15-tools: backlog
+  2-8-promote-wave-3-tools-16-tools: backlog
   2-9-existing-tool-pack-tag-wiring: backlog
   2-10-shared-layout-theme-utils-migration-to-modern-js: backlog
   2-11-brownfield-tool-inventory-view-in-quality: backlog
@@ -451,7 +451,7 @@ action_items:
 #   Stories 2.1-2.5 → Per-tool substrate
 #   Story 2.6 → Wave-1 tools (3 tools)
 #   Story 2.7 → Wave-2 tools (15 tools)
-#   Story 2.8 → Wave-3 tools (15 tools)
+#   Story 2.8 → Wave-3 tools (16 tools)
 #   Story 2.10 → Shared layout/theme/utils migration
 #   Story 2.12 → Cross-cutting regression sweep
 # -----------------------------------------------------------------------------

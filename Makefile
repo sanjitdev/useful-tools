@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci shell-drift shell-a11y measure-fouc shell-template shell-template-all
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -25,7 +25,12 @@ help: ## Show available targets
 	@echo "  make rubric-all          Print a summary table for every tools.json entry"
 	@echo "  make gate                Enforce the Tool Contract gate (AD-2) on tools.json"
 	@echo "  make gate-list           Print the gate's contract one-liner"
-	@echo "  make ci                  Run validate + rubric-all + gate (the full CI chain)"
+	@echo "  make shell-drift         Verify every page's chrome matches assets/shell/chrome.html"
+	@echo "  make shell-a11y          Verify <main aria-label> + cobalt tokens in base.css"
+	@echo "  make measure-fouc        Best-effort 50ms no-FOUC check on index.html"
+	@echo "  make shell-template      Regenerate the home page chrome"
+	@echo "  make shell-template-all  Regenerate the chrome on all 34 tool pages"
+	@echo "  make ci                  Run validate + rubric-all + gate + shell-drift"
 
 validate: validate-tools-json
 
@@ -67,6 +72,37 @@ gate:
 gate-list:
 	@$(PYTHON) scripts/tool-contract-gate.py --list
 
-# `ci` chains the three checks the GitHub Actions workflow runs. Local
+# `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate
+ci: validate rubric-all gate shell-drift shell-a11y
+
+# `shell-drift` checks that every page's chrome matches the canonical
+# bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
+# Wired into the tool-contract-gate workflow; the path filter covers
+# chrome.html, the generator, the drift check, and every tools/<slug>.
+shell-drift:
+	@$(PYTHON) scripts/shell-drift-check.py
+
+# `shell-a11y` verifies AC #1's structural invariants that the byte-level
+# drift check cannot catch: <main aria-label> on every page, and cobalt
+# tokens + dark-theme override in assets/css/base.css.
+shell-a11y:
+	@$(PYTHON) scripts/shell-a11y-check.py
+
+# `measure-fouc` is best-effort: it tries to launch a headless browser
+# via `npx puppeteer` (if Node is on PATH) or `npx lighthouse` and
+# measures the time between first paint and `data-theme` being set.
+# If neither tool is installed, the script exits 0 with a warning.
+# Not wired into the tool-contract-gate workflow in this story (the
+# perf budget is wired in Story X.3).
+measure-fouc:
+	@$(PYTHON) scripts/measure-fouc.py
+
+# `shell-template` regenerates the home page chrome from chrome.html.
+# `shell-template-all` regenerates every tools/<slug>/index.html.
+# Idempotent — re-running produces no change on already-aligned pages.
+shell-template:
+	@$(PYTHON) scripts/shell-template.py --home
+
+shell-template-all:
+	@$(PYTHON) scripts/shell-template.py
