@@ -199,9 +199,10 @@ puku-ai-2.7 (Puku CLI)
 - `assets/shell/head-snippet.html` (1,162 bytes) — blocking inline FOUC IIFE with `PerformanceObserver` + `ht:fouc-resolved` CustomEvent
 - `scripts/shell-template.py` (~500 lines) — pure-stdlib, idempotent regenerator for the 34 tool pages
 
-**New files (2 supporting scripts):**
+**New files (3 supporting scripts):**
 - `scripts/shell-drift-check.py` — substring-based chrome drift detector (Task 5)
 - `scripts/measure-fouc.py` — best-effort 50ms FOUC check via Puppeteer (Task 6)
+- `scripts/shell-a11y-check.py` — structural a11y invariant checker added after the Story 1.5 code review (Code-review Patch #10); regex-asserts `<main id="main" class="shell-main" aria-label="[^"]+" tabindex="-1">` on every page and the cobalt token block + dark-theme override in `assets/css/base.css`; wired into the CI gate alongside `shell-drift-check` (Patch #19).
 
 **Modified files (40):**
 - `index.html` — chrome swap + 34 tool grid + 33→34 description/title bump

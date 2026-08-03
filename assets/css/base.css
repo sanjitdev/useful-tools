@@ -252,6 +252,17 @@ a:hover {
   font-size: 0.875rem;
 }
 
+/* WCAG 2.4.7 — skip-link target needs a visible focus indicator when
+   the <main> becomes the focus target via skip-link click. Browsers do
+   not show focus rings on tabindex="-1" elements unless :focus-visible
+   is styled. Subtle 2px cobalt outline + offset keeps the ring
+   distinguishable from the page background without being noisy.
+   Patch #22 (post-1.5 review). */
+.shell-main:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 @media (max-width: 767px) {
   .shell-search-trigger,
   .shell-locale,
@@ -270,6 +281,7 @@ a:hover {
   .theme-toggle {
     transition: none !important;
     animation: none !important;
+    transform: none !important;
   }
 }
 

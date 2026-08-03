@@ -43,6 +43,7 @@ Author: Handy Tools (Story 1.5 — Shell HTML Skeleton with Cobalt Tokens)
 from __future__ import annotations
 
 import argparse
+import html
 import re
 import sys
 from pathlib import Path
@@ -179,6 +180,11 @@ def derive_display_name(title_text: str) -> str:
     the Story 1.5 code review). The generic name is intentional; it is
     not localized because shell-template is invoked at build/preview
     time and the page itself owns the human-readable <title>.
+
+    Patch #1 (post-1.5 review): HTML-decode entities (e.g. `Pros &amp;
+    Cons` → `Pros & Cons`) so screen readers don't read the literal
+    entity string. `html.unescape` is the stdlib, single-pass, safe
+    against malformed entities (silently passes through).
     """
     cleaned = re.sub(r"\s+·\s+Handy Tools\s*$", "", title_text).strip()
     if not cleaned:
@@ -187,7 +193,7 @@ def derive_display_name(title_text: str) -> str:
             "'Handy Tools' for the <main aria-label>\n"
         )
         return "Handy Tools"
-    return cleaned
+    return html.unescape(cleaned)
 
 
 def transform(
