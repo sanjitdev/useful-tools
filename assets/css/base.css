@@ -305,6 +305,22 @@ main.container {
   padding-block: var(--space-6);
 }
 
+/* `.shell-main` is the <main> landmark rendered on every page (chrome
+   wrapper). It is NOT itself a `.container`, but tool bodies wrap content
+   directly inside it. Without inline padding, body content flushes against
+   the viewport edge while header/footer (which DO sit in `.container`
+   divs) get the inset from `.container`'s `padding-inline: var(--space-5)`.
+   This selector mirrors `.container`'s horizontal inset so the layout
+   reads as a single column on every page. `padding-block` provides the
+   same vertical breathing room as `main.container`. */
+.shell-main {
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding-inline: var(--space-5);
+  padding-block: var(--space-6);
+}
+
 .stack > * + * {
   margin-top: var(--space-4);
 }
