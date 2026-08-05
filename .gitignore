@@ -25,3 +25,11 @@ __pycache__/
 
 # Local agent / IDE state
 .puku-cli/
+
+# BMAD skill output (regenerated on every workflow run)
+_bmad/render/
+
+# BMAD-internal working dirs (transient per-skill scratch)
+**/.working/
+**/imports/
+
