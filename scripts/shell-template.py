@@ -329,12 +329,20 @@ def process_file(
         sys.exit(2)
     label = page_label_from_title(title_match)
 
-    # Idempotency check: a page that already carries the new chrome markers
-    # AND the exact byte-equivalent header/footer blocks has nothing left
-    # to swap. We verify against the actual normalized regions rather than
-    # substring checks so a regenerated page whose chrome drift-detected
-    # against chrome.html still gets re-aligned on next run.
-    if (
+    # Idempotency check: a page that already carries the new chrome markers,
+    # the exact byte-equivalent header/footer blocks, AND the correct
+    # per-page aria-label has nothing left to swap. The aria-label check
+    # was added in the post-1.5 review because the chrome-region byte check
+    # alone is too weak: a regression that writes a stale aria-label
+    # (e.g. encoded `&amp;` instead of decoded `&`) would skip re-run.
+    expected_label = label
+    label_re = re.compile(
+        r'<main\s+id="main"\s+class="shell-main"\s+aria-label="([^"]+)"\s+tabindex="-1">',
+        re.IGNORECASE,
+    )
+    label_match = label_re.search(source)
+    label_ok = bool(label_match) and label_match.group(1).strip() == expected_label
+    chrome_ok = (
         '<a class="shell-skip"' in source
         and 'class="site-header" role="banner"' in source
         and '<footer class="site-footer" role="contentinfo"' in source
@@ -342,8 +350,31 @@ def process_file(
         and 'src="../../assets/js/shell.js"' in source
         and header_html in source
         and footer_html in source
-    ):
+    )
+    if chrome_ok and label_ok:
         print(f"  no-change {path.relative_to(root)}  (already has new chrome)")
+        return True
+
+    # If chrome is already byte-aligned but the aria-label is stale (e.g.
+    # encoded `&amp;` instead of decoded `&`), rewrite just the aria-label
+    # in place. The chrome itself does not need re-applying. This closes
+    # the regression gap where the post-1.5 review fix landed in the
+    # source but the 34 pages were never re-run through the patched
+    # derive_display_name.
+    if chrome_ok and not label_ok and label_match:
+        new_source = source[: label_match.start(1)] + expected_label + source[label_match.end(1):]
+        if new_source == source:
+            print(f"  no-change {path.relative_to(root)}")
+            return True
+        if dry_run:
+            print(f"  would-write {path.relative_to(root)}  (aria-label only)")
+            return True
+        try:
+            path.write_text(new_source, encoding="utf-8")
+        except OSError as exc:
+            sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
+            sys.exit(3)
+        print(f"  wrote {path.relative_to(root)}  (aria-label={expected_label!r})")
         return True
 
     updated = transform(
@@ -399,8 +430,42 @@ def regenerate_home(
         and home_header in source
         and footer_html in source
     )
-    if byte_aligned:
+    # Also require the canonical FOUC IIFE byte sequence to be present.
+    # Without this, a home page that was generated before Story 1.5
+    # added the PerformanceObserver / ht:fouc-resolved instrumentation
+    # would slip through the byte-aligned check and ship a stale IIFE —
+    # exactly the regression the post-1.5 review identified.
+    iife_match = re.search(r"<script>([^<]+)</script>", source, re.IGNORECASE)
+    iife_ok = bool(iife_match) and iife_match.group(1).strip() == head_script.strip()
+    if byte_aligned and iife_ok:
         print(f"  no-change {path.relative_to(root)}  (already has new chrome)")
+        return True
+
+    # Chrome is byte-aligned but the inline FOUC IIFE in <head> is stale
+    # (the home page was generated before the PerformanceObserver /
+    # ht:fouc-resolved instrumentation landed in head-snippet.html).
+    # Rewrite only the IIFE in place — touching the body content via the
+    # byte-aligned region rewrite below would clobber the home grid (see
+    # dev-agent note: "Home page body regression after --home regeneration"
+    # in the Story 1.5 spec).
+    if byte_aligned and not iife_ok and iife_match:
+        new_source = (
+            source[: iife_match.start(1)]
+            + " " + head_script.strip() + " "
+            + source[iife_match.end(1):]
+        )
+        if new_source == source:
+            print(f"  no-change {path.relative_to(root)}")
+            return True
+        if dry_run:
+            print(f"  would-write {path.relative_to(root)}  (IIFE only)")
+            return True
+        try:
+            path.write_text(new_source, encoding="utf-8")
+        except OSError as exc:
+            sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
+            sys.exit(3)
+        print(f"  wrote {path.relative_to(root)}  (IIFE only)")
         return True
 
     new_source = source

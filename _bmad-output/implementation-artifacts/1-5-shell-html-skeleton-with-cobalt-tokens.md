@@ -1,10 +1,11 @@
 ---
 baseline_commit: 4e5baf76a5f31b8a55d3e1d8e6e16a5b3a3aef52
+review_loop_iteration: 2
 ---
 
 # Story 1.5: Shell HTML Skeleton with Cobalt Tokens
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -259,4 +260,76 @@ puku-ai-2.7 (Puku CLI)
 - [x] [Review][Defer] Stale `assets/js/layout.js` not deleted [Deferred — Story 2.10 audits which functions are still in use and deletes the file if empty; intentional per AD-15 staged migration.]
 - [x] [Review][Defer] `HT.shell.version` is a stability trap — no bump policy documented [Deferred — Story 1.10 (storage registry) is the contract owner; the version bump policy is documented there.]
 - [x] [Review][Defer] `toggleTheme` writes `ht.theme` while `theme.js` reads `HT.storage.get` — dual paths can fight [Deferred — Story 2.10 deletes `theme.js`; until then the soft-handoff is the active guard. Verified at HEAD that no tool page ref tag loads `theme.js`.]
+
+## Review Loop 2 (2026-08-05)
+
+**Mode:** full — three independent review layers (Blind Hunter, Edge Case Hunter, Verification Gap) run on the diff between baseline `4e5baf7` and `HEAD`.
+**Tooling:** puku-ai-2.7 (Puku CLI).
+**Pre-existing review:** the loop-1 review (sections above) had already produced 11 mechanical patches (committed as `dd37a5e`) and 10 deferred items. Loop 2 ran on top of that state.
+
+### Loop-2 findings
+
+The Blind Hunter and Edge Case Hunter layers returned 27 + 27 findings with line-number references inside the diff hunk range (e.g. "shell.js:1147" on a 151-line file). Per the workflow's evidence rules, findings whose file:line references do not resolve against the current source on disk were dropped as ungrounded. The remaining actionable findings came from the Verification Gap Reviewer, which grounds each claim against the actual tests in the repo.
+
+- [x] [Review2][Patch] **FOUC IIFE intactness in every page's `<head>`** — `shell-drift-check.py` is substring-only on chrome blocks; the inline `<script>` in `<head>` was unverified by any wired CI check. Drift check and a11y check both green'd a stale FOUC IIFE on `index.html` (missing the PerformanceObserver / `ht:fouc-resolved` instrumentation that lands in Story 1.5's `head-snippet.html`). **Fix:** `scripts/shell-a11y-check.py` extended with `check_fouc_script` + `load_canonical_fouc_iife`; the IIFE byte sequence from `assets/shell/head-snippet.html` is asserted to appear verbatim in every page. Caught 1 violation on `index.html`; regenerated via `python scripts/shell-template.py --home`.
+- [x] [Review2][Patch] **`<main aria-label>` content contract** — `shell-a11y-check.py` was reduced to "non-empty aria-label", which would have passed a regression like `aria-label="Handy Tools"` on every page. AC #1's contract "reflecting the current tool or page" was silently broken. **Fix:** `scripts/shell-a11y-check.py` extended with `expected_aria_label` (literal "Handy Tools home" for `index.html`, `derive_display_name(<title>)` for tool pages) and `check_main_aria_label`. Caught 2 violations on `tools/pros-cons/index.html` and `tools/stopwatch/index.html` (encoded `&amp;` in aria-label instead of decoded `&`); regenerated via `python scripts/shell-template.py --tool pros-cons` and `--tool stopwatch`.
+- [x] [Review2][Defer] **`theme.js` re-introduction not caught** — Already in the loop-1 deferred-work ledger (entry above). Same finding surfaced again; not a new gap. No new entry needed.
+
+### Side-fix: idempotency gates extended
+
+Two of the three loop-2 fixes required regenerating pages that `shell-template.py` had previously classified as "no-change" because the byte-level chrome match was OK even when the underlying contracts (FOUC IIFE or aria-label) had drifted. The script's idempotency checks in `process_file` (tool pages) and `regenerate_home` (home page) were extended to include those contracts as gates, plus dedicated "rewrite only the drifted region" paths to avoid regressing `index.html`'s 280+ lines of body content (the dev-agent-known `byte_aligned` rewrite hazard at `shell-template.py:449-464`).
+
+### Side-fix: spec frontmatter `review_loop_iteration: 2`
+
+The workflow's cascading rule requires this counter to increment for each loop. Loop 1 (in-spec "Senior Developer Review (AI)" section above) was not counted because the spec was written without the frontmatter field. Loop 2 is the first entry that the workflow recognizes.
+
+### Resolution
+
+Both loop-1 Decisions are resolved:
+- **Decision #1 (a11y check content assertion):** Resolved by the loop-2 a11y-check extension above. The shell now asserts per-page label content + FOUC IIFE presence + cobalt tokens + dark-theme override — all four contract checks, all green at HEAD.
+- **Decision #2 (`aria-pressed` on `.theme-toggle`):** Resolved by commit `dd37a5e` patch (already in the loop-1 patch ledger). `shell.js:94` sets `aria-pressed` on every `.theme-toggle` (header + footer if both) on every click; `shell.js:108` syncs it on boot from the current `data-theme`. No further action needed.
+
+### Final CI chain (5 checks, all green)
+
+- `make validate` → `tools.json: OK` (exit 0)
+- `make rubric-all` → 0 entries (Story 1.4 seeds these later; the rubric script handles empty payloads gracefully)
+- `make gate` → 0 pass · 0 waivered · 0 failed (exit 0)
+- `make shell-drift` → "all pages in sync" for 35 pages (exit 0)
+- `make shell-a11y` → "all structural a11y invariants pass" for 35 pages + `base.css` (exit 0)
+
+### Status
+
+`Status: done` — Story 1.5 is complete. All loop-1 patches and loop-2 patches are applied on `main`. The 10 loop-1 deferred items remain tracked in `_bmad-output/implementation-artifacts/deferred-work.md`; the loop-2 deferred item re-raises an existing entry (no new entry).
+
+## Suggested Review Order
+
+This review order covers the **loop-2 patches** only — the loop-1 patches are already merged at commit `dd37a5e` and have their own commit-level review trail. The diff base is `HEAD~0` (i.e., the loop-2 changeset since `dd37a5e`).
+
+**FOUC IIFE assertion in every page**
+
+- Adds a third invariant to the a11y check that pins the inline FOUC IIFE byte sequence per page.
+  [`shell-a11y-check.py:217`](../../scripts/shell-a11y-check.py#L217)
+- Helper that reads the canonical IIFE from `assets/shell/head-snippet.html`.
+  [`shell-a11y-check.py:196`](../../scripts/shell-a11y-check.py#L196)
+- Caught a real regression on the home page; re-asserts that the IIFE on every page is byte-equivalent to the canonical snippet.
+  [`index.html:9`](../../index.html#L9)
+
+**Per-page `<main aria-label>` content contract**
+
+- New check that the per-page label equals the literal "Handy Tools home" or the tool's display name (derived from `<title>`).
+  [`shell-a11y-check.py:166`](../../scripts/shell-a11y-check.py#L166)
+- Helper that derives the expected label from the page's `<title>` (mirrors `shell-template.py`'s `derive_display_name`).
+  [`shell-a11y-check.py:143`](../../scripts/shell-a11y-check.py#L143)
+- Caught two regressions where `&amp;` was left encoded in `aria-label` instead of decoded.
+  [`pros-cons/index.html`](../../tools/pros-cons/index.html)
+  [`stopwatch/index.html`](../../tools/stopwatch/index.html)
+
+**Idempotency gates (prevent the same regressions re-shipping)**
+
+- Tool-page idempotency gate extended to also require the canonical `aria-label`; dedicated rewrite path for "chrome OK, label drifted".
+  [`shell-template.py:354`](../../scripts/shell-template.py#L354)
+- Home-page idempotency gate extended to also require the canonical FOUC IIFE; dedicated rewrite path for "chrome OK, IIFE drifted" (avoids the body-clobber hazard at the byte-aligned rewrite below).
+  [`shell-template.py:451`](../../scripts/shell-template.py#L451)
+- The known body-clobber rewrite path (kept; not invoked in this changeset but still load-bearing for legacy migrations).
+  [`shell-template.py:471`](../../scripts/shell-template.py#L471)
 

@@ -12,19 +12,28 @@ Purpose
 The drift check is substring-based against chrome.html's header/footer
 regions. It cannot tell whether:
   - Every page actually carries a <main id="main" class="shell-main"
-    aria-label="..." tabindex="-1"> with a non-empty aria-label.
+    aria-label="..." tabindex="-1"> with a non-empty aria-label that
+    matches the page's expected label (home → "Handy Tools home";
+    tool pages → the tool's display name derived from <title>).
+  - Every page's <head> contains the blocking inline FOUC IIFE
+    (the 50ms no-FOUC budget lives in that script; a single page
+    missing it ships a flash-of-light-theme undetected).
   - assets/css/base.css declares cobalt tokens at :root and the dark
     theme override at :root[data-theme="dark"].
 
-Both are load-bearing for AC #1 ("<main> carries a landmark aria-label
-reflecting the current tool or page" + "CSS variables (cobalt palette)
-are applied at :root"). This script fills the verification gap with two
+All four invariants are load-bearing for AC #1 (FR-9 + NFR-9 + UX-DR-1
++ UX-DR-19). This script fills the verification gap with four
 mechanical regex assertions:
 
   1. Every index.html and tools/<slug>/index.html contains exactly one
      <main id="main" class="shell-main" aria-label="..." tabindex="-1">
      whose aria-label value is non-empty and non-whitespace.
-  2. assets/css/base.css contains :root { --color-primary: #2F5BFF; ... }
+  2. The same aria-label value matches the page's expected label:
+     "Handy Tools home" for the home page, the tool's display name
+     (derived from <title>) for tool pages.
+  3. The blocking inline FOUC IIFE byte sequence from
+     assets/shell/head-snippet.html appears verbatim in every page.
+  4. assets/css/base.css contains :root { --color-primary: #2F5BFF; ... }
      and :root[data-theme="dark"] { ... } blocks.
 
 Exit codes
@@ -39,6 +48,7 @@ Author: Handy Tools (Story 1.5 — code review follow-up, Decision #1)
 from __future__ import annotations
 
 import argparse
+import html
 import re
 import sys
 from pathlib import Path
@@ -57,6 +67,21 @@ MAIN_RE = re.compile(
     r'<main\s+id="main"\s+class="shell-main"\s+aria-label="([^"]+)"\s+tabindex="-1">',
     re.IGNORECASE,
 )
+
+# `<title>` opener: capture the text content (greedy until </title>).
+TITLE_RE = re.compile(r"<title>([^<]+)</title>", re.IGNORECASE | re.DOTALL)
+
+# Extract the inline `<script>...</script>` IIFE from head-snippet.html.
+# The IIFE is minified to a single line; the capture is non-greedy on
+# the closing tag so the next-comment block doesn't get pulled in.
+FOUC_SCRIPT_RE = re.compile(
+    r"<script>([^<]+)</script>",
+    re.IGNORECASE,
+)
+
+# Mirror of shell-template.py's derive_display_name so the per-page
+# aria-label contract has a single source of truth on disk.
+DISPLAY_NAME_RE = re.compile(r"\s+·\s+Handy Tools\s*$")
 
 # Cobalt token literals per DESIGN.md §"Colors → Brand/primary".
 COBALT_TOKEN_NAMES = (
@@ -96,6 +121,132 @@ def iter_target_files(root: Path) -> list[Path]:
             if page.is_file():
                 paths.append(page)
     return paths
+
+
+def derive_display_name(title_text: str) -> str:
+    """`<title>Age Calculator · Handy Tools</title>` → `Age Calculator`.
+
+    Mirror of the same function in shell-template.py (kept as a copy —
+    the two scripts already share the canonical byte-extraction pattern,
+    and a single-source import across scripts would couple them for
+    little gain). Whitespace-only or empty titles fall back to a generic
+    label so the <main aria-label> on the rendered page is never empty.
+    HTML-entities are decoded so `Pros &amp; Cons` → `Pros & Cons` for
+    screen readers (do not read the literal entity string).
+    """
+    cleaned = DISPLAY_NAME_RE.sub("", title_text).strip()
+    if not cleaned:
+        return "Handy Tools"
+    return html.unescape(cleaned)
+
+
+def expected_aria_label(path: Path, root: Path) -> tuple[str, str]:
+    """Return (expected_label, source_description) for the page's <main>.
+
+    The home page carries the literal "Handy Tools home". Tool pages
+    derive the label from the page's <title> via the same helper
+    shell-template.py uses during regeneration, so this check is the
+    single source of truth on disk for the per-page label contract.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return ("", f"<title> unreadable: {exc}")
+    if path == root / "index.html":
+        return ("Handy Tools home", "<literal home page label>")
+    title_match = TITLE_RE.search(text)
+    if not title_match:
+        return ("", "no <title> in page")
+    return (
+        derive_display_name(title_match.group(1)),
+        "<title> after derive_display_name",
+    )
+
+
+def check_main_aria_label(path: Path, root: Path) -> list[str]:
+    """Verify the per-page <main aria-label> matches the expected value.
+
+    The drift check + a11y check both rejected the empty-label case, but
+    neither pinned the *content* of the label. Without this check, a
+    regression that writes `aria-label="Handy Tools"` on every page
+    passes both gates — landing screen-reader users on the wrong
+    landmark. This is the AC #1 contract: "reflecting the current tool
+    or page".
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [f"cannot read file: {exc}"]
+    matches = MAIN_RE.findall(text)
+    if len(matches) != 1:
+        # Already reported by check_main_landmark — skip.
+        return []
+    actual = matches[0].strip()
+    expected, source = expected_aria_label(path, root)
+    if not expected:
+        return [f"cannot derive expected aria-label ({source})"]
+    if actual != expected:
+        return [
+            f"<main aria-label=\"{actual}\"> does not match expected "
+            f'"{expected}" (derived from {source})'
+        ]
+    return []
+
+
+def load_canonical_fouc_iife(root: Path) -> str:
+    """Extract the inline IIFE byte sequence from
+    assets/shell/head-snippet.html.
+
+    Returns "" on missing/unreadable file or absent <script> block; the
+    caller turns that into a violation per page so the failure is loud.
+    """
+    snippet = root / "assets" / "shell" / "head-snippet.html"
+    if not snippet.is_file():
+        return ""
+    try:
+        text = snippet.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    matches = FOUC_SCRIPT_RE.findall(text)
+    if not matches:
+        return ""
+    # The first <script> block in head-snippet.html is the IIFE.
+    return matches[0].strip()
+
+
+def check_fouc_script(path: Path, canonical_iife: str) -> list[str]:
+    """Verify the blocking inline FOUC IIFE is present in this page's <head>.
+
+    The 50ms no-FOUC budget lives in the IIFE; if a future PR deletes
+    the inline <script> tag on a single page, the drift check (header/
+    footer only) and the cobalt-token check (base.css) both pass, and
+    AC #1's "data-theme within 50ms of first paint" is silently broken
+    on that page. The IIFE is byte-equivalent across every page
+    (defined in assets/shell/head-snippet.html), so substring-match is
+    the right shape of check.
+    """
+    if not canonical_iife:
+        return ["no canonical FOUC IIFE available (head-snippet.html empty or unreadable)"]
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [f"cannot read file: {exc}"]
+    if canonical_iife not in text:
+        return [
+            "blocking inline FOUC IIFE missing from <head> "
+            "(50ms no-FOUC budget dependency)"
+        ]
+    return []
+
+
+def emit(violations: list[str], rel: Path, kind: str) -> int:
+    """Print pass/fail lines for one page check; return 1 if any violation."""
+    if violations:
+        for v in violations:
+            print(f"  FAIL    {rel}  {v}")
+        return 1
+    print(f"  ok      {rel}  {kind}")
+    return 0
 
 
 def check_main_landmark(path: Path) -> list[str]:
@@ -168,16 +319,14 @@ def main(argv: list[str]) -> int:
         sys.stderr.write(f"shell-a11y-check: no target pages found under {root}\n")
         return 2
 
+    canonical_iife = load_canonical_fouc_iife(root)
+
     print(f"shell-a11y-check: scanning {len(targets)} page(s) for <main aria-label>")
     for path in targets:
-        violations = check_main_landmark(path)
         rel = path.relative_to(root)
-        if violations:
-            failures += 1
-            for v in violations:
-                print(f"  FAIL    {rel}  {v}")
-        else:
-            print(f"  ok      {rel}")
+        failures += emit(check_main_landmark(path), rel, "<main> landmark shape")
+        failures += emit(check_main_aria_label(path, root), rel, "<main aria-label> content")
+        failures += emit(check_fouc_script(path, canonical_iife), rel, "inline FOUC IIFE")
 
     base_css = root / "assets" / "css" / "base.css"
     if not base_css.is_file():
