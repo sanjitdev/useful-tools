@@ -45,3 +45,33 @@ Items deferred from earlier code reviews and not yet resolved.
 - **Stale `assets/js/layout.js` not deleted** — File exists in repo but is no longer loaded by any page (chrome is now static HTML). *Reason deferred: Story 2.10 audits which functions are still in use and deletes the file if empty; intentional per AD-15 staged migration.*
 - **`HT.shell.version` is a stability trap — no bump policy documented** — `Object.freeze`d at `1.0.0`; no in-repo rule for when to bump. *Reason deferred: Story 1.10 (storage registry) is the contract owner; the version bump policy is documented there.*
 - **`toggleTheme` writes `ht.theme` while `theme.js` reads `HT.storage.get` — dual paths can fight** — Two code paths can race during the soft-handoff release window. *Reason deferred: Story 2.10 deletes `theme.js`; until then the soft-handoff is the active guard. Verified at HEAD that no tool page ref tag loads `theme.js`.*
+
+## Deferred from: code review of 1-6-theme-system-with-light-dark-and-auto-modes (2026-08-05)
+
+- source_spec: `_bmad-output/implementation-artifacts/1-6-theme-system-with-light-dark-and-auto-modes.md`
+  summary: Add the AI-7 contrast table to `assets/css/base.css` (comment block) and mirror it in `DESIGN.md` §"High-contrast".
+  evidence: Documentation-only deliverable; zero coupling with the 3-mode cycle. Pure static content with no behavior change; trivially shippable as a follow-up.
+
+- source_spec: `_bmad-output/implementation-artifacts/1-6-theme-system-with-light-dark-and-auto-modes.md`
+  summary: Register `HT.theme.getEffective()`, `HT.theme.getMode()`, `HT.theme.setMode()` in `assets/js/api-contract.js` (plus the `HT.shell.theme` back-compat alias).
+  evidence: Tool-side consumers land in Story 1.10 (storage registry); no current tool reads these entries. Splitting keeps the spec focused on the user-facing toggle behavior.
+
+- source_spec: `_bmad-output/implementation-artifacts/1-6-theme-system-with-light-dark-and-auto-modes.md`
+  summary: Add the `t` keyboard shortcut handler to `assets/js/shell.js` (cycle one step, scoped out of inputs/textarea/select/contenteditable, modifier-key no-op).
+  evidence: UX-DR-412 enhancement; not required for the cycle's primary click affordance. Five-line handler, trivially deferred and easy to land in a follow-up.
+
+- source_spec: none
+  summary: `scripts/shell-template.py` IIFE detection had a latent regex bug (only matched the first clean `<script>(no-`<`)</script>` pair in the file, missing nested-script contamination); fixed during step-03 by rewriting the regex to scan from `<head>` start and adding a `nested_count` guard that triggers normalization to a single `<script>` wrapper on every re-run.
+  evidence: Step-03 implementation produced 35 pages with 3 nested `<script>` wrappers from a broken regeneration in Story 1.5. The drift check (`shell-drift-check.py`) only substring-matches chrome regions; the a11y check (`shell-a11y-check.py`) only verifies the IIFE body bytes — neither detects nested `<script>` tags. A future regression would slip through unless the explicit line-by-line script-tag audit is preserved.
+
+- source_spec: `_bmad-output/implementation-artifacts/1-6-theme-system-with-light-dark-and-auto-modes.md`
+  summary: Embed mode at boot (`assets/js/shell.js` `isEmbedMode()` branch) silently clobbers the user's prior `light`/`dark` preference when navigating to `?embed=1`; the user's stored preference is lost even after they exit embed mode.
+  evidence: Not a functional defect (the embed-mode toggle is hidden, so the cycle is a no-op while embedded) but a UX regression — a user who navigates `/foo?embed=1` and back loses their explicit theme choice. Acceptable for the embed use case (which intentionally locks to system-following); out of scope for Story 1.6's cycle work.
+
+- source_spec: `_bmad-output/implementation-artifacts/1-6-theme-system-with-light-dark-and-auto-modes.md`
+  summary: IIFE contains a literal `<` character regex would break (e.g. `document.write('<x>')`); `scripts/shell-template.py` regex assumes no `<` between `<script>` and the matching `</script>`.
+  evidence: Current FOUC IIFE has no literal `<` characters; future-proofing concern. Trivial to add to a future hardening pass.
+
+- source_spec: `_bmad-output/implementation-artifacts/1-6-theme-system-with-light-dark-and-auto-modes.md`
+  summary: `<script type="application/ld+json">` JSON-LD block in `<head>` could hijack IIFE detection in `scripts/shell-template.py`.
+  evidence: No current page has JSON-LD; will be needed when SEO scripts land in a later epic. Out of scope for Story 1.6.

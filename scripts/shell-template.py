@@ -330,11 +330,15 @@ def process_file(
     label = page_label_from_title(title_match)
 
     # Idempotency check: a page that already carries the new chrome markers,
-    # the exact byte-equivalent header/footer blocks, AND the correct
-    # per-page aria-label has nothing left to swap. The aria-label check
-    # was added in the post-1.5 review because the chrome-region byte check
-    # alone is too weak: a regression that writes a stale aria-label
-    # (e.g. encoded `&amp;` instead of decoded `&`) would skip re-run.
+    # the exact byte-equivalent header/footer blocks, the correct
+    # per-page aria-label, AND the canonical FOUC IIFE bytes has nothing
+    # left to swap. The aria-label check was added in the post-1.5
+    # review because the chrome-region byte check alone is too weak: a
+    # regression that writes a stale aria-label (e.g. encoded `&amp;`
+    # instead of decoded `&`) would skip re-run. The IIFE check was added
+    # in Story 1.6: the FOUC IIFE in assets/shell/head-snippet.html is
+    # the source of truth and every page must embed its current bytes
+    # byte-for-byte so the a11y check's substring assertion passes.
     expected_label = label
     label_re = re.compile(
         r'<main\s+id="main"\s+class="shell-main"\s+aria-label="([^"]+)"\s+tabindex="-1">',
@@ -351,8 +355,90 @@ def process_file(
         and header_html in source
         and footer_html in source
     )
-    if chrome_ok and label_ok:
+    # Find the IIFE block on the FIRST `<script>` opener in <head>. The IIFE
+    # is always the first inline `<script>` in every page (it must run
+    # before any stylesheet <link>). An earlier regex matched the first
+    # clean `<script>(no-`<`)</script>` pair it found anywhere in the
+    # file, which silently skipped over pages where the Story 1.5 broken
+    # regeneration stacked 3 nested `<script>` opens with no `<` between
+    # them. Scan from the start of <head> instead.
+    head_start = source.find("<head>")
+    head_section = source[head_start:] if head_start >= 0 else source
+    iife_match = re.search(
+        r"(<script>\s*)((?:(?!</script>).)*?)((?:\s*</script>)+)",
+        head_section,
+        re.IGNORECASE | re.DOTALL,
+    )
+    # Recompute the match offsets against the full source string.
+    if iife_match:
+        offset_in_full = head_start
+        # Build a synthetic match with corrected .start()/.end()
+        class FullMatch:
+            def __init__(self, inner, base_offset):
+                self._inner = inner
+                self._base = base_offset
+            def start(self, group=0):
+                if group == 0:
+                    return self._inner.start() + self._base
+                return self._inner.start(group) + self._base
+            def end(self, group=0):
+                if group == 0:
+                    return self._inner.end() + self._base
+                return self._inner.end(group) + self._base
+            def group(self, group=0):
+                return self._inner.group(group)
+        iife_match = FullMatch(iife_match, offset_in_full)
+    # `read_head_snippet` returns the wrapped `<script>...</script>`
+    # block. `iife_match.group(1)` is the inner content only. Compare
+    # inner-to-inner so the byte-equivalence gate is accurate.
+    # (Story 1.6 unified the home-page and tool-page paths under this
+    # same comparison; the previous home-page gate was latent-buggy
+    # because it compared the wrapped form to the inner capture.)
+    head_inner = re.sub(r"^<script>|</script>$", "", head_script).strip()
+    iife_ok = bool(iife_match) and iife_match.group(1).strip() == head_inner
+    # Count nested wrappers: a page that came out of Story 1.5's broken
+    # regeneration has 3 nested <script> opens + 3 closes. The
+    # normalized form is exactly 1 + 1.
+    nested_count = 0
+    if iife_match:
+        nested_count = max(
+            len(re.findall(r"<script>", iife_match.group(0), re.IGNORECASE)),
+            len(re.findall(r"</script>", iife_match.group(0), re.IGNORECASE)),
+        )
+    if chrome_ok and label_ok and iife_ok and nested_count <= 1:
         print(f"  no-change {path.relative_to(root)}  (already has new chrome)")
+        return True
+
+    # Chrome is byte-aligned but the inline FOUC IIFE in <head> is stale
+    # (the page was generated before the canonical IIFE was last edited).
+    # Rewrite only the inner IIFE content in place — keep the surrounding
+    # `<script>` / `</script>` tags intact. Mirrors the home-page IIFE-
+    # only path added in Story 1.5. (Story 1.6 fixed the latent bug
+    # where the inner capture was replaced with the wrapped form, which
+    # doubled `<script>` tags on every re-run. Pages with nested
+    # `<script>` wrappers from that broken regeneration are normalized
+    # back to a single pair on every rewrite.)
+    if chrome_ok and iife_match and (not iife_ok or nested_count > 1):
+        new_source = (
+            source[: iife_match.start()]
+            + "<script>" + " " + head_inner + " " + "</script>"
+            + source[iife_match.end():]
+        )
+        if new_source == source:
+            print(f"  no-change {path.relative_to(root)}")
+            return True
+        if dry_run:
+            print(f"  would-write {path.relative_to(root)}  (IIFE only)")
+            return True
+        try:
+            path.write_text(new_source, encoding="utf-8")
+        except OSError as exc:
+            sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
+            sys.exit(3)
+        if nested_count > 1:
+            print(f"  wrote {path.relative_to(root)}  (normalized {nested_count} nested <script> wrappers → 1)")
+        else:
+            print(f"  wrote {path.relative_to(root)}  (IIFE only)")
         return True
 
     # If chrome is already byte-aligned but the aria-label is stale (e.g.
@@ -435,24 +521,45 @@ def regenerate_home(
     # added the PerformanceObserver / ht:fouc-resolved instrumentation
     # would slip through the byte-aligned check and ship a stale IIFE —
     # exactly the regression the post-1.5 review identified.
-    iife_match = re.search(r"<script>([^<]+)</script>", source, re.IGNORECASE)
-    iife_ok = bool(iife_match) and iife_match.group(1).strip() == head_script.strip()
-    if byte_aligned and iife_ok:
+    # (Story 1.6: this comparison had a latent bug — `head_script` is the
+    # wrapped `<script>...</script>` form while `iife_match.group(1)` is
+    # the inner content only. They never matched, so the IIFE was
+    # re-rewritten on every --home invocation, doubling `<script>` tags
+    # over multiple regenerations. Compare inner-to-inner.)
+    iife_match = re.search(
+        r"(?:<script>\s*)+([^<]+?)(?:\s*</script>)+",
+        source,
+        re.IGNORECASE | re.DOTALL,
+    )
+    head_inner = re.sub(r"^<script>|</script>$", "", head_script).strip()
+    iife_ok = bool(iife_match) and iife_match.group(1).strip() == head_inner
+    # Count nested wrappers: a home page that came out of Story 1.5's
+    # broken regeneration has 1 <script> open + 3 </script> closes (the
+    # rewritten inner content captured the trailing close, leaving 2
+    # orphans). The normalized form is exactly 1 + 1.
+    nested_count = 0
+    if iife_match:
+        nested_count = max(
+            len(re.findall(r"<script>", iife_match.group(0), re.IGNORECASE)),
+            len(re.findall(r"</script>", iife_match.group(0), re.IGNORECASE)),
+        )
+    if byte_aligned and iife_ok and nested_count <= 1:
         print(f"  no-change {path.relative_to(root)}  (already has new chrome)")
         return True
 
     # Chrome is byte-aligned but the inline FOUC IIFE in <head> is stale
     # (the home page was generated before the PerformanceObserver /
     # ht:fouc-resolved instrumentation landed in head-snippet.html).
-    # Rewrite only the IIFE in place — touching the body content via the
-    # byte-aligned region rewrite below would clobber the home grid (see
-    # dev-agent note: "Home page body regression after --home regeneration"
-    # in the Story 1.5 spec).
-    if byte_aligned and not iife_ok and iife_match:
+    # Rewrite only the inner IIFE content in place — keep the surrounding
+    # `<script>` / `</script>` tags intact. Touching the body content via
+    # the byte-aligned region rewrite below would clobber the home grid
+    # (see dev-agent note: "Home page body regression after --home
+    # regeneration" in the Story 1.5 spec).
+    if byte_aligned and iife_match and (not iife_ok or nested_count > 1):
         new_source = (
-            source[: iife_match.start(1)]
-            + " " + head_script.strip() + " "
-            + source[iife_match.end(1):]
+            source[: iife_match.start()]
+            + "<script>" + " " + head_inner + " " + "</script>"
+            + source[iife_match.end():]
         )
         if new_source == source:
             print(f"  no-change {path.relative_to(root)}")
@@ -465,7 +572,10 @@ def regenerate_home(
         except OSError as exc:
             sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
             sys.exit(3)
-        print(f"  wrote {path.relative_to(root)}  (IIFE only)")
+        if nested_count > 1:
+            print(f"  wrote {path.relative_to(root)}  (normalized {nested_count} nested <script> wrappers → 1)")
+        else:
+            print(f"  wrote {path.relative_to(root)}  (IIFE only)")
         return True
 
     new_source = source

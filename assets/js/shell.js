@@ -18,6 +18,77 @@
 
   const HT = (window.HT = window.HT || {});
 
+  // Cycle order (UX-DR-50) — auto → light → dark → auto. `ht.theme` is
+  // a plain string in localStorage (not JSON-encoded) so the FOUC IIFE
+  // (which runs before <script src="assets/js/utils.js"> parses and has
+  // no JSON parser) can read it via localStorage.getItem('ht.theme').
+  const CYCLE_NEXT = Object.freeze({
+    auto: 'light',
+    light: 'dark',
+    dark: 'auto',
+  });
+
+  // The toggle's accessible label reads the *next* mode name (not the
+  // next color), so screen-reader users hear "Switch to dark theme"
+  // when the current mode is light. When the current mode is auto, the
+  // label reads "Follow system theme" — the cycle resumes from auto.
+  const CYCLE_LABEL = Object.freeze({
+    auto: 'Follow system theme',
+    light: 'Switch to dark theme',
+    dark: 'Switch to light theme',
+  });
+
+  function readStoredMode() {
+    // Plain string read — never JSON-parse. The FOUC IIFE writes the
+    // same plain string; both paths must agree on encoding.
+    try {
+      const raw = localStorage.getItem('ht.theme');
+      if (raw === 'auto' || raw === 'light' || raw === 'dark') return raw;
+      // Legacy migration: pre-1.6 versions wrote via HT.storage.set
+      // which JSON-encodes, leaving values like `"\"light\""` in
+      // localStorage. Decode and persist back as a plain string so the
+      // user keeps their explicit preference across the upgrade.
+      if (raw && raw.length > 0 && raw[0] === '"') {
+        try {
+          const decoded = JSON.parse(raw);
+          if (decoded === 'auto' || decoded === 'light' || decoded === 'dark') {
+            try { localStorage.setItem('ht.theme', decoded); } catch (_) {}
+            return decoded;
+          }
+        } catch (_) {
+          // Not valid JSON; fall through to the default.
+        }
+      }
+    } catch (_) {
+      // localStorage may be unavailable (private mode); fall through.
+    }
+    return 'auto';
+  }
+
+  function writeStoredMode(next) {
+    // Plain string write — bypass HT.storage (which JSON-encodes) so the
+    // FOUC IIFE's localStorage.getItem('ht.theme') reads the same shape.
+    try {
+      localStorage.setItem('ht.theme', next);
+    } catch (_) {
+      // localStorage may be unavailable (private mode); apply in-memory
+      // only — the page still renders correctly this session.
+    }
+  }
+
+  function isEmbedMode() {
+    try {
+      return new URLSearchParams(window.location.search).get('embed') === '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function resolvedTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    return current === 'dark' ? 'dark' : 'light';
+  }
+
   function boot() {
     if (HT.__booted) return;
     HT.__booted = true;
@@ -26,6 +97,20 @@
     const explicit = main && main.getAttribute('data-page-label');
     if (main && explicit && !main.getAttribute('aria-label')) {
       main.setAttribute('aria-label', explicit);
+    }
+
+    // ?embed=1 locks the theme to system-following: the toggle is hidden
+    // via CSS, the cycle is a no-op, and `data-theme` follows the OS via
+    // the media-query listener below (Story 1.6 spec; AD-7 line 115).
+    if (isEmbedMode()) {
+      writeStoredMode('auto');
+      // The FOUC IIFE may have resolved a stale 'light' / 'dark' value
+      // from a prior session before we overwrote it to 'auto' above.
+      // Re-apply the OS preference synchronously so the embed page
+      // never paints with the wrong theme. The MutationObserver
+      // re-syncs aria-pressed automatically.
+      const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+      document.documentElement.setAttribute('data-theme', mq && mq.matches ? 'dark' : 'light');
     }
 
     HT.shell = Object.freeze({
@@ -37,6 +122,7 @@
     document.addEventListener('click', onClick);
     document.documentElement.addEventListener('ht:fouc-resolved', onFoucResolved);
     observeTheme();
+    registerSystemThemeListener();
     syncThemeToggleAria();
     refreshFooterYear();
   }
@@ -73,35 +159,39 @@
   }
 
   function toggleTheme() {
-    const current = document.documentElement.getAttribute('data-theme') || 'light';
-    const next = current === 'dark' ? 'light' : 'dark';
-    try {
-      window.HT.storage.set('ht.theme', next);
-    } catch (_) {
-      // localStorage may be unavailable (private mode); apply in-memory only.
+    // ?embed=1 hides the toggle via CSS, but a focused programmatic click
+    // could still hit the handler — the cycle is a no-op so we never
+    // diverge from system-following in embed mode.
+    if (isEmbedMode()) {
+      writeStoredMode('auto');
+      return;
     }
-    document.documentElement.setAttribute('data-theme', next);
-    // Update every .theme-toggle on the page (header + footer if both
-    // exist). aria-pressed is the canonical state signal for screen
-    // readers (Decision #2 from the code review); aria-label / title
-    // continue to be human-readable labels.
-    const buttons = document.querySelectorAll('.theme-toggle');
-    const label = next === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
-    const pressed = next === 'dark' ? 'true' : 'false';
-    buttons.forEach((btn) => {
-      btn.setAttribute('aria-label', label);
-      btn.setAttribute('title', label);
-      btn.setAttribute('aria-pressed', pressed);
-    });
+
+    const current = readStoredMode();
+    const next = CYCLE_NEXT[current] || 'light';
+    writeStoredMode(next);
+
+    // For auto → light/dark and dark → auto we resolve the actual
+    // data-theme value. dark → auto needs matchMedia to compute the
+    // resolved theme.
+    let resolved = next;
+    if (next === 'auto') {
+      const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+      resolved = mq && mq.matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', resolved);
+    // The MutationObserver below re-syncs aria-label / title /
+    // aria-pressed on every .theme-toggle via syncThemeToggleAria().
   }
 
   function syncThemeToggleAria() {
-    // Initial state on boot — keep aria-pressed in sync with the
-    // data-theme attribute that the inline FOUC IIFE already set.
-    const current = document.documentElement.getAttribute('data-theme') || 'light';
-    const isDark = current === 'dark';
-    const label = isDark ? 'Switch to light theme' : 'Switch to dark theme';
-    const pressed = isDark ? 'true' : 'false';
+    // Reflects the *current cycle state* (auto/light/dark), not the
+    // resolved data-theme. The accessible label announces the *next*
+    // step of the cycle; aria-pressed reflects whether the effective
+    // theme is dark.
+    const current = readStoredMode();
+    const label = CYCLE_LABEL[current] || CYCLE_LABEL.light;
+    const pressed = resolvedTheme() === 'dark' ? 'true' : 'false';
     document.querySelectorAll('.theme-toggle').forEach((btn) => {
       btn.setAttribute('aria-label', label);
       btn.setAttribute('title', label);
@@ -114,6 +204,10 @@
       for (const mutation of mutations) {
         if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
           window.HT.__htLastThemeChangeAt = performance.now();
+          // Re-sync every .theme-toggle's accessible state — covers both
+          // the click path (toggleTheme) and the media-query path
+          // (registerSystemThemeListener) with a single writer.
+          syncThemeToggleAria();
         }
       }
     });
@@ -121,6 +215,26 @@
       attributes: true,
       attributeFilter: ['data-theme'],
     });
+  }
+
+  function registerSystemThemeListener() {
+    if (!window.matchMedia) return; // unsupported (older browser): cycle
+    // falls back to light ↔ dark and auto behaves as light.
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = (event) => {
+      // Only re-resolve data-theme when the user is in auto mode (or in
+      // embed mode, which forces auto at boot). A user who stored
+      // 'light' or 'dark' keeps their override; the OS change is ignored.
+      if (!isEmbedMode() && readStoredMode() !== 'auto') return;
+      document.documentElement.setAttribute('data-theme', event.matches ? 'dark' : 'light');
+      // The MutationObserver will re-sync aria-pressed automatically.
+    };
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange);
+    } else if (typeof mq.addListener === 'function') {
+      // Safari < 14 fallback.
+      mq.addListener(onChange);
+    }
   }
 
   function onFoucResolved(event) {

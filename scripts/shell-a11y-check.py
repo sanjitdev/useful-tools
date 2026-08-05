@@ -193,6 +193,83 @@ def check_main_aria_label(path: Path, root: Path) -> list[str]:
     return []
 
 
+# The three cycle-state labels written by JS (Story 1.6 spec). The toggle
+# surfaces the *next* step in the cycle (auto → light → dark → auto), so
+# the label depends on the current stored mode, not the resolved theme.
+# These strings are authored once in assets/js/shell.js (the CYCLE_LABEL
+# map) and must remain in sync with the spec — Story 1.6 task #5.
+THEME_ARIA_LABEL_BY_MODE = {
+    "auto": "Follow system theme",
+    "light": "Switch to dark theme",
+    "dark": "Switch to light theme",
+}
+
+
+def check_theme_aria_label(root: Path) -> list[str]:
+    """Verify the 3-mode cycle's aria-label strings are present in
+    assets/js/shell.js AND each is associated with the correct stored mode
+    in the CYCLE_LABEL map.
+
+    The spec says the strings are written by JS at runtime — the a11y
+    check is otherwise unable to read the post-cycle attribute. The
+    compromise: the static-HTML drift check cannot reach into the JS
+    source, so this check pins the JS contract directly. Without it, a
+    regression that drops one of the three strings (e.g. a typo in the
+    CYCLE_LABEL map) silently ships a missing announced state to screen
+    readers.
+
+    The substring-only check (used in earlier versions) had a hole: a
+    typo that swapped two map keys (e.g. auto: "Switch to light theme")
+    kept all three strings present and the test passed. Parse the map
+    block and verify each key's value matches the expected label.
+    """
+    js_path = root / "assets" / "js" / "shell.js"
+    if not js_path.is_file():
+        return [f"missing {js_path}"]
+    try:
+        text = js_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [f"cannot read {js_path}: {exc}"]
+    violations: list[str] = []
+
+    # First: substring presence (catches the easy case — string removed).
+    for label in THEME_ARIA_LABEL_BY_MODE.values():
+        if label not in text:
+            violations.append(
+                f"theme-cycle aria-label {label!r} missing from {js_path.relative_to(root)}"
+            )
+
+    # Second: parse the CYCLE_LABEL map and verify each key's value. The
+    # regex tolerates whitespace, line breaks, and single/double quotes.
+    cycle_label_block = re.search(
+        r"CYCLE_LABEL\s*=\s*Object\.freeze\s*\(\s*\{([^}]*)\}\s*\)",
+        text,
+    )
+    if not cycle_label_block:
+        violations.append(
+            f"CYCLE_LABEL map not found in {js_path.relative_to(root)}"
+        )
+        return violations
+    inner = cycle_label_block.group(1)
+    for mode, expected_label in THEME_ARIA_LABEL_BY_MODE.items():
+        mode_re = re.compile(
+            rf"\b{re.escape(mode)}\s*:\s*['\"]([^'\"]+)['\"]",
+        )
+        m = mode_re.search(inner)
+        if not m:
+            violations.append(
+                f"CYCLE_LABEL missing key {mode!r} in {js_path.relative_to(root)}"
+            )
+            continue
+        actual_label = m.group(1)
+        if actual_label != expected_label:
+            violations.append(
+                f"CYCLE_LABEL[{mode!r}] = {actual_label!r}, expected {expected_label!r}"
+            )
+
+    return violations
+
+
 def load_canonical_fouc_iife(root: Path) -> str:
     """Extract the inline IIFE byte sequence from
     assets/shell/head-snippet.html.
@@ -296,6 +373,19 @@ def check_base_css(path: Path) -> list[str]:
     if not dark_block_m:
         violations.append('no :root[data-theme="dark"] { ... } override block found')
 
+    # 3. Embed mode hides .theme-toggle via html[data-embed="1"]. The
+    # spec (Story 1.6) requires ?embed=1 to lock theme to system AND
+    # hide the toggle via CSS; the JS-side guards are verified at
+    # runtime, but a future edit to base.css can silently drop this
+    # rule without tripping any other check. The cobalt-token check
+    # above only inspects :root selectors; embed-mode is a separate
+    # selector so it lives in its own assertion.
+    if "html[data-embed=\"1\"] .theme-toggle" not in text:
+        violations.append(
+            'embed-mode CSS rule html[data-embed="1"] .theme-toggle '
+            "{ display: none !important } missing from base.css"
+        )
+
     return violations
 
 
@@ -340,6 +430,15 @@ def main(argv: list[str]) -> int:
             print(f"  FAIL    {base_css.relative_to(root)}  {v}")
     else:
         print(f"  ok      {base_css.relative_to(root)}")
+
+    print("shell-a11y-check: verifying theme-cycle aria-label strings")
+    theme_violations = check_theme_aria_label(root)
+    if theme_violations:
+        failures += 1
+        for v in theme_violations:
+            print(f"  FAIL    {v}")
+    else:
+        print("  ok      theme-cycle aria-label strings present")
 
     if failures:
         print(f"shell-a11y-check: {failures} violation(s) found")

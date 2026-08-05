@@ -291,6 +291,10 @@ a:hover {
   }
 }
 
+html[data-embed="1"] .theme-toggle {
+  display: none !important;
+}
+
 /* ---------- Layout primitives ---------- */
 
 .container {
