@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# scripts/hooks/pre-commit
+#
+# Auto-regenerate the 35 shell pages (1 home + 34 tools) whenever a
+# chrome source file or the generator itself is staged for commit.
+# Re-runs the drift + a11y gates as a sanity check; blocks the commit
+# if any gate fails. Idempotent and a no-op for non-chrome commits.
+#
+# Install via `make install-hooks` (copies this file into .git/hooks/).
+# Pure bash, no Node — portable across macOS/Linux/Git-Bash-on-Windows.
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# Detect staged chrome source files or the generator itself.
+# --diff-filter=AM matches Added or Modified; we ignore Deleted (the
+# remaining pages still match the new chrome if the file was just
+# renamed, but a deleted chrome source would already fail the drift
+# gate so the regenerate below handles it).
+STAGED="$(git diff --cached --name-only --diff-filter=AM)"
+CHROME_RE='^(assets/shell/.*\.html|scripts/shell-template\.py)$'
+
+if ! printf '%s\n' "$STAGED" | grep -Eq "$CHROME_RE"; then
+    # Normal commit — no chrome source change. Skip silently.
+    exit 0
+fi
+
+echo "pre-commit: chrome source staged — regenerating 35 pages…"
+
+# Regenerate home page first, then all tool pages. The two-invocation
+# shape mirrors `make shell-template && make shell-template-all`.
+python scripts/shell-template.py --home
+python scripts/shell-template.py
+
+# Re-stage any regenerated pages (index.html plus every tools/<slug>).
+# If the page bytes are already in sync, `git add` is a harmless no-op.
+git add index.html tools/
+
+echo "pre-commit: running drift + a11y gates…"
+
+# Sanity gates. If either fails, `set -e` aborts the commit and the
+# developer sees the failure in the terminal. The regenerated pages
+# have already been re-staged above, so the next commit attempt will
+# include the fix.
+python scripts/shell-drift-check.py
+python scripts/shell-a11y-check.py
+
+echo "pre-commit: chrome in sync ✓"

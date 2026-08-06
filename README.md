@@ -94,6 +94,22 @@ useful-tools/
 
 That's it — no build, no registration, no config.
 
+## Developer hooks (optional)
+
+After cloning, optionally install the pre-commit hook that auto-regenerates
+the 35 shell pages when you edit a chrome source file:
+
+```bash
+make install-hooks
+```
+
+This copies `scripts/hooks/pre-commit` into `.git/hooks/`. The hook is a
+no-op for normal commits (only fires when `assets/shell/*.html` or
+`scripts/shell-template.py` is staged) and blocks the commit with a
+visible error if the drift or a11y gates fail after regeneration. The
+hook is portable across macOS/Linux/Git-Bash-on-Windows (no Node
+required). See `scripts/hooks/README.md` for details.
+
 ## License
 
 MIT

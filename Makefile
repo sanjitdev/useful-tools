@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci shell-drift shell-a11y measure-fouc shell-template shell-template-all
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -30,6 +30,7 @@ help: ## Show available targets
 	@echo "  make measure-fouc        Best-effort 50ms no-FOUC check on index.html"
 	@echo "  make shell-template      Regenerate the home page chrome"
 	@echo "  make shell-template-all  Regenerate the chrome on all 34 tool pages"
+	@echo "  make install-hooks       Install scripts/hooks/pre-commit into .git/hooks/"
 	@echo "  make ci                  Run validate + rubric-all + gate + shell-drift"
 
 validate: validate-tools-json
@@ -106,3 +107,13 @@ shell-template:
 
 shell-template-all:
 	@$(PYTHON) scripts/shell-template.py
+
+# `install-hooks` copies scripts/hooks/pre-commit into .git/hooks/ so
+# the hook is active for the local clone. The hook auto-regenerates the
+# 35 shell pages whenever a chrome source file is staged. Pure bash, no
+# Node — see scripts/hooks/README.md. Re-run after every fresh clone.
+install-hooks:
+	@mkdir -p .git/hooks
+	@cp scripts/hooks/pre-commit .git/hooks/pre-commit
+	@chmod +x .git/hooks/pre-commit
+	@echo "Installed: .git/hooks/pre-commit (re-run after fresh clones)"
