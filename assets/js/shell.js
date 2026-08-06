@@ -130,6 +130,7 @@
     // embed mode per AD-7 — the trigger is hidden and the chord is a no-op).
     if (!isEmbedMode()) {
       wirePalette();
+      wireSettings();
     }
   }
 
@@ -159,7 +160,7 @@
     }
 
     if (target.classList.contains('shell-settings')) {
-      console.info('shell.settings: pending Story 1.8');
+      openSettings();
       return;
     }
 
@@ -538,6 +539,220 @@
       .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
       .join(' ');
   }
+
+
+  /* ============================================
+     Settings Modal Skeleton (Story 1.8)
+     ============================================
+     Static include from assets/shell/settings.html. Theme, locale,
+     and reduced-motion are live; units, currency, and font scale remain
+     disabled placeholders for later stories. All ht.* values are plain
+     strings so the head FOUC snippet can read ht.theme before boot. */
+
+  const SETTINGS_KEYS = Object.freeze([
+    'ht.theme',
+    'ht.locale',
+    'ht.reducedMotion',
+    'ht.units',
+    'ht.currency',
+    'ht.fontScale',
+  ]);
+
+  const SETTINGS_DEFAULTS = Object.freeze({
+    'ht.theme': 'auto',
+    'ht.locale': 'en',
+    'ht.reducedMotion': '0',
+    'ht.units': 'metric',
+    'ht.currency': 'USD',
+    'ht.fontScale': '100',
+  });
+
+  let settingsState = null;
+
+  function readSetting(key, fallback) {
+    try {
+      const value = localStorage.getItem(key);
+      return value === null ? fallback : value;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function writeSetting(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (_) {
+      // Private browsing or a disabled storage area: keep the live UI
+      // working for this session without logging user-facing noise.
+    }
+  }
+
+  function setSettingsTheme(mode) {
+    const valid = mode === 'auto' || mode === 'light' || mode === 'dark';
+    const next = valid ? mode : SETTINGS_DEFAULTS['ht.theme'];
+    writeSetting('ht.theme', next);
+    let resolved = next;
+    if (next === 'auto') {
+      const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+      resolved = mq && mq.matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', resolved);
+    document.documentElement.dispatchEvent(
+      new CustomEvent('ht:settings-theme-changed', { detail: { mode: next } })
+    );
+  }
+
+  function setSettingsReducedMotion(enabled) {
+    const on = Boolean(enabled);
+    writeSetting('ht.reducedMotion', on ? '1' : '0');
+    if (on) {
+      document.documentElement.setAttribute('data-reduced-motion', 'true');
+    } else {
+      document.documentElement.removeAttribute('data-reduced-motion');
+    }
+  }
+
+  function populateSettings() {
+    const theme = readSetting('ht.theme', SETTINGS_DEFAULTS['ht.theme']);
+    document.querySelectorAll('input[name="ht.theme"]').forEach((radio) => {
+      radio.checked = radio.value === theme;
+    });
+
+    const locale = document.querySelector('select[name="ht.locale"]');
+    if (locale) {
+      const storedLocale = readSetting('ht.locale', SETTINGS_DEFAULTS['ht.locale']);
+      locale.value = Array.from(locale.options).some((option) => option.value === storedLocale)
+        ? storedLocale
+        : SETTINGS_DEFAULTS['ht.locale'];
+    }
+
+    const reducedMotion = document.querySelector('input[name="ht.reducedMotion"]');
+    if (reducedMotion) {
+      reducedMotion.checked = readSetting('ht.reducedMotion', SETTINGS_DEFAULTS['ht.reducedMotion']) === '1';
+    }
+  }
+
+  function wireSettings() {
+    const modal = document.getElementById('shell-settings-modal');
+    if (!modal) {
+      console.warn('shell.settings: missing #shell-settings-modal; settings disabled');
+      return;
+    }
+
+    document.querySelectorAll('input[name="ht.theme"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        if (radio.checked) setSettingsTheme(radio.value);
+      });
+    });
+
+    const locale = modal.querySelector('select[name="ht.locale"]');
+    if (locale) {
+      locale.addEventListener('change', () => writeSetting('ht.locale', locale.value));
+    }
+
+    const reducedMotion = modal.querySelector('input[name="ht.reducedMotion"]');
+    if (reducedMotion) {
+      reducedMotion.addEventListener('change', () => setSettingsReducedMotion(reducedMotion.checked));
+    }
+
+    modal.querySelectorAll('[data-settings-dismiss]').forEach((dismiss) => {
+      dismiss.addEventListener('click', closeSettings);
+    });
+
+    const clearButton = document.getElementById('shell-settings-clear');
+    if (clearButton) clearButton.addEventListener('click', clearAllLocalData);
+
+    // Apply the persisted reduced-motion preference at boot as well as when
+    // the modal field changes, so a reload preserves the setting immediately.
+    setSettingsReducedMotion(readSetting('ht.reducedMotion', SETTINGS_DEFAULTS['ht.reducedMotion']) === '1');
+  }
+
+  function openSettings() {
+    if (isEmbedMode() || settingsState) return;
+    const modal = document.getElementById('shell-settings-modal');
+    const panel = modal && modal.querySelector('.shell-settings-modal__panel');
+    if (!modal || !panel) return;
+
+    // Opening settings must never stack over the command palette.
+    closePalette();
+    populateSettings();
+    settingsState = { callingElement: document.activeElement };
+    modal.removeAttribute('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onSettingsKeydown);
+    panel.focus();
+  }
+
+  function closeSettings() {
+    if (!settingsState) return;
+    const modal = document.getElementById('shell-settings-modal');
+    if (modal) {
+      modal.setAttribute('hidden', '');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    document.removeEventListener('keydown', onSettingsKeydown);
+    document.body.style.overflow = '';
+
+    const callingElement = settingsState.callingElement;
+    settingsState = null;
+    if (callingElement && typeof callingElement.focus === 'function' && document.body.contains(callingElement)) {
+      try { callingElement.focus(); } catch (_) { /* ignore */ }
+    }
+  }
+
+  function onSettingsKeydown(event) {
+    if (!settingsState) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeSettings();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const panel = document.querySelector('.shell-settings-modal__panel');
+    if (!panel) return;
+    const focusables = Array.from(panel.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    ));
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function clearAllLocalData() {
+    if (!window.confirm('Clear all Handy Tools preferences? This cannot be undone.')) return;
+    const keysToRemove = [];
+    const namespaced = /^(ht|handy-tools)\./;
+    try {
+      for (let index = 0; index < localStorage.length; index += 1) {
+        const key = localStorage.key(index);
+        if (key && namespaced.test(key)) keysToRemove.push(key);
+      }
+      keysToRemove.forEach((key) => localStorage.removeItem(key));
+      // Keep the FOUC IIFE on a stable plain-string value during reload.
+      localStorage.setItem('ht.theme', 'auto');
+    } catch (_) {
+      // Storage may be unavailable; reload still gives the user a clean
+      // in-memory shell state where the browser permits it.
+    }
+    window.location.reload();
+  }
+
+  HT.settings = Object.freeze({
+    keys: SETTINGS_KEYS,
+    defaults: SETTINGS_DEFAULTS,
+    clearAll: clearAllLocalData,
+    open: openSettings,
+    close: closeSettings,
+  });
 
   // Public palette API (AD-14): exposed via HT.palette.*
   HT.palette = Object.freeze({

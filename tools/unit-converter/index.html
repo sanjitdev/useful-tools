@@ -213,6 +213,107 @@
   </div>
 </footer>
 
+  <!-- Canonical source for the Settings modal overlay (Story 1.8).
+     Mounted as a static include in every page by `scripts/shell-template.py`
+     (mirrors the palette.html convention). The drift check
+     (`scripts/shell-drift-check.py`) extracts the region between the marker
+     comments and byte-matches every page.
+
+     ARIA pattern: WAI-ARIA 1.2 modal dialog. role="dialog", aria-modal="true",
+     aria-labelledby points at the heading id. Hidden + aria-hidden="true" in
+     the static state — `assets/js/shell.js` toggles [hidden] / aria-hidden
+     when openSettings() / closeSettings() run.
+
+     Settings fields:
+       1. Theme          (LIVE — Story 1.8 wires; mirror of header toggle)
+       2. Language       (LIVE — plain-string persistence; Story 7.7 wires translations)
+       3. Reduced motion (LIVE — sets <html data-reduced-motion>)
+       4. Default units  (DISABLED placeholder — Story 1.10+)
+       5. Default currency (DISABLED placeholder — Story 1.10+)
+       6. Font scale     (DISABLED placeholder — Story 1.10+)
+       7. Clear all local data (LIVE — only consumer of SETTINGS_KEYS)
+
+     Per AD-4 the settings UI never renders inside a tool page; the cog is
+     hidden in ?embed=1 mode (AD-7). The modal opens via openSettings() from
+     the header cog click handler at assets/js/shell.js. -->
+<div id="shell-settings-modal" class="shell-settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" aria-hidden="true" hidden>
+  <div class="shell-settings-modal__backdrop" data-settings-dismiss></div>
+  <div class="shell-settings-modal__panel" tabindex="-1">
+    <header class="shell-settings-modal__header">
+      <h2 id="settings-modal-title" class="shell-settings-modal__title">Settings</h2>
+      <button type="button" class="shell-settings-modal__close" aria-label="Close settings" data-settings-dismiss>×</button>
+    </header>
+
+    <form class="shell-settings-modal__body" id="shell-settings-form" onsubmit="return false;">
+
+      <!-- 1. Theme (LIVE) -->
+      <fieldset class="shell-settings-field" data-setting-key="ht.theme">
+        <legend class="shell-settings-label">Theme</legend>
+        <div class="shell-settings-control">
+          <label class="shell-settings-radio"><input type="radio" name="ht.theme" value="auto" checked> Auto (follow system)</label>
+          <label class="shell-settings-radio"><input type="radio" name="ht.theme" value="light"> Light</label>
+          <label class="shell-settings-radio"><input type="radio" name="ht.theme" value="dark"> Dark</label>
+        </div>
+      </fieldset>
+
+      <!-- 2. Language (LIVE read+write) -->
+      <div class="shell-settings-field" data-setting-key="ht.locale">
+        <label class="shell-settings-label" for="ht-locale">Language</label>
+        <div class="shell-settings-control">
+          <select id="ht-locale" name="ht.locale" class="shell-settings-select">
+            <option value="en">English</option>
+            <option value="bn">বাংলা (Bengali)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 3. Reduced motion (LIVE) -->
+      <div class="shell-settings-field" data-setting-key="ht.reducedMotion">
+        <label class="shell-settings-label" for="ht-reducedMotion">Reduce motion</label>
+        <div class="shell-settings-control">
+          <label class="shell-settings-checkbox"><input id="ht-reducedMotion" type="checkbox" name="ht.reducedMotion" value="1"> Disable animations and transitions</label>
+        </div>
+      </div>
+
+      <!-- 4. Default units (DISABLED placeholder) -->
+      <div class="shell-settings-field">
+        <label class="shell-settings-label">Default units</label>
+        <div class="shell-settings-control">
+          <select disabled aria-describedby="ht-units-hint"><option>Metric</option><option>Imperial</option></select>
+          <small id="ht-units-hint" class="shell-settings-hint">Coming soon</small>
+        </div>
+      </div>
+
+      <!-- 5. Default currency (DISABLED placeholder) -->
+      <div class="shell-settings-field">
+        <label class="shell-settings-label">Default currency</label>
+        <div class="shell-settings-control">
+          <input type="text" value="USD" disabled aria-describedby="ht-currency-hint">
+          <small id="ht-currency-hint" class="shell-settings-hint">Coming soon</small>
+        </div>
+      </div>
+
+      <!-- 6. Font scale (DISABLED placeholder) -->
+      <div class="shell-settings-field">
+        <label class="shell-settings-label" for="ht-fontScale">Font scale</label>
+        <div class="shell-settings-control">
+          <input id="ht-fontScale" type="range" min="80" max="120" step="5" value="100" disabled aria-describedby="ht-fontScale-hint">
+          <output aria-hidden="true">100%</output>
+          <small id="ht-fontScale-hint" class="shell-settings-hint">Coming soon</small>
+        </div>
+      </div>
+
+      <!-- 7. Clear all local data (LIVE — only consumer of SETTINGS_KEYS) -->
+      <div class="shell-settings-field shell-settings-field--danger">
+        <div class="shell-settings-control">
+          <button type="button" id="shell-settings-clear" class="shell-settings-modal__danger">Clear all local data…</button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
   <!-- Canonical source for the command palette overlay (Story 1.7).
      Mounted as a static include in every page by `scripts/shell-template.py`
      (mirrors the chrome.html header/footer convention). The drift check

@@ -111,6 +111,28 @@ visible error if the drift or a11y gates fail after regeneration. The
 hook is portable across macOS/Linux/Git-Bash-on-Windows (no Node
 required). See `scripts/hooks/README.md` for details.
 
+## Settings & preferences
+
+The header cog opens a settings modal that controls visual preferences for
+the whole site. Settings persist to `localStorage` under the `ht.*` namespace
+and are read by the load-time FOUC script so first paint already reflects
+the saved theme.
+
+| Field            | Status        | Notes |
+|------------------|---------------|-------|
+| Theme            | Live          | Auto (follow system), Light, Dark. Mirrors the header toggle. |
+| Language         | Live          | Plain-string persistence; UI translations land in Story 7.7. |
+| Reduced motion   | Live          | Sets `<html data-reduced-motion>` and disables transitions. |
+| Default units    | Coming soon   | Disabled placeholder for Story 1.10+. |
+| Default currency | Coming soon   | Disabled placeholder for Story 1.10+. |
+| Font scale       | Coming soon   | Disabled placeholder for Story 1.10+. |
+| Clear all local data | Live     | Wipes every `ht.*` and `handy-tools.*` key, then reloads. |
+
+The `Clear all local data` button is the only live consumer of the
+`HT.settings.keys` constant in `assets/js/shell.js` and is itself exposed
+on `window.HT.settings` for power users. The settings modal is hidden in
+`?embed=1` mode (AD-7) so embedded iframes never surface chrome.
+
 ## License
 
 MIT

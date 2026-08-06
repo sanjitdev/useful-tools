@@ -285,6 +285,26 @@ a:hover {
   }
 }
 
+/* Story 1.8: mirror of the prefers-reduced-motion block, triggered
+   by the settings modal checkbox. The :where() selector keeps the
+   specificity at 0 so the [data-reduced-motion="true"] form can be
+   overridden by per-component rules if needed. */
+:root:where([data-reduced-motion="true"]) {
+  --ht-motion-off: 1;
+}
+
+:root:where([data-reduced-motion="true"]) .shell-search-trigger,
+:root:where([data-reduced-motion="true"]) .shell-locale,
+:root:where([data-reduced-motion="true"]) .shell-settings,
+:root:where([data-reduced-motion="true"]) .shell-skip,
+:root:where([data-reduced-motion="true"]) .site-header,
+:root:where([data-reduced-motion="true"]) .site-footer,
+:root:where([data-reduced-motion="true"]) .theme-toggle {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
 @media (forced-colors: active) {
   .theme-toggle {
     display: none !important;

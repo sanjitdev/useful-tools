@@ -64,6 +64,7 @@ except (AttributeError, OSError):
 SCHEMA_ANCHOR = "tools.schema.json"
 CHROME_REL = Path("assets/shell/chrome.html")
 PALETTE_REL = Path("assets/shell/palette.html")
+SETTINGS_REL = Path("assets/shell/settings.html")
 
 
 def find_repo_root(start: Path) -> Path:
@@ -94,13 +95,16 @@ FOOTER_RE = re.compile(
 PALETTE_REGION_RE = re.compile(
     r"<!-- shell:palette -->\s*(.*?)\s*<!-- /shell:palette -->", re.DOTALL
 )
+SETTINGS_REGION_RE = re.compile(
+    r"<!-- shell:settings -->\s*(.*?)\s*<!-- /shell:settings -->", re.DOTALL
+)
 
 
-def load_chrome(root: Path) -> tuple[str, str, str]:
-    """Return (header_bytes, footer_bytes, palette_bytes) extracted from
-    the canonical sources. The header and footer are read from
-    chrome.html; the palette is read from palette.html (a separate
-    canonical source added in Story 1.7)."""
+def load_chrome(root: Path) -> tuple[str, str, str, str]:
+    """Return (header_bytes, footer_bytes, palette_bytes, settings_bytes)
+    extracted from the canonical sources. The header and footer are read
+    from chrome.html; the palette is read from palette.html (Story 1.7)
+    and the settings modal from settings.html (Story 1.8)."""
     chrome_path = root / CHROME_REL
     if not chrome_path.is_file():
         sys.stderr.write(f"shell-drift-check: missing {chrome_path}\n")
@@ -127,7 +131,24 @@ def load_chrome(root: Path) -> tuple[str, str, str]:
         )
         sys.exit(2)
 
-    return header_match.group(1), footer_match.group(1), palette_match.group(1)
+    settings_path = root / SETTINGS_REL
+    if not settings_path.is_file():
+        sys.stderr.write(f"shell-drift-check: missing {settings_path}\n")
+        sys.exit(2)
+    settings_text = settings_path.read_text(encoding="utf-8")
+    settings_match = SETTINGS_REGION_RE.search(settings_text)
+    if not settings_match:
+        sys.stderr.write(
+            "shell-drift-check: settings.html missing shell:settings markers\n"
+        )
+        sys.exit(2)
+
+    return (
+        header_match.group(1),
+        footer_match.group(1),
+        palette_match.group(1),
+        settings_match.group(1),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -172,6 +193,7 @@ def scan(
     header: str,
     footer: str,
     palette: str,
+    settings: str,
     allowed: set[Path],
 ) -> int:
     header_norm = normalize(header)
@@ -197,6 +219,7 @@ def scan(
             header_norm in text_norm
             and footer_norm in text_norm
             and palette in text_norm
+            and settings in text_norm
         )
         if ok:
             print(f"  ok      {rel}")
@@ -222,16 +245,16 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve() if args.root else find_repo_root(Path(__file__).parent)
-    header, footer, palette = load_chrome(root)
+    header, footer, palette, settings = load_chrome(root)
     allowed = {(root / p).resolve() for p in args.allow_drift}
 
     targets = iter_target_files(root)
-    print(f"shell-drift-check: scanning {len(targets)} page(s) × 3 regions (header, footer, palette)")
-    failures = scan(root, header, footer, palette, allowed)
+    print(f"shell-drift-check: scanning {len(targets)} page(s) × 4 regions (header, footer, palette, settings)")
+    failures = scan(root, header, footer, palette, settings, allowed)
     if failures:
         print(f"shell-drift-check: {failures} drift(s) detected")
         return 2
-    print("shell-drift-check: all pages in sync (3 regions)")
+    print("shell-drift-check: all pages in sync (4 regions)")
     return 0
 
 

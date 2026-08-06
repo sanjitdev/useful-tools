@@ -591,6 +591,285 @@
   }
 }
 
+/* ============================================
+   Settings Modal (Story 1.8)
+   ============================================
+   WAI-ARIA 1.2 modal dialog. Mirrors the palette overlay pattern
+   (lines 441-592) but uses a real modal semantics: backdrop blocks
+   the page, body scroll is locked while open, focus is trapped.
+
+   Per UX-DR-3, palette and settings are mutually exclusive — opening
+   one closes the other. CSS does not enforce that; shell.js owns the
+   coordination. */
+
+.shell-settings-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1100; /* above the palette (z-index 1000) */
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 6vh 1rem 1rem;
+  background-color: rgba(15, 17, 23, 0.45);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.shell-settings-modal[hidden] {
+  display: none;
+}
+
+.shell-settings-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  /* The backdrop is a transparent sibling so clicks on it bubble to
+     document and trigger the [data-settings-dismiss] handler. */
+  cursor: default;
+}
+
+.shell-settings-modal__panel {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background-color: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, rgba(15, 17, 23, 0.12));
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(15, 17, 23, 0.25);
+  display: flex;
+  flex-direction: column;
+}
+
+:root[data-theme="dark"] .shell-settings-modal {
+  background-color: rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="dark"] .shell-settings-modal__panel {
+  background-color: var(--color-surface, #1a1d29);
+  border-color: var(--color-border, rgba(232, 234, 240, 0.12));
+}
+
+.shell-settings-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border, rgba(15, 17, 23, 0.08));
+}
+
+:root[data-theme="dark"] .shell-settings-modal__header {
+  border-bottom-color: var(--color-border, rgba(232, 234, 240, 0.08));
+}
+
+.shell-settings-modal__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text, #1a1d29);
+}
+
+:root[data-theme="dark"] .shell-settings-modal__title {
+  color: var(--color-text, #e8eaf0);
+}
+
+.shell-settings-modal__close {
+  background: transparent;
+  border: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
+  border-radius: 4px;
+}
+
+.shell-settings-modal__close:hover,
+.shell-settings-modal__close:focus-visible {
+  color: var(--color-text, #1a1d29);
+  background-color: var(--color-primary-soft, #E5ECFF);
+  outline: none;
+}
+
+:root[data-theme="dark"] .shell-settings-modal__close {
+  color: var(--color-text-muted, rgba(232, 234, 240, 0.55));
+}
+
+:root[data-theme="dark"] .shell-settings-modal__close:hover,
+:root[data-theme="dark"] .shell-settings-modal__close:focus-visible {
+  color: var(--color-text, #e8eaf0);
+  background-color: var(--color-primary-soft, #E5ECFF);
+}
+
+.shell-settings-modal__body {
+  padding: 1rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.shell-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.shell-settings-field--danger {
+  border-top: 1px solid var(--color-border, rgba(15, 17, 23, 0.08));
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+:root[data-theme="dark"] .shell-settings-field--danger {
+  border-top-color: var(--color-border, rgba(232, 234, 240, 0.08));
+}
+
+.shell-settings-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text, #1a1d29);
+  padding: 0;
+}
+
+:root[data-theme="dark"] .shell-settings-label {
+  color: var(--color-text, #e8eaf0);
+}
+
+.shell-settings-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  color: var(--color-text, #1a1d29);
+}
+
+:root[data-theme="dark"] .shell-settings-control {
+  color: var(--color-text, #e8eaf0);
+}
+
+.shell-settings-radio,
+.shell-settings-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.125rem 0;
+}
+
+.shell-settings-radio input,
+.shell-settings-checkbox input {
+  margin: 0;
+  cursor: pointer;
+}
+
+.shell-settings-select {
+  font: inherit;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--color-border, rgba(15, 17, 23, 0.12));
+  border-radius: 4px;
+  background-color: var(--color-surface, #ffffff);
+  color: var(--color-text, #1a1d29);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.shell-settings-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+:root[data-theme="dark"] .shell-settings-select {
+  background-color: var(--color-surface, #1a1d29);
+  border-color: var(--color-border, rgba(232, 234, 240, 0.12));
+  color: var(--color-text, #e8eaf0);
+}
+
+.shell-settings-modal__body input[type="text"]:disabled,
+.shell-settings-modal__body input[type="range"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.shell-settings-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
+  font-style: italic;
+}
+
+:root[data-theme="dark"] .shell-settings-hint {
+  color: var(--color-text-muted, rgba(232, 234, 240, 0.55));
+}
+
+.shell-settings-modal__danger {
+  font: inherit;
+  padding: 0.5rem 0.75rem;
+  background-color: transparent;
+  color: #b91c1c;
+  border: 1px solid #b91c1c;
+  border-radius: 4px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.shell-settings-modal__danger:hover,
+.shell-settings-modal__danger:focus-visible {
+  background-color: #b91c1c;
+  color: #ffffff;
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-settings-modal,
+  .shell-settings-modal__panel,
+  .shell-settings-modal__close,
+  .shell-settings-modal__danger {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .shell-settings-modal {
+    background-color: Canvas;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .shell-settings-modal__panel {
+    background-color: Canvas;
+    border: 1px solid CanvasText;
+  }
+  .shell-settings-modal__title,
+  .shell-settings-modal__label,
+  .shell-settings-control {
+    color: CanvasText;
+  }
+  .shell-settings-modal__header,
+  .shell-settings-field--danger {
+    border-color: CanvasText;
+  }
+  .shell-settings-modal__danger {
+    color: CanvasText;
+    border-color: CanvasText;
+    background-color: Canvas;
+  }
+  .shell-settings-modal__danger:hover,
+  .shell-settings-modal__danger:focus-visible {
+    background-color: Highlight;
+    color: HighlightText;
+    forced-color-adjust: none;
+  }
+}
+
+/* Hide the settings cog in embed mode (AD-7). The same rule that hides
+   the palette trigger also hides the cog, mirroring the precedent. */
+:root[data-embed="1"] .shell-settings {
+  display: none !important;
+}
+
 /* Hide the search trigger in embed mode (AD-7). */
 :root[data-embed="1"] .shell-search-trigger {
   display: none !important;

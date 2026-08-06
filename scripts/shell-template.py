@@ -84,6 +84,7 @@ def find_repo_root(start: Path) -> Path:
 CHROME_REL = Path("assets/shell/chrome.html")
 HEAD_SNIPPET_REL = Path("assets/shell/head-snippet.html")
 PALETTE_REL = Path("assets/shell/palette.html")
+SETTINGS_REL = Path("assets/shell/settings.html")
 
 CHROME_SKIP_RE = re.compile(
     r"<a class=\"shell-skip\"[^>]*>.*?</a>\s*", re.DOTALL
@@ -97,17 +98,20 @@ CHROME_FOOTER_RE = re.compile(
 PALETTE_REGION_RE = re.compile(
     r"<!-- shell:palette -->\s*(.*?)\s*<!-- /shell:palette -->", re.DOTALL
 )
+SETTINGS_REGION_RE = re.compile(
+    r"<!-- shell:settings -->\s*(.*?)\s*<!-- /shell:settings -->", re.DOTALL
+)
 
 
-def read_chrome(root: Path) -> tuple[str, str, str, str]:
-    """Return (skip_link_html, header_html, footer_html, palette_html).
+def read_chrome(root: Path) -> tuple[str, str, str, str, str]:
+    """Return (skip_link_html, header_html, footer_html, palette_html, settings_html).
 
     The canonical chrome contains a <main ... aria-label="{page_label}"> with
     a `{body}` placeholder. We extract the regions surrounding that
     placeholder so each tool page gets a copy with its own label and body.
-    The palette region is a separate canonical source (Story 1.7) that is
-    injected after the footer on every page so the command palette overlay
-    is a single shared DOM node.
+    The palette region (Story 1.7) and settings region (Story 1.8) are
+    separate canonical sources that are injected after the footer on every
+    page so the overlays are single shared DOM nodes.
     """
     path = root / CHROME_REL
     if not path.is_file():
@@ -146,7 +150,23 @@ def read_chrome(root: Path) -> tuple[str, str, str, str]:
         sys.exit(2)
     palette_html = palette_match.group(1)
 
-    return skip_html, header_html, footer_html, palette_html
+    # Read the settings include verbatim from its own canonical source.
+    # Same convention as palette — the settings modal is a single shared
+    # DOM node mounted on every page (Story 1.8).
+    settings_path = root / SETTINGS_REL
+    if not settings_path.is_file():
+        sys.stderr.write(f"shell-template: missing settings source at {settings_path}\n")
+        sys.exit(2)
+    settings_text = settings_path.read_text(encoding="utf-8")
+    settings_match = SETTINGS_REGION_RE.search(settings_text)
+    if not settings_match:
+        sys.stderr.write(
+            "shell-template: settings.html missing shell:settings markers\n"
+        )
+        sys.exit(2)
+    settings_html = settings_match.group(1)
+
+    return skip_html, header_html, footer_html, palette_html, settings_html
 
 
 def read_head_snippet(root: Path) -> str:
@@ -224,6 +244,7 @@ def transform(
     header_html: str,
     footer_html: str,
     palette_html: str,
+    settings_html: str,
     head_script: str,
 ) -> str:
     """Apply the four swaps. Each step assumes the previous step's input.
@@ -263,6 +284,7 @@ def transform(
             replacement = (
                 skip_html + "\n  " + header_html + "\n  "
                 + footer_html + "\n\n  " + palette_html + "\n\n  "
+                + settings_html + "\n\n  "
             )
             new_source = new_source[:anchor_start] + replacement + new_source[anchor_end:]
             # Skip steps 3-4 below — the in-place rewrite replaced everything.
@@ -303,11 +325,18 @@ def transform(
         return source
 
     # 4. Replace <div id="site-footer"></div> with the footer chrome, and
-    #    append the palette include as a sibling region immediately after
-    #    the footer. The palette is a single shared DOM node mounted on
-    #    every page (Story 1.7).
+    #    append the palette and settings includes as sibling regions
+    #    immediately after the footer. Both are single shared DOM nodes
+    #    mounted on every page (Story 1.7 palette, Story 1.8 settings).
     new_source, n = LEGACY_FOOTER_RE.subn(
-        footer_html + "\n\n  " + palette_html + "\n\n  ", new_source, count=1
+        footer_html
+        + "\n\n  "
+        + palette_html
+        + "\n\n  "
+        + settings_html
+        + "\n\n  ",
+        new_source,
+        count=1,
     )
     if n == 0:
         sys.stderr.write(
@@ -340,6 +369,7 @@ def process_file(
     header_html: str,
     footer_html: str,
     palette_html: str,
+    settings_html: str,
     head_script: str,
     dry_run: bool,
 ) -> bool:
@@ -383,7 +413,8 @@ def process_file(
         and footer_html in source
     )
     palette_ok = palette_html in source
-    full_ok = chrome_ok and palette_ok
+    settings_ok = settings_html in source
+    full_ok = chrome_ok and palette_ok and settings_ok
     # Find the IIFE block on the FIRST `<script>` opener in <head>. The IIFE
     # is always the first inline `<script>` in every page (it must run
     # before any stylesheet <link>). An earlier regex matched the first
@@ -438,16 +469,16 @@ def process_file(
         print(f"  no-change {path.relative_to(root)}  (already has new chrome)")
         return True
 
-    # If chrome is byte-aligned but the palette include is missing
-    # (Story 1.7 added the palette as a third region to chrome.html), inject
-    # it after </footer> in place. We anchor on the end of the footer so the
-    # rest of the page (including the IIFE block, script tags, and any
-    # additional trailing content) is left untouched. This must run BEFORE
-    # the IIFE-only path below because that path's `iife_ok` gate is
-    # currently over-strict (it compares against group(1) rather than
-    # group(2) — a latent Story 1.6 bug) and would short-circuit on a
-    # correct IIFE, preventing the palette splice from ever firing.
-    if chrome_ok and not palette_ok:
+    # If chrome is byte-aligned but the palette and/or settings include is
+    # missing (Story 1.7 added palette, Story 1.8 added settings), inject
+    # whichever is missing after </footer> in place. We anchor on the end
+    # of the footer so the rest of the page (including the IIFE block,
+    # script tags, and any additional trailing content) is left untouched.
+    # This must run BEFORE the IIFE-only path below because that path's
+    # `iife_ok` gate is currently over-strict (it compares against group(1)
+    # rather than group(2) — a latent Story 1.6 bug) and would short-circuit
+    # on a correct IIFE, preventing the palette splice from ever firing.
+    if chrome_ok and not (palette_ok and settings_ok):
         footer_end = source.find('</footer>')
         if footer_end == -1:
             sys.stderr.write(
@@ -455,23 +486,33 @@ def process_file(
             )
             return False
         insert_at = footer_end + len('</footer>')
-        new_source = (
-            source[:insert_at]
-            + "\n\n  " + palette_html + "\n\n  "
-            + source[insert_at:]
-        )
+        # Build the trailing splice: palette first (if missing), then
+        # settings (if missing). Pages that need both get one rewrite;
+        # pages that need only settings get a smaller delta.
+        trailing = ""
+        if not palette_ok:
+            trailing += "\n\n  " + palette_html
+        if not settings_ok:
+            trailing += "\n\n  " + settings_html
+        new_source = source[:insert_at] + trailing + source[insert_at:]
         if new_source == source:
             print(f"  no-change {path.relative_to(root)}")
             return True
         if dry_run:
-            print(f"  would-write {path.relative_to(root)}  (palette only)")
+            missing = []
+            if not palette_ok: missing.append("palette")
+            if not settings_ok: missing.append("settings")
+            print(f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})")
             return True
         try:
             path.write_text(new_source, encoding="utf-8")
         except OSError as exc:
             sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
             sys.exit(3)
-        print(f"  wrote {path.relative_to(root)}  (palette only)")
+        missing = []
+        if not palette_ok: missing.append("palette")
+        if not settings_ok: missing.append("settings")
+        print(f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})")
         return True
 
     # Chrome is byte-aligned but the inline FOUC IIFE in <head> is stale
@@ -535,6 +576,7 @@ def process_file(
         header_html=header_html,
         footer_html=footer_html,
         palette_html=palette_html,
+        settings_html=settings_html,
         head_script=head_script,
     )
     if updated == source:
@@ -559,12 +601,13 @@ def regenerate_home(
     header_html: str,
     footer_html: str,
     palette_html: str,
+    settings_html: str,
     head_script: str,
     dry_run: bool,
 ) -> bool:
     """Replace index.html's FOUC script, skip link, header, footer chrome,
-    and palette include in-place, preserving the home grid content
-    unchanged. Brand link uses href="#top" (home-relative)."""
+    palette include, and settings include in-place, preserving the home
+    grid content unchanged. Brand link uses href="#top" (home-relative)."""
     path = root / "index.html"
     if not path.is_file():
         sys.stderr.write(f"shell-template: missing home page {path}\n")
@@ -579,11 +622,13 @@ def regenerate_home(
         and 'src="assets/js/shell.js"' in source
     )
     palette_html_in_source = palette_html in source
+    settings_html_in_source = settings_html in source
     byte_aligned = (
         has_new_chrome
         and home_header in source
         and footer_html in source
         and palette_html_in_source
+        and settings_html_in_source
     )
     # Also require the canonical FOUC IIFE byte sequence to be present.
     # Without this, a home page that was generated before Story 1.5
@@ -647,23 +692,24 @@ def regenerate_home(
             print(f"  wrote {path.relative_to(root)}  (IIFE only)")
         return True
 
-    # If chrome is byte-aligned but the palette include is missing
-    # (Story 1.7 added the palette as a third region), inject it after
-    # </footer> in place. Same minimal-write pattern as the IIFE-only
-    # path above — the home grid is left untouched.
+    # If chrome is byte-aligned but a static-include region (palette or
+    # settings) is missing, inject the missing piece(s) after </footer>
+    # in place. Same minimal-write pattern as the IIFE-only path above —
+    # the home grid is left untouched.
     #
     # The condition is intentionally WEAKER than `byte_aligned` (which
-    # also requires palette_html_in_source): when only the palette is
-    # missing, the byte-aligned region rewrite below would nuke the
-    # entire <main> body that lives between the chrome markers. Test
-    # chrome bytes independently of palette presence, then short-circuit
-    # here whenever the only delta is a missing palette.
+    # also requires palette_html_in_source AND settings_html_in_source):
+    # when only the palette or only the settings is missing, the
+    # byte-aligned region rewrite below would nuke the entire <main>
+    # body that lives between the chrome markers. Test chrome bytes
+    # independently of include presence, then short-circuit here whenever
+    # the only delta is a missing include.
     chrome_only_aligned = (
         has_new_chrome
         and home_header in source
         and footer_html in source
     )
-    if chrome_only_aligned and not palette_html_in_source:
+    if chrome_only_aligned and not (palette_html_in_source and settings_html_in_source):
         footer_end = source.find('</footer>')
         if footer_end == -1:
             sys.stderr.write(
@@ -671,23 +717,36 @@ def regenerate_home(
             )
             return False
         insert_at = footer_end + len('</footer>')
-        new_source = (
-            source[:insert_at]
-            + "\n\n  " + palette_html + "\n\n  "
-            + source[insert_at:]
-        )
+        trailing = ""
+        if not palette_html_in_source:
+            trailing += "\n\n  " + palette_html
+        if not settings_html_in_source:
+            trailing += "\n\n  " + settings_html
+        new_source = source[:insert_at] + trailing + source[insert_at:]
         if new_source == source:
             print(f"  no-change {path.relative_to(root)}")
             return True
         if dry_run:
-            print(f"  would-write {path.relative_to(root)}  (palette only)")
+            missing = []
+            if not palette_html_in_source:
+                missing.append("palette")
+            if not settings_html_in_source:
+                missing.append("settings")
+            print(
+                f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})"
+            )
             return True
         try:
             path.write_text(new_source, encoding="utf-8")
         except OSError as exc:
             sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
             sys.exit(3)
-        print(f"  wrote {path.relative_to(root)}  (palette only)")
+        missing = []
+        if not palette_html_in_source:
+            missing.append("palette")
+        if not settings_html_in_source:
+            missing.append("settings")
+        print(f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})")
         return True
 
     new_source = source
@@ -695,16 +754,19 @@ def regenerate_home(
     # Replace the FOUC script in <head> if legacy IIFE is present.
     new_source, _ = LEGACY_FOUC_RE.subn(head_script + "\n\n  ", new_source, count=1)
 
-    if has_new_chrome:
-        # Already has the new chrome markers but bytes differ — do an
-        # in-place region replace so the page aligns byte-for-byte with
-        # chrome.html. We anchor on the `<a class="shell-skip">` start
+    if has_new_chrome and not (
+        home_header in source and footer_html in source
+    ):
+        # Already has the new chrome markers but the chrome bytes differ
+        # — do an in-place region replace so the page aligns byte-for-byte
+        # with chrome.html. We anchor on the `<a class="shell-skip">` start
         # and the `</footer>` close, then append the palette include
         # after the footer so the palette overlay is mounted on every
         # page.
         new_chrome = (
             skip_html + "\n  " + home_header + "\n  "
             + footer_html + "\n\n  " + palette_html + "\n\n  "
+            + settings_html + "\n\n  "
         )
         anchor_start = source.find('<a class="shell-skip"')
         anchor_end = source.find('</footer>', anchor_start)
@@ -744,9 +806,14 @@ def regenerate_home(
         new_source, _ = LEGACY_MAIN_RE.subn(_main_repl, new_source, count=1)
 
         # Replace <div id="site-footer"></div> with footer chrome and
-        # append the palette include as a sibling region (Story 1.7).
+        # append the palette and settings includes as sibling regions
+        # (Story 1.7 palette, Story 1.8 settings).
         new_source, _ = LEGACY_FOOTER_RE.subn(
-            footer_html + "\n\n  " + palette_html + "\n\n  ", new_source, count=1
+            footer_html
+            + "\n\n  " + palette_html + "\n\n  "
+            + settings_html + "\n\n  ",
+            new_source,
+            count=1,
         )
 
     # Remove theme.js and layout.js script tags.
@@ -802,7 +869,7 @@ def main(argv: list[str]) -> int:
         if args.root
         else find_repo_root(Path(__file__).parent)
     )
-    skip_html, header_html, footer_html, palette_html = read_chrome(root)
+    skip_html, header_html, footer_html, palette_html, settings_html = read_chrome(root)
     head_script = read_head_snippet(root)
 
     failures = 0
@@ -815,6 +882,7 @@ def main(argv: list[str]) -> int:
             header_html=header_html,
             footer_html=footer_html,
             palette_html=palette_html,
+            settings_html=settings_html,
             head_script=head_script,
             dry_run=args.dry_run,
         ):
@@ -841,6 +909,7 @@ def main(argv: list[str]) -> int:
             header_html=header_html,
             footer_html=footer_html,
             palette_html=palette_html,
+            settings_html=settings_html,
             head_script=head_script,
             dry_run=args.dry_run,
         ):

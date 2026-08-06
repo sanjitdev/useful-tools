@@ -389,6 +389,77 @@ def check_palette_aria(path: Path, root: Path) -> list[str]:
     return violations
 
 
+# Story 1.8 — Settings Modal ARIA invariants (WAI-ARIA 1.2 modal dialog).
+# The settings overlay is a true modal: role="dialog", aria-modal="true",
+# aria-labelledby resolves to a heading id, and the static markup must
+# carry the `hidden` attribute (JS strips it on open). The check pins the
+# structural shape across all 36 pages so a regression that drops one of
+# the ARIA attributes is caught at the same gate as the palette and
+# cobalt-token checks.
+SETTINGS_MODAL_RE = re.compile(
+    r'<div\s+id="shell-settings-modal"\s+class="shell-settings-modal"\s+'
+    r'role="dialog"\s+aria-modal="true"\s+aria-labelledby="([^"]+)"\s+'
+    r'aria-hidden="true"\s+hidden',
+    re.IGNORECASE,
+)
+SETTINGS_PANEL_RE = re.compile(
+    r'<div\s+class="shell-settings-modal__panel"\s+tabindex="-1"',
+    re.IGNORECASE,
+)
+SETTINGS_CLOSE_RE = re.compile(
+    r'<button[^>]*\bclass="shell-settings-modal__close"[^>]*\bdata-settings-dismiss',
+    re.IGNORECASE,
+)
+SETTINGS_LABELED_BY_RE = re.compile(
+    r'<h2\s+id="([^"]+)"\s+class="shell-settings-modal__title"',
+    re.IGNORECASE,
+)
+
+
+def check_settings_modal_aria(path: Path) -> list[str]:
+    """Verify the settings modal carries the WAI-ARIA 1.2 modal-dialog
+    contract on every page. Closes the gap where shell-drift-check.py
+    would only byte-match the settings region without verifying that
+    role="dialog", aria-modal="true", aria-labelledby resolves, the
+    hidden attribute is present in static markup, and the close
+    trigger carries data-settings-dismiss.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [f"cannot read file: {exc}"]
+    violations: list[str] = []
+
+    modals = SETTINGS_MODAL_RE.findall(text)
+    if len(modals) == 0:
+        violations.append(
+            "missing <div id=\"shell-settings-modal\" role=\"dialog\" aria-modal=\"true\">"
+        )
+        return violations
+    if len(modals) > 1:
+        violations.append(
+            f"found {len(modals)} settings modal roots; expected exactly 1"
+        )
+    labelled_by = modals[0]
+    heading = SETTINGS_LABELED_BY_RE.search(text)
+    if not heading or heading.group(1) != labelled_by:
+        violations.append(
+            f"aria-labelledby={labelled_by!r} does not resolve to a matching <h2 id>"
+        )
+
+    if not SETTINGS_PANEL_RE.search(text):
+        violations.append(
+            "settings modal panel <div class=\"shell-settings-modal__panel\" tabindex=\"-1\">"
+            " missing"
+        )
+    if not SETTINGS_CLOSE_RE.search(text):
+        violations.append(
+            "settings modal close button <button class=\"shell-settings-modal__close\""
+            " data-settings-dismiss> missing"
+        )
+    return violations
+
+
 def emit(violations: list[str], rel: Path, kind: str) -> int:
     """Print pass/fail lines for one page check; return 1 if any violation."""
     if violations:
@@ -491,6 +562,7 @@ def main(argv: list[str]) -> int:
         failures += emit(check_main_aria_label(path, root), rel, "<main aria-label> content")
         failures += emit(check_fouc_script(path, canonical_iife), rel, "inline FOUC IIFE")
         failures += emit(check_palette_aria(path, root), rel, "palette ARIA wiring")
+        failures += emit(check_settings_modal_aria(path), rel, "settings modal ARIA wiring")
 
     base_css = root / "assets" / "css" / "base.css"
     if not base_css.is_file():
