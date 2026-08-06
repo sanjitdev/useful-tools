@@ -132,6 +132,33 @@
   </div>
 </footer>
 
+  <!-- Canonical source for the command palette overlay (Story 1.7).
+     Mounted as a static include in every page by `scripts/shell-template.py`
+     (mirrors the chrome.html header/footer convention). The drift check
+     (`scripts/shell-drift-check.py`) extracts the region between the marker
+     comments and byte-matches every page.
+
+     ARIA pattern: WAI-ARIA 1.1 combobox + listbox (UX-DR-19). The wrapper is
+     role="combobox" with aria-haspopup="listbox" + aria-owns pointing to the
+     listbox id. The input is role="searchbox" with aria-controls pointing to
+     the same listbox. Hidden + aria-hidden="true" in the static state —
+     `assets/js/shell.js` toggles aria-expanded, [hidden], and aria-hidden
+     when openPalette() / closePalette() run.
+
+     The footer slot is empty in this story; Story 3.1 wires keyboard hints
+     (↑↓ navigate, Enter select, Esc close). -->
+<div class="shell-palette" id="palette" role="combobox" aria-haspopup="listbox" aria-owns="palette-listbox" aria-expanded="false" aria-label="Command palette" hidden>
+  <div class="shell-palette-panel">
+    <input class="shell-palette-input" id="palette-input" type="search" role="searchbox" aria-controls="palette-listbox" aria-activedescendant="" aria-autocomplete="list" placeholder="Search tools…" autocomplete="off" spellcheck="false" />
+    <ul class="shell-palette-list" id="palette-listbox" role="listbox" aria-label="Tools">
+      <li class="shell-palette-empty" role="presentation">No recent tools yet</li>
+    </ul>
+    <div class="shell-palette-footer" aria-hidden="true"></div>
+  </div>
+</div>
+
+  
+
   <script src="../../assets/js/utils.js"></script>
   <script src="../../assets/js/shell.js" defer></script>
   <script src="./percentage-calculator.js"></script>

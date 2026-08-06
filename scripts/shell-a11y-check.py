@@ -316,6 +316,79 @@ def check_fouc_script(path: Path, canonical_iife: str) -> list[str]:
     return []
 
 
+# Story 1.7 — Command Palette ARIA invariants (UX-DR-19 combobox 1.1 listbox).
+# The palette is a single shared DOM node mounted on every page; the
+# structural assertions below ensure the wiring is correct and the
+# overlay is hidden in the static markup.
+COMBOBOX_RE = re.compile(
+    r'<div\s+class="shell-palette"\s+id="palette"\s+role="combobox"\s+'
+    r'aria-haspopup="listbox"\s+aria-owns="palette-listbox"\s+'
+    r'aria-expanded="(?:true|false)"',
+    re.IGNORECASE,
+)
+SEARCHBOX_RE = re.compile(
+    r'<input\s+class="shell-palette-input"\s+id="palette-input"\s+type="search"\s+'
+    r'role="searchbox"\s+aria-controls="palette-listbox"\s+'
+    r'aria-activedescendant=""\s+aria-autocomplete="list"',
+    re.IGNORECASE,
+)
+LISTBOX_RE = re.compile(
+    r'<ul\s+class="shell-palette-list"\s+id="palette-listbox"\s+role="listbox"',
+    re.IGNORECASE,
+)
+PALETTE_HIDDEN_RE = re.compile(
+    r'<div\s+class="shell-palette"\s+id="palette"[^>]*\bhidden\b',
+    re.IGNORECASE,
+)
+
+
+def check_palette_aria(path: Path, root: Path) -> list[str]:
+    """Verify every page has exactly one WAI-ARIA 1.1 combobox+listbox
+    palette overlay, with hidden attribute present in the static markup
+    (the JS toggles [hidden] on open/close). The structural assertions
+    close the gap where shell-drift-check.py would only byte-match the
+    palette region without verifying the ARIA wiring is correct.
+
+    Without this check, a regression that drops `aria-haspopup="listbox"`
+    or the `controls`/`owns` circuit silently ships a screen-reader-invisible
+    palette that passes drift but is non-functional for assistive tech.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [f"cannot read file: {exc}"]
+    violations: list[str] = []
+    combos = COMBOBOX_RE.findall(text)
+    if len(combos) == 0:
+        violations.append("missing <div class=\"shell-palette\" role=\"combobox\"> overlay")
+    elif len(combos) > 1:
+        violations.append(
+            f"found {len(combos)} <div role=\"combobox\"> elements; expected exactly 1"
+        )
+    searchboxes = SEARCHBOX_RE.findall(text)
+    if len(searchboxes) == 0:
+        violations.append("missing <input role=\"searchbox\" aria-controls=\"palette-listbox\">")
+    elif len(searchboxes) > 1:
+        violations.append(
+            f"found {len(searchboxes)} <input role=\"searchbox\"> elements; expected exactly 1"
+        )
+    listboxes = LISTBOX_RE.findall(text)
+    if len(listboxes) == 0:
+        violations.append("missing <ul id=\"palette-listbox\" role=\"listbox\">")
+    elif len(listboxes) > 1:
+        violations.append(
+            f"found {len(listboxes)} <ul role=\"listbox\"> elements; expected exactly 1"
+        )
+    # The static markup MUST carry the `hidden` attribute on the overlay
+    # so the palette is closed by default. JS strips it on openPalette().
+    if combos and not PALETTE_HIDDEN_RE.search(text):
+        violations.append(
+            "palette overlay is missing the `hidden` attribute in static markup "
+            "(must be closed by default; JS opens via removeAttribute)"
+        )
+    return violations
+
+
 def emit(violations: list[str], rel: Path, kind: str) -> int:
     """Print pass/fail lines for one page check; return 1 if any violation."""
     if violations:
@@ -417,6 +490,7 @@ def main(argv: list[str]) -> int:
         failures += emit(check_main_landmark(path), rel, "<main> landmark shape")
         failures += emit(check_main_aria_label(path, root), rel, "<main aria-label> content")
         failures += emit(check_fouc_script(path, canonical_iife), rel, "inline FOUC IIFE")
+        failures += emit(check_palette_aria(path, root), rel, "palette ARIA wiring")
 
     base_css = root / "assets" / "css" / "base.css"
     if not base_css.is_file():

@@ -63,6 +63,7 @@ except (AttributeError, OSError):
 
 SCHEMA_ANCHOR = "tools.schema.json"
 CHROME_REL = Path("assets/shell/chrome.html")
+PALETTE_REL = Path("assets/shell/palette.html")
 
 
 def find_repo_root(start: Path) -> Path:
@@ -90,23 +91,43 @@ HEADER_RE = re.compile(
 FOOTER_RE = re.compile(
     r"<!-- shell:footer -->\s*(.*?)\s*<!-- /shell:footer -->", re.DOTALL
 )
+PALETTE_REGION_RE = re.compile(
+    r"<!-- shell:palette -->\s*(.*?)\s*<!-- /shell:palette -->", re.DOTALL
+)
 
 
-def load_chrome(root: Path) -> tuple[str, str]:
-    path = root / CHROME_REL
-    if not path.is_file():
-        sys.stderr.write(f"shell-drift-check: missing {path}\n")
+def load_chrome(root: Path) -> tuple[str, str, str]:
+    """Return (header_bytes, footer_bytes, palette_bytes) extracted from
+    the canonical sources. The header and footer are read from
+    chrome.html; the palette is read from palette.html (a separate
+    canonical source added in Story 1.7)."""
+    chrome_path = root / CHROME_REL
+    if not chrome_path.is_file():
+        sys.stderr.write(f"shell-drift-check: missing {chrome_path}\n")
         sys.exit(2)
-    text = path.read_text(encoding="utf-8")
-    header_match = HEADER_RE.search(text)
-    footer_match = FOOTER_RE.search(text)
+    chrome_text = chrome_path.read_text(encoding="utf-8")
+    header_match = HEADER_RE.search(chrome_text)
+    footer_match = FOOTER_RE.search(chrome_text)
     if not header_match or not footer_match:
         sys.stderr.write(
             "shell-drift-check: chrome.html missing one of "
             "{shell:header, shell:footer} markers\n"
         )
         sys.exit(2)
-    return header_match.group(1), footer_match.group(1)
+
+    palette_path = root / PALETTE_REL
+    if not palette_path.is_file():
+        sys.stderr.write(f"shell-drift-check: missing {palette_path}\n")
+        sys.exit(2)
+    palette_text = palette_path.read_text(encoding="utf-8")
+    palette_match = PALETTE_REGION_RE.search(palette_text)
+    if not palette_match:
+        sys.stderr.write(
+            "shell-drift-check: palette.html missing shell:palette markers\n"
+        )
+        sys.exit(2)
+
+    return header_match.group(1), footer_match.group(1), palette_match.group(1)
 
 
 # ---------------------------------------------------------------------------
@@ -146,7 +167,13 @@ def normalize(text: str) -> str:
     )
 
 
-def scan(root: Path, header: str, footer: str, allowed: set[Path]) -> int:
+def scan(
+    root: Path,
+    header: str,
+    footer: str,
+    palette: str,
+    allowed: set[Path],
+) -> int:
     header_norm = normalize(header)
     footer_norm = normalize(footer)
     # Allow lookup by both absolute path and relative POSIX string so
@@ -166,7 +193,11 @@ def scan(root: Path, header: str, footer: str, allowed: set[Path]) -> int:
             failures += 1
             continue
         text_norm = normalize(text)
-        ok = header_norm in text_norm and footer_norm in text_norm
+        ok = (
+            header_norm in text_norm
+            and footer_norm in text_norm
+            and palette in text_norm
+        )
         if ok:
             print(f"  ok      {rel}")
         else:
@@ -191,15 +222,16 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve() if args.root else find_repo_root(Path(__file__).parent)
-    header, footer = load_chrome(root)
+    header, footer, palette = load_chrome(root)
     allowed = {(root / p).resolve() for p in args.allow_drift}
 
-    print(f"shell-drift-check: scanning {len(iter_target_files(root))} page(s)")
-    failures = scan(root, header, footer, allowed)
+    targets = iter_target_files(root)
+    print(f"shell-drift-check: scanning {len(targets)} page(s) × 3 regions (header, footer, palette)")
+    failures = scan(root, header, footer, palette, allowed)
     if failures:
         print(f"shell-drift-check: {failures} drift(s) detected")
         return 2
-    print("shell-drift-check: all pages in sync")
+    print("shell-drift-check: all pages in sync (3 regions)")
     return 0
 
 
