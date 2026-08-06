@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="CPI-adjusted value, purchasing power over time, real vs nominal wage growth, salary needed to keep up, and period-vs-period inflation comparison. Uses official U.S. BLS CPI-U data 1913–2024.">
+  <title>Inflation Calculator · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <script> (function(){try{var t=localStorage.getItem("ht.theme");var mqd=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)");t=t==="light"||t==="dark"?t:(mqd&&mqd.matches?"dark":"light");var d=document.documentElement;d.setAttribute("data-theme",t);d.style.backgroundColor=t==="dark"?"#0f1117":"#f7f8fb";d.style.color=t==="dark"?"#e8eaf0":"#1a1d29";try{if(/[?&]embed=1(?:&|$)/.test(location.search)){d.setAttribute("data-embed","1");}}catch(_){}}catch(_){}try{var po=window.PerformanceObserver?new PerformanceObserver(function(list){try{var e=list.getEntries().find(function(x){return x.name==="first-paint"});if(e){d.dispatchEvent(new CustomEvent("ht:fouc-resolved",{detail:{elapsedMs:e.startTime}}));po.disconnect();}}catch(_){}}):null;if(po){po.observe({type:"paint",buffered:true});}}catch(_){}}catch(e){document.documentElement.setAttribute("data-theme","light")}})(); </script>
+<!-- /shell:head-snippet -->
+
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./inflation-calculator.css">
+</head>
+<body>
+  <a class="shell-skip" href="#main">Skip to main content</a>
+
+  <header class="site-header" role="banner" aria-label="Handy Tools">
+  <div class="container">
+    <a class="shell-brand" href="../../index.html">
+      <span class="shell-brand-mark">H</span>
+      <span>Handy Tools</span>
+    </a>
+    <nav class="shell-header-nav" aria-label="Primary">
+      <button class="shell-search-trigger" type="button" aria-label="Search tools">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span>Search</span>
+      </button>
+      <button class="theme-toggle" type="button" aria-label="Toggle theme">
+        <svg class="moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l-1.41-1.41"/></svg>
+      </button>
+      <button class="shell-locale" type="button" aria-label="Change language" data-locale="en" disabled>EN</button>
+      <button class="shell-settings" type="button" aria-label="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+  <main id="main" class="shell-main" aria-label="Inflation Calculator" tabindex="-1">
+    <div id="top"></div>
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Inflation Calculator</h1>
+      <p class="tool-subtitle">CPI-adjusted value, purchasing power, wage vs inflation, and period comparison — based on official U.S. BLS CPI-U data 1913–2024.</p>
+    </header>
+
+    <div class="ic-tabs" role="tablist" aria-label="Inflation calculator sections">
+      <button class="ic-tab is-active" type="button" role="tab" aria-selected="true" data-tab="adjusted">Adjusted value</button>
+      <button class="ic-tab" type="button" role="tab" aria-selected="false" data-tab="purchasing">Purchasing power</button>
+      <button class="ic-tab" type="button" role="tab" aria-selected="false" data-tab="wage">Wage vs inflation</button>
+      <button class="ic-tab" type="button" role="tab" aria-selected="false" data-tab="salary">Salary to keep up</button>
+      <button class="ic-tab" type="button" role="tab" aria-selected="false" data-tab="compare">Period compare</button>
+    </div>
+
+    <!-- ===== 1. ADJUSTED VALUE ===== -->
+    <section class="ic-tab-panel" role="tabpanel" data-tab-panel="adjusted">
+      <div class="panel">
+        <div class="panel-title">How much is <span class="muted">$X</span> worth in another year?</div>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="ic-amount">Amount (USD)</label>
+            <input id="ic-amount" class="input" type="number" min="0" step="any" value="100">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ic-from">From year</label>
+            <input id="ic-from" class="input" type="number" min="1913" max="2124" step="1" value="2000">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ic-to">To year</label>
+            <input id="ic-to" class="input" type="number" min="1913" max="2124" step="1" value="2024">
+          </div>
+          <div class="field">
+            <label class="checkbox-row" for="ic-use-forward" style="cursor:pointer;display:flex;gap:8px;align-items:center;">
+              <input id="ic-use-forward" type="checkbox" style="width:auto;">
+              <span>Project beyond 2024 (use forward rate)</span>
+            </label>
+            <div id="ic-forward-rate-wrap" class="field" style="display:none;">
+              <label class="field-label" for="ic-forward-rate">Forward inflation rate (% / yr)</label>
+              <input id="ic-forward-rate" class="input" type="number" min="0" max="10" step="0.1" value="3">
+              <div class="ic-forward-hint">Default 3% (Fed long-run target ~2%, small buffer for current elevated period).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-card">
+        <div class="result-main" id="ic-adjusted-result">—</div>
+        <div class="result-sub" id="ic-adjusted-sub">Enter an amount and two years.</div>
+        <div class="result-grid">
+          <div class="result-tile"><div class="result-tile-label">Cumulative change</div><div class="result-tile-value" id="ic-adjusted-cum">—</div></div>
+          <div class="result-tile"><div class="result-tile-label">Avg annual</div><div class="result-tile-value" id="ic-adjusted-annual">—</div></div>
+          <div class="result-tile"><div class="result-tile-label">Span</div><div class="result-tile-value" id="ic-adjusted-years">—</div></div>
+        </div>
+      </div>
+
+      <div class="ic-actions">
+        <button class="btn btn-primary" type="button" id="ic-sample">Load sample: $100 in 2000 → today</button>
+        <button class="btn" type="button" id="ic-reset">Reset</button>
+      </div>
+
+      <div class="ic-data-note">
+        Source: U.S. Bureau of Labor Statistics, CPI-U series CUUR0000SA0 (annual averages, base 1982-84 = 100). Years after 2024 use the forward rate you specify above.
+      </div>
+    </section>
+
+    <!-- ===== 2. PURCHASING POWER ===== -->
+    <section class="ic-tab-panel" role="tabpanel" data-tab-panel="purchasing" hidden>
+      <div class="panel">
+        <div class="panel-title">Purchasing power over time</div>
+        <p class="muted text-sm" style="margin-bottom: var(--space-3);">Same input as the Adjusted Value tab, but rendered as a year-by-year table and chart.</p>
+        <div class="result-tile" id="ic-purchasing-net" style="margin-bottom: var(--space-3);">—</div>
+        <div id="ic-purchasing-summary">—</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Chart</div>
+        <div class="ic-chart-wrap">
+          <svg id="ic-chart" xmlns="http://www.w3.org/2000/svg" aria-label="Purchasing power chart"></svg>
+          <div class="ic-chart-tooltip" id="ic-chart-tooltip" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Year-by-year</div>
+        <div class="ic-table-wrap">
+          <table class="ic-data-table">
+            <thead>
+              <tr>
+                <th scope="col">Year</th>
+                <th scope="col">Equivalent value</th>
+                <th scope="col">Cumulative change</th>
+              </tr>
+            </thead>
+            <tbody id="ic-purchasing-table-body">
+              <tr><td colspan="3" class="ic-table-empty">No data in range</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 3. WAGE VS INFLATION ===== -->
+    <section class="ic-tab-panel" role="tabpanel" data-tab-panel="wage" hidden>
+      <div class="panel">
+        <div class="panel-title">Did your salary beat inflation?</div>
+        <p class="muted text-sm" style="margin-bottom: var(--space-3);">Compares your nominal salary change against the CPI inflation over the same period.</p>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="ic-wage-start-salary">Starting salary (USD/yr)</label>
+            <input id="ic-wage-start-salary" class="input" type="number" min="0" step="any" value="50000">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ic-wage-start-year">Starting year</label>
+            <input id="ic-wage-start-year" class="input" type="number" min="1913" max="2124" step="1" value="2010">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ic-wage-end-salary">Ending salary (USD/yr)</label>
+            <input id="ic-wage-end-salary" class="input" type="number" min="0" step="any" value="72000">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ic-wage-end-year">Ending year</label>
+            <input id="ic-wage-end-year" class="input" type="number" min="1913" max="2124" step="1" value="2024">
+          </div>
+        </div>
+      </div>
+
+      <div class="result-card">
+        <div class="result-main" id="ic-wage-main">—</div>
+        <div class="result-sub" id="ic-wage-sub">Enter salary values and a year range.</div>
+        <div class="result-grid">
+          <div class="result-tile"><div class="result-tile-label">Nominal change</div><div class="result-tile-value" id="ic-wage-nominal">—</div></div>
+          <div class="result-tile"><div class="result-tile-label">Inflation over same span</div><div class="result-tile-value" id="ic-wage-inflation">—</div></div>
+          <div class="result-tile"><div class="result-tile-label">Real change</div><div class="result-tile-value" id="ic-wage-real">—</div></div>
+        </div>
+      </div>
+
+      <div class="ic-data-note">
+        Real change = (1 + nominal) / (1 + inflation) − 1. Your "real salary" is what your ending salary would buy in starting-year dollars.
+      </div>
+    </section>
+
+    <!-- ===== 4. SALARY TO KEEP UP ===== -->
+    <section class="ic-tab-panel" role="tabpanel" data-tab-panel="salary" hidden>
+      <div class="panel">
+        <div class="panel-title">Salary required to keep up with inflation</div>
+        <p class="muted text-sm" style="margin-bottom: var(--space-3);">Compound your current salary forward at the projected inflation rate.</p>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="ic-salary-now">Current salary (USD/yr)</label>
+            <input id="ic-salary-now" class="input" type="number" min="0" step="any" value="60000">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ic-salary-years">Years forward</label>
+            <input id="ic-salary-years" class="input" type="number" min="0" max="100" step="1" value="10">
+          </div>
+        </div>
+      </div>
+
+      <div class="result-card">
+        <div class="result-main" id="ic-salary-main">—</div>
+        <div class="result-sub" id="ic-salary-sub">Enter a current salary and a number of years.</div>
+      </div>
+
+      <div class="ic-data-note">
+        Uses the default 3% / yr forward inflation (Fed long-run target). For a custom rate, use the Adjusted value tab.
+      </div>
+    </section>
+
+    <!-- ===== 5. PERIOD COMPARISON ===== -->
+    <section class="ic-tab-panel" role="tabpanel" data-tab-panel="compare" hidden>
+      <div class="panel">
+        <div class="panel-title">Compare two periods</div>
+        <p class="muted text-sm" style="margin-bottom: var(--space-3);">For example: the 1970s vs the 2010s. Side-by-side inflation stats for the same dollar amount.</p>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="ic-compare-amount">Amount (USD)</label>
+            <input id="ic-compare-amount" class="input" type="number" min="0" step="any" value="100">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label class="field-label" for="ic-compare-from1">Period 1: from year</label>
+            <input id="ic-compare-from1" class="input" type="number" min="1913" max="2124" step="1" value="1990">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ic-compare-to1">Period 1: to year</label>
+            <input id="ic-compare-to1" class="input" type="number" min="1913" max="2124" step="1" value="2000">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ic-compare-from2">Period 2: from year</label>
+            <input id="ic-compare-from2" class="input" type="number" min="1913" max="2124" step="1" value="2010">
+          </div>
+          <div class="field">
+            <label class="field-label" for="ic-compare-to2">Period 2: to year</label>
+            <input id="ic-compare-to2" class="input" type="number" min="1913" max="2124" step="1" value="2020">
+          </div>
+        </div>
+      </div>
+
+      <div class="ic-compare-grid">
+        <div id="ic-compare-1">—</div>
+        <div id="ic-compare-2">—</div>
+      </div>
+
+      <div class="result-card" style="margin-top: var(--space-3);">
+        <div class="result-sub" id="ic-compare-delta">—</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer" role="contentinfo" aria-label="Site information">
+  <div class="container">
+    <nav class="shell-footer-nav" aria-label="Footer">
+      <a href="/privacy">Privacy</a>
+      <a href="/quality">Quality</a>
+      <span aria-disabled="true">View source</span>
+      <a href="https://github.com/sanjitdev/useful-tools" rel="noopener noreferrer">GitHub</a>
+    </nav>
+    <small class="shell-footer-copy">&copy; <span id="ht-footer-year">2026</span> Handy Tools. Built with vanilla JS.</small>
+  </div>
+</footer>
+
+  <!-- Canonical source for the command palette overlay (Story 1.7).
+     Mounted as a static include in every page by `scripts/shell-template.py`
+     (mirrors the chrome.html header/footer convention). The drift check
+     (`scripts/shell-drift-check.py`) extracts the region between the marker
+     comments and byte-matches every page.
+
+     ARIA pattern: WAI-ARIA 1.1 combobox + listbox (UX-DR-19). The wrapper is
+     role="combobox" with aria-haspopup="listbox" + aria-owns pointing to the
+     listbox id. The input is role="searchbox" with aria-controls pointing to
+     the same listbox. Hidden + aria-hidden="true" in the static state —
+     `assets/js/shell.js` toggles aria-expanded, [hidden], and aria-hidden
+     when openPalette() / closePalette() run.
+
+     The footer slot is empty in this story; Story 3.1 wires keyboard hints
+     (↑↓ navigate, Enter select, Esc close). -->
+<div class="shell-palette" id="palette" role="combobox" aria-haspopup="listbox" aria-owns="palette-listbox" aria-expanded="false" aria-label="Command palette" hidden>
+  <div class="shell-palette-panel">
+    <input class="shell-palette-input" id="palette-input" type="search" role="searchbox" aria-controls="palette-listbox" aria-activedescendant="" aria-autocomplete="list" placeholder="Search tools…" autocomplete="off" spellcheck="false" />
+    <ul class="shell-palette-list" id="palette-listbox" role="listbox" aria-label="Tools">
+      <li class="shell-palette-empty" role="presentation">No recent tools yet</li>
+    </ul>
+    <div class="shell-palette-footer" aria-hidden="true"></div>
+  </div>
+</div>
+
+
+
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/shell.js" defer></script>
+  <script src="./cpi-data.js"></script>
+  <script src="./inflation-calculator.js"></script>
+</body>
+</html>

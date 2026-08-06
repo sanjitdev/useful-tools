@@ -2,6 +2,67 @@
   "$schema": "tools.schema.json",
   "schemaVersion": "1",
   "releaseVersion": "0.0.0",
-  "generated": "2026-07-31T00:00:00Z",
-  "tools": []
+  "generated": "2026-08-06T00:00:00Z",
+  "tools": [
+    {
+      "id": "inflation-calculator",
+      "slug": "inflation-calculator",
+      "title": "Inflation Calculator",
+      "description": "CPI-adjusted value, purchasing power, real vs nominal wage growth, salary to keep up, and period comparison. BLS data 1913–2024, bundled offline.",
+      "category": "Converters & Calculators",
+      "pack": ["finance", "household"],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 17l5-5 4 4 8-8' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M14 8h6v6' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
+      "keywords": ["inflation", "cpi", "cpi-u", "purchasing-power", "wage", "salary", "real", "nominal", "bls", "us", "1913", "1920", "1970s", "2024"],
+      "last-updated": "2026-08-06T00:00:00Z",
+      "ready": true,
+      "score": 9,
+      "urlState": {
+        "default": {
+          "ic-amount": "100",
+          "ic-from": "2000",
+          "ic-to": "2024",
+          "ic-forward-rate": "3"
+        },
+        "encode": [
+          { "key": "ic-amount", "type": "number" },
+          { "key": "ic-from", "type": "number" },
+          { "key": "ic-to", "type": "number" },
+          { "key": "ic-forward-rate", "type": "number" }
+        ],
+        "decode": [
+          { "key": "ic-amount", "type": "number" },
+          { "key": "ic-from", "type": "number" },
+          { "key": "ic-to", "type": "number" },
+          { "key": "ic-forward-rate", "type": "number" }
+        ]
+      },
+      "shortcuts": [
+        { "key": "r", "label": "Reset to defaults", "action": "reset" },
+        { "key": "s", "label": "Load sample ($100 in 2000)", "action": "sample" }
+      ],
+      "history-keys": [
+        "ic-amount",
+        "ic-from",
+        "ic-to",
+        "ic-forward-rate",
+        "ic-wage-start-salary",
+        "ic-wage-start-year",
+        "ic-wage-end-year",
+        "ic-wage-end-salary",
+        "ic-salary-now",
+        "ic-salary-years"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/inflation-calculator/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 7
+    }
+  ]
 }

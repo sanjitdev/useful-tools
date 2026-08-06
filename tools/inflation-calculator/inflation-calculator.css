@@ -1,0 +1,288 @@
+/* ============================================
+   Inflation Calculator — tool-specific styles
+   Reuses .panel, .grid-2/3, .field, .input, .select,
+   .result-card, .result-tile from tools.css + base.css.
+   ============================================ */
+
+.ic-tabs {
+  display: inline-flex;
+  background: var(--color-surface-2);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  gap: 2px;
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.ic-tab {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  transition: background 0.15s, color 0.15s;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+
+.ic-tab:hover { color: var(--color-text); }
+
+.ic-tab.is-active {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.ic-tab-panel { display: block; }
+.ic-tab-panel[hidden] { display: none; }
+
+/* ---------- Chart ---------- */
+
+.ic-chart-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+}
+
+.ic-chart-wrap svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  font-family: inherit;
+}
+
+.ic-chart-axis-label {
+  font-size: 0.75rem;
+  fill: var(--color-muted);
+}
+
+.ic-chart-line {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ic-chart-fill {
+  fill: var(--color-accent);
+  fill-opacity: 0.1;
+}
+
+.ic-chart-grid {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+}
+
+.ic-chart-dot {
+  fill: var(--color-accent);
+  stroke: var(--color-surface);
+  stroke-width: 2;
+}
+
+.ic-chart-tooltip {
+  position: absolute;
+  background: var(--color-text);
+  color: var(--color-bg);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.ic-chart-tooltip.is-visible { opacity: 1; }
+
+/* ---------- Data table ---------- */
+
+.ic-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.ic-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+}
+
+.ic-data-table th,
+.ic-data-table td {
+  padding: 8px 12px;
+  text-align: right;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ic-data-table th:first-child,
+.ic-data-table td:first-child { text-align: left; }
+
+.ic-data-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-surface-2);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  z-index: 1;
+}
+
+.ic-data-table tbody tr:hover {
+  background: var(--color-surface-2);
+}
+
+.ic-data-table tbody tr:last-child td { border-bottom: 0; }
+
+.ic-cumulative-positive { color: var(--color-danger); }
+.ic-cumulative-negative { color: var(--color-success); }
+
+.ic-table-empty {
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+/* ---------- Side-by-side comparison ---------- */
+
+.ic-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+@media (max-width: 640px) {
+  .ic-compare-grid { grid-template-columns: 1fr; }
+}
+
+.ic-compare-card {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.ic-compare-card h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ic-compare-stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--color-border);
+  font-size: 0.9rem;
+}
+
+.ic-compare-stat:last-child { border-bottom: 0; }
+
+.ic-compare-stat-label { color: var(--color-muted); }
+.ic-compare-stat-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ---------- Inline badges ---------- */
+
+.ic-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.ic-tag-muted {
+  background: var(--color-surface-2);
+  color: var(--color-muted);
+}
+
+/* ---------- Forward-rate hint ---------- */
+
+.ic-forward-hint {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* ---------- Action bar ---------- */
+
+.ic-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+
+.ic-actions .btn { flex-shrink: 0; }
+
+/* ---------- Stale-data notice ---------- */
+
+.ic-data-note {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-border);
+}
+
+@media (max-width: 640px) {
+  .ic-chart-wrap { aspect-ratio: 4 / 3; }
+}
+
+/* ---------- Print (PRD §FR-15) ----------
+   Hide chrome and force black-on-white for clean printable inflation tables. */
+
+@media print {
+  .site-header,
+  .site-footer,
+  .tool-header .back-link,
+  .ic-actions,
+  .ic-tabs {
+    display: none !important;
+  }
+  .ic-tab-panel { display: block !important; }
+  .ic-tab-panel[hidden] { display: block !important; }
+  body { background: #fff !important; color: #000 !important; }
+  .panel,
+  .result-card,
+  .ic-compare-card,
+  .ic-chart-wrap,
+  .ic-table-wrap {
+    background: #fff !important;
+    color: #000 !important;
+    border-color: #000 !important;
+    box-shadow: none !important;
+  }
+  .ic-data-table th,
+  .ic-data-table td {
+    border-color: #000 !important;
+  }
+}
