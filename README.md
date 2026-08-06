@@ -1,6 +1,6 @@
 # Handy Tools
 
-A collection of 34 small, useful everyday tools — age calculator, unit converter, password generator, QR code generator, Bangladesh income tax calculator, space calculator, animal race, lifespan simulator, and more. **Zero dependencies, fully offline, hosted on GitHub Pages.**
+A collection of 35 small, useful everyday tools — age calculator, unit converter, password generator, QR code generator, Bangladesh income tax calculator, space calculator, animal race, lifespan simulator, inflation calculator, and more. **Zero dependencies, fully offline, hosted on GitHub Pages.**
 
 ## What's inside
 
@@ -20,6 +20,7 @@ A collection of 34 small, useful everyday tools — age calculator, unit convert
 - Compound Interest
 - Loan Calculator
 - Bangladesh Tax Calculator (AY 2026-27, bilingual EN/BN)
+- Inflation Calculator (BLS CPI-U 1913–2024, bundled offline)
 
 **Health & Body**
 - Lifespan Simulator (statistical lifespan estimate from lifestyle, health, and habits)
