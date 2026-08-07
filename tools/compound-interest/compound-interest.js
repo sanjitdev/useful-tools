@@ -44,34 +44,52 @@
 
     var r = annualRatePct / 100;
     var ratePerPeriod = r / n;
-    var periodsPerMonth = n / 12;
-    var ratePerMonth = r / 12;
 
+    // Walk in sub-month steps so compounding happens at the correct cadence
+    // regardless of how many periods fit in a month (n=12 gives 1 step/month,
+    // n=4 gives 1 step/quarter, n=2 gives 1 step/half-year, n=1 gives
+    // 1 step/year). Each sub-step represents a single compounding period; a
+    // month is 1/12 of a year, so a period boundary is crossed whenever the
+    // integer count of elapsed periods increases.
     var monthsTotal = years * 12;
+    var periodsElapsed = 0;
+    // Subdivide each month finely so contribution timing stays monthly.
+    var subStepsPerMonth = 12;
+    var subStepsTotal = monthsTotal * subStepsPerMonth;
+    var monthlyPerSubStep = monthly / subStepsPerMonth;
 
-    // Process month by month so monthly contribution timing is precise.
-    for (var m = 1; m <= monthsTotal; m++) {
+    for (var s = 1; s <= subStepsTotal; s++) {
+      // Apply monthly contribution at the start of each sub-step (sub-steps
+      // partition the month evenly, so the cumulative monthly contribution
+      // is exact regardless of n).
       if (contribWhen === 'start') {
-        balance += monthly;
-        contribToDate += monthly;
+        balance += monthlyPerSubStep;
+        contribToDate += monthlyPerSubStep;
       }
 
-      // Apply monthly compounding: each month contains (n/12) compounding periods.
-      var periodsThisMonth = periodsPerMonth;
-      for (var p = 0; p < periodsThisMonth; p++) {
+      // Has a compounding period boundary been crossed since the last step?
+      // Period k ends at time k/n years. A sub-step at index s covers
+      // (s/subStepsTotal) of the total span, so the period count is
+      // floor(s * n * monthsTotal / (12 * subStepsTotal)).
+      var periodsNow = Math.floor((s * n * monthsTotal) / (12 * subStepsTotal));
+      while (periodsElapsed < periodsNow) {
         var interest = balance * ratePerPeriod;
         balance += interest;
         interestToDate += interest;
+        periodsElapsed += 1;
       }
 
       if (contribWhen === 'end') {
-        balance += monthly;
-        contribToDate += monthly;
+        balance += monthlyPerSubStep;
+        contribToDate += monthlyPerSubStep;
       }
 
-      if (m % 12 === 0) {
+      // Snapshot year-end rows. With subStepsPerMonth=12, the last sub-step
+      // of year k is at index k * (12 * subStepsPerMonth).
+      if (s % (12 * subStepsPerMonth) === 0) {
+        var year = s / (12 * subStepsPerMonth);
         schedule.push({
-          year: m / 12,
+          year: year,
           contribToDate: contribToDate,
           interestToDate: interestToDate,
           balance: balance

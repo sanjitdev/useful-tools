@@ -1,0 +1,251 @@
+<!doctype html>
+<!--
+  scripts/compound-smoke.html
+  ===========================
+  Browser smoke harness for the compound-interest calculator. Loads the
+  tool page in an iframe, sets canonical inputs, reads #final-balance,
+  and asserts:
+
+    * Monotonicity: FV(n=1) < FV(n=12) < FV(n=365)
+    * Closed-form:  FV(P=1000, r=5%, t=10, n=12, contrib=0) = $1,647.01 ±$0.05
+    * Bug regression: FV(n=1, contrib=0) is NOT in the $300k+ range
+    * Contrib timing: start > end
+
+  Companion to scripts/storage-smoke.html (which exercises the storage
+  registry contract). This file exercises the compound-interest math
+  contract surfaced by Story 1.13.
+
+  Run on the home page via:
+
+    python -m http.server 8000 -d <repo-root>
+    open http://localhost:8000/scripts/compound-smoke.html?ci=1
+
+  The harness exits non-zero via window.__htCompoundSmokeFailed if any
+  check fails when ?ci=1 is set, so a wrapping test runner can pick it up.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Compound Interest Smoke Harness</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; padding: 16px; color: #1a1d29; background: #f7f8fb; }
+    pre { white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 13px; line-height: 1.4; background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; }
+    iframe { display: none; }
+    h1 { margin: 0 0 8px; font-size: 20px; }
+    p { margin: 0 0 12px; color: #4b5563; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Compound Interest Smoke Harness</h1>
+  <p>Open with <code>?ci=1</code> to fail CI on contract violation. Loads the tool page in an iframe and asserts the math is correct.</p>
+  <iframe id="tool-frame" src="../tools/compound-interest/index.html"></iframe>
+  <pre id="ht-smoke-log"></pre>
+  <script>
+    (function () {
+      'use strict';
+
+      const log = document.getElementById('ht-smoke-log');
+      const out = (line) => {
+        log.textContent += line + '\n';
+        try { console.log(line); } catch (_) {}
+      };
+      let failed = 0;
+      const pass = (name) => out('  PASS    ' + name);
+      const fail = (name, why) => {
+        out('  FAIL    ' + name + ' — ' + why);
+        failed += 1;
+      };
+
+      out('compound-smoke: starting (CI mode)');
+
+      const frame = document.getElementById('tool-frame');
+      frame.addEventListener('load', runTests);
+
+      function runTests() {
+        try {
+          const doc = frame.contentDocument;
+          if (!doc) {
+            fail('iframe load', 'contentDocument unavailable (cross-origin?)');
+            return finalize();
+          }
+          const win = frame.contentWindow;
+          if (!win) {
+            fail('iframe load', 'contentWindow unavailable');
+            return finalize();
+          }
+          // Drive the calculator by setting inputs and dispatching 'change'
+          // events so the render() handler fires synchronously (render is
+          // bound to 'change' directly; 'input' goes through debounce).
+          const setField = (id, value) => {
+            const el = doc.getElementById(id);
+            if (!el) throw new Error('missing field #' + id);
+            el.value = String(value);
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          };
+          const readFinal = () => {
+            const txt = doc.getElementById('final-balance').textContent || '';
+            // Final-balance renders as e.g. "$1,647.01" — strip $, commas.
+            return parseFloat(txt.replace(/[^0-9.\-]/g, ''));
+          };
+
+          // ---- Test 1: no-contribution closed-form, monthly ----
+          try {
+            setField('principal', 1000);
+            setField('monthly', 0);
+            setField('rate', 5);
+            setField('years', 10);
+            setField('frequency', 12);
+            setField('contrib-when', 'end');
+            const fv = readFinal();
+            const expected = 1000 * Math.pow(1 + 0.05 / 12, 12 * 10);
+            if (Math.abs(fv - expected) < 0.05) {
+              pass('no-contrib monthly: $' + fv.toFixed(2) + ' ≈ expected $' + expected.toFixed(2));
+            } else {
+              fail('no-contrib monthly', 'got $' + fv.toFixed(2) + ' expected $' + expected.toFixed(2));
+            }
+          } catch (err) {
+            fail('no-contrib monthly', err.message);
+          }
+
+          // ---- Test 2: regression — annual compounding must NOT be $300k+ ----
+          try {
+            setField('principal', 1000);
+            setField('monthly', 0);
+            setField('rate', 5);
+            setField('years', 10);
+            setField('frequency', 1);
+            setField('contrib-when', 'end');
+            const fv = readFinal();
+            const expected = 1000 * Math.pow(1.05, 10);
+            if (fv < 10000 && Math.abs(fv - expected) < 0.05) {
+              pass('regression annual: $' + fv.toFixed(2) + ' ≈ expected $' + expected.toFixed(2) + ' (not in $300k range)');
+            } else {
+              fail('regression annual', 'got $' + fv.toFixed(2) + ' — bug returns $348,911.99');
+            }
+          } catch (err) {
+            fail('regression annual', err.message);
+          }
+
+          // ---- Test 3: monotonicity: annual < monthly < daily ----
+          try {
+            const samples = [];
+            [1, 2, 4, 12, 365].forEach(function (n) {
+              setField('principal', 1000);
+              setField('monthly', 100);
+              setField('rate', 5);
+              setField('years', 10);
+              setField('frequency', n);
+              setField('contrib-when', 'end');
+              samples.push({ n: n, fv: readFinal() });
+            });
+            // Strictly increasing across all frequencies.
+            let mono = true;
+            for (var i = 1; i < samples.length; i++) {
+              if (!(samples[i - 1].fv < samples[i].fv)) {
+                mono = false;
+                break;
+              }
+            }
+            if (mono) {
+              pass('monotonicity: annual < semi < quarterly < monthly < daily (FV end-of-period)');
+            } else {
+              fail('monotonicity', 'order: ' + samples.map(function (s) { return 'n=' + s.n + ': $' + s.fv.toFixed(2); }).join(', '));
+            }
+          } catch (err) {
+            fail('monotonicity', err.message);
+          }
+
+          // ---- Test 4: contribution timing: start > end ----
+          try {
+            setField('principal', 1000);
+            setField('monthly', 100);
+            setField('rate', 5);
+            setField('years', 10);
+            setField('frequency', 12);
+            setField('contrib-when', 'end');
+            const endFV = readFinal();
+            setField('contrib-when', 'start');
+            const startFV = readFinal();
+            if (startFV > endFV) {
+              pass('annuity-due > ordinary-annuity (start $' + startFV.toFixed(2) + ' > end $' + endFV.toFixed(2) + ')');
+            } else {
+              fail('contrib timing', 'start $' + startFV.toFixed(2) + ' should exceed end $' + endFV.toFixed(2));
+            }
+          } catch (err) {
+            fail('contrib timing', err.message);
+          }
+
+          // ---- Test 5: schedule rows reflect correct year-end balance ----
+          try {
+            setField('principal', 1000);
+            setField('monthly', 0);
+            setField('rate', 5);
+            setField('years', 1);
+            setField('frequency', 12);
+            setField('contrib-when', 'end');
+            // Year-1 row should be the last <tr> in the schedule table.
+            const rows = doc.querySelectorAll('#schedule-wrap tbody tr');
+            if (rows.length >= 2) {
+              const lastRow = rows[rows.length - 1];
+              const cells = lastRow.querySelectorAll('td');
+              // Cells: year | contrib | interest | balance
+              const balanceText = cells[3].textContent.replace(/[^0-9.\-]/g, '');
+              const fv1 = parseFloat(balanceText);
+              const expected = 1000 * Math.pow(1 + 0.05 / 12, 12);
+              if (Math.abs(fv1 - expected) < 0.05) {
+                pass('year-1 monthly balance: $' + fv1.toFixed(2) + ' ≈ $' + expected.toFixed(2));
+              } else {
+                fail('year-1 monthly balance', 'got $' + fv1.toFixed(2) + ' expected $' + expected.toFixed(2));
+              }
+            } else {
+              fail('year-1 schedule row', 'no rows found (got ' + rows.length + ')');
+            }
+          } catch (err) {
+            fail('year-1 schedule row', err.message);
+          }
+
+          // ---- Test 6: with-contribution closed-form, annual ----
+          try {
+            setField('principal', 1000);
+            setField('monthly', 100);
+            setField('rate', 5);
+            setField('years', 10);
+            setField('frequency', 1);
+            setField('contrib-when', 'end');
+            const fv = readFinal();
+            // Ordinary-annuity closed form:
+            //   FV = P(1+r/n)^N + PMT · [(1+r/n)^N − 1] / (r/n)
+            const r = 0.05 / 1;
+            const N = 1 * 10;
+            const expected = 1000 * Math.pow(1 + r, N) + 100 * ((Math.pow(1 + r, N) - 1) / r);
+            if (Math.abs(fv - expected) < 0.10) {
+              pass('with-contrib annual: $' + fv.toFixed(2) + ' ≈ expected $' + expected.toFixed(2));
+            } else {
+              fail('with-contrib annual', 'got $' + fv.toFixed(2) + ' expected $' + expected.toFixed(2));
+            }
+          } catch (err) {
+            fail('with-contrib annual', err.message);
+          }
+
+          finalize();
+        } catch (err) {
+          fail('harness setup', err.message);
+          finalize();
+        }
+      }
+
+      function finalize() {
+        out('');
+        const total = 6;
+        if (failed === 0) {
+          out('compound-smoke: all ' + total + ' tests pass');
+          window.__htCompoundSmokeFailed = 0;
+        } else {
+          out('compound-smoke: ' + failed + ' of ' + total + ' tests failed');
+          window.__htCompoundSmokeFailed = failed;
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
