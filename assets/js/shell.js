@@ -369,6 +369,11 @@
     if (isEmbedMode()) return;
     if (paletteState) return; // idempotent
 
+    // Per UX-DR-3, palette and settings are mutually exclusive — opening
+    // one closes the other. shell.js owns the coordination; CSS does not
+    // enforce it (see components.css modal section comment).
+    if (settingsState) closeSettings();
+
     const palette = document.getElementById('palette');
     const input = document.getElementById('palette-input');
     const listbox = document.getElementById('palette-listbox');
@@ -613,9 +618,16 @@
   }
 
   function populateSettings() {
-    const theme = readSetting('ht.theme', SETTINGS_DEFAULTS['ht.theme']);
+    // Theme: only auto/light/dark are valid; a legacy or corrupt value
+    // (e.g. from a future migration) falls back to the default rather
+    // than rendering with no radio checked. Unknown values are not
+    // preserved — the user re-selects on next open.
+    const storedTheme = readSetting('ht.theme', SETTINGS_DEFAULTS['ht.theme']);
+    const validTheme = (storedTheme === 'auto' || storedTheme === 'light' || storedTheme === 'dark')
+      ? storedTheme
+      : SETTINGS_DEFAULTS['ht.theme'];
     document.querySelectorAll('input[name="ht.theme"]').forEach((radio) => {
-      radio.checked = radio.value === theme;
+      radio.checked = radio.value === validTheme;
     });
 
     const locale = document.querySelector('select[name="ht.locale"]');
@@ -676,7 +688,12 @@
     // Opening settings must never stack over the command palette.
     closePalette();
     populateSettings();
-    settingsState = { callingElement: document.activeElement };
+    // Save the prior body overflow so closeSettings can restore it
+    // without clobbering any value another component had set.
+    settingsState = {
+      callingElement: document.activeElement,
+      previousBodyOverflow: document.body.style.overflow,
+    };
     modal.removeAttribute('hidden');
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
@@ -692,12 +709,18 @@
       modal.setAttribute('aria-hidden', 'true');
     }
     document.removeEventListener('keydown', onSettingsKeydown);
-    document.body.style.overflow = '';
+    document.body.style.overflow = settingsState.previousBodyOverflow || '';
 
     const callingElement = settingsState.callingElement;
     settingsState = null;
     if (callingElement && typeof callingElement.focus === 'function' && document.body.contains(callingElement)) {
-      try { callingElement.focus(); } catch (_) { /* ignore */ }
+      try {
+        callingElement.focus();
+      } catch (err) {
+        // Don't swallow a real failure — surface it so the dev-tools
+        // console helps future regressions.
+        console.warn('shell.settings: focus restoration failed', err);
+      }
     }
   }
 
@@ -727,8 +750,13 @@
     }
   }
 
+  let clearAllInFlight = false;
   function clearAllLocalData() {
+    if (clearAllInFlight) return; // guard against rapid double-click racing the reload
     if (!window.confirm('Clear all Handy Tools preferences? This cannot be undone.')) return;
+    clearAllInFlight = true;
+    const clearButton = document.getElementById('shell-settings-clear');
+    if (clearButton) clearButton.disabled = true;
     const keysToRemove = [];
     const namespaced = /^(ht|handy-tools)\./;
     try {

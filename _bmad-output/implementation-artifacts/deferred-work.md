@@ -75,3 +75,11 @@ Items deferred from earlier code reviews and not yet resolved.
 - source_spec: `_bmad-output/implementation-artifacts/1-6-theme-system-with-light-dark-and-auto-modes.md`
   summary: `<script type="application/ld+json">` JSON-LD block in `<head>` could hijack IIFE detection in `scripts/shell-template.py`.
   evidence: No current page has JSON-LD; will be needed when SEO scripts land in a later epic. Out of scope for Story 1.6.
+
+## Deferred from: code review of 1-8-settings-modal-skeleton-with-persisted-preferences (2026-08-07)
+
+- **Header comment block in `settings.html` is duplicated on every page (~36 × 22 lines ≈ 800 lines of payload).** Matches Story 1.7 palette precedent (intentional static-include pattern); defer. *Reason deferred: pre-existing Story 1.7 pattern.*
+- **Custom confirm dialog / 5-second hold / typed-confirmation upgrade path for "Clear all local data" (currently uses native `confirm()`).** *Reason deferred: Story 3.5 (Settings Modal Full Control Surface) owns this upgrade.*
+- **`HT.settings` missing `read`/`write` accessors.** *Reason deferred: Story 1.10 (Storage Registry with Namespaced Keys) is the canonical contract.*
+- **`localStorage` value coercion validation across all `ht.*` reads.** *Reason deferred: Story 1.10 owns runtime read-side validation.*
+- **Documented z-index scale across shell overlays.** `palette` z-index is unstated; `.shell-settings-modal` is 1100; the comment at `assets/css/components.css:608` incorrectly says the palette is z-index 1000. Cross-cutting Epic-1 concern. *Reason deferred: needs an Epic-1-wide design decision; not Story 1.8's scope.*

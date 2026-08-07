@@ -299,7 +299,11 @@ a:hover {
 :root:where([data-reduced-motion="true"]) .shell-skip,
 :root:where([data-reduced-motion="true"]) .site-header,
 :root:where([data-reduced-motion="true"]) .site-footer,
-:root:where([data-reduced-motion="true"]) .theme-toggle {
+:root:where([data-reduced-motion="true"]) .theme-toggle,
+:root:where([data-reduced-motion="true"]) .shell-settings-modal,
+:root:where([data-reduced-motion="true"]) .shell-settings-modal__panel,
+:root:where([data-reduced-motion="true"]) .shell-settings-modal__close,
+:root:where([data-reduced-motion="true"]) .shell-settings-modal__danger {
   transition: none !important;
   animation: none !important;
   transform: none !important;
