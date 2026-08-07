@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  var STORAGE = 'habit_tracker_v1';
+  var STORAGE = 'handy-tools.habit-tracker.state';
 
   function todayKey() {
     var d = new Date();

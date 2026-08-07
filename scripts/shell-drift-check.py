@@ -47,6 +47,7 @@ Author: Handy Tools (Story 1.5 — Shell HTML Skeleton with Cobalt Tokens)
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import sys
 from pathlib import Path
@@ -65,6 +66,7 @@ SCHEMA_ANCHOR = "tools.schema.json"
 CHROME_REL = Path("assets/shell/chrome.html")
 PALETTE_REL = Path("assets/shell/palette.html")
 SETTINGS_REL = Path("assets/shell/settings.html")
+TOOLS_JSON_REL = Path("tools.json")
 
 
 def find_repo_root(start: Path) -> Path:
@@ -98,13 +100,24 @@ PALETTE_REGION_RE = re.compile(
 SETTINGS_REGION_RE = re.compile(
     r"<!-- shell:settings -->\s*(.*?)\s*<!-- /shell:settings -->", re.DOTALL
 )
+MANIFEST_REGION_RE = re.compile(
+    r"<!-- ht:storage-registry-manifest-start -->\s*(.*?)\s*"
+    r"<!-- ht:storage-registry-manifest-end -->",
+    re.DOTALL,
+)
 
 
-def load_chrome(root: Path) -> tuple[str, str, str, str]:
-    """Return (header_bytes, footer_bytes, palette_bytes, settings_bytes)
-    extracted from the canonical sources. The header and footer are read
-    from chrome.html; the palette is read from palette.html (Story 1.7)
-    and the settings modal from settings.html (Story 1.8)."""
+def load_chrome(root: Path) -> tuple[str, str, str, str, str, str]:
+    """Return (header_bytes, footer_bytes, palette_bytes, settings_bytes,
+    tools_json_inline_bytes, storage_registry_manifest_bytes) extracted
+    from the canonical sources. The header and footer are read from
+    chrome.html; the palette is read from palette.html (Story 1.7), the
+    settings modal from settings.html (Story 1.8), the inline tools.json
+    fallback is read from tools.json + rendered by the same
+    `read_tools_json_inline` recipe as `scripts/shell-template.py`
+    (Story 1.9), and the storage-registry manifest is extracted from
+    chrome.html (Story 1.10).
+    """
     chrome_path = root / CHROME_REL
     if not chrome_path.is_file():
         sys.stderr.write(f"shell-drift-check: missing {chrome_path}\n")
@@ -112,10 +125,17 @@ def load_chrome(root: Path) -> tuple[str, str, str, str]:
     chrome_text = chrome_path.read_text(encoding="utf-8")
     header_match = HEADER_RE.search(chrome_text)
     footer_match = FOOTER_RE.search(chrome_text)
+    manifest_match = MANIFEST_REGION_RE.search(chrome_text)
     if not header_match or not footer_match:
         sys.stderr.write(
             "shell-drift-check: chrome.html missing one of "
             "{shell:header, shell:footer} markers\n"
+        )
+        sys.exit(2)
+    if not manifest_match:
+        sys.stderr.write(
+            "shell-drift-check: chrome.html missing "
+            "ht:storage-registry-manifest markers\n"
         )
         sys.exit(2)
 
@@ -143,11 +163,52 @@ def load_chrome(root: Path) -> tuple[str, str, str, str]:
         )
         sys.exit(2)
 
+    # Story 1.9: extract the inline tools.json block (the file:// fallback
+    # for the data-driven home grid renderer). The block is home-only —
+    # tool pages don't carry it. Keep the extraction lazy so tool-page
+    # scans don't fail at startup when the file is missing in unusual
+    # states (e.g., a partial worktree).
+    tools_json_path = root / TOOLS_JSON_REL
+    if not tools_json_path.is_file():
+        sys.stderr.write(f"shell-drift-check: missing {tools_json_path}\n")
+        sys.exit(2)
+    try:
+        # Mirror the serialization rules in scripts/shell-template.py:
+        # sorted keys, no whitespace, ensure_ascii=False. The
+        # `tools.shell-template.py` is the only consumer of this byte
+        # sequence in the canonical form; the drift check reconstructs
+        # the same shape so a developer editing tools.json sees drift
+        # the next time they run either gate.
+        try:
+            from shell_template import read_tools_json_inline  # type: ignore
+        except ImportError:
+            import json
+            payload = json.loads(tools_json_path.read_text(encoding="utf-8"))
+            body = json.dumps(
+                payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+            )
+            tools_json_inline_bytes = (
+                "<!-- ht:tools-json-inline-start -->\n  "
+                + '<script type="application/json" id="ht-tools-json-inline">'
+                + body
+                + "</script>\n  "
+                + "<!-- ht:tools-json-inline-end -->"
+            )
+        else:
+            tools_json_inline_bytes = read_tools_json_inline(root)
+    except (ValueError, OSError) as exc:
+        sys.stderr.write(
+            f"shell-drift-check: tools.json is not valid JSON: {exc}\n"
+        )
+        sys.exit(2)
+
     return (
         header_match.group(1),
         footer_match.group(1),
         palette_match.group(1),
         settings_match.group(1),
+        tools_json_inline_bytes,
+        manifest_match.group(1),
     )
 
 
@@ -194,6 +255,8 @@ def scan(
     footer: str,
     palette: str,
     settings: str,
+    tools_json_inline: str,
+    storage_registry_manifest: str,
     allowed: set[Path],
 ) -> int:
     header_norm = normalize(header)
@@ -203,6 +266,7 @@ def scan(
     allowed_abs = {a.resolve() for a in allowed}
     allowed_rel = {a.as_posix() for a in (a.relative_to(root) for a in allowed_abs if a.is_absolute())}
     failures = 0
+    index_path = (root / INDEX_REL).resolve()
     for path in iter_target_files(root):
         rel = path.relative_to(root)
         if path.resolve() in allowed_abs or rel.as_posix() in allowed_rel:
@@ -221,6 +285,62 @@ def scan(
             and palette in text_norm
             and settings in text_norm
         )
+        # Story 1.9: the inline tools.json block is the file:// fallback
+        # for the data-driven home-grid renderer. It is home-only — tool
+        # pages don't carry it. Add the 5th check on index.html only.
+        # Story 1.10: the storage-registry manifest block is also
+        # home-only — the gate reads chrome.html's manifest directly so
+        # tool pages don't need to carry the JSON inline. Add the 6th
+        # check on index.html only.
+        if ok and path.resolve() == index_path:
+            ok = (
+                tools_json_inline in text
+                and storage_registry_manifest in text
+            )
+            # Review finding: the storage-registry manifest is a
+            # machine-generated JSON block. The substring check above
+            # tolerates whitespace drift and reordering — both of which
+            # would cause the gate's manifest loader to read a stale
+            # entry. Tighten the home-page check to byte-equality via a
+            # SHA-256 match on the canonical manifest bytes. A page that
+            # has the substring but a different SHA-256 is "drift with
+            # a false negative" — surface it.
+            if ok:
+                page_manifest_match = MANIFEST_REGION_RE.search(text)
+                if page_manifest_match:
+                    page_manifest_bytes = (
+                        page_manifest_match.group(0)
+                    )
+                    chrome_manifest_match = MANIFEST_REGION_RE.search(
+                        storage_registry_manifest
+                    )
+                    if chrome_manifest_match:
+                        chrome_manifest_bytes = (
+                            chrome_manifest_match.group(0)
+                        )
+                        page_hash = hashlib.sha256(
+                            page_manifest_bytes.encode("utf-8")
+                        ).hexdigest()
+                        chrome_hash = hashlib.sha256(
+                            chrome_manifest_bytes.encode("utf-8")
+                        ).hexdigest()
+                        if page_hash != chrome_hash:
+                            sys.stderr.write(
+                                f"CHROME DRIFT (manifest): {rel} — "
+                                "manifest region present but bytes differ "
+                                "from chrome.html (run `make shell-template` "
+                                "to regenerate)\n"
+                            )
+                            ok = False
+                else:
+                    # Substring matched but region regex didn't — unusual,
+                    # could be a marker-comment typo. Treat as drift.
+                    sys.stderr.write(
+                        f"CHROME DRIFT (manifest markers): {rel} — "
+                        "manifest substring matched but region markers "
+                        "are malformed\n"
+                    )
+                    ok = False
         if ok:
             print(f"  ok      {rel}")
         else:
@@ -245,16 +365,29 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve() if args.root else find_repo_root(Path(__file__).parent)
-    header, footer, palette, settings = load_chrome(root)
+    header, footer, palette, settings, tools_json_inline, storage_registry_manifest = load_chrome(root)
     allowed = {(root / p).resolve() for p in args.allow_drift}
 
     targets = iter_target_files(root)
-    print(f"shell-drift-check: scanning {len(targets)} page(s) × 4 regions (header, footer, palette, settings)")
-    failures = scan(root, header, footer, palette, settings, allowed)
+    print(
+        f"shell-drift-check: scanning {len(targets)} page(s) × 6 regions "
+        "(header, footer, palette, settings, tools.json-inline [home only], "
+        "storage-registry-manifest [home only])"
+    )
+    failures = scan(
+        root,
+        header,
+        footer,
+        palette,
+        settings,
+        tools_json_inline,
+        storage_registry_manifest,
+        allowed,
+    )
     if failures:
         print(f"shell-drift-check: {failures} drift(s) detected")
         return 2
-    print("shell-drift-check: all pages in sync (4 regions)")
+    print("shell-drift-check: all pages in sync (6 regions)")
     return 0
 
 

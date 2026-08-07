@@ -2,9 +2,10 @@
 # scripts/hooks/pre-commit
 #
 # Auto-regenerate the 35 shell pages (1 home + 34 tools) whenever a
-# chrome source file or the generator itself is staged for commit.
-# Re-runs the drift + a11y gates as a sanity check; blocks the commit
-# if any gate fails. Idempotent and a no-op for non-chrome commits.
+# chrome source file, the home-grid renderer, or tools.json is staged
+# for commit. Re-runs the drift + a11y gates as a sanity check; blocks
+# the commit if any gate fails. Idempotent and a no-op for non-chrome,
+# non-renderer, non-tools.json commits.
 #
 # Install via `make install-hooks` (copies this file into .git/hooks/).
 # Pure bash, no Node — portable across macOS/Linux/Git-Bash-on-Windows.
@@ -14,20 +15,40 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
-# Detect staged chrome source files or the generator itself.
+# Detect staged chrome source files, the renderer itself, or tools.json.
 # --diff-filter=AM matches Added or Modified; we ignore Deleted (the
 # remaining pages still match the new chrome if the file was just
 # renamed, but a deleted chrome source would already fail the drift
 # gate so the regenerate below handles it).
 STAGED="$(git diff --cached --name-only --diff-filter=AM)"
-CHROME_RE='^(assets/shell/.*\.html|scripts/shell-template\.py)$'
+CHROME_RE='^(assets/shell/.*\.html|scripts/shell-template\.py|assets/js/home-grid\.js|assets/js/storage-registry\.js|tools\.json|scripts/storage-registry-gate\.py)$'
+TOOLS_JSON_RE='^tools\.json$'
 
 if ! printf '%s\n' "$STAGED" | grep -Eq "$CHROME_RE"; then
-    # Normal commit — no chrome source change. Skip silently.
+    # Normal commit — no relevant source change. Skip silently.
     exit 0
 fi
 
-echo "pre-commit: chrome source staged — regenerating 35 pages…"
+# Story 1.9: tools.json edits must regenerate the inline-JSON fallback
+# block in index.html so the renderer sees the new data on file://
+# loads too. The full chrome regeneration below also picks up the
+# change, so we just announce it.
+if printf '%s\n' "$STAGED" | grep -Eq "$TOOLS_JSON_RE"; then
+    echo "pre-commit: tools.json staged — regenerating inline fallback in index.html…"
+fi
+
+# Path-aware announcement: chrome source vs renderer vs tools.json trigger
+# different regeneration shapes (the chrome path rewrites 35 pages; the
+# renderer/tools.json paths only re-splice the inline JSON block).
+if printf '%s\n' "$STAGED" | grep -Eq '^assets/shell/.*\.html$|^scripts/shell-template\.py$'; then
+    echo "pre-commit: chrome source staged — regenerating 35 pages…"
+elif printf '%s\n' "$STAGED" | grep -Eq '^assets/js/home-grid\.js$'; then
+    echo "pre-commit: home-grid renderer staged — regenerating home page…"
+elif printf '%s\n' "$STAGED" | grep -Eq "$TOOLS_JSON_RE"; then
+    :  # already announced above
+else
+    echo "pre-commit: regenerating home page…"
+fi
 
 # Regenerate home page first, then all tool pages. The two-invocation
 # shape mirrors `make shell-template && make shell-template-all`.
@@ -44,6 +65,7 @@ echo "pre-commit: running drift + a11y gates…"
 # developer sees the failure in the terminal. The regenerated pages
 # have already been re-staged above, so the next commit attempt will
 # include the fix.
+python scripts/storage-registry-gate.py
 python scripts/shell-drift-check.py
 python scripts/shell-a11y-check.py
 

@@ -1,0 +1,232 @@
+<!doctype html>
+<!--
+  scripts/storage-smoke.html
+  ===========================
+  Runtime smoke harness for the storage-registry contract. Exercises the
+  paths the static gate (scripts/storage-registry-gate.py) cannot:
+
+    * applyLegacyFallback — corrupt + valid legacy migration
+    * isCiMode throw — the dev-mode warn vs CI-mode throw contract
+    * registerHistoryKeys — idempotency on duplicate registration
+    * boot-order fallback — utils.js noop when registry absent
+    * clear() legacy sweep — HT.storage.clear() also removes legacy keys
+    * FOUC IIFE grandfather — raw `localStorage.getItem('ht.theme')`
+      reads survive the registry's plain-string invariant
+
+  Run on the home page via:
+
+    python -m http.server 8000 -d <repo-root>
+    open http://localhost:8000/scripts/storage-smoke.html?ci=1
+
+  The harness sets `window.HT.__ci = true` so the registry uses the
+    throw-not-warn CI contract (matches what `make ci` sets). Each
+    smoke test logs PASS / FAIL to the harness <pre>; if any FAIL
+    fires when ?ci=1 is set, the harness returns a non-zero status
+    via `window.__htSmokeFailed` so a wrapping test runner can pick
+    it up.
+
+  Review finding source: verification-gap lens on Story 1.10 — the
+    gate is static-only; runtime contract verification lives here.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Storage Smoke Harness</title>
+  <script src="../assets/js/storage-registry.js"></script>
+  <script src="../assets/js/utils.js"></script>
+</head>
+<body>
+  <h1>Storage Smoke Harness</h1>
+  <p>Open with <code>?ci=1</code> to run in CI mode (throws on contract violations).</p>
+  <pre id="ht-smoke-log" style="white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 13px; line-height: 1.4;"></pre>
+  <script>
+    (function () {
+      'use strict';
+      // Tell the registry we're in CI mode so contract violations throw.
+      window.HT = window.HT || {};
+      window.HT.__ci = true;
+
+      const log = document.getElementById('ht-smoke-log');
+      const out = (line) => {
+        log.textContent += line + '\n';
+        // Mirror to console for headless test runners.
+        try { console.log(line); } catch (_) {}
+      };
+      let failed = 0;
+      const pass = (name) => out('  PASS    ' + name);
+      const fail = (name, why) => {
+        out('  FAIL    ' + name + ' — ' + why);
+        failed += 1;
+      };
+
+      out('storage-smoke: starting (CI mode)');
+
+      // ---- Test 1: isCiMode throw on unregistered get ----
+      try {
+        // Force a fresh lookup; the throw is per-call.
+        const result = HT.storage.get('not.registered', null);
+        fail('isCiMode throw on unregistered get', 'returned ' + JSON.stringify(result) + ' instead of throwing');
+      } catch (err) {
+        pass('isCiMode throw on unregistered get — ' + err.message);
+      }
+
+      // ---- Test 2: applyLegacyFallback — valid migration ----
+      try {
+        localStorage.setItem('gpa_calc_v1', JSON.stringify({ foo: 'bar' }));
+        localStorage.removeItem('handy-tools.gpa-calculator.state');
+        const got = HT.storage.get('handy-tools.gpa-calculator.state', null);
+        if (got && got.foo === 'bar') {
+          pass('applyLegacyFallback valid — gpa_calc_v1 → handy-tools.gpa-calculator.state, copied and removed legacy');
+        } else {
+          fail('applyLegacyFallback valid', 'got ' + JSON.stringify(got));
+        }
+        if (localStorage.getItem('gpa_calc_v1') === null) {
+          pass('applyLegacyFallback legacy key removed after copy');
+        } else {
+          fail('applyLegacyFallback legacy key removed', 'legacy key still present');
+        }
+      } catch (err) {
+        fail('applyLegacyFallback valid', err.message);
+      }
+
+      // ---- Test 3: applyLegacyFallback — corrupt JSON refused ----
+      try {
+        localStorage.setItem('decision_wheel_v1', '{not json');
+        localStorage.removeItem('handy-tools.decision-wheel.state');
+        const got = HT.storage.get('handy-tools.decision-wheel.state', null);
+        if (got === null) {
+          pass('applyLegacyFallback corrupt JSON refused — legacy key preserved');
+        } else {
+          fail('applyLegacyFallback corrupt JSON refused', 'got ' + JSON.stringify(got));
+        }
+        if (localStorage.getItem('decision_wheel_v1') === '{not json') {
+          pass('applyLegacyFallback corrupt: legacy key preserved for retry');
+        } else {
+          fail('applyLegacyFallback corrupt: legacy key preserved', 'legacy key was overwritten or removed');
+        }
+      } catch (err) {
+        fail('applyLegacyFallback corrupt JSON refused', err.message);
+      }
+
+      // ---- Test 4: applyLegacyFallback — non-object schema mismatch refused ----
+      try {
+        // handy-tools.grade-calculator.state schema is 'object'. A legacy
+        // value of 'null' (valid JSON) is not an object.
+        localStorage.setItem('grade_calc_v1', 'null');
+        localStorage.removeItem('handy-tools.grade-calculator.state');
+        const got = HT.storage.get('handy-tools.grade-calculator.state', null);
+        if (got === null) {
+          pass('applyLegacyFallback schema mismatch — null for object key refused');
+        } else {
+          fail('applyLegacyFallback schema mismatch', 'got ' + JSON.stringify(got));
+        }
+      } catch (err) {
+        fail('applyLegacyFallback schema mismatch', err.message);
+      }
+
+      // ---- Test 5: clear() sweeps legacy keys ----
+      try {
+        // Set up: a registered key AND a legacy key.
+        HT.storage.set('ht.locale', 'en');
+        localStorage.setItem('pomodoro_state_v1', JSON.stringify({ saved: true }));
+        // clear() should remove BOTH.
+        HT.storage.clear();
+        const locale = localStorage.getItem('ht.locale');
+        const legacy = localStorage.getItem('pomodoro_state_v1');
+        if (locale === null && legacy === null) {
+          pass('clear() sweeps both registered keys and legacy keys (AD-11)');
+        } else {
+          fail('clear() sweeps both', 'locale=' + JSON.stringify(locale) + ' legacy=' + JSON.stringify(legacy));
+        }
+      } catch (err) {
+        fail('clear() sweeps both', err.message);
+      }
+
+      // ---- Test 6: registerHistoryKeys idempotency ----
+      try {
+        const before = HT.storage.keys().length;
+        HT.storage.registerHistoryKeys([{ slug: 'gpa-calculator', 'history-keys': ['x'] }]);
+        const after = HT.storage.keys().length;
+        if (after === before) {
+          pass('registerHistoryKeys idempotent — duplicate slug call is a no-op');
+        } else {
+          fail('registerHistoryKeys idempotent', 'key count went ' + before + ' → ' + after);
+        }
+      } catch (err) {
+        fail('registerHistoryKeys idempotent', err.message);
+      }
+
+      // ---- Test 7: FOUC IIFE grandfather — raw ht.theme plain-string survives ----
+      try {
+        // Simulate the FOUC IIFE write pattern (plain string, no JSON).
+        localStorage.setItem('ht.theme', 'dark');
+        const rawRead = localStorage.getItem('ht.theme');
+        if (rawRead === 'dark') {
+          pass('FOUC IIFE grandfather — raw localStorage.getItem("ht.theme") returns plain string');
+        } else {
+          fail('FOUC IIFE grandfather', 'got ' + JSON.stringify(rawRead));
+        }
+        // The registry's read of the same key should also see 'dark'.
+        const regRead = HT.storage.get('ht.theme', null);
+        if (regRead === 'dark') {
+          pass('FOUC IIFE grandfather — registry get("ht.theme") returns same plain string');
+        } else {
+          fail('FOUC IIFE grandfather registry get', 'got ' + JSON.stringify(regRead));
+        }
+      } catch (err) {
+        fail('FOUC IIFE grandfather', err.message);
+      }
+
+      // ---- Test 8: set(undefined, ...) treated as remove ----
+      try {
+        HT.storage.set('ht.locale', 'en');
+        HT.storage.set('ht.locale', undefined);
+        const after = localStorage.getItem('ht.locale');
+        if (after === null) {
+          pass('set(key, undefined) treated as remove — no literal "undefined" stored');
+        } else {
+          fail('set(key, undefined) remove', 'got ' + JSON.stringify(after));
+        }
+      } catch (err) {
+        fail('set(key, undefined) remove', err.message);
+      }
+
+      // ---- Test 9: set() rejects non-string key ----
+      try {
+        HT.storage.set(null, 'x');
+        fail('set() rejects non-string key', 'no throw');
+      } catch (err) {
+        pass('set() rejects non-string key — ' + err.message);
+      }
+
+      // ---- Test 10: isValidNamespace rejects empty body ----
+      try {
+        // Direct test of the namespace predicate via a try-register
+        // call. The register() function calls isValidNamespace() and
+        // throws on bad input.
+        try {
+          HT.storageRegistry.register('ht.', {
+            purpose: 'test', lifetime: 'persistent',
+            schema: 'string', owner: 'test.js',
+          });
+          fail('isValidNamespace rejects empty body', 'register accepted "ht."');
+        } catch (err) {
+          pass('isValidNamespace rejects empty body — ' + err.message);
+        }
+      } catch (err) {
+        fail('isValidNamespace rejects empty body', err.message);
+      }
+
+      // ---- Summary ----
+      out('');
+      if (failed === 0) {
+        out('storage-smoke: all ' + 10 + ' tests pass');
+        window.__htSmokeFailed = 0;
+      } else {
+        out('storage-smoke: ' + failed + ' of ' + 10 + ' tests failed');
+        window.__htSmokeFailed = failed;
+      }
+    })();
+  </script>
+</body>
+</html>

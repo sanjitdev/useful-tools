@@ -461,9 +461,9 @@
   // -------------------------------------------------------------
   // State
   // -------------------------------------------------------------
-  var STORAGE_KEY = 'bd_tax_calculator_v1';
-  var LANG_KEY = 'bd_tax_lang';
-  var RULES_KEY = 'bd_tax_rules';
+  var STORAGE_KEY = 'handy-tools.bd-tax-calculator.state';
+  var LANG_KEY = 'handy-tools.bd-tax-calculator.lang';
+  var RULES_KEY = 'handy-tools.bd-tax-calculator.rules';
   var state = {
     lang: HT.storage.get(LANG_KEY, 'en'),
     rulesKey: HT.storage.get(RULES_KEY, DEFAULT_RULES_KEY),

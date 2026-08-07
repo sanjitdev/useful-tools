@@ -109,21 +109,59 @@ HT.fallbackCopy = function (text) {
   ta.remove();
 };
 
-/* ---------- LocalStorage wrapper ---------- */
+/* ---------- LocalStorage wrapper (Story 1.10) ----------
+   Delegates to HT.storageRegistry, which is the single source of truth
+   for every localStorage key the site reads or writes (AD-6). The
+   registry must be loaded by assets/js/storage-registry.js BEFORE
+   utils.js; the script-order contract is enforced by shell-template.py
+   (chrome.html includes storage-registry.js first). */
 
 HT.storage = {
+  // Review finding (verification-gap): the dispatch layer used to throw
+  // synchronously when the registry wasn't loaded. That's a hard
+  // top-of-script TypeError on any future script reorder — confusing
+  // for whoever debugs it. We now log ONE console.error on the first
+  // failed call and return a safe noop fallback (fallback for get,
+  // false for set/remove, empty array for list/keys, no-op for clear).
+  // Subsequent calls stay silent (the diagnostic already fired). The
+  // production fix is the same: storage-registry.js must precede utils.js
+  // — shell-template.py enforces this; this fallback just makes the
+  // failure mode debuggable instead of catastrophic.
+  _warned: false,
+  _guard: function (op) {
+    if (window.HT && window.HT.storageRegistry) return false;
+    if (!HT.storage._warned) {
+      HT.storage._warned = true;
+      console.error(
+        'HT.storage.' + op + ': registry not loaded — storage-registry.js must precede utils.js. ' +
+        'Subsequent calls will silently noop until the registry boots.'
+      );
+    }
+    return true;
+  },
   get: function (key, fallback) {
-    try {
-      var raw = localStorage.getItem(key);
-      if (raw === null) return fallback;
-      return JSON.parse(raw);
-    } catch (e) { return fallback; }
+    if (HT.storage._guard('get')) return fallback;
+    return window.HT.storageRegistry.get(key, fallback);
   },
   set: function (key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+    if (HT.storage._guard('set')) return false;
+    return window.HT.storageRegistry.set(key, value);
   },
   remove: function (key) {
-    try { localStorage.removeItem(key); } catch (e) {}
+    if (HT.storage._guard('remove')) return false;
+    return window.HT.storageRegistry.remove(key);
+  },
+  list: function () {
+    if (HT.storage._guard('list')) return [];
+    return window.HT.storageRegistry.list();
+  },
+  keys: function () {
+    if (HT.storage._guard('keys')) return [];
+    return window.HT.storageRegistry.keys();
+  },
+  clear: function () {
+    if (HT.storage._guard('clear')) return;
+    return window.HT.storageRegistry.clear();
   }
 };
 

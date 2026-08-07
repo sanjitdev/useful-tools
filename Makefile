@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -75,7 +75,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate shell-drift shell-a11y
+ci: validate rubric-all gate storage-registry shell-drift shell-a11y
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -100,6 +100,8 @@ measure-fouc:
 	@$(PYTHON) scripts/measure-fouc.py
 
 # `shell-template` regenerates the home page chrome from chrome.html.
+# Also splices the inline `tools.json` fallback block (Story 1.9) so
+# the data-driven home-grid renderer has a file://-compatible source.
 # `shell-template-all` regenerates every tools/<slug>/index.html.
 # Idempotent — re-running produces no change on already-aligned pages.
 shell-template:
@@ -117,3 +119,13 @@ install-hooks:
 	@cp scripts/hooks/pre-commit .git/hooks/pre-commit
 	@chmod +x .git/hooks/pre-commit
 	@echo "Installed: .git/hooks/pre-commit (re-run after fresh clones)"
+
+# `storage-registry` runs the Story 1.10 registry gate: verifies the
+# manifest integrity, the tools.json history-key cross-check, and
+# every HT.storage.* call site in assets/js/** + tools/<slug>/<slug>.js
+# against the manifest. Exit 0 = all checks pass; exit 1 = any violation.
+# `sr` is the short alias.
+storage-registry:
+	@$(PYTHON) scripts/storage-registry-gate.py
+
+sr: storage-registry

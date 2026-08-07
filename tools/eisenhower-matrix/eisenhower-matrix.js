@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  var STORAGE = 'eisenhower_v1';
+  var STORAGE = 'handy-tools.eisenhower-matrix.state';
 
   var QUADRANTS = ['urgent_important', 'not_urgent_important', 'urgent_not_important', 'not_urgent_not_important'];
 

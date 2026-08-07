@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-31
-last_updated: 2026-08-07T12:00:00Z
+last_updated: 2026-08-07T18:00:00Z
 project: useful-tools
 project_key: NOKEY
 tracking_system: file-system
@@ -63,8 +63,8 @@ development_status:
   1-6-theme-system-with-light-dark-and-auto-modes: done
   1-7-command-palette-skeleton-with-cmd-k-ctrl-k-bind: done
   1-8-settings-modal-skeleton-with-persisted-preferences: done
-  1-9-home-grid-rendering-from-tools-json: backlog
-  1-10-storage-registry-with-namespaced-keys: backlog
+  1-9-home-grid-rendering-from-tools-json: done
+  1-10-storage-registry-with-namespaced-keys: review
   1-11-search-engine-backend-with-ranking-and-normalization: backlog
   1-12-view-source-route-for-every-tool: backlog
   1-13-audit-scaffold-and-initial-tool-audit-results: backlog

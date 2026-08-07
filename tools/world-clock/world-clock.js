@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  var STORAGE = 'world_clock_v1';
+  var STORAGE = 'handy-tools.world-clock.state';
 
   var COMMON_TZ = [
     { tz: 'America/Los_Angeles', label: 'Los Angeles' },

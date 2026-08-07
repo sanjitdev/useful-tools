@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  var STORAGE = 'decision_wheel_v1';
+  var STORAGE = 'handy-tools.decision-wheel.state';
 
   var DEFAULT_OPTIONS = ['Pizza', 'Tacos', 'Sushi', 'Burgers', 'Salad', 'Ramen'];
 

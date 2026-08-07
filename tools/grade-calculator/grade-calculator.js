@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var STORAGE = 'grade_calc_v1';
+  var STORAGE = 'handy-tools.grade-calculator.state';
   var rowsEl = HT.$('#rows');
   var weightWarn = HT.$('#weight-warn');
   var finalGradeEl = HT.$('#final-grade');

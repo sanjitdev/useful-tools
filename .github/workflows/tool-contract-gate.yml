@@ -20,9 +20,12 @@ on:
       - "scripts/shell-template.py"
       - "scripts/shell-drift-check.py"
       - "scripts/shell-a11y-check.py"
+      - "scripts/storage-registry-gate.py"
       - "assets/shell/**"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
+      - "assets/js/storage-registry.js"
+      - "assets/js/utils.js"
       - "assets/css/base.css"
       - "assets/css/components.css"
       - "index.html"
@@ -42,9 +45,12 @@ on:
       - "scripts/shell-template.py"
       - "scripts/shell-drift-check.py"
       - "scripts/shell-a11y-check.py"
+      - "scripts/storage-registry-gate.py"
       - "assets/shell/**"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
+      - "assets/js/storage-registry.js"
+      - "assets/js/utils.js"
       - "assets/css/base.css"
       - "assets/css/components.css"
       - "index.html"
@@ -119,6 +125,13 @@ jobs:
         # Non-zero = at least one entry violates the contract; the
         # PR cannot merge.
         run: make gate
+
+      - name: Enforce storage registry gate (Story 1.10)
+        # Story 1.10: verifies the localStorage key registry's manifest
+        # integrity, the tools.json history-key cross-check, and every
+        # HT.storage.* call site in assets/js/** + tools/<slug>/<slug>.js
+        # against the registered keys. Exit 0 = all checks pass.
+        run: make storage-registry
 
       - name: Check Shell chrome drift (Story 1.5)
         # Verifies that every page's chrome (index.html + 34 tool pages)

@@ -242,7 +242,12 @@
 
 .tool-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  /* AC #4: `clamp()` for the min-max range so the grid degrades fluidly
+     across viewport widths. Story 1.9 — Home Grid Rendering from
+     tools.json: matches the spec's "Responsive grid via CSS
+     grid-template-columns + clamp()" requirement. The 480px form-factor
+     flip below forces 1-col on phones. */
+  grid-template-columns: repeat(auto-fill, minmax(clamp(240px, 30vw, 320px), 1fr));
   gap: var(--space-3);
 }
 
@@ -318,9 +323,96 @@
   color: white;
 }
 
+.tool-card-badge--locked {
+  background: var(--color-warning);
+  color: white;
+}
+
+/* Locked tool card — renders a non-navigating preview with a "Soon"
+   badge. Click + Enter/Space show an inline notice instead of navigating
+   (Story 1.9 + UX-DR-4 lock-badge treatment). The card stays focusable so
+   keyboard users can reach it; the cursor signals non-navigating state. */
+.tool-card--locked {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.tool-card--locked:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.tool-card--locked:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Empty state for tools=[] — surfaces the "No promoted tools yet" notice
+   the renderer mounts when tools.json is present but has no entries. */
+.tool-card--empty {
+  cursor: default;
+  background: var(--color-surface-2);
+  border-style: dashed;
+}
+
+/* Inline "Coming soon" announcement appended to a locked card on click
+   or Enter. role=status + aria-live=polite so screen readers announce it
+   without interrupting. */
+.home-grid-notice {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  bottom: var(--space-2);
+  margin: 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-size: 0.8125rem;
+  color: var(--color-text);
+  z-index: 1;
+}
+
 @media (max-width: 640px) {
   .tool-card-featured {
     grid-column: span 1;
+  }
+}
+
+/* AC #4 (Story 1.9): the form-factor flip below 480px forces a single-
+   column grid. The fluid `clamp()` above handles 2/3/4-col transitions
+   via `auto-fill`; this rule is the only per-breakpoint override and
+   matches the spec's "form-factor flip below 480px (1-col fallback)". */
+@media (max-width: 480px) {
+  .tool-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-card--locked,
+  .tool-card--empty,
+  .home-grid-notice {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .tool-card--locked,
+  .tool-card--empty {
+    border-color: CanvasText;
+  }
+  .tool-card-badge--locked {
+    background: Highlight;
+    color: HighlightText;
+    forced-color-adjust: none;
+  }
+  .home-grid-notice {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
   }
 }
 
@@ -872,6 +964,14 @@
 
 /* Hide the search trigger in embed mode (AD-7). */
 :root[data-embed="1"] .shell-search-trigger {
+  display: none !important;
+}
+
+/* Hide the data-driven home grid section in embed mode (AD-7 + Story 1.9).
+   Embed iframe is a single tool, not a directory. The renderer still
+   fetches tools.json but does not mount cards when isEmbedMode() returns
+   true — this rule is the CSS side of the same guarantee. */
+:root[data-embed="1"] .home-grid-section {
   display: none !important;
 }
 

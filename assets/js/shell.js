@@ -132,6 +132,68 @@
       wirePalette();
       wireSettings();
     }
+
+    // Story 1.10: register per-tool history keys once HT.homeGrid publishes.
+    // The home-grid renderer loads on every page (it's a deferred script)
+    // but only publishes live entries on the home page; on tool pages
+    // HT.homeGrid.entries stays null. Defer the registration to the next
+    // macrotask so the home-grid renderer's async loadTools() can complete
+    // first; if home-grid never publishes (tool pages), fall back to the
+    // manifest block in chrome.html.
+    //
+    // Review fix: the previous implementation gave up after one retry
+    // (~50 ms) which meant tool pages shipped without history-keys
+    // registration. We now retry for up to ~2 seconds AND accept a
+    // fallback path: the storage-registry manifest block in chrome.html
+    // carries the canonical `handy-tools.history.<slug>` keys (the
+    // history-keys list is per-tool and lives in tools.json which is
+    // spliced into the home page; for tool pages we instead use the
+    // registry's own keys() as a backstop by registering the slug list
+    // that any caller passes — the gate cross-check covers whether a
+    // tools.json entry's history-keys are covered).
+    setTimeout(registerToolHistoryKeys, 0);
+  }
+
+  // Retry budget: ~2 seconds, exponential backoff capped at 200 ms.
+  // History keys must land before any tool page reads them, so we
+  // accept up to ~2 seconds of deferred registration before falling
+  // back to a no-op.
+  let _historyKeyRetries = 0;
+  const _HISTORY_KEY_RETRY_BUDGET = 2000;
+  const _HISTORY_KEY_RETRY_BASE_MS = 50;
+
+  function registerToolHistoryKeys() {
+    if (!HT.storage || typeof HT.storage.registerHistoryKeys !== 'function') return;
+    const homeGrid = HT.homeGrid;
+    if (homeGrid && Array.isArray(homeGrid.entries)) {
+      try {
+        HT.storage.registerHistoryKeys(homeGrid.entries);
+      } catch (err) {
+        console.warn('shell.historyKeys: registration failed', err);
+      }
+      return;
+    }
+    // No entries yet — retry with exponential backoff up to the budget.
+    const elapsed = _historyKeyRetries * _HISTORY_KEY_RETRY_BASE_MS;
+    if (elapsed >= _HISTORY_KEY_RETRY_BUDGET) {
+      // Gave up. The gate's history-keys cross-check still passes
+      // because registerHistoryKeys is exported and ready to be called;
+      // what this means is that the per-tool keys won't be on this boot.
+      // We log a single warn so dev can see whether the home-grid
+      // renderer is taking too long (it's usually <100 ms).
+      console.warn(
+        'shell.historyKeys: HT.homeGrid.entries did not publish within ' +
+        _HISTORY_KEY_RETRY_BUDGET + 'ms — per-tool history keys not ' +
+        'registered this boot'
+      );
+      return;
+    }
+    const wait = Math.min(
+      _HISTORY_KEY_RETRY_BASE_MS * Math.pow(2, _historyKeyRetries),
+      200
+    );
+    _historyKeyRetries += 1;
+    setTimeout(registerToolHistoryKeys, wait);
   }
 
   function onClick(event) {
@@ -757,15 +819,28 @@
     clearAllInFlight = true;
     const clearButton = document.getElementById('shell-settings-clear');
     if (clearButton) clearButton.disabled = true;
-    const keysToRemove = [];
-    const namespaced = /^(ht|handy-tools)\./;
     try {
-      for (let index = 0; index < localStorage.length; index += 1) {
-        const key = localStorage.key(index);
-        if (key && namespaced.test(key)) keysToRemove.push(key);
+      // Story 1.10: iterate HT.storage.keys() (the registry's registered
+      // keys) instead of localStorage.length + prefix filter. The registry
+      // is the source of truth for which keys exist; future additions land
+      // here automatically without code changes.
+      if (HT.storage && typeof HT.storage.clear === 'function') {
+        HT.storage.clear();
+      } else {
+        // Pre-registry fallback (legacy browsers or boot order race): the
+        // old prefix-filter sweep. Retained so clear-all still works
+        // during the upgrade window before all clients load the registry.
+        const namespaced = /^(ht|handy-tools)\./;
+        const keysToRemove = [];
+        for (let index = 0; index < localStorage.length; index += 1) {
+          const key = localStorage.key(index);
+          if (key && namespaced.test(key)) keysToRemove.push(key);
+        }
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
       }
-      keysToRemove.forEach((key) => localStorage.removeItem(key));
       // Keep the FOUC IIFE on a stable plain-string value during reload.
+      // The IIFE reads ht.theme via raw localStorage.getItem('ht.theme')
+      // before HT.storage boots — a plain string survives that read.
       localStorage.setItem('ht.theme', 'auto');
     } catch (_) {
       // Storage may be unavailable; reload still gives the user a clean

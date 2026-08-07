@@ -4,6 +4,13 @@
    ============================================ */
 
 (function () {
+  // ht.theme is grandfathered per AD-6 (ARCHITECTURE-SPINE.md line 109).
+  // The FOUC IIFE in index.html:9 reads localStorage.getItem('ht.theme')
+  // as a plain string (no JSON.parse). The storage-registry (Story 1.10)
+  // does NOT police raw localStorage.getItem reads — the gate is
+  // regex-based against HT.storage.* call sites only. Closing the FOUC
+  // IIFE's raw read is out of scope for Story 1.10. The key below is
+  // registered as ht.theme in assets/js/storage-registry.js.
   var KEY = 'ht.theme';
 
   function getPreferred() {

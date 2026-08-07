@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var STORAGE = 'gpa_calc_v1';
+  var STORAGE = 'handy-tools.gpa-calculator.state';
 
   // Grade → point mapping on the 4.0 scale.
   var GRADES = [

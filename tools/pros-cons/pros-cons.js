@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  var STORAGE = 'pros_cons_v1';
+  var STORAGE = 'handy-tools.pros-cons.state';
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {

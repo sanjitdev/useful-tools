@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import json
 import re
 import sys
 from pathlib import Path
@@ -85,6 +86,33 @@ CHROME_REL = Path("assets/shell/chrome.html")
 HEAD_SNIPPET_REL = Path("assets/shell/head-snippet.html")
 PALETTE_REL = Path("assets/shell/palette.html")
 SETTINGS_REL = Path("assets/shell/settings.html")
+TOOLS_JSON_REL = Path("tools.json")
+
+TOOLS_JSON_INLINE_START = "<!-- ht:tools-json-inline-start -->"
+TOOLS_JSON_INLINE_END = "<!-- ht:tools-json-inline-end -->"
+TOOLS_JSON_INLINE_RE = re.compile(
+    re.escape(TOOLS_JSON_INLINE_START)
+    + r"\s*(.*?)\s*"
+    + re.escape(TOOLS_JSON_INLINE_END),
+    re.DOTALL,
+)
+TOOLS_JSON_SCRIPT_RE = re.compile(
+    r'<script\s+type="application/json"\s+id="ht-tools-json-inline"\s*>.*?</script>',
+    re.DOTALL | re.IGNORECASE,
+)
+
+# Story 1.10: the storage-registry manifest is exported to chrome.html
+# between `ht:storage-registry-manifest-start` / `-end` markers. The
+# home page mirrors the manifest so the drift check covers it; tool
+# pages don't carry it (the gate reads chrome.html directly).
+REGISTRY_MANIFEST_INLINE_START = "<!-- ht:storage-registry-manifest-start -->"
+REGISTRY_MANIFEST_INLINE_END = "<!-- ht:storage-registry-manifest-end -->"
+REGISTRY_MANIFEST_INLINE_RE = re.compile(
+    re.escape(REGISTRY_MANIFEST_INLINE_START)
+    + r"\s*(.*?)\s*"
+    + re.escape(REGISTRY_MANIFEST_INLINE_END),
+    re.DOTALL,
+)
 
 CHROME_SKIP_RE = re.compile(
     r"<a class=\"shell-skip\"[^>]*>.*?</a>\s*", re.DOTALL
@@ -184,6 +212,75 @@ def read_head_snippet(root: Path) -> str:
         )
         sys.exit(2)
     return match.group(1)
+
+
+def read_tools_json_inline(root: Path) -> str:
+    """Return the inline JSON block (a `<script type="application/json"
+    id="ht-tools-json-inline">…</script>` element) whose body is the
+    compact-JSON serialization of `tools.json`. The element is consumed
+    by `assets/js/home-grid.js` when `fetch('./tools.json')` throws
+    (file:// loads, offline, 404). The script tag is wrapped in marker
+    comments (`ht:tools-json-inline-start` / `-end`) so the drift check
+    (`scripts/shell-drift-check.py`) can extract and byte-match it.
+
+    The whole script tag (including markers) is what gets spliced into
+    index.html. Idempotent: re-running on an aligned page produces no
+    change. The minified JSON contains no `</script>` substring, so the
+    element body is safe to drop into HTML verbatim.
+    """
+    path = root / TOOLS_JSON_REL
+    if not path.is_file():
+        sys.stderr.write(f"shell-template: missing tools.json at {path}\n")
+        sys.exit(2)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        sys.stderr.write(
+            f"shell-template: tools.json is not valid JSON: {exc}\n"
+        )
+        sys.exit(2)
+    # Re-serialize with the most compact separators that produce
+    # browser-stable output (no whitespace, sorted keys so the drift
+    # check is byte-stable across machines).
+    body = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    if "</script>" in body.lower():
+        sys.stderr.write(
+            "shell-template: tools.json contains '</script>' substring; "
+            "refusing to splice into inline JSON block\n"
+        )
+        sys.exit(2)
+    return (
+        TOOLS_JSON_INLINE_START + "\n  "
+        + '<script type="application/json" id="ht-tools-json-inline">'
+        + body
+        + "</script>\n  "
+        + TOOLS_JSON_INLINE_END
+    )
+
+
+def read_storage_registry_manifest(root: Path) -> str:
+    """Extract the storage-registry manifest block from chrome.html. The
+    block is delimited by `ht:storage-registry-manifest-start` / `-end`
+    markers; the inner `<script type="application/json" id="ht-storage-
+    registry-manifest">…</script>` element is what the gate parses.
+
+    The whole block (including markers) is what gets spliced into
+    index.html. Idempotent: re-running on an aligned page produces no
+    change. (Story 1.10.)"""
+    chrome_path = root / CHROME_REL
+    if not chrome_path.is_file():
+        sys.stderr.write(
+            f"shell-template: missing chrome source at {chrome_path}\n"
+        )
+        sys.exit(2)
+    text = chrome_path.read_text(encoding="utf-8")
+    match = REGISTRY_MANIFEST_INLINE_RE.search(text)
+    if not match:
+        sys.stderr.write(
+            "shell-template: chrome.html missing storage-registry manifest markers\n"
+        )
+        sys.exit(2)
+    return match.group(0)
 
 
 # ---------------------------------------------------------------------------
@@ -353,6 +450,15 @@ def transform(
             '<script src="../../assets/js/utils.js"></script>\n  '
             '<script src="../../assets/js/shell.js" defer></script>',
         )
+    # Story 1.10: ensure storage-registry.js is loaded BEFORE utils.js so
+    # the wrapper can delegate to HT.storageRegistry. The script is added
+    # only on the first regeneration of a tool page (idempotent on re-run).
+    if 'src="../../assets/js/storage-registry.js"' not in new_source:
+        new_source = new_source.replace(
+            '<script src="../../assets/js/utils.js"></script>',
+            '<script src="../../assets/js/storage-registry.js"></script>\n  '
+            '<script src="../../assets/js/utils.js"></script>',
+        )
 
     return new_source
 
@@ -414,7 +520,20 @@ def process_file(
     )
     palette_ok = palette_html in source
     settings_ok = settings_html in source
-    full_ok = chrome_ok and palette_ok and settings_ok
+    # Story 1.10: storage-registry.js must be loaded on every page so
+    # HT.storage.get/set/remove can dispatch through the registry. The
+    # tool pages share the same chrome + utils boot order as the home
+    # page; missing the script tag would regress the wrapper to the
+    # ES5 baseline and break the gate's "unregistered key" enforcement.
+    storage_registry_js_ok = (
+        'src="../../assets/js/storage-registry.js"' in source
+    )
+    full_ok = (
+        chrome_ok
+        and palette_ok
+        and settings_ok
+        and storage_registry_js_ok
+    )
     # Find the IIFE block on the FIRST `<script>` opener in <head>. The IIFE
     # is always the first inline `<script>` in every page (it must run
     # before any stylesheet <link>). An earlier regex matched the first
@@ -478,7 +597,9 @@ def process_file(
     # `iife_ok` gate is currently over-strict (it compares against group(1)
     # rather than group(2) — a latent Story 1.6 bug) and would short-circuit
     # on a correct IIFE, preventing the palette splice from ever firing.
-    if chrome_ok and not (palette_ok and settings_ok):
+    if chrome_ok and not (
+        palette_ok and settings_ok and storage_registry_js_ok
+    ):
         footer_end = source.find('</footer>')
         if footer_end == -1:
             sys.stderr.write(
@@ -486,6 +607,21 @@ def process_file(
             )
             return False
         insert_at = footer_end + len('</footer>')
+        # Story 1.10: inject the storage-registry.js script tag injection
+        # alongside the palette/settings include. The script tag must land
+        # BEFORE utils.js so the wrapper can delegate through the
+        # registry; the actual insertion happens in the post-chrome
+        # rewrite step below. Track the gap here so the rewrite fires.
+        new_source = source
+        if not storage_registry_js_ok:
+            utils_anchor = '<script src="../../assets/js/utils.js"></script>'
+            if utils_anchor in new_source:
+                new_source = new_source.replace(
+                    utils_anchor,
+                    '<script src="../../assets/js/storage-registry.js"></script>\n  '
+                    + utils_anchor,
+                    1,
+                )
         # Build the trailing splice: palette first (if missing), then
         # settings (if missing). Pages that need both get one rewrite;
         # pages that need only settings get a smaller delta.
@@ -494,7 +630,7 @@ def process_file(
             trailing += "\n\n  " + palette_html
         if not settings_ok:
             trailing += "\n\n  " + settings_html
-        new_source = source[:insert_at] + trailing + source[insert_at:]
+        new_source = new_source[:insert_at] + trailing + new_source[insert_at:]
         if new_source == source:
             print(f"  no-change {path.relative_to(root)}")
             return True
@@ -502,6 +638,7 @@ def process_file(
             missing = []
             if not palette_ok: missing.append("palette")
             if not settings_ok: missing.append("settings")
+            if not storage_registry_js_ok: missing.append("storage-registry.js")
             print(f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})")
             return True
         try:
@@ -512,6 +649,7 @@ def process_file(
         missing = []
         if not palette_ok: missing.append("palette")
         if not settings_ok: missing.append("settings")
+        if not storage_registry_js_ok: missing.append("storage-registry.js")
         print(f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})")
         return True
 
@@ -603,11 +741,19 @@ def regenerate_home(
     palette_html: str,
     settings_html: str,
     head_script: str,
+    tools_json_inline: str,
+    storage_registry_manifest: str,
     dry_run: bool,
 ) -> bool:
     """Replace index.html's FOUC script, skip link, header, footer chrome,
-    palette include, and settings include in-place, preserving the home
-    grid content unchanged. Brand link uses href="#top" (home-relative)."""
+    palette include, settings include, inline tools.json fallback, AND
+    the storage-registry manifest block in place, preserving the home
+    grid content unchanged. Brand link uses href="#top" (home-relative).
+    The inline tools.json block is wrapped in
+    `<!-- ht:tools-json-inline-start -->…<!-- ht:tools-json-inline-end -->`
+    markers; the manifest block uses
+    `<!-- ht:storage-registry-manifest-start -->…<!-- ht:storage-registry-manifest-end -->`.
+    Both are byte-matched by `scripts/shell-drift-check.py`. (Stories 1.9 + 1.10.)"""
     path = root / "index.html"
     if not path.is_file():
         sys.stderr.write(f"shell-template: missing home page {path}\n")
@@ -623,12 +769,30 @@ def regenerate_home(
     )
     palette_html_in_source = palette_html in source
     settings_html_in_source = settings_html in source
+    # The home-grid.js include is part of the byte-aligned contract as of
+    # Story 1.9 — without it the renderer never runs and the data-driven
+    # section stays hidden forever.
+    home_grid_js_in_source = (
+        'src="assets/js/home-grid.js"' in source
+    )
+    tools_json_inline_in_source = tools_json_inline in source
+    storage_registry_manifest_in_source = storage_registry_manifest in source
+    # Story 1.10: the storage-registry.js script tag is part of the
+    # byte-aligned contract — without it the wrapper's delegation target
+    # never loads and theme.js boots without a registered ht.theme.
+    storage_registry_js_in_source = (
+        'src="assets/js/storage-registry.js"' in source
+    )
     byte_aligned = (
         has_new_chrome
         and home_header in source
         and footer_html in source
         and palette_html_in_source
         and settings_html_in_source
+        and home_grid_js_in_source
+        and tools_json_inline_in_source
+        and storage_registry_manifest_in_source
+        and storage_registry_js_in_source
     )
     # Also require the canonical FOUC IIFE byte sequence to be present.
     # Without this, a home page that was generated before Story 1.5
@@ -709,7 +873,14 @@ def regenerate_home(
         and home_header in source
         and footer_html in source
     )
-    if chrome_only_aligned and not (palette_html_in_source and settings_html_in_source):
+    if chrome_only_aligned and not (
+        palette_html_in_source
+        and settings_html_in_source
+        and home_grid_js_in_source
+        and tools_json_inline_in_source
+        and storage_registry_manifest_in_source
+        and storage_registry_js_in_source
+    ):
         footer_end = source.find('</footer>')
         if footer_end == -1:
             sys.stderr.write(
@@ -723,6 +894,156 @@ def regenerate_home(
         if not settings_html_in_source:
             trailing += "\n\n  " + settings_html
         new_source = source[:insert_at] + trailing + source[insert_at:]
+
+        # Story 1.9: same short-circuit pattern as the chrome_only_aligned
+        # branch above. If the inline tools.json block (file:// fallback)
+        # is missing OR its bytes have drifted from tools.json, splice the
+        # canonical block between `ht:tools-json-inline-start` /
+        # `-end` markers — or, if the markers are absent, before the
+        # home-grid.js script tag (preserving existing marker-free
+        # sources until a future regeneration adds them).
+        if tools_json_inline_in_source:
+            json_ok = True
+        else:
+            json_ok = False
+            start_match = (
+                TOOLS_JSON_INLINE_START in source
+                and TOOLS_JSON_INLINE_END in source
+            )
+            if start_match:
+                new_source, n = TOOLS_JSON_INLINE_RE.subn(
+                    tools_json_inline, new_source, count=1
+                )
+                if n == 0:
+                    sys.stderr.write(
+                        "shell-template: tools.json inline markers found but "
+                        "byte-aligned rewrite could not anchor\n"
+                    )
+                    return False
+                json_ok = True
+            else:
+                # Markers absent — inject as a block before the home-grid.js
+                # script tag so the inline JSON lives near other late-bound
+                # shell includes. The next regeneration adds the markers
+                # via the full-rewrite path below.
+                anchor = '<script src="assets/js/home-grid.js" defer></script>'
+                if anchor in new_source:
+                    new_source = new_source.replace(
+                        anchor,
+                        tools_json_inline + "\n\n  " + anchor,
+                        1,
+                    )
+                    json_ok = True
+                elif home_grid_js_in_source:
+                    # home-grid.js was already present (no further rewrite
+                    # needed for the script tag) but the inline JSON
+                    # markers are missing — splice the tools_json_inline
+                    # block immediately before the existing home-grid.js
+                    # script tag.
+                    new_source = new_source.replace(
+                        anchor,
+                        tools_json_inline + "\n\n  " + anchor,
+                        1,
+                    )
+                    json_ok = True
+                else:
+                    sys.stderr.write(
+                        "shell-template: tools.json inline JSON block could not "
+                        "be anchored; home-grid.js script tag missing\n"
+                    )
+                    return False
+
+        # Story 1.10: splice the storage-registry manifest block. The
+        # block lives between `ht:storage-registry-manifest-start` /
+        # `-end` markers (mirroring chrome.html) and is anchored just
+        # before the home-grid.js script tag when the markers are
+        # absent.
+        #
+        # Review finding: previously the splice ran unconditionally if
+        # markers were present. A tool page that accidentally acquired
+        # the markers (e.g., a copy-paste from chrome.html) would have
+        # its unrelated content silently overwritten. We now hash the
+        # existing block (if any) and refuse to overwrite content
+        # that's neither the canonical block nor an empty block —
+        # either the dev agent regenerates chrome.html and re-runs the
+        # template, or they remove the markers by hand.
+        if storage_registry_manifest_in_source:
+            manifest_ok = True
+        else:
+            manifest_ok = False
+            if (
+                REGISTRY_MANIFEST_INLINE_START in source
+                and REGISTRY_MANIFEST_INLINE_END in source
+            ):
+                # Compare the existing block to the canonical bytes. If
+                # they differ, the block was hand-edited or accidentally
+                # pasted; refuse to silently overwrite.
+                existing_match = REGISTRY_MANIFEST_INLINE_RE.search(source)
+                if existing_match is not None:
+                    existing_bytes = existing_match.group(0)
+                    canonical_bytes = storage_registry_manifest
+                    if (
+                        existing_bytes != canonical_bytes
+                        and existing_bytes.strip() != REGISTRY_MANIFEST_INLINE_START + REGISTRY_MANIFEST_INLINE_END
+                    ):
+                        sys.stderr.write(
+                            "shell-template: storage-registry manifest block "
+                            "is present but does NOT match the canonical bytes "
+                            "from chrome.html. Refusing to silently overwrite — "
+                            "edit chrome.html and re-run, or remove the "
+                            "markers by hand if this was accidental.\n"
+                        )
+                        return False
+                new_source, n = REGISTRY_MANIFEST_INLINE_RE.subn(
+                    storage_registry_manifest, new_source, count=1
+                )
+                if n == 0:
+                    sys.stderr.write(
+                        "shell-template: storage-registry manifest markers "
+                        "found but byte-aligned rewrite could not anchor\n"
+                    )
+                    return False
+                manifest_ok = True
+            else:
+                anchor = '<script src="assets/js/home-grid.js" defer></script>'
+                if anchor in new_source:
+                    new_source = new_source.replace(
+                        anchor,
+                        storage_registry_manifest + "\n\n  " + anchor,
+                        1,
+                    )
+                    manifest_ok = True
+                else:
+                    sys.stderr.write(
+                        "shell-template: storage-registry manifest block "
+                        "could not be anchored; home-grid.js script tag missing\n"
+                    )
+                    return False
+
+        # Ensure the home-grid.js script tag is loaded.
+        if not home_grid_js_in_source and 'src="assets/js/home-grid.js"' not in new_source:
+            anchor = '<script src="assets/js/shell.js" defer></script>'
+            if anchor in new_source:
+                new_source = new_source.replace(
+                    anchor,
+                    anchor + '\n  <script src="assets/js/home-grid.js" defer></script>',
+                    1,
+                )
+
+        # Story 1.10: ensure storage-registry.js is loaded BEFORE utils.js
+        # so the wrapper can delegate. The registry IIFE runs synchronously
+        # at script-load (no defer) and registers ht.theme before theme.js
+        # boots, satisfying the FOUC IIFE's plain-string read path.
+        if 'src="assets/js/storage-registry.js"' not in new_source:
+            utils_anchor = '<script src="assets/js/utils.js"></script>'
+            if utils_anchor in new_source:
+                new_source = new_source.replace(
+                    utils_anchor,
+                    '<script src="assets/js/storage-registry.js"></script>\n  '
+                    + utils_anchor,
+                    1,
+                )
+
         if new_source == source:
             print(f"  no-change {path.relative_to(root)}")
             return True
@@ -732,6 +1053,14 @@ def regenerate_home(
                 missing.append("palette")
             if not settings_html_in_source:
                 missing.append("settings")
+            if not home_grid_js_in_source:
+                missing.append("home-grid.js")
+            if not tools_json_inline_in_source:
+                missing.append("tools.json-inline")
+            if not storage_registry_manifest_in_source:
+                missing.append("storage-registry-manifest")
+            if 'src="assets/js/storage-registry.js"' not in new_source:
+                missing.append("storage-registry.js")
             print(
                 f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})"
             )
@@ -746,6 +1075,19 @@ def regenerate_home(
             missing.append("palette")
         if not settings_html_in_source:
             missing.append("settings")
+        # Review finding: the previous implementation had an `if ...
+        # pass` dead-code branch here, plus a check that the home-grid
+        # script tag appeared in the splice delta. The dead branch
+        # caused confusing "wrote <path> ()" logs (an empty `missing`
+        # list, with no actual changes flagged). Simplified: we trust
+        # the splice to do its job; only flag what's actually missing
+        # in the FINAL source.
+        if not tools_json_inline_in_source:
+            missing.append("tools.json-inline")
+        if not storage_registry_manifest_in_source:
+            missing.append("storage-registry-manifest")
+        if 'src="assets/js/storage-registry.js"' not in source:
+            missing.append("storage-registry.js")
         print(f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})")
         return True
 
@@ -831,6 +1173,70 @@ def regenerate_home(
             '<script src="assets/js/utils.js"></script>\n  '
             '<script src="assets/js/shell.js" defer></script>',
         )
+    # Story 1.10: storage-registry.js must load BEFORE utils.js so the
+    # storage wrapper can delegate. Idempotent — only added on first
+    # regeneration when the script tag is absent.
+    if 'src="assets/js/storage-registry.js"' not in new_source:
+        new_source = new_source.replace(
+            '<script src="assets/js/utils.js"></script>',
+            '<script src="assets/js/storage-registry.js"></script>\n  '
+            '<script src="assets/js/utils.js"></script>',
+        )
+    # Story 1.9: ensure the data-driven section script tag and the inline
+    # tools.json fallback are present on the home page. The home-grid.js
+    # script is loaded as a sibling of shell.js; the inline JSON block is
+    # inserted just before it (so the JSON parse and DOM read happen before
+    # the renderer mounts — the file:// fallback path uses the inline
+    # block, not a network fetch).
+    if 'src="assets/js/home-grid.js"' not in new_source:
+        anchor = '<script src="assets/js/shell.js" defer></script>'
+        if anchor in new_source:
+            new_source = new_source.replace(
+                anchor,
+                anchor + '\n  <script src="assets/js/home-grid.js" defer></script>',
+                1,
+            )
+    # Always splice the canonical inline tools.json block (idempotent
+    # when block matches). If the markers are absent, inject as a free-
+    # standing block before the home-grid.js script tag — the next
+    # regeneration normalizes to the marker-delimited form.
+    if (
+        TOOLS_JSON_INLINE_START in new_source
+        and TOOLS_JSON_INLINE_END in new_source
+    ):
+        new_source, _ = TOOLS_JSON_INLINE_RE.subn(
+            tools_json_inline, new_source, count=1
+        )
+    else:
+        anchor = '<script src="assets/js/home-grid.js" defer></script>'
+        if anchor in new_source:
+            new_source = new_source.replace(
+                anchor,
+                tools_json_inline + "\n\n  " + anchor,
+                1,
+            )
+
+    # Story 1.10: always splice the storage-registry manifest block. Same
+    # shape as the tools.json block — marker-delimited when present, free-
+    # standing before the home-grid.js script tag when the markers are
+    # absent. The drift check (scripts/shell-drift-check.py) byte-matches
+    # the manifest region on index.html, so this splice must run on every
+    # regeneration regardless of whether chrome-only alignment was needed.
+    if (
+        REGISTRY_MANIFEST_INLINE_START in new_source
+        and REGISTRY_MANIFEST_INLINE_END in new_source
+    ):
+        new_source, _ = REGISTRY_MANIFEST_INLINE_RE.subn(
+            storage_registry_manifest, new_source, count=1
+        )
+    else:
+        anchor = '<script src="assets/js/home-grid.js" defer></script>'
+        if anchor in new_source:
+            new_source = new_source.replace(
+                anchor,
+                storage_registry_manifest + "\n\n  " + anchor,
+                1,
+            )
 
     if new_source == source:
         print(f"  no-change {path.relative_to(root)}")
@@ -871,6 +1277,8 @@ def main(argv: list[str]) -> int:
     )
     skip_html, header_html, footer_html, palette_html, settings_html = read_chrome(root)
     head_script = read_head_snippet(root)
+    tools_json_inline = read_tools_json_inline(root)
+    storage_registry_manifest = read_storage_registry_manifest(root)
 
     failures = 0
 
@@ -884,6 +1292,8 @@ def main(argv: list[str]) -> int:
             palette_html=palette_html,
             settings_html=settings_html,
             head_script=head_script,
+            tools_json_inline=tools_json_inline,
+            storage_registry_manifest=storage_registry_manifest,
             dry_run=args.dry_run,
         ):
             failures += 1

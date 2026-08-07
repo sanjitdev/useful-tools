@@ -10,8 +10,8 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.0.0',
-  generated: '2026-08-06',
+  version: '1.1.0',
+  generated: '2026-08-07',
   entries: Object.freeze([
     Object.freeze({
       name: 'HT.boot',
@@ -68,6 +68,62 @@ window.HT.__apiContract = Object.freeze({
       stability: 'stable',
       module: 'assets/js/shell.js',
       notes: 'Returns true if the palette overlay is currently open.',
+    }),
+    Object.freeze({
+      name: 'HT.storage.get',
+      signature: '(key: string, fallback?: any) => any',
+      stability: 'stable',
+      module: 'assets/js/storage-registry.js',
+      notes: 'Reads a registered key. Throws (CI mode) or warns (dev) for unregistered keys. ht.* keys return plain strings; handy-tools.* keys are JSON-decoded. Implements the legacy-key migration fallback (Story 1.10 / Task 9).',
+    }),
+    Object.freeze({
+      name: 'HT.storage.set',
+      signature: '(key: string, value: any) => boolean',
+      stability: 'stable',
+      module: 'assets/js/storage-registry.js',
+      notes: 'Writes a registered key. ht.* keys must be plain strings (FOUC IIFE compatibility); handy-tools.* keys must be JSON-serializable. Throws for malformed values.',
+    }),
+    Object.freeze({
+      name: 'HT.storage.remove',
+      signature: '(key: string) => boolean',
+      stability: 'stable',
+      module: 'assets/js/storage-registry.js',
+      notes: 'Removes a registered key. Returns true if the key existed before removal.',
+    }),
+    Object.freeze({
+      name: 'HT.storage.list',
+      signature: '() => readonly Array<{key, purpose, lifetime, schema, owner}>',
+      stability: 'stable',
+      module: 'assets/js/storage-registry.js',
+      notes: 'Returns every registered entry, sorted lexicographically by key. Consumed by /privacy (Story 5.6).',
+    }),
+    Object.freeze({
+      name: 'HT.storage.clear',
+      signature: '() => void',
+      stability: 'stable',
+      module: 'assets/js/storage-registry.js',
+      notes: 'Removes every registered key. Idempotent. Used by Settings → Clear all local data.',
+    }),
+    Object.freeze({
+      name: 'HT.storage.keys',
+      signature: '() => readonly string[]',
+      stability: 'stable',
+      module: 'assets/js/storage-registry.js',
+      notes: 'Returns just the key strings from the registry, sorted.',
+    }),
+    Object.freeze({
+      name: 'HT.storage.register',
+      signature: '(key: string, meta: {purpose, lifetime, schema, owner}) => void',
+      stability: 'internal',
+      module: 'assets/js/storage-registry.js',
+      notes: 'Registers a new key. Shell modules call this at boot; Tools must use get/set/remove against keys they own. Throws on duplicate keys or invalid namespace.',
+    }),
+    Object.freeze({
+      name: 'HT.storage.registerHistoryKeys',
+      signature: '(tools: Array<{slug, "history-keys": string[]}>) => number',
+      stability: 'internal',
+      module: 'assets/js/storage-registry.js',
+      notes: 'Bulk-registers handy-tools.history.<slug> for every tool with non-empty history-keys. Called by shell.js boot after HT.homeGrid.entries is available.',
     }),
   ]),
 });

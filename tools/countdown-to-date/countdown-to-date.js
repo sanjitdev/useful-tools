@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  var STORAGE = 'countdown_to_date_v1';
+  var STORAGE = 'handy-tools.countdown-to-date.state';
 
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
 

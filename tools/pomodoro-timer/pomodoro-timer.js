@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  var STORAGE = 'pomodoro_state_v1';
+  var STORAGE = 'handy-tools.pomodoro-timer.state';
 
   // Phases: 'focus' | 'short' | 'long'
   var DEFAULT_DURATIONS = { focus: 25, short: 5, long: 15, cycles: 4 };
