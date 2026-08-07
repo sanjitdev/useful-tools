@@ -2,6 +2,36 @@
 
 Items deferred from earlier code reviews and not yet resolved.
 
+## Deferred from: code review of 1-10-storage-registry-with-namespaced-keys (2026-08-07)
+
+The full review (5 lenses, 72 findings) was run on Story 1.10 — 48 code/behavior findings addressed in-session; 24 structural/prose findings closed via editorial trim. The items below were either explicitly tagged "defer" by the review or surfaced as not-blocker during triage. All are recorded here for follow-up.
+
+- **`scripts/storage-registry-gate.py` AST pass** — current regex-based scan accepts direct quoted literals + single-quote constant initializers; computed-key patterns (`obj[KEY]`), template-literal substitutions, and dynamic construction still pass silently. *Reason deferred: regex/grep-only is the agreed approach (AD-12: no JS parser dependency); future-hardening.* Recommended follow-up: a separate `scripts/storage-registry-gate.py` AST pass via `esprima`/`slimit` once the regex approach proves insufficient in practice.
+- **`registerHistoryKeys` called from boot only, not per-page** — `shell.js` calls `registerToolHistoryKeys()` from home boot via `setTimeout(registerToolHistoryKeys, 0)`; tool pages wait for `HT.homeGrid.entries` with a 2 s retry budget. The helper is idempotent so re-call is safe, but each page currently logs a single warn if entries don't publish within budget. *Reason deferred: shell.js is the only caller; per-page call would duplicate work.*
+- **`LEGACY_KEY_MAP` is hand-maintained parallel to `register()` calls** — adding a new tool with a legacy key requires editing both lists. *Reason deferred: data-driven migration; cross-checked by `check_register_calls_match_manifest()` so drift is caught at gate time, not silently.*
+- **`isDebugMode` log dumps the full registry taxonomy** — `?debug=1` or `window.HT.__debug = true` logs every entry's `{key, purpose, lifetime, schema, owner}` to `console.info`. *Reason deferred: dev-only flag; not a privacy surface in production.*
+- **`HT.storage.get()` schema-mismatch returns fallback silently** — when an `object` key holds a primitive, the registry warns + returns fallback. Could be a `console.error` instead of `warn`. *Reason deferred: warn vs error is policy; current behavior matches other recovery paths.*
+- **`storage-smoke.html` is a browser harness only** — the 10 contract checks run in a browser context. There's no Node headless driver (the equivalent of `scripts/_run_smoke.js` for the search engine). *Reason deferred: browser harness exercises the actual JS; Node harness is a parallel re-implementation (same trade-off Story 1.13 noted for the audit harness).*
+
+## Deferred from: code review of 1-11-search-engine-backend-with-ranking-and-normalization (2026-08-07)
+
+- **AC-12 byte budget not gated in `make ci`** — Story 1.11 claims `wc -c assets/js/search.js assets/js/api-contract.js = 19,002 bytes`, well under 30 KB NFR-1, but no automated gate runs the check. A regression that bloats `search.js` past 30 KB would not be caught. *Reason deferred: CI infrastructure (a `scripts/byte-budget-gate.py` wired into the `make ci` chain) is a separate work item, not a Story 1.11 deliverable.*
+- **home-grid.js has the same `./tools.json` fetch URL bug** — `assets/js/home-grid.js:34` defines `TOOLS_JSON_URL = './tools.json'`. On a tool page (`/tools/<slug>/index.html`), `./tools.json` resolves to `/tools/<slug>/tools.json` and 404s. Story 1.11 fixed the same bug in `search.js` by resolving the URL relative to the script's own URL. The home-grid fix is identical but lives in a different module owned by Story 1.9. *Reason deferred: pre-existing, out of Story 1.11 scope; same fix shape (script-relative URL) needs to be applied to home-grid.js as a follow-up.*
+
+## Deferred from: code review of 1-13-audit-scaffold-and-initial-tool-audit-results (2026-08-07)
+
+- **Python harness is a parallel re-implementation, not a test of the JS under change** — Bridging requires a Node harness or JSDOM; out of scope for the fix story. Browser harness exercises the actual JS. *Reason deferred: scope creep.*
+- **AC-3 audit claim has no repo-resident evidence** — Self-attested; the 11 other tools were checked during this session but no audit log was committed. *Reason deferred: meta-task; belongs in a separate audit-evidence story.*
+- **Task 6 (`tools.json` audit annotations) is unrelated to this fix's correctness** — Defer to a separate audit annotation pass. *Reason deferred: separate concern.*
+- **`compound-smoke.html` uses ES2018** — `scripts/` is consistent with the new Shell modules (project-context.md §6) — no convention violation. *Reason deferred: not a real defect.*
+- **`Object.keys(fields).forEach` dual-binds input (debounced) and change (immediate)** — 2 render() calls per edit. *Reason deferred: pre-existing pattern not introduced by this change.*
+- **`scheduleWrap.innerHTML` concatenation has XSS surface** — Pre-existing pattern; year is always numeric. *Reason deferred: pre-existing.*
+- **`years = Math.min(years, 100)` silent truncation without warning** — *Reason deferred: pre-existing clamp.*
+- **`contribWhen` is not validated to fall back to 'end' on invalid values** — `<select>` restricts to 'start'/'end'. *Reason deferred: pre-existing.*
+- **No regression test for `effectiveAnnual`** — Function unchanged by this story. *Reason deferred: out of scope.*
+- **No assertion that frequency `<select>` has expected values** — UI element, not math contract. *Reason deferred: out of scope.*
+- **`subStepsPerMonth = 12` is a magic constant used in 3 places** — *Reason deferred: pre-existing style.*
+
 ## Deferred from: code review of 1-1-establish-greenfield-tool-contract-schema (2026-07-31)
 
 - **Subtask 3.4 Node fallback missing** — Makefile has no Node fallback for missing Python interpreters (spec says prefer Python with Node fallback). Owned by Story 1.3 (CI Gate) or future Story 1.13 (audit scaffold). *Reason deferred: greenfield scope; Makefile accepts `PYTHON=` override for maintainers.*

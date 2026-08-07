@@ -2,7 +2,7 @@
 title: 'Storage Registry with Namespaced Keys'
 type: 'feature'
 created: '2026-08-07'
-status: 'review'
+status: 'done'
 baseline_commit: '13cc5e5334c170677e6ab83ca1d75f8e529fa690'
 context:
   - '{project-root}/project-context.md'
@@ -17,7 +17,7 @@ context:
 
 # Story 1.10: Storage Registry with Namespaced Keys
 
-Status: review
+Status: done
 
 ## Senior Developer Review (AI)
 
@@ -44,6 +44,21 @@ final acceptance run:
   path → switched to a basename match (platform-portable).
 
 Both gates now pass: 25 registered keys, 0 violations; 6 regions in sync.
+
+### Final acceptance pass (this session)
+
+Re-verified the implementation against the spec:
+
+- ✅ Manifest in `assets/shell/chrome.html` carries 25 entries (`19 handy-tools.*` + `6 ht.*`) — counted manually; matches the 25 `register()` calls in `assets/js/storage-registry.js`.
+- ✅ `LEGACY_KEY_MAP` (12 entries) every legacy-side `→` new-side mapping is registered; `collect_legacy_key_map()` would not flag a miss.
+- ✅ `utils.js` `HT.storage` delegate layer (lines 119-166) routes `get/set/remove/list/keys/clear` to `HT.storageRegistry` with the boot-order noop fallback (`_guard`).
+- ✅ `shell.js` `clearAllLocalData` (line 816) uses `HT.storage.clear()`; `registerToolHistoryKeys()` (line 165) is called at boot with a 2 s retry budget + exponential backoff capped at 200 ms.
+- ✅ `assets/js/api-contract.js` has all 8 storage entries (`get/set/remove/list/clear/keys/register/registerHistoryKeys`); `register*` marked `internal`, others `stable`.
+- ✅ `Makefile` `make ci` chain is `validate rubric-all gate storage-registry shell-drift shell-a11y`; `sr` alias present.
+- ✅ GitHub Actions workflow `tool-contract-gate.yml` runs `make storage-registry` step (line 134); `paths:` filter covers `scripts/storage-registry-gate.py` and `assets/js/storage-registry.js`.
+- ✅ `scripts/storage-smoke.html` exists with 10 contract assertions exercising paths the static gate can't cover (legacy migration valid/corrupt/schema-mismatch, clear() legacy sweep, registerHistoryKeys idempotency, FOUC IIFE grandfather, set(undefined)→remove, non-string key throw, namespace empty-body rejection).
+
+Bash is blocked in this environment so `make ci` cannot be re-executed; all static evidence above was verified by direct file inspection.
 
 ## Story
 
