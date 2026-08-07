@@ -395,6 +395,35 @@ def transform(
                     '<script src="../../assets/js/utils.js"></script>\n  '
                     '<script src="../../assets/js/shell.js" defer></script>',
                 )
+            # Story 1.10: storage-registry.js (idempotent — already-present
+            # pages keep the existing tag).
+            if 'src="../../assets/js/storage-registry.js"' not in new_source:
+                new_source = new_source.replace(
+                    '<script src="../../assets/js/utils.js"></script>',
+                    '<script src="../../assets/js/storage-registry.js"></script>\n  '
+                    '<script src="../../assets/js/utils.js"></script>',
+                )
+            # Story 1.11: search.js (idempotent — already-present pages keep
+            # the existing tag). Anchored after shell.js so the Shell API
+            # surface is in place when search.js boots.
+            if 'src="../../assets/js/search.js"' not in new_source:
+                shell_anchor = '<script src="../../assets/js/shell.js" defer></script>'
+                if shell_anchor in new_source:
+                    new_source = new_source.replace(
+                        shell_anchor,
+                        shell_anchor
+                        + '\n  <script src="../../assets/js/search.js" defer></script>',
+                        1,
+                    )
+                else:
+                    # shell.js anchor absent — search.js cannot be spliced.
+                    # Surface this so the dev agent knows the page will be
+                    # missing search.js after regeneration.
+                    sys.stderr.write(
+                        "shell-template: search.js splice skipped — "
+                        "<script src=\"../../assets/js/shell.js\" defer></script> "
+                        "anchor not found in legacy page\n"
+                    )
             return new_source
         sys.stderr.write(
             "shell-template: <div id=\"site-header\"></div> marker not found\n"
@@ -459,6 +488,25 @@ def transform(
             '<script src="../../assets/js/storage-registry.js"></script>\n  '
             '<script src="../../assets/js/utils.js"></script>',
         )
+    # Story 1.11: ensure search.js is loaded on every tool page so the
+    # command palette (Story 1.7) and any tool-page search input can
+    # consume HT.search. The script is added only on the first regeneration
+    # of a tool page (idempotent on re-run), anchored after shell.js so
+    # the module is loaded once the Shell API surface is functional.
+    if 'src="../../assets/js/search.js"' not in new_source:
+        shell_anchor = '<script src="../../assets/js/shell.js" defer></script>'
+        if shell_anchor in new_source:
+            new_source = new_source.replace(
+                shell_anchor,
+                shell_anchor + '\n  <script src="../../assets/js/search.js" defer></script>',
+                1,
+            )
+        else:
+            sys.stderr.write(
+                "shell-template: search.js splice skipped — "
+                "<script src=\"../../assets/js/shell.js\" defer></script> "
+                "anchor not found\n"
+            )
 
     return new_source
 
@@ -528,11 +576,19 @@ def process_file(
     storage_registry_js_ok = (
         'src="../../assets/js/storage-registry.js"' in source
     )
+    # Story 1.11: search.js must be loaded on every page so the command
+    # palette (Story 1.7) and any tool-page search input can consume
+    # HT.search. Anchored after shell.js so the API surface is in place
+    # when the engine boots.
+    search_js_ok = (
+        'src="../../assets/js/search.js"' in source
+    )
     full_ok = (
         chrome_ok
         and palette_ok
         and settings_ok
         and storage_registry_js_ok
+        and search_js_ok
     )
     # Find the IIFE block on the FIRST `<script>` opener in <head>. The IIFE
     # is always the first inline `<script>` in every page (it must run
@@ -598,7 +654,7 @@ def process_file(
     # rather than group(2) — a latent Story 1.6 bug) and would short-circuit
     # on a correct IIFE, preventing the palette splice from ever firing.
     if chrome_ok and not (
-        palette_ok and settings_ok and storage_registry_js_ok
+        palette_ok and settings_ok and storage_registry_js_ok and search_js_ok
     ):
         footer_end = source.find('</footer>')
         if footer_end == -1:
@@ -622,6 +678,24 @@ def process_file(
                     + utils_anchor,
                     1,
                 )
+        # Story 1.11: inject search.js anchored after shell.js so the Shell
+        # API surface is in place when the search engine boots. Idempotent
+        # — already-present pages keep the existing tag.
+        if not search_js_ok:
+            shell_anchor = '<script src="../../assets/js/shell.js" defer></script>'
+            if shell_anchor in new_source:
+                new_source = new_source.replace(
+                    shell_anchor,
+                    shell_anchor
+                    + '\n  <script src="../../assets/js/search.js" defer></script>',
+                    1,
+                )
+            else:
+                sys.stderr.write(
+                    "shell-template: search.js splice skipped — "
+                    "<script src=\"../../assets/js/shell.js\" defer></script> "
+                    "anchor not found\n"
+                )
         # Build the trailing splice: palette first (if missing), then
         # settings (if missing). Pages that need both get one rewrite;
         # pages that need only settings get a smaller delta.
@@ -639,6 +713,7 @@ def process_file(
             if not palette_ok: missing.append("palette")
             if not settings_ok: missing.append("settings")
             if not storage_registry_js_ok: missing.append("storage-registry.js")
+            if not search_js_ok: missing.append("search.js")
             print(f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})")
             return True
         try:
@@ -650,6 +725,7 @@ def process_file(
         if not palette_ok: missing.append("palette")
         if not settings_ok: missing.append("settings")
         if not storage_registry_js_ok: missing.append("storage-registry.js")
+        if not search_js_ok: missing.append("search.js")
         print(f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})")
         return True
 
@@ -783,6 +859,12 @@ def regenerate_home(
     storage_registry_js_in_source = (
         'src="assets/js/storage-registry.js"' in source
     )
+    # Story 1.11: search.js is part of the home-page contract — without
+    # it the home search input (UX-DR-6) has no engine to consume and
+    # the API surface (HT.search) is undefined.
+    search_js_in_source = (
+        'src="assets/js/search.js"' in source
+    )
     byte_aligned = (
         has_new_chrome
         and home_header in source
@@ -793,6 +875,7 @@ def regenerate_home(
         and tools_json_inline_in_source
         and storage_registry_manifest_in_source
         and storage_registry_js_in_source
+        and search_js_in_source
     )
     # Also require the canonical FOUC IIFE byte sequence to be present.
     # Without this, a home page that was generated before Story 1.5
@@ -880,6 +963,7 @@ def regenerate_home(
         and tools_json_inline_in_source
         and storage_registry_manifest_in_source
         and storage_registry_js_in_source
+        and search_js_in_source
     ):
         footer_end = source.find('</footer>')
         if footer_end == -1:
@@ -1030,6 +1114,18 @@ def regenerate_home(
                     1,
                 )
 
+        # Story 1.11: ensure search.js is loaded on the home page too.
+        # Anchored after shell.js so the Shell API surface (HT.search
+        # contract entry) is in place when search.js boots.
+        if 'src="assets/js/search.js"' not in new_source:
+            shell_anchor = '<script src="assets/js/shell.js" defer></script>'
+            if shell_anchor in new_source:
+                new_source = new_source.replace(
+                    shell_anchor,
+                    shell_anchor + '\n  <script src="assets/js/search.js" defer></script>',
+                    1,
+                )
+
         # Story 1.10: ensure storage-registry.js is loaded BEFORE utils.js
         # so the wrapper can delegate. The registry IIFE runs synchronously
         # at script-load (no defer) and registers ht.theme before theme.js
@@ -1061,6 +1157,8 @@ def regenerate_home(
                 missing.append("storage-registry-manifest")
             if 'src="assets/js/storage-registry.js"' not in new_source:
                 missing.append("storage-registry.js")
+            if 'src="assets/js/search.js"' not in new_source:
+                missing.append("search.js")
             print(
                 f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})"
             )
@@ -1088,6 +1186,8 @@ def regenerate_home(
             missing.append("storage-registry-manifest")
         if 'src="assets/js/storage-registry.js"' not in source:
             missing.append("storage-registry.js")
+        if 'src="assets/js/search.js"' not in source:
+            missing.append("search.js")
         print(f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})")
         return True
 

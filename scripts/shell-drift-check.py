@@ -67,6 +67,13 @@ CHROME_REL = Path("assets/shell/chrome.html")
 PALETTE_REL = Path("assets/shell/palette.html")
 SETTINGS_REL = Path("assets/shell/settings.html")
 TOOLS_JSON_REL = Path("tools.json")
+# Story 1.11: the search.js script tag is a fixed-string anchor that
+# shell-template.py splices into every page (home + 34 tools). The drift
+# check verifies the substring is present on every page. Two paths exist:
+# home pages use src="assets/js/search.js" (root-relative); tool pages use
+# src="../../assets/js/search.js". We accept either form.
+SEARCH_JS_ANCHOR_HOME = '<script src="assets/js/search.js" defer></script>'
+SEARCH_JS_ANCHOR_TOOL = '<script src="../../assets/js/search.js" defer></script>'
 
 
 def find_repo_root(start: Path) -> Path:
@@ -107,16 +114,17 @@ MANIFEST_REGION_RE = re.compile(
 )
 
 
-def load_chrome(root: Path) -> tuple[str, str, str, str, str, str]:
+def load_chrome(root: Path) -> tuple[str, str, str, str, str, str, str]:
     """Return (header_bytes, footer_bytes, palette_bytes, settings_bytes,
-    tools_json_inline_bytes, storage_registry_manifest_bytes) extracted
-    from the canonical sources. The header and footer are read from
-    chrome.html; the palette is read from palette.html (Story 1.7), the
-    settings modal from settings.html (Story 1.8), the inline tools.json
-    fallback is read from tools.json + rendered by the same
+    tools_json_inline_bytes, storage_registry_manifest_bytes, search_js_anchor_bytes)
+    extracted from the canonical sources. The header and footer are read
+    from chrome.html; the palette is read from palette.html (Story 1.7),
+    the settings modal from settings.html (Story 1.8), the inline
+    tools.json fallback is read from tools.json + rendered by the same
     `read_tools_json_inline` recipe as `scripts/shell-template.py`
-    (Story 1.9), and the storage-registry manifest is extracted from
-    chrome.html (Story 1.10).
+    (Story 1.9), the storage-registry manifest is extracted from
+    chrome.html (Story 1.10), and the search.js script tag is a
+    fixed-string anchor (Story 1.11).
     """
     chrome_path = root / CHROME_REL
     if not chrome_path.is_file():
@@ -209,6 +217,7 @@ def load_chrome(root: Path) -> tuple[str, str, str, str, str, str]:
         settings_match.group(1),
         tools_json_inline_bytes,
         manifest_match.group(1),
+        (SEARCH_JS_ANCHOR_HOME, SEARCH_JS_ANCHOR_TOOL),
     )
 
 
@@ -257,6 +266,7 @@ def scan(
     settings: str,
     tools_json_inline: str,
     storage_registry_manifest: str,
+    search_js_anchors: tuple[str, str],
     allowed: set[Path],
 ) -> int:
     header_norm = normalize(header)
@@ -285,6 +295,27 @@ def scan(
             and palette in text_norm
             and settings in text_norm
         )
+        # Story 1.11: verify the search.js script tag is present AND uses
+        # the right relative path for the page kind. Home page
+        # (`index.html` at the repo root) requires the root-relative
+        # `src="assets/js/search.js"` form; tool pages
+        # (`tools/<slug>/index.html`) require the relative
+        # `src="../../assets/js/search.js"` form. A wrong form would still
+        # load on a webserver with a catch-all rewrite, but would 404 on
+        # a plain `python -m http.server` from the repo root.
+        if ok:
+            is_home = rel == Path("index.html")
+            expected_anchor = (
+                search_js_anchors[0] if is_home else search_js_anchors[1]
+            )
+            search_js_ok = expected_anchor in text_norm
+            if not search_js_ok:
+                sys.stderr.write(
+                    f"CHROME DRIFT (search.js): {rel} — search.js script tag "
+                    f"missing or wrong relative path on this page "
+                    f"(expected: {expected_anchor!r})\n"
+                )
+                ok = False
         # Story 1.9: the inline tools.json block is the file:// fallback
         # for the data-driven home-grid renderer. It is home-only — tool
         # pages don't carry it. Add the 5th check on index.html only.
@@ -365,14 +396,14 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve() if args.root else find_repo_root(Path(__file__).parent)
-    header, footer, palette, settings, tools_json_inline, storage_registry_manifest = load_chrome(root)
+    header, footer, palette, settings, tools_json_inline, storage_registry_manifest, search_js_anchors = load_chrome(root)
     allowed = {(root / p).resolve() for p in args.allow_drift}
 
     targets = iter_target_files(root)
     print(
-        f"shell-drift-check: scanning {len(targets)} page(s) × 6 regions "
+        f"shell-drift-check: scanning {len(targets)} page(s) × 7 checks "
         "(header, footer, palette, settings, tools.json-inline [home only], "
-        "storage-registry-manifest [home only])"
+        "storage-registry-manifest [home only], search.js script tag)"
     )
     failures = scan(
         root,
@@ -382,12 +413,13 @@ def main(argv: list[str]) -> int:
         settings,
         tools_json_inline,
         storage_registry_manifest,
+        search_js_anchors,
         allowed,
     )
     if failures:
         print(f"shell-drift-check: {failures} drift(s) detected")
         return 2
-    print("shell-drift-check: all pages in sync (6 regions)")
+    print("shell-drift-check: all pages in sync (7 checks)")
     return 0
 
 

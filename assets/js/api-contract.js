@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.1.0',
+  version: '1.2.0',
   generated: '2026-08-07',
   entries: Object.freeze([
     Object.freeze({
@@ -124,6 +124,13 @@ window.HT.__apiContract = Object.freeze({
       stability: 'internal',
       module: 'assets/js/storage-registry.js',
       notes: 'Bulk-registers handy-tools.history.<slug> for every tool with non-empty history-keys. Called by shell.js boot after HT.homeGrid.entries is available.',
+    }),
+    Object.freeze({
+      name: 'HT.search',
+      signature: '(query: string) => Promise<readonly Array<{slug, title, score, matchedField}>> | readonly Array<{slug, title, score, matchedField}>',
+      stability: 'stable',
+      module: 'assets/js/search.js',
+      notes: 'Lazy-built index over tools.json. NFKD-normalized + case-insensitive. Returns up to 10 ranked results, sorted by score desc, search-priority asc, title asc. Returns a Promise<readonly Array<...>> when the engine falls through to fetch (tool pages) or when a sync data source is available. Returns a frozen Array<...> directly when the engine short-circuits on embed mode, non-string query, or empty/whitespace query (no results to compute). Always thenable-safe via `Promise.resolve(HT.search(q)).then(...)`. Returns [] in embed mode, on empty/whitespace query, and on no-match. Embed mode never builds the index.',
     }),
   ]),
 });
