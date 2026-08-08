@@ -524,6 +524,387 @@
   ];
 
   /* ===========================================================
+     5b. Plan-Your-Changes factors (Story 1.16)
+     Each factor reads CURRENT values from the Quick/Full form and
+     asks the user to pick a TARGET. The deltaIfAdopted(ans, target)
+     function returns the nominal years-of-life gain if the user
+     adopted the target. WHO-cited magnitudes; tooltip shows the
+     source. The "no cancel-out" rule is enforced in computePlanNet(),
+     not here — this section only computes the raw per-factor gain.
+     =========================================================== */
+
+  var LIFESTYLE_FACTORS = [
+    {
+      id: 'smoking',
+      label: 'Smoking',
+      currentValue: function (ans) { return ans.smoking; },
+      currentLabel: function (ans) {
+        var v = (SMOKING[ans.smoking] || { label: '—' }).label;
+        return 'Currently: ' + v;
+      },
+      targetDefault: 'never',
+      targetControl: function (target, onChange) {
+        var sel = document.createElement('select');
+        sel.className = 'select';
+        sel.id = 'ls-plan-target-smoking';
+        [['never', 'Never (best)'], ['former', 'Former smoker'], ['occasional', 'Occasional']].forEach(function (kv) {
+          var opt = document.createElement('option');
+          opt.value = kv[0];
+          opt.textContent = kv[1];
+          if (kv[0] === target) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        sel.addEventListener('change', function () { onChange(sel.value); });
+        return sel;
+      },
+      deltaIfAdopted: function (ans, target) {
+        var cur = SMOKING[ans.smoking] || { delta: 0 };
+        var tgt = SMOKING[target] || { delta: 0 };
+        var gain = cur.delta - tgt.delta;       // positive if we move to a better state
+        return gain > 0 ? gain : 0;
+      },
+      source: {
+        title: 'WHO Tobacco fact sheet',
+        quote: 'Smokers die about 10 years earlier than non-smokers; quitting at 30 recovers nearly all lost years, quitting at 60 adds about 3 years.',
+        url: 'https://www.who.int/news-room/fact-sheets/detail/tobacco',
+        sourceLabel: 'WHO + Jha et al., NEJM 2013'
+      }
+    },
+    {
+      id: 'alcohol',
+      label: 'Alcohol',
+      currentValue: function (ans) { return ans.alcohol; },
+      currentLabel: function (ans) {
+        if (!isFinite(ans.alcohol)) return 'Currently: —';
+        return 'Currently: ' + HT.formatNumber(ans.alcohol, { maxFractionDigits: 0 }) + ' drinks/week';
+      },
+      targetDefault: 0,
+      targetControl: function (target, onChange) {
+        var inp = document.createElement('input');
+        inp.type = 'number';
+        inp.min = 0;
+        inp.max = 0;       // WHO says "no safe level"; only allow 0
+        inp.step = 1;
+        inp.className = 'input';
+        inp.id = 'ls-plan-target-alcohol';
+        inp.value = target;
+        // Hint: WHO acknowledges no safe level. The single value 0 is the only target.
+        inp.addEventListener('input', function () { onChange(parseFloat(inp.value) || 0); });
+        return inp;
+      },
+      deltaIfAdopted: function (ans, target) {
+        // Map current to its negative delta (if any); compare to target's delta.
+        function deltaForDrinks(v) {
+          if (!isFinite(v)) return 0;
+          if (v === 0) return 0.3;
+          if (v <= 7) return 0;
+          if (v <= 14) return -0.5;
+          if (v <= 21) return -1.5;
+          return -3.0;
+        }
+        var cur = deltaForDrinks(ans.alcohol);
+        var tgt = deltaForDrinks(target);
+        var gain = cur - tgt;
+        return gain > 0 ? gain : 0;
+      },
+      source: {
+        title: 'WHO Alcohol fact sheet',
+        quote: 'Harmful alcohol use causes 3 million deaths per year (5.3% of all deaths). WHO states there is no safe level for alcohol consumption.',
+        url: 'https://www.who.int/news-room/fact-sheets/detail/alcohol',
+        sourceLabel: 'WHO Global Status Report on Alcohol & Health'
+      }
+    },
+    {
+      id: 'exercise',
+      label: 'Moderate exercise',
+      currentValue: function (ans) { return ans.exercise; },
+      currentLabel: function (ans) {
+        if (!isFinite(ans.exercise)) return 'Currently: —';
+        return 'Currently: ' + HT.formatNumber(ans.exercise, { maxFractionDigits: 0 }) + ' min/day';
+      },
+      targetDefault: 30,
+      targetControl: function (target, onChange) {
+        var inp = document.createElement('input');
+        inp.type = 'number';
+        inp.min = 0;
+        inp.max = 120;
+        inp.step = 5;
+        inp.className = 'input';
+        inp.id = 'ls-plan-target-exercise';
+        inp.value = target;
+        inp.addEventListener('input', function () { onChange(parseFloat(inp.value) || 0); });
+        return inp;
+      },
+      deltaIfAdopted: function (ans, target) {
+        function deltaForMin(v) {
+          if (!isFinite(v)) return 0;
+          if (v >= 60) return 4.0;
+          if (v >= 30) return 2.5;
+          if (v >= 15) return 1.0;
+          if (v >= 1)  return -0.5;
+          return -3.0;
+        }
+        var cur = deltaForMin(ans.exercise);
+        var tgt = deltaForMin(target);
+        var gain = cur - tgt;
+        return gain > 0 ? gain : 0;
+      },
+      source: {
+        title: 'WHO 2020 Guidelines on Physical Activity',
+        quote: 'Adults should do at least 150–300 minutes of moderate-intensity aerobic physical activity per week. Meeting this goal is associated with about 3–4 years of life gained vs. being inactive.',
+        url: 'https://www.who.int/publications/i/item/9789240015128',
+        sourceLabel: 'WHO 2020 Guidelines; Moore et al., BMJ 2012'
+      }
+    },
+    {
+      id: 'sleep',
+      label: 'Sleep',
+      currentValue: function (ans) { return ans.sleep; },
+      currentLabel: function (ans) {
+        if (!isFinite(ans.sleep)) return 'Currently: —';
+        return 'Currently: ' + HT.formatNumber(ans.sleep, { maxFractionDigits: 1 }) + ' h/night';
+      },
+      targetDefault: 8,
+      targetControl: function (target, onChange) {
+        var inp = document.createElement('input');
+        inp.type = 'number';
+        inp.min = 5;
+        inp.max = 10;
+        inp.step = 0.5;
+        inp.className = 'input';
+        inp.id = 'ls-plan-target-sleep';
+        inp.value = target;
+        inp.addEventListener('input', function () { onChange(parseFloat(inp.value) || 8); });
+        return inp;
+      },
+      deltaIfAdopted: function (ans, target) {
+        function deltaForSleep(v) {
+          if (!isFinite(v)) return 0;
+          if (v > 9) return -0.7;
+          if (v >= 7 && v <= 9) return 0.8;
+          if (v >= 6) return -0.3;
+          if (v >= 5) return -1.2;
+          return -2.0;
+        }
+        var cur = deltaForSleep(ans.sleep);
+        var tgt = deltaForSleep(target);
+        var gain = cur - tgt;
+        return gain > 0 ? gain : 0;
+      },
+      source: {
+        title: 'Sleep duration & mortality (non-WHO)',
+        quote: 'Adults sleeping 7–9 hours per night have the lowest all-cause mortality; shorter and longer sleep are both associated with modestly higher risk. WHO does not publish a dedicated sleep fact sheet; this guidance is drawn from CDC/NSF.',
+        url: 'https://www.cdc.gov/sleep/about_sleep/how_much_sleep.html',
+        sourceLabel: 'CDC/NSF (non-WHO source — flagged in tooltip)'
+      }
+    },
+    {
+      id: 'bmi',
+      label: 'BMI',
+      currentValue: function (ans) { return ans.bmi; },
+      currentLabel: function (ans) {
+        if (!isFinite(ans.bmi) || ans.bmi <= 0) return 'Currently: —';
+        return 'Currently: ' + HT.formatNumber(ans.bmi, { minFractionDigits: 1, maxFractionDigits: 1 });
+      },
+      targetDefault: 22,
+      targetControl: function (target, onChange) {
+        var inp = document.createElement('input');
+        inp.type = 'number';
+        inp.min = 15;
+        inp.max = 40;
+        inp.step = 0.5;
+        inp.className = 'input';
+        inp.id = 'ls-plan-target-bmi';
+        inp.value = target;
+        inp.addEventListener('input', function () { onChange(parseFloat(inp.value) || 22); });
+        return inp;
+      },
+      deltaIfAdopted: function (ans, target) {
+        function deltaForBmi(v) {
+          if (!isFinite(v) || v <= 0) return 0;
+          if (v >= 30) return -2.5;
+          if (v >= 25) return -0.8;
+          if (v >= 18.5) return 0.6;
+          return -1.2;
+        }
+        var cur = deltaForBmi(ans.bmi);
+        var tgt = deltaForBmi(target);
+        var gain = cur - tgt;
+        return gain > 0 ? gain : 0;
+      },
+      source: {
+        title: 'WHO Obesity & Overweight fact sheet',
+        quote: 'Obesity (BMI ≥ 30) is associated with a 5–10 year reduction in life expectancy; class III obesity (BMI ≥ 40) with 8–13 years. Healthy BMI is 18.5–24.9.',
+        url: 'https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight',
+        sourceLabel: 'WHO + Lancet GBD'
+      }
+    },
+    {
+      id: 'diet',
+      label: 'Diet (fast food + fruit/veg)',
+      currentValue: function (ans) { return { fastfood: ans.fastfood, fruitveg: ans.fruitveg }; },
+      currentLabel: function (ans) {
+        var parts = [];
+        if (isFinite(ans.fastfood)) parts.push(HT.formatNumber(ans.fastfood, { maxFractionDigits: 0 }) + ' fast-food meals/wk');
+        if (ans.fruitveg) parts.push((FRUITVEG[ans.fruitveg] || { label: ans.fruitveg }).label.toLowerCase());
+        return 'Currently: ' + (parts.length ? parts.join('; ') : '—');
+      },
+      targetDefault: { fastfood: 1, fruitveg: 'daily' },
+      targetControl: function (target, onChange) {
+        // Composite: two side-by-side controls
+        var wrap = document.createElement('div');
+        wrap.style.display = 'flex';
+        wrap.style.gap = '8px';
+        wrap.style.flexWrap = 'wrap';
+
+        var fast = document.createElement('input');
+        fast.type = 'number';
+        fast.min = 0;
+        fast.max = 30;
+        fast.step = 1;
+        fast.className = 'input';
+        fast.id = 'ls-plan-target-diet-fastfood';
+        fast.value = target.fastfood;
+        fast.style.maxWidth = '120px';
+        fast.setAttribute('aria-label', 'Target fast-food meals per week');
+
+        var fv = document.createElement('select');
+        fv.className = 'select';
+        fv.id = 'ls-plan-target-diet-fruitveg';
+        [['daily', 'Daily (best)'], ['weekly', 'A few times/wk'], ['rarely', 'Rarely']].forEach(function (kv) {
+          var opt = document.createElement('option');
+          opt.value = kv[0];
+          opt.textContent = kv[1];
+          if (kv[0] === target.fruitveg) opt.selected = true;
+          fv.appendChild(opt);
+        });
+        fv.style.maxWidth = '160px';
+
+        function emit() {
+          onChange({ fastfood: parseFloat(fast.value) || 0, fruitveg: fv.value });
+        }
+        fast.addEventListener('input', emit);
+        fv.addEventListener('change', emit);
+        wrap.appendChild(fast);
+        wrap.appendChild(fv);
+        return wrap;
+      },
+      deltaIfAdopted: function (ans, target) {
+        function deltaForFast(v) {
+          if (!isFinite(v)) return 0;
+          if (v >= 7) return -2.0;
+          if (v >= 3) return -1.0;
+          if (v <= 1) return 0.3;
+          return 0;
+        }
+        function deltaForFv(v) {
+          return (FRUITVEG[v] || { delta: 0 }).delta;
+        }
+        var curFast = deltaForFast(ans.fastfood);
+        var curFv = deltaForFv(ans.fruitveg);
+        var tgtFast = deltaForFast(target.fastfood);
+        var tgtFv = deltaForFv(target.fruitveg);
+        var gain = (curFast + curFv) - (tgtFast + tgtFv);
+        return gain > 0 ? gain : 0;
+      },
+      source: {
+        title: 'WHO Salt-reduction & diet fact sheet',
+        quote: 'Insufficient fruit and vegetable intake is linked to millions of cardiovascular deaths/year; high sodium intake alone causes ~1.8 million deaths/year. WHO recommends < 2,000 mg sodium/day and ≥ 400 g fruit/veg/day.',
+        url: 'https://www.who.int/news-room/fact-sheets/detail/salt-reduction',
+        sourceLabel: 'WHO + WHO SHAKE package'
+      }
+    }
+  ];
+
+  /* ===========================================================
+     5c. Compute the plan-tab net (Story 1.16)
+     Strict "no cancel-out" rule: if the user has any negative factor
+     on the Quick/Full form, every positive plan gain is reduced to 0.
+     Returns { net, perFactor: [{id, nominal, effective, capped, source, ...}] }
+     =========================================================== */
+
+  function sumOfCurrentNegatives(ans) {
+    var ev = evaluate(ans);
+    var sum = 0;
+    ev.contributions.forEach(function (c) {
+      if (c.delta < 0) sum += c.delta;
+    });
+    return sum;
+  }
+
+  function computePlanNet(ans, planTargets) {
+    var sumNeg = sumOfCurrentNegatives(ans);
+    var capping = sumNeg < 0;       // any negative triggers the cap
+
+    var perFactor = LIFESTYLE_FACTORS.map(function (f) {
+      var target = planTargets[f.id];
+      if (target === undefined) target = f.targetDefault;
+      var nominal = f.deltaIfAdopted(ans, target);
+      var effective = capping ? 0 : nominal;     // hard cap: positive gain → 0
+      return {
+        id: f.id,
+        label: f.label,
+        nominal: nominal,
+        effective: effective,
+        capped: capping && nominal > 0,
+        source: f.source
+      };
+    });
+
+    var net = 0;
+    perFactor.forEach(function (p) { net += p.effective; });
+
+    return {
+      net: net,
+      capping: capping,
+      sumNeg: sumNeg,
+      perFactor: perFactor
+    };
+  }
+
+  /* ===========================================================
+     5d. Plan-tab persistence (Story 1.16)
+     Same storage key as the form (no separate schema entry needed).
+     =========================================================== */
+
+  var PLAN_STORAGE_KEY = 'handy-tools.lifespan-simulator.plan';
+
+  function planDefaultTargets() {
+    var d = {};
+    LIFESTYLE_FACTORS.forEach(function (f) { d[f.id] = f.targetDefault; });
+    return d;
+  }
+
+  function persistPlan() {
+    try {
+      if (HT.storage && HT.storage.set) {
+        HT.storage.set(PLAN_STORAGE_KEY, state.planTargets);
+      } else {
+        localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(state.planTargets));
+      }
+    } catch (_) {}
+  }
+
+  function hydratePlan() {
+    try {
+      var raw = null;
+      if (HT.storage && HT.storage.get) {
+        raw = HT.storage.get(PLAN_STORAGE_KEY);
+      } else {
+        raw = localStorage.getItem(PLAN_STORAGE_KEY);
+      }
+      if (raw) {
+        var parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (parsed && typeof parsed === 'object') {
+          state.planTargets = Object.assign(planDefaultTargets(), parsed);
+          return;
+        }
+      }
+    } catch (_) {}
+    state.planTargets = planDefaultTargets();
+  }
+
+  /* ===========================================================
      6. UI references & state
      =========================================================== */
 
@@ -540,13 +921,21 @@
     applied:      HT.$('#ls-applied'),
     resetSliders: HT.$('#ls-reset-sliders'),
     share:        HT.$('#ls-share'),
-    copy:         HT.$('#ls-copy')
+    copy:         HT.$('#ls-copy'),
+    planGrid:     HT.$('#ls-plan-grid'),
+    planNet:      HT.$('#ls-plan-net'),
+    planNetValue: HT.$('#ls-plan-net-value'),
+    planNetSub:   HT.$('#ls-plan-net-sub'),
+    planBaseline: HT.$('#ls-plan-baseline'),
+    planApplied:  HT.$('#ls-plan-applied'),
+    planReset:    HT.$('#ls-plan-reset')
   };
 
   var state = {
-    mode: 'quick',            // 'quick' or 'full'
+    mode: 'quick',            // 'quick' | 'full' | 'plan'
     baselineYears: null,
-    sliderOverrides: {}      // { id: true/false }
+    sliderOverrides: {},     // { id: true/false } (Quick/Full result)
+    planTargets: {}          // { smoking: 'never', alcohol: 0, ... } (Plan tab)
   };
 
   /* ===========================================================
@@ -837,6 +1226,223 @@
       ' years (statistical estimate, not a prediction). My biggest health strength is ' +
       strengthsText + ', while ' + risksText + ' is my biggest risk factor. ' +
       'Try the Lifespan Simulator and compare your result.';
+
+    // Plan tab re-renders when answers change (Story 1.16).
+    if (state.mode === 'plan') {
+      renderPlan();
+    }
+  }
+
+  /* ===========================================================
+     11b. Render Plan tab (Story 1.16)
+     Builds one card per LIFESTYLE_FACTOR with current value,
+     target control, nominal/effective deltas, warning chip,
+     and an info button that opens a WHO-source tooltip.
+     =========================================================== */
+
+  function planCurrentLabel(f, ans) {
+    try { return f.currentLabel(ans); } catch (_) { return 'Currently: —'; }
+  }
+
+  function fmtYears(n) {
+    var rounded = Math.round(n * 10) / 10;
+    if (rounded === 0) return '0.0 yr';
+    return (rounded > 0 ? '+' : '') + rounded.toFixed(1) + ' yr';
+  }
+
+  // Closes any open plan-tab tooltip.
+  function closePlanTooltip() {
+    var open = HT.$('#ls-plan-tooltip');
+    if (open) open.parentNode.removeChild(open);
+  }
+
+  function openPlanTooltip(btn, source) {
+    closePlanTooltip();
+    var tip = document.createElement('div');
+    tip.id = 'ls-plan-tooltip';
+    tip.className = 'ls-tooltip';
+    tip.setAttribute('role', 'tooltip');
+    tip.innerHTML =
+      '<h4>' + source.title + '</h4>' +
+      '<p>' + source.quote + '</p>' +
+      '<p class="ls-tooltip-source">Source: ' +
+        '<a href="' + source.url + '" target="_blank" rel="noopener noreferrer">' +
+        source.sourceLabel + '</a></p>';
+    document.body.appendChild(tip);
+    // Position below the button
+    var rect = btn.getBoundingClientRect();
+    tip.style.top = (window.scrollY + rect.bottom + 6) + 'px';
+    tip.style.left = (window.scrollX + rect.left) + 'px';
+    // Dismiss on click outside / Escape
+    setTimeout(function () {
+      document.addEventListener('click', onDocClickForTooltip, true);
+      document.addEventListener('keydown', onEscForTooltip, true);
+    }, 0);
+    function onDocClickForTooltip(e) {
+      if (tip.contains(e.target) || btn.contains(e.target)) return;
+      closePlanTooltip();
+      document.removeEventListener('click', onDocClickForTooltip, true);
+      document.removeEventListener('keydown', onEscForTooltip, true);
+    }
+    function onEscForTooltip(e) {
+      if (e.key === 'Escape') {
+        closePlanTooltip();
+        document.removeEventListener('click', onDocClickForTooltip, true);
+        document.removeEventListener('keydown', onEscForTooltip, true);
+        btn.focus();
+      }
+    }
+  }
+
+  function buildPlanCard(f, ans, computed) {
+    var card = document.createElement('div');
+    card.className = 'slider-card plan-card-relative';
+    card.setAttribute('data-plan-factor', f.id);
+
+    var current = planCurrentLabel(f, ans);
+    var target = state.planTargets[f.id];
+    if (target === undefined) target = f.targetDefault;
+
+    var nominal = computed.nominal;
+    var effective = computed.effective;
+    var capped = computed.capped;
+
+    var nominalCls = nominal > 0 ? 'is-positive' : nominal < 0 ? 'is-negative' : 'is-neutral';
+    var effectiveCls = effective > 0 ? 'is-positive' : effective < 0 ? 'is-negative' : 'is-neutral';
+
+    var head = document.createElement('div');
+    head.className = 'slider-card-head';
+
+    var title = document.createElement('span');
+    title.className = 'slider-card-title';
+    title.textContent = f.label;
+
+    var infoBtn = document.createElement('button');
+    infoBtn.type = 'button';
+    infoBtn.className = 'ls-info-btn';
+    infoBtn.setAttribute('aria-label', 'Why this delta? ' + f.label + ' — opens source citation');
+    infoBtn.textContent = 'i';
+    infoBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      openPlanTooltip(infoBtn, f.source);
+    });
+
+    head.appendChild(title);
+    head.appendChild(infoBtn);
+    card.appendChild(head);
+
+    var currentRow = document.createElement('div');
+    currentRow.className = 'plan-card-current';
+    currentRow.innerHTML = current;
+    card.appendChild(currentRow);
+
+    var targetRow = document.createElement('div');
+    targetRow.className = 'plan-card-target-row';
+    var field = document.createElement('div');
+    field.className = 'field';
+    var label = document.createElement('label');
+    label.className = 'field-label';
+    label.textContent = 'Target';
+    label.id = 'ls-plan-target-label-' + f.id;
+    field.appendChild(label);
+    var control = f.targetControl(target, function (newTarget) {
+      state.planTargets[f.id] = newTarget;
+      persistPlan();
+      renderPlan();
+    });
+    if (control && control.id) {
+      var lbl = HT.$('#' + control.id);
+      if (lbl) lbl.setAttribute('aria-labelledby', label.id);
+    }
+    field.appendChild(control);
+    targetRow.appendChild(field);
+    card.appendChild(targetRow);
+
+    var meta = document.createElement('div');
+    meta.className = 'slider-meta';
+    var nominalBadge = document.createElement('span');
+    nominalBadge.className = 'slider-delta ' + nominalCls;
+    nominalBadge.setAttribute('aria-label',
+      'Nominal gain ' + fmtYears(nominal) + (capped ? ' — capped to zero because you have other negative factors' : ''));
+    nominalBadge.textContent = capped ? 'capped to 0' : (nominal === 0 ? 'no change' : fmtYears(nominal));
+    var currentSpan = document.createElement('span');
+    currentSpan.className = 'slider-current';
+    currentSpan.textContent = 'If adopted: ' + fmtYears(effective);
+
+    meta.appendChild(nominalBadge);
+    meta.appendChild(currentSpan);
+    card.appendChild(meta);
+
+    if (capped) {
+      var chip = document.createElement('span');
+      chip.className = 'ls-warning-chip';
+      chip.setAttribute('role', 'status');
+      chip.textContent = '⚠ Gain capped — address your negative factors first.';
+      card.appendChild(chip);
+    }
+
+    return card;
+  }
+
+  function renderPlan() {
+    if (!els.planGrid) return;
+    var ans = getAnswers();
+    var plan = computePlanNet(ans, state.planTargets);
+
+    // Net card sign and text
+    var sign = 'neutral';
+    if (plan.net > 0.05) sign = 'positive';
+    else if (plan.net < -0.05) sign = 'negative';
+    els.planNet.setAttribute('data-sign', sign);
+
+    if (plan.capping) {
+      els.planNetValue.textContent = '+0.0 yr';
+      els.planNetSub.textContent =
+        'Every positive plan gain is capped to 0 because you have ' +
+        'negative factors (sum ' + fmtYears(plan.sumNeg) + '). ' +
+        'Address those first — WHO: risk factors compound, not cancel.';
+    } else if (plan.net > 0) {
+      els.planNetValue.textContent = '+' + (Math.round(plan.net * 10) / 10).toFixed(1) + ' yr';
+      els.planNetSub.textContent =
+        'Projected life extension if you adopt these targets (statistical estimate, not a prediction).';
+    } else if (plan.net < 0) {
+      els.planNetValue.textContent = (Math.round(plan.net * 10) / 10).toFixed(1) + ' yr';
+      els.planNetSub.textContent =
+        'These targets would shorten your statistical estimate. Pick healthier targets to gain years.';
+    } else {
+      els.planNetValue.textContent = '0.0 yr';
+      els.planNetSub.textContent = 'No net change from these targets.';
+    }
+
+    // Baseline reference (unaffected by plan)
+    var ev = evaluate(ans);
+    var baselineYears = clamp(baselineFor(ans.country, ans.sex) + ev.sum, 40, 110);
+    els.planBaseline.textContent = HT.formatNumber(baselineYears, { minFractionDigits: 1, maxFractionDigits: 1 }) + ' years';
+
+    // Per-factor cards
+    els.planGrid.innerHTML = '';
+    plan.perFactor.forEach(function (p) {
+      var f = LIFESTYLE_FACTORS.filter(function (x) { return x.id === p.id; })[0];
+      var card = buildPlanCard(f, ans, p);
+      els.planGrid.appendChild(card);
+    });
+
+    // Applied-status line
+    var active = plan.perFactor.filter(function (p) { return p.effective !== 0; });
+    if (active.length === 0) {
+      els.planApplied.textContent = 'No plan changes.';
+    } else {
+      var labels = active.map(function (p) { return fLabelFor(p.id); });
+      els.planApplied.textContent =
+        'Plan delta: ' + fmtYears(plan.net) +
+        (plan.capping ? ' (capped — see warnings)' : '') +
+        ' · Factors: ' + labels.join(', ');
+    }
+  }
+
+  function fLabelFor(id) {
+    var f = LIFESTYLE_FACTORS.filter(function (x) { return x.id === id; })[0];
+    return f ? f.label : id;
   }
 
   /* ===========================================================
@@ -950,9 +1556,37 @@
       HT.qsa('input[data-slider-id]', els.sliders).forEach(function (i) { i.checked = false; });
       renderResult();
     });
+    if (els.planReset) {
+      els.planReset.addEventListener('click', function () {
+        state.planTargets = planDefaultTargets();
+        persistPlan();
+        renderPlan();
+      });
+    }
     els.copy.addEventListener('click', function () {
       HT.copyToClipboard(els.share.textContent.trim());
     });
+  }
+
+  // Embed mode (?embed=1) hides the plan tab and forces quick tab.
+  function applyEmbedMode() {
+    var params = null;
+    try { params = new URLSearchParams(window.location.search); } catch (_) {}
+    if (!params || params.get('embed') !== '1') return;
+    // Hide plan tab button + plan panel
+    var planTab = HT.$('#ls-mode-tabs .tab[data-tab="plan"]');
+    if (planTab && planTab.parentNode) planTab.parentNode.removeChild(planTab);
+    var planPanel = HT.qs('[data-tab-panel="plan"]');
+    if (planPanel && planPanel.parentNode) planPanel.parentNode.removeChild(planPanel);
+    // If user landed on plan, fall back to quick
+    if (state.mode === 'plan') {
+      state.mode = 'quick';
+      var quickTab = HT.$('#ls-mode-tabs .tab[data-tab="quick"]');
+      if (quickTab) quickTab.classList.add('is-active');
+      HT.qsa('[data-tab-panel]').forEach(function (p) {
+        p.style.display = p.getAttribute('data-tab-panel') === 'quick' ? '' : 'none';
+      });
+    }
   }
 
   /* ===========================================================
@@ -962,11 +1596,14 @@
   function init() {
     populateCountries();
     buildSliders();
+    hydratePlan();
+    applyEmbedMode();
     wireInputs();
     wireTabs();
     wireResetAndCopy();
     updateBMI();
     renderResult();
+    if (state.mode === 'plan') renderPlan();
   }
 
   if (document.readyState === 'loading') {

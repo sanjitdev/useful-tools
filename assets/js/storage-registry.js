@@ -654,6 +654,12 @@
     schema: 'object',
     owner: 'inflation-calculator.js',
   });
+  register('handy-tools.lifespan-simulator.plan', {
+    purpose: 'Plan Your Changes targets (Story 1.16; WHO-cited delta planner)',
+    lifetime: 'persistent',
+    schema: 'object',
+    owner: 'lifespan-simulator.js',
+  });
 
   // Public surface — frozen per AD-14.
   HT.storageRegistry = Object.freeze({

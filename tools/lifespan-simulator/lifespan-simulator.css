@@ -215,3 +215,98 @@ details > summary::-webkit-details-marker { display: none; }
 
 /* ----- Result tiles get a tighter tabular look on this dense page ----- */
 #ls-result .result-tile-value { font-size: 1.4rem; }
+
+/* ----- Plan Your Changes tab (Story 1.16) ----- */
+
+.plan-net-card[data-sign="positive"] .result-main { color: var(--color-success); }
+.plan-net-card[data-sign="negative"] .result-main { color: var(--color-danger); }
+.plan-net-card[data-sign="neutral"]  .result-main { color: var(--color-muted); }
+
+.plan-card-current {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.plan-card-current strong { color: var(--color-text); font-weight: 600; }
+
+.plan-card-target-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.plan-card-target-row .field { flex: 1 1 auto; min-width: 0; }
+.plan-card-target-row .field-label { margin-bottom: 4px; }
+
+.plan-card-target-row select.input,
+.plan-card-target-row input.input {
+  width: 100%;
+  max-width: 220px;
+}
+
+.ls-warning-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-danger) 14%, transparent);
+  color: var(--color-danger);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
+}
+
+.ls-info-btn {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.ls-info-btn:hover,
+.ls-info-btn:focus-visible {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.ls-tooltip {
+  position: absolute;
+  z-index: 50;
+  max-width: 320px;
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.ls-tooltip[hidden] { display: none; }
+
+.ls-tooltip h4 {
+  margin: 0 0 4px 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.ls-tooltip p { margin: 0 0 var(--space-2) 0; }
+.ls-tooltip .ls-tooltip-source { font-size: 0.78rem; color: var(--color-muted); }
+
+.plan-card-relative {
+  position: relative;
+}
