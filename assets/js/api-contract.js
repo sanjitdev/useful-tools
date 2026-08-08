@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.2.0',
+  version: '1.3.0',
   generated: '2026-08-07',
   entries: Object.freeze([
     Object.freeze({
@@ -131,6 +131,13 @@ window.HT.__apiContract = Object.freeze({
       stability: 'stable',
       module: 'assets/js/search.js',
       notes: 'Lazy-built index over tools.json. NFKD-normalized + case-insensitive. Returns up to 10 ranked results, sorted by score desc, search-priority asc, title asc. Returns a Promise<readonly Array<...>> when the engine falls through to fetch (tool pages) or when a sync data source is available. Returns a frozen Array<...> directly when the engine short-circuits on embed mode, non-string query, or empty/whitespace query (no results to compute). Always thenable-safe via `Promise.resolve(HT.search(q)).then(...)`. Returns [] in embed mode, on empty/whitespace query, and on no-match. Embed mode never builds the index.',
+    }),
+    Object.freeze({
+      name: 'HT.siteConfig',
+      signature: '{ readonly repoUrl: string, readonly blobBase: string, readonly defaultBranch: string, readonly brand: string, readonly defaultLocale: string }',
+      stability: 'stable',
+      module: 'assets/js/site-config.js',
+      notes: 'Frozen repo/site config consumed by the Shell footer link wiring (Story 1.12, AD-11). The blobBase is the GitHub blob URL prefix for the default branch; the footer "View source" link is "<blobBase>/<entry.path or tools/<slug>/index.html>". Mutation throws in strict mode (Object.freeze). The repo fields (repoOwner, repoName, defaultBranch, brand, defaultLocale) live on HT_SITE_CONFIG (window) for the gate; HT.siteConfig exposes only the derived public surface.',
     }),
   ]),
 });

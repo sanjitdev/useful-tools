@@ -63,8 +63,12 @@ SCHEMA_ANCHOR = "tools.schema.json"
 
 # The exact `<main>` opener shape chrome.html / shell-template.py write.
 # The aria-label capture is non-greedy and forbids another quote inside.
+# Story 1.12: tool pages also carry an optional `data-slug="<slug>"`
+# attribute on <main> (used by the footer "View source" wiring). The
+# regex permits it between class and aria-label; home pages (no slug)
+# match without that group.
 MAIN_RE = re.compile(
-    r'<main\s+id="main"\s+class="shell-main"\s+aria-label="([^"]+)"\s+tabindex="-1">',
+    r'<main\s+id="main"\s+class="shell-main"(?:\s+data-slug="[^"]+")?\s+aria-label="([^"]+)"\s+tabindex="-1">',
     re.IGNORECASE,
 )
 

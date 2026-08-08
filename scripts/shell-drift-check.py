@@ -74,6 +74,15 @@ TOOLS_JSON_REL = Path("tools.json")
 # src="../../assets/js/search.js". We accept either form.
 SEARCH_JS_ANCHOR_HOME = '<script src="assets/js/search.js" defer></script>'
 SEARCH_JS_ANCHOR_TOOL = '<script src="../../assets/js/search.js" defer></script>'
+# Story 1.12: site-config.js script tag + ordering. Same home-vs-tool
+# path split as search.js (root-relative on home, "../../" on tool pages).
+# Site-config.js must load BEFORE storage-registry.js so HT.siteConfig
+# is defined when the registry IIFE runs (the registry's plain-string
+# ht.theme fallback is read by the FOUC IIFE).
+SITE_CONFIG_JS_ANCHOR_HOME = '<script src="assets/js/site-config.js"></script>'
+SITE_CONFIG_JS_ANCHOR_TOOL = '<script src="../../assets/js/site-config.js"></script>'
+STORAGE_REGISTRY_JS_ANCHOR_HOME = '<script src="assets/js/storage-registry.js"></script>'
+STORAGE_REGISTRY_JS_ANCHOR_TOOL = '<script src="../../assets/js/storage-registry.js"></script>'
 
 
 def find_repo_root(start: Path) -> Path:
@@ -114,7 +123,7 @@ MANIFEST_REGION_RE = re.compile(
 )
 
 
-def load_chrome(root: Path) -> tuple[str, str, str, str, str, str, str]:
+def load_chrome(root: Path) -> tuple[str, str, str, str, str, str, str, str]:
     """Return (header_bytes, footer_bytes, palette_bytes, settings_bytes,
     tools_json_inline_bytes, storage_registry_manifest_bytes, search_js_anchor_bytes)
     extracted from the canonical sources. The header and footer are read
@@ -218,6 +227,7 @@ def load_chrome(root: Path) -> tuple[str, str, str, str, str, str, str]:
         tools_json_inline_bytes,
         manifest_match.group(1),
         (SEARCH_JS_ANCHOR_HOME, SEARCH_JS_ANCHOR_TOOL),
+        (SITE_CONFIG_JS_ANCHOR_HOME, SITE_CONFIG_JS_ANCHOR_TOOL),
     )
 
 
@@ -267,6 +277,7 @@ def scan(
     tools_json_inline: str,
     storage_registry_manifest: str,
     search_js_anchors: tuple[str, str],
+    site_config_anchors: tuple[str, str],
     allowed: set[Path],
 ) -> int:
     header_norm = normalize(header)
@@ -323,6 +334,51 @@ def scan(
         # home-only — the gate reads chrome.html's manifest directly so
         # tool pages don't need to carry the JSON inline. Add the 6th
         # check on index.html only.
+        # Story 1.12: site-config.js script tag + script-tag order
+        # check, on every page. Plus a data-slug attribute check on
+        # <main id="main"> for tool pages (home has no slug).
+        if ok:
+            is_home = rel == Path("index.html")
+            site_anchor = (
+                site_config_anchors[0] if is_home else site_config_anchors[1]
+            )
+            if site_anchor not in text_norm:
+                sys.stderr.write(
+                    f"CHROME DRIFT (site-config.js): {rel} — "
+                    f"site-config.js script tag missing or wrong relative "
+                    f"path (expected: {site_anchor!r})\n"
+                )
+                ok = False
+            else:
+                storage_anchor = (
+                    STORAGE_REGISTRY_JS_ANCHOR_HOME if is_home
+                    else STORAGE_REGISTRY_JS_ANCHOR_TOOL
+                )
+                if storage_anchor in text_norm:
+                    site_pos = text_norm.find(site_anchor)
+                    storage_pos = text_norm.find(storage_anchor)
+                    if site_pos > storage_pos:
+                        sys.stderr.write(
+                            f"CHROME DRIFT (site-config.js order): {rel} — "
+                            "storage-registry.js appears before site-config.js "
+                            "(HT.siteConfig must be defined before the "
+                            "registry IIFE runs)\n"
+                        )
+                        ok = False
+        if ok and not is_home:
+            # Tool pages must carry data-slug="<slug>" on <main id="main">.
+            # Home page (no slug) is exempt. The slug is the directory
+            # name; we derive it from the path rather than parsing
+            # location.pathname because the drift check is offline.
+            slug = rel.parent.name
+            data_slug_marker = f'data-slug="{slug}"'
+            if data_slug_marker not in text:
+                sys.stderr.write(
+                    f"CHROME DRIFT (data-slug): {rel} — "
+                    f'<main id="main"> is missing data-slug="{slug}" '
+                    "(required by Story 1.12 footer link wiring)\n"
+                )
+                ok = False
         if ok and path.resolve() == index_path:
             ok = (
                 tools_json_inline in text
@@ -396,14 +452,15 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve() if args.root else find_repo_root(Path(__file__).parent)
-    header, footer, palette, settings, tools_json_inline, storage_registry_manifest, search_js_anchors = load_chrome(root)
+    header, footer, palette, settings, tools_json_inline, storage_registry_manifest, search_js_anchors, site_config_anchors = load_chrome(root)
     allowed = {(root / p).resolve() for p in args.allow_drift}
 
     targets = iter_target_files(root)
     print(
-        f"shell-drift-check: scanning {len(targets)} page(s) × 7 checks "
+        f"shell-drift-check: scanning {len(targets)} page(s) × 10 checks "
         "(header, footer, palette, settings, tools.json-inline [home only], "
-        "storage-registry-manifest [home only], search.js script tag)"
+        "storage-registry-manifest [home only], search.js script tag, "
+        "site-config.js script tag + order, data-slug [tool pages only])"
     )
     failures = scan(
         root,
@@ -414,12 +471,13 @@ def main(argv: list[str]) -> int:
         tools_json_inline,
         storage_registry_manifest,
         search_js_anchors,
+        site_config_anchors,
         allowed,
     )
     if failures:
         print(f"shell-drift-check: {failures} drift(s) detected")
         return 2
-    print("shell-drift-check: all pages in sync (7 checks)")
+    print("shell-drift-check: all pages in sync (10 checks)")
     return 0
 
 

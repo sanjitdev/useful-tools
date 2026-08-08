@@ -131,6 +131,11 @@
     if (!isEmbedMode()) {
       wirePalette();
       wireSettings();
+      // Story 1.12: upgrade the static "View source" placeholder into a
+      // real link to the GitHub blob URL. Retries until HT.homeGrid
+      // publishes (or the registry's manifest covers the slug) so the
+      // link appears as soon as the data is available.
+      wireViewSourceLink();
     }
 
     // Story 1.10: register per-tool history keys once HT.homeGrid publishes.
@@ -872,4 +877,226 @@
   }
 
   HT.boot = boot;
+
+  /* ============================================
+     Story 1.12 — Footer "View source" link wiring
+     ============================================
+     Every page renders a static placeholder:
+       <span aria-disabled="true">View source</span>
+     which is byte-identical across all pages (so chrome drift is
+     detectable). On tool pages that opt in via `view-source.enabled`
+     in tools.json (the default for promoted tools), this function
+     replaces the placeholder with a real <a> pointing at the GitHub
+     blob URL derived from HT.siteConfig.
+
+     Slug discovery order (Story 1.12 dev notes):
+       1. <main id="main" data-slug="..."> — fastest, no URL parsing
+       2. window.location.pathname — "/tools/<slug>/" — fallback when
+          data-slug is missing or empty
+     Slug vs URL: when both are present and disagree, the URL wins
+     because the URL is the actual file the browser is rendering.
+
+     The link only renders when all three conditions hold:
+       - HT.siteConfig is defined (site-config.js loaded)
+       - HT.homeGrid.entries has an entry for the slug
+       - the entry's `view-source.enabled` is not explicitly false
+     On the home page (no slug) the function is a no-op — the home
+     page itself is the repo root, no View Source link is needed.
+  */
+  let _viewSourceConfigRetries = 0;
+  let _viewSourceEntryRetries = 0;
+  const _VIEW_SOURCE_RETRY_BUDGET_MS = 2000;
+  const _VIEW_SOURCE_RETRY_BASE_MS = 50;
+
+  function resolveCurrentSlug() {
+    // 1. data-slug on <main> — preferred because it costs no parsing.
+    const main = document.getElementById('main');
+    let fromAttr = null;
+    if (main) {
+      const raw = main.getAttribute('data-slug');
+      if (typeof raw === 'string' && raw.trim().length > 0) {
+        fromAttr = raw.trim();
+      }
+    }
+    // 2. URL fallback: "/tools/<slug>/index.html" or "/tools/<slug>/".
+    //    Always evaluated when data-slug is present so the two values
+    //    can be compared and a mismatch surfaced (AC #6).
+    let fromUrl = null;
+    try {
+      const path = window.location.pathname || '';
+      const match = path.match(/\/tools\/([^\/]+)\/?(?:index\.html)?$/);
+      if (match && typeof match[1] === 'string' && match[1].length > 0) {
+        fromUrl = match[1];
+      }
+    } catch (_) {
+      /* location may be unavailable in some embed contexts */
+    }
+    if (fromAttr && fromUrl && fromAttr !== fromUrl) {
+      // Mismatch — the URL is the actual file the browser is rendering
+      // (AD-5: URL is canonical transport), so it wins. Surface a
+      // console.warn so the dev agent can spot stale data-slug values
+      // during rename drift.
+      console.warn(
+        'shell.viewSource: data-slug="' + fromAttr + '" disagrees with URL '
+        + 'slug="' + fromUrl + '" — URL wins (rename drift?)'
+      );
+      return fromUrl;
+    }
+    return fromAttr || fromUrl;
+  }
+
+  function wireViewSourceLink() {
+    if (isEmbedMode()) return; // footer link is hidden in embed mode (AD-7)
+    const slug = resolveCurrentSlug();
+    if (!slug) return; // home page or non-tool URL — nothing to wire
+
+    // site-config.js is required (HT.siteConfig). If it's missing we
+    // can't derive a valid blob URL. Retry for up to ~2s — site-config.js
+    // is a non-deferred module that should load on the same tick as
+    // shell.js, but the file:// fallback path can be slower.
+    if (!HT.siteConfig || !HT.siteConfig.blobBase) {
+      const elapsed = _viewSourceConfigRetries * _VIEW_SOURCE_RETRY_BASE_MS;
+      if (elapsed >= _VIEW_SOURCE_RETRY_BUDGET_MS) {
+        console.warn(
+          'shell.viewSource: HT.siteConfig not defined within ' +
+          _VIEW_SOURCE_RETRY_BUDGET_MS + 'ms — view source link disabled'
+        );
+        return;
+      }
+      _viewSourceConfigRetries += 1;
+      const wait = Math.min(
+        _VIEW_SOURCE_RETRY_BASE_MS * Math.pow(2, _viewSourceConfigRetries),
+        200
+      );
+      setTimeout(wireViewSourceLink, wait);
+      return;
+    }
+
+    // Locate the placeholder. The static include ships as:
+    //   <span aria-disabled="true">View source</span>
+    // inside <footer class="site-footer" role="contentinfo">. Use
+    // querySelector for the exact span.
+    const placeholder = document.querySelector(
+      'footer.site-footer span[aria-disabled="true"]'
+    );
+    if (!placeholder) {
+      // Already wired, removed, or page is missing the footer. No-op.
+      return;
+    }
+
+    // Look up the slug in HT.homeGrid.entries (published by home-grid.js
+    // on the home page only — tool pages don't have the grid renderer,
+    // so we must wait for the registry's manifest or for HT.homeGrid
+    // to be populated by another mechanism). On tool pages the typical
+    // case is that HT.homeGrid.entries is null until something populates
+    // it; the storage-registry manifest ships tools.json entries via
+    // registerHistoryKeys(), but that's history-keys only — the
+    // `view-source` field is not carried there.
+    //
+    // Strategy: read HT.homeGrid.entries when present; otherwise read
+    // the inline tools.json block that shell-template.py splices into
+    // every page (home AND tool pages). On a tool page the inline block
+    // IS present (per the Story 1.12 review patch), so the lookup
+    // resolves synchronously after a single DOM read.
+    const entry = findToolEntry(slug);
+    if (!entry) {
+      // Retry — the tool's own module may register its entry after
+      // boot via HT.homeGrid.registerEntry() (see home-grid.js).
+      const elapsed = _viewSourceEntryRetries * _VIEW_SOURCE_RETRY_BASE_MS;
+      if (elapsed >= _VIEW_SOURCE_RETRY_BUDGET_MS) {
+        // Surface a soft warn rather than failing silently — the
+        // placeholder remains as a static span so the link simply
+        // never materializes (consistent with non-promoted tools).
+        console.info(
+          'shell.viewSource: no entry for slug "' + slug +
+          '" after ' + _VIEW_SOURCE_RETRY_BUDGET_MS + 'ms — leaving placeholder'
+        );
+        return;
+      }
+      _viewSourceEntryRetries += 1;
+      const wait = Math.min(
+        _VIEW_SOURCE_RETRY_BASE_MS * Math.pow(2, _viewSourceEntryRetries),
+        200
+      );
+      setTimeout(wireViewSourceLink, wait);
+      return;
+    }
+
+    const viewSource = entry['view-source'];
+    if (viewSource && viewSource.enabled === false) {
+      // Explicit opt-out: leave the placeholder intact (the entry
+      // author chose to hide the link). No console message — the
+      // intent is encoded in the data.
+      return;
+    }
+
+    // Resolve the blob URL. Default path is "tools/<slug>/index.html";
+    // entries may override via `view-source.path`. Defensive normalize:
+    // strip leading slashes from `pathSegment` (the schema field is
+    // optional and a maintainer could set "/foo" producing a double
+    // slash) and reject `..` segments to prevent a typo from leaving
+    // the repo root.
+    let pathSegment = (viewSource && typeof viewSource.path === 'string')
+      ? viewSource.path
+      : 'tools/' + slug + '/index.html';
+    pathSegment = pathSegment.replace(/^\/+/, '');
+    if (/(^|\/)\.\.(?:\/|$)/.test(pathSegment)) {
+      console.warn(
+        'shell.viewSource: entry "' + slug + '" has view-source.path with '
+        + 'parent traversal (' + pathSegment + ') — falling back to default'
+      );
+      pathSegment = 'tools/' + slug + '/index.html';
+    }
+    const blobBase = String(HT.siteConfig.blobBase).replace(/\/+$/, '');
+    const href = blobBase + '/' + pathSegment;
+
+    const anchor = document.createElement('a');
+    anchor.setAttribute('href', href);
+    anchor.setAttribute('rel', 'noopener noreferrer');
+    anchor.setAttribute('target', '_blank');
+    // Decision #2 (Story 1.12 review): the spec says the link's
+    // accessible name is the tool's title. We honor that literally —
+    // visible label becomes the tool title (e.g., "Inflation
+    // Calculator"), not the static "View source" placeholder text.
+    // Sighted users still understand the action because the anchor
+    // sits in the footer next to the other chrome links.
+    anchor.textContent = (entry && typeof entry.title === 'string' && entry.title.length > 0)
+      ? entry.title
+      : (placeholder.textContent || 'View source');
+    // Copy classes so the existing CSS rule (footer span → anchor)
+    // applies without a separate selector.
+    placeholder.classList.forEach((cls) => anchor.classList.add(cls));
+    placeholder.replaceWith(anchor);
+  }
+
+  // findToolEntry: locate the slug in HT.homeGrid.entries (preferred)
+  // or in the inline tools.json block (spliced into every page by
+  // shell-template.py). The inline block lets tool pages resolve the
+  // entry synchronously without depending on home-grid.js or a
+  // per-tool registerEntry() call.
+  function findToolEntry(slug) {
+    if (HT.homeGrid && Array.isArray(HT.homeGrid.entries)) {
+      for (let i = 0; i < HT.homeGrid.entries.length; i += 1) {
+        const e = HT.homeGrid.entries[i];
+        if (e && e.slug === slug) return e;
+      }
+    }
+    // Inline fallback: <script type="application/json" id="ht-tools-json-inline">
+    // (spliced into every page by shell-template.py).
+    const inline = document.getElementById('ht-tools-json-inline');
+    if (inline) {
+      try {
+        const parsed = JSON.parse(inline.textContent || '');
+        if (parsed && Array.isArray(parsed.tools)) {
+          for (let i = 0; i < parsed.tools.length; i += 1) {
+            const e = parsed.tools[i];
+            if (e && e.slug === slug) return e;
+          }
+        }
+      } catch (_) {
+        // Malformed inline JSON: silently fall through (no entry).
+      }
+    }
+    return null;
+  }
 })();

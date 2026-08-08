@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -31,7 +31,9 @@ help: ## Show available targets
 	@echo "  make shell-template      Regenerate the home page chrome"
 	@echo "  make shell-template-all  Regenerate the chrome on all 34 tool pages"
 	@echo "  make install-hooks       Install scripts/hooks/pre-commit into .git/hooks/"
-	@echo "  make ci                  Run validate + rubric-all + gate + shell-drift"
+	@echo "  make site-config         Verify the Story 1.12 site-config.js + page script tags"
+	@echo "  make site-config-smoke   Run the Node smoke harness for site-config.js (frozen AD-14 surface)"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y"
 
 validate: validate-tools-json
 
@@ -75,7 +77,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate storage-registry shell-drift shell-a11y
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -129,3 +131,20 @@ storage-registry:
 	@$(PYTHON) scripts/storage-registry-gate.py
 
 sr: storage-registry
+
+# `site-config` runs the Story 1.12 site-config gate: verifies
+# assets/js/site-config.js's HT_SITE_CONFIG + HT.siteConfig shapes, the
+# < 1024-byte budget (AC #14), the api-contract.js entry at version
+# 1.3.0, and the site-config.js <script> tag + script-tag order on
+# every tool page and the home page. Exit 0 = all checks pass.
+site-config:
+	@$(PYTHON) scripts/site-config-gate.py
+
+# `site-config-smoke` runs the Node smoke harness for site-config.js.
+# Loads the module in a fresh vm context, asserts every frozen field of
+# HT_SITE_CONFIG + HT.siteConfig, and verifies that mutation throws in
+# strict mode. Per the Story 1.9 harness shape: 14 PASS expected. The
+# `pass === 0 && fail === 0` vacuous-pass guard inside the script
+# converts a hollow run into a hard failure (exit 1).
+site-config-smoke:
+	@node scripts/_smoke_site_config.js

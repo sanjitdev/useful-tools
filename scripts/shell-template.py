@@ -337,6 +337,7 @@ def transform(
     source: str,
     *,
     page_label: str,
+    slug: str,
     skip_html: str,
     header_html: str,
     footer_html: str,
@@ -403,6 +404,33 @@ def transform(
                     '<script src="../../assets/js/storage-registry.js"></script>\n  '
                     '<script src="../../assets/js/utils.js"></script>',
                 )
+            # Story 1.12: site-config.js must load BEFORE storage-registry.js
+            # so HT.siteConfig is defined when the boot sequence consults it.
+            # Idempotent — already-present pages keep the existing tag.
+            if 'src="../../assets/js/site-config.js"' not in new_source:
+                utils_anchor = '<script src="../../assets/js/utils.js"></script>'
+                storage_anchor = '<script src="../../assets/js/storage-registry.js"></script>'
+                if storage_anchor in new_source:
+                    new_source = new_source.replace(
+                        storage_anchor,
+                        '<script src="../../assets/js/site-config.js"></script>\n  '
+                        + storage_anchor,
+                        1,
+                    )
+                elif utils_anchor in new_source:
+                    new_source = new_source.replace(
+                        utils_anchor,
+                        '<script src="../../assets/js/site-config.js"></script>\n  '
+                        + utils_anchor,
+                        1,
+                    )
+            if 'data-slug="' not in new_source:
+                new_source = re.sub(
+                    r'<main\s+id="main"\s+class="shell-main"',
+                    f'<main id="main" class="shell-main" data-slug="{slug}"',
+                    new_source,
+                    count=1,
+                )
             # Story 1.11: search.js (idempotent — already-present pages keep
             # the existing tag). Anchored after shell.js so the Shell API
             # surface is in place when search.js boots.
@@ -431,14 +459,18 @@ def transform(
         return source
 
     # 3. Wrap the existing <main> with id + aria-label + class.
+    #    Story 1.12: also stamp data-slug="<slug>" so the footer link
+    #    wiring in shell.js can resolve the current tool's slug without
+    #    re-parsing location.pathname.
     def _main_repl(match: re.Match[str]) -> str:
         body = match.group("body")
         attrs = match.group("attrs") or ""
         attrs = re.sub(r"\s+class=\"[^\"]*\"", "", attrs)
         attrs = re.sub(r"\s+id=\"[^\"]*\"", "", attrs)
         attrs = re.sub(r"\s+aria-label=\"[^\"]*\"", "", attrs)
+        attrs = re.sub(r"\s+data-slug=\"[^\"]*\"", "", attrs)
         return (
-            f'<main id="main" class="shell-main"{attrs} '
+            f'<main id="main" class="shell-main" data-slug="{slug}"{attrs} '
             f'aria-label="{page_label}" tabindex="-1">'
             f'\n    <a id="top"></a>\n    '
             + body.rstrip()
@@ -479,15 +511,48 @@ def transform(
             '<script src="../../assets/js/utils.js"></script>\n  '
             '<script src="../../assets/js/shell.js" defer></script>',
         )
+    # Story 1.12: site-config.js must load BEFORE storage-registry.js so
+    # HT.siteConfig is defined when the boot sequence consults it (it's
+    # not currently consumed by the registry, but the link target logic
+    # in shell.js runs on the same tick). The script is added only on the
+    # first regeneration of a tool page (idempotent on re-run).
+    if 'src="../../assets/js/site-config.js"' not in new_source:
+        utils_anchor = '<script src="../../assets/js/utils.js"></script>'
+        storage_anchor = '<script src="../../assets/js/storage-registry.js"></script>'
+        if storage_anchor in new_source:
+            # Insert site-config.js immediately before storage-registry.js.
+            new_source = new_source.replace(
+                storage_anchor,
+                '<script src="../../assets/js/site-config.js"></script>\n  '
+                + storage_anchor,
+                1,
+            )
+        elif utils_anchor in new_source:
+            # storage-registry.js not present yet — fall through; the
+            # storage-registry block below will splice site-config.js
+            # via the same anchor.
+            pass
     # Story 1.10: ensure storage-registry.js is loaded BEFORE utils.js so
     # the wrapper can delegate to HT.storageRegistry. The script is added
     # only on the first regeneration of a tool page (idempotent on re-run).
     if 'src="../../assets/js/storage-registry.js"' not in new_source:
-        new_source = new_source.replace(
-            '<script src="../../assets/js/utils.js"></script>',
-            '<script src="../../assets/js/storage-registry.js"></script>\n  '
-            '<script src="../../assets/js/utils.js"></script>',
-        )
+        utils_anchor = '<script src="../../assets/js/utils.js"></script>'
+        # If site-config.js was just added (above), splice both before utils.js.
+        if 'src="../../assets/js/site-config.js"' in new_source:
+            new_source = new_source.replace(
+                utils_anchor,
+                '<script src="../../assets/js/storage-registry.js"></script>\n  '
+                + utils_anchor,
+                1,
+            )
+        else:
+            new_source = new_source.replace(
+                utils_anchor,
+                '<script src="../../assets/js/site-config.js"></script>\n  '
+                + '<script src="../../assets/js/storage-registry.js"></script>\n  '
+                + utils_anchor,
+                1,
+            )
     # Story 1.11: ensure search.js is loaded on every tool page so the
     # command palette (Story 1.7) and any tool-page search input can
     # consume HT.search. The script is added only on the first regeneration
@@ -511,8 +576,100 @@ def transform(
     return new_source
 
 
+def ensure_tool_config_and_slug(source: str, slug: str) -> str:
+    """Add Story 1.12 metadata without rewriting an existing tool body.
+
+    Decision #1 (Story 1.12 review): also splice the inline tools.json
+    block into every tool page so `wireViewSourceLink()` can resolve the
+    slug's entry synchronously without depending on home-grid.js (tool
+    pages don't load it) or a per-tool `registerEntry()` call (Story
+    1.15 work). The block is identical to the one shell-template.py
+    splices into the home page; drift-check verifies byte equivalence.
+    """
+    new_source = source
+    # data-slug — both presence AND value (correct any stale slug).
+    data_slug_re = re.compile(r'data-slug="([^"]+)"')
+    data_slug_match = data_slug_re.search(new_source)
+    if data_slug_match is None:
+        new_source = re.sub(
+            r'<main\s+id="main"\s+class="shell-main"',
+            f'<main id="main" class="shell-main" data-slug="{slug}"',
+            new_source,
+            count=1,
+        )
+    elif data_slug_match.group(1) != slug:
+        # Wrong value — replace it with the canonical slug.
+        new_source = (
+            new_source[: data_slug_match.start(1)]
+            + slug
+            + new_source[data_slug_match.end(1):]
+        )
+    if 'src="../../assets/js/site-config.js"' not in new_source:
+        site_tag = '<script src="../../assets/js/site-config.js"></script>'
+        storage_tag = '<script src="../../assets/js/storage-registry.js"></script>'
+        utils_tag = '<script src="../../assets/js/utils.js"></script>'
+        if storage_tag in new_source:
+            new_source = new_source.replace(
+                storage_tag, site_tag + "\n  " + storage_tag, 1
+            )
+        elif utils_tag in new_source:
+            new_source = new_source.replace(
+                utils_tag, site_tag + "\n  " + utils_tag, 1
+            )
+    return new_source
+
+
 def page_label_from_title(title_match: re.Match[str]) -> str:
     return derive_display_name(title_match.group(1))
+
+
+def splice_inline_tools_json(source: str, tools_json_inline: str) -> str:
+    """Insert the inline `<script type="application/json"
+    id="ht-tools-json-inline">…</script>` block (file:// fallback for
+    home-grid.js) into the page. On tool pages this lets
+    `wireViewSourceLink()` resolve the slug's entry synchronously
+    without depending on home-grid.js (tool pages don't load it).
+    Idempotent: a page that already carries the block is returned
+    unchanged.
+
+    Strategy:
+      - if both markers present → replace via the regex (idempotent).
+      - else if home-grid.js anchor exists → insert as a sibling block
+        immediately before it (tool pages; matches the home-page layout
+        once they grow the include). The next regeneration normalizes
+        to marker-delimited form.
+      - else if shell.js anchor exists → insert immediately before
+        shell.js (older tool pages that never grew home-grid.js).
+    """
+    if (
+        TOOLS_JSON_INLINE_START in source
+        and TOOLS_JSON_INLINE_END in source
+    ):
+        out, _ = TOOLS_JSON_INLINE_RE.subn(tools_json_inline, source, count=1)
+        return out
+    # No markers — inject as a free-standing block before a known anchor.
+    anchor = '<script src="../../assets/js/home-grid.js" defer></script>'
+    if anchor in source:
+        return source.replace(
+            anchor,
+            tools_json_inline + "\n\n  " + anchor,
+            1,
+        )
+    shell_anchor = '<script src="../../assets/js/shell.js" defer></script>'
+    if shell_anchor in source:
+        return source.replace(
+            shell_anchor,
+            tools_json_inline + "\n\n  " + shell_anchor,
+            1,
+        )
+    # No anchor found — refuse to splice silently. The drift-check
+    # would catch the missing block anyway; surfacing here keeps the
+    # log honest.
+    sys.stderr.write(
+        "shell-template: tools.json inline splice skipped — no "
+        "shell.js / home-grid.js anchor in legacy page\n"
+    )
+    return source
 
 
 def process_file(
@@ -525,6 +682,7 @@ def process_file(
     palette_html: str,
     settings_html: str,
     head_script: str,
+    tools_json_inline: str,
     dry_run: bool,
 ) -> bool:
     path = root / "tools" / slug / "index.html"
@@ -552,7 +710,7 @@ def process_file(
     # a single shared DOM node mounted on every page.
     expected_label = label
     label_re = re.compile(
-        r'<main\s+id="main"\s+class="shell-main"\s+aria-label="([^"]+)"\s+tabindex="-1">',
+        r'<main\s+id="main"\s+class="shell-main"(?:\s+data-slug="[^"]+")?\s+aria-label="([^"]+)"\s+tabindex="-1">',
         re.IGNORECASE,
     )
     label_match = label_re.search(source)
@@ -562,12 +720,30 @@ def process_file(
         and 'class="site-header" role="banner"' in source
         and '<footer class="site-footer" role="contentinfo"' in source
         and '<main id="main" class="shell-main"' in source
+        and f'data-slug="{slug}"' in source
         and 'src="../../assets/js/shell.js"' in source
         and header_html in source
         and footer_html in source
     )
     palette_ok = palette_html in source
     settings_ok = settings_html in source
+    # Story 1.12: site-config.js must load BEFORE storage-registry.js so
+    # HT.siteConfig is defined before any module consults it. Missing the
+    # tag would leave HT.siteConfig undefined and the footer link wiring
+    # in shell.js would no-op silently.
+    site_config_js_ok = (
+        'src="../../assets/js/site-config.js"' in source
+    )
+    # Story 1.12: site-config.js MUST precede storage-registry.js so the
+    # boot sequence sees HT.siteConfig defined before any IIFE consults it.
+    # A page that has the script tag but in the wrong position would still
+    # leave HT.siteConfig undefined when storage-registry.js runs.
+    site_config_first_ok = (
+        'src="../../assets/js/site-config.js"' not in source
+        or 'src="../../assets/js/storage-registry.js"' not in source
+        or source.find('src="../../assets/js/site-config.js"')
+        < source.find('src="../../assets/js/storage-registry.js"')
+    )
     # Story 1.10: storage-registry.js must be loaded on every page so
     # HT.storage.get/set/remove can dispatch through the registry. The
     # tool pages share the same chrome + utils boot order as the home
@@ -583,12 +759,25 @@ def process_file(
     search_js_ok = (
         'src="../../assets/js/search.js"' in source
     )
+    # Story 1.12 (review patch — Decision #1): the inline tools.json
+    # block (file:// fallback for home-grid.js) must also live on tool
+    # pages so `wireViewSourceLink()` can resolve the slug's entry
+    # synchronously without depending on home-grid.js (tool pages don't
+    # load it). The block is identical to the home-page copy; drift-
+    # check verifies byte equivalence via the same markers.
+    tools_json_inline_ok = (
+        TOOLS_JSON_INLINE_START in source
+        and TOOLS_JSON_INLINE_END in source
+    )
     full_ok = (
         chrome_ok
         and palette_ok
         and settings_ok
+        and site_config_js_ok
+        and site_config_first_ok
         and storage_registry_js_ok
         and search_js_ok
+        and tools_json_inline_ok
     )
     # Find the IIFE block on the FIRST `<script>` opener in <head>. The IIFE
     # is always the first inline `<script>` in every page (it must run
@@ -644,6 +833,76 @@ def process_file(
         print(f"  no-change {path.relative_to(root)}  (already has new chrome)")
         return True
 
+    # Story 1.12: when the page is otherwise chrome-aligned but is missing
+    # only `data-slug` on <main> and/or the site-config.js script tag,
+    # perform a minimal targeted splice. This avoids the destructive byte-
+    # aligned chrome-region rewrite below (which would re-emit the entire
+    # skip-link → </footer> span and can duplicate the palette/settings
+    # includes on already-generated pages). The byte-aligned gate above is
+    # intentionally strict for the same reason; this branch is the minimal-
+    # write counterpart. Note: `chrome_ok` (above) already requires
+    # `data-slug="{slug}"` and the site-config script tag, so we use a
+    # weaker, purpose-built check here that excludes those two items.
+    chrome_basic_ok = (
+        '<a class="shell-skip"' in source
+        and 'class="site-header" role="banner"' in source
+        and '<footer class="site-footer" role="contentinfo"' in source
+        and '<main id="main" class="shell-main"' in source
+        and 'src="../../assets/js/shell.js"' in source
+        and header_html in source
+        and footer_html in source
+    )
+    if (
+        chrome_basic_ok
+        and palette_html in source
+        and settings_html in source
+        and storage_registry_js_ok
+        and search_js_ok
+        and (
+            not site_config_js_ok
+            or not site_config_first_ok
+            or f'data-slug="{slug}"' not in source
+            or not tools_json_inline_ok
+        )
+    ):
+        new_source = ensure_tool_config_and_slug(source, slug)
+        # If the inline tools.json block is missing, splice it in too.
+        if not tools_json_inline_ok:
+            new_source = splice_inline_tools_json(new_source, tools_json_inline)
+        if new_source == source:
+            print(f"  no-change {path.relative_to(root)}")
+            return True
+        if dry_run:
+            missing = []
+            if not site_config_js_ok:
+                missing.append("site-config.js")
+            if f'data-slug="{slug}"' not in source:
+                missing.append("data-slug")
+            if not tools_json_inline_ok:
+                missing.append("tools.json-inline")
+            print(
+                f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})"
+            )
+            return True
+        try:
+            path.write_text(new_source, encoding="utf-8")
+        except OSError as exc:
+            sys.stderr.write(
+                f"shell-template: write failed for {path}: {exc}\n"
+            )
+            sys.exit(3)
+        missing = []
+        if 'src="../../assets/js/site-config.js"' not in source:
+            missing.append("site-config.js")
+        if f'data-slug="{slug}"' not in source:
+            missing.append("data-slug")
+        if not tools_json_inline_ok:
+            missing.append("tools.json-inline")
+        print(
+            f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})"
+        )
+        return True
+
     # If chrome is byte-aligned but the palette and/or settings include is
     # missing (Story 1.7 added palette, Story 1.8 added settings), inject
     # whichever is missing after </footer> in place. We anchor on the end
@@ -654,7 +913,7 @@ def process_file(
     # rather than group(2) — a latent Story 1.6 bug) and would short-circuit
     # on a correct IIFE, preventing the palette splice from ever firing.
     if chrome_ok and not (
-        palette_ok and settings_ok and storage_registry_js_ok and search_js_ok
+        palette_ok and settings_ok and site_config_js_ok and storage_registry_js_ok and search_js_ok and tools_json_inline_ok
     ):
         footer_end = source.find('</footer>')
         if footer_end == -1:
@@ -669,15 +928,50 @@ def process_file(
         # registry; the actual insertion happens in the post-chrome
         # rewrite step below. Track the gap here so the rewrite fires.
         new_source = source
-        if not storage_registry_js_ok:
+        # Story 1.12: site-config.js must come BEFORE storage-registry.js
+        # when both are absent. The storage block below checks for
+        # site-config's presence and adjusts the splice accordingly.
+        if not site_config_js_ok:
+            storage_anchor = '<script src="../../assets/js/storage-registry.js"></script>'
             utils_anchor = '<script src="../../assets/js/utils.js"></script>'
-            if utils_anchor in new_source:
+            if storage_anchor in new_source:
+                new_source = new_source.replace(
+                    storage_anchor,
+                    '<script src="../../assets/js/site-config.js"></script>\n  '
+                    + storage_anchor,
+                    1,
+                )
+            elif utils_anchor in new_source:
+                # No storage anchor yet; splice both in front of utils.js.
+                # The storage splice (next block) will be a no-op because
+                # we just added it.
                 new_source = new_source.replace(
                     utils_anchor,
-                    '<script src="../../assets/js/storage-registry.js"></script>\n  '
+                    '<script src="../../assets/js/site-config.js"></script>\n  '
+                    + '<script src="../../assets/js/storage-registry.js"></script>\n  '
                     + utils_anchor,
                     1,
                 )
+        if not storage_registry_js_ok:
+            utils_anchor = '<script src="../../assets/js/utils.js"></script>'
+            if utils_anchor in new_source:
+                if 'src="../../assets/js/site-config.js"' not in new_source:
+                    new_source = new_source.replace(
+                        utils_anchor,
+                        '<script src="../../assets/js/storage-registry.js"></script>\n  '
+                        + utils_anchor,
+                        1,
+                    )
+                else:
+                    # site-config.js already present; just add storage
+                    # immediately after it.
+                    site_anchor = '<script src="../../assets/js/site-config.js"></script>'
+                    new_source = new_source.replace(
+                        site_anchor,
+                        site_anchor + '\n  '
+                        + '<script src="../../assets/js/storage-registry.js"></script>',
+                        1,
+                    )
         # Story 1.11: inject search.js anchored after shell.js so the Shell
         # API surface is in place when the search engine boots. Idempotent
         # — already-present pages keep the existing tag.
@@ -696,6 +990,12 @@ def process_file(
                     "<script src=\"../../assets/js/shell.js\" defer></script> "
                     "anchor not found\n"
                 )
+        # Story 1.12 (review — Decision #1): splice the inline
+        # tools.json block so wireViewSourceLink() can resolve the slug
+        # synchronously on tool pages (no home-grid.js there). Idempotent
+        # via splice_inline_tools_json's marker check.
+        if not tools_json_inline_ok:
+            new_source = splice_inline_tools_json(new_source, tools_json_inline)
         # Build the trailing splice: palette first (if missing), then
         # settings (if missing). Pages that need both get one rewrite;
         # pages that need only settings get a smaller delta.
@@ -712,8 +1012,11 @@ def process_file(
             missing = []
             if not palette_ok: missing.append("palette")
             if not settings_ok: missing.append("settings")
+            if not site_config_js_ok: missing.append("site-config.js")
             if not storage_registry_js_ok: missing.append("storage-registry.js")
             if not search_js_ok: missing.append("search.js")
+            if not tools_json_inline_ok: missing.append("tools.json-inline")
+            if not f'data-slug="{slug}"' in source: missing.append("data-slug")
             print(f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})")
             return True
         try:
@@ -724,8 +1027,11 @@ def process_file(
         missing = []
         if not palette_ok: missing.append("palette")
         if not settings_ok: missing.append("settings")
+        if not site_config_js_ok: missing.append("site-config.js")
         if not storage_registry_js_ok: missing.append("storage-registry.js")
         if not search_js_ok: missing.append("search.js")
+        if not tools_json_inline_ok: missing.append("tools.json-inline")
+        if not f'data-slug="{slug}"' in source: missing.append("data-slug")
         print(f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})")
         return True
 
@@ -786,6 +1092,7 @@ def process_file(
     updated = transform(
         source,
         page_label=label,
+        slug=slug,
         skip_html=skip_html,
         header_html=header_html,
         footer_html=footer_html,
@@ -865,6 +1172,19 @@ def regenerate_home(
     search_js_in_source = (
         'src="assets/js/search.js"' in source
     )
+    # Story 1.12: site-config.js must load BEFORE storage-registry.js so
+    # HT.siteConfig is defined before any module consults it. The home
+    # page uses the root-relative path (no `../../`) because it lives at
+    # the repo root.
+    site_config_js_in_source = (
+        'src="assets/js/site-config.js"' in source
+    )
+    site_config_first_in_source = (
+        'src="assets/js/site-config.js"' not in source
+        or 'src="assets/js/storage-registry.js"' not in source
+        or source.find('src="assets/js/site-config.js"')
+        < source.find('src="assets/js/storage-registry.js"')
+    )
     byte_aligned = (
         has_new_chrome
         and home_header in source
@@ -876,6 +1196,8 @@ def regenerate_home(
         and storage_registry_manifest_in_source
         and storage_registry_js_in_source
         and search_js_in_source
+        and site_config_js_in_source
+        and site_config_first_in_source
     )
     # Also require the canonical FOUC IIFE byte sequence to be present.
     # Without this, a home page that was generated before Story 1.5
@@ -964,6 +1286,8 @@ def regenerate_home(
         and storage_registry_manifest_in_source
         and storage_registry_js_in_source
         and search_js_in_source
+        and site_config_js_in_source
+        and site_config_first_in_source
     ):
         footer_end = source.find('</footer>')
         if footer_end == -1:
@@ -1140,6 +1464,25 @@ def regenerate_home(
                     1,
                 )
 
+        # Story 1.12: ensure site-config.js is loaded BEFORE
+        # storage-registry.js so HT.siteConfig is defined when the
+        # registry IIFE runs (and before shell.js boots so the
+        # wireViewSourceLink wiring in shell.js can read
+        # HT.siteConfig.blobBase). Idempotent — only added on first
+        # regeneration when the script tag is absent.
+        if 'src="assets/js/site-config.js"' not in new_source:
+            site_tag = '<script src="assets/js/site-config.js"></script>'
+            storage_tag = '<script src="assets/js/storage-registry.js"></script>'
+            utils_tag = '<script src="assets/js/utils.js"></script>'
+            if storage_tag in new_source:
+                new_source = new_source.replace(
+                    storage_tag, site_tag + "\n  " + storage_tag, 1
+                )
+            elif utils_tag in new_source:
+                new_source = new_source.replace(
+                    utils_tag, site_tag + "\n  " + utils_tag, 1
+                )
+
         if new_source == source:
             print(f"  no-change {path.relative_to(root)}")
             return True
@@ -1159,6 +1502,8 @@ def regenerate_home(
                 missing.append("storage-registry.js")
             if 'src="assets/js/search.js"' not in new_source:
                 missing.append("search.js")
+            if 'src="assets/js/site-config.js"' not in new_source:
+                missing.append("site-config.js")
             print(
                 f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})"
             )
@@ -1188,6 +1533,8 @@ def regenerate_home(
             missing.append("storage-registry.js")
         if 'src="assets/js/search.js"' not in source:
             missing.append("search.js")
+        if 'src="assets/js/site-config.js"' not in source:
+            missing.append("site-config.js")
         print(f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})")
         return True
 
@@ -1282,6 +1629,21 @@ def regenerate_home(
             '<script src="assets/js/storage-registry.js"></script>\n  '
             '<script src="assets/js/utils.js"></script>',
         )
+    # Story 1.12: site-config.js must load BEFORE storage-registry.js so
+    # HT.siteConfig is defined before any module consults it. Idempotent —
+    # only added on first regeneration when the script tag is absent.
+    if 'src="assets/js/site-config.js"' not in new_source:
+        site_tag = '<script src="assets/js/site-config.js"></script>'
+        storage_tag = '<script src="assets/js/storage-registry.js"></script>'
+        utils_tag = '<script src="assets/js/utils.js"></script>'
+        if storage_tag in new_source:
+            new_source = new_source.replace(
+                storage_tag, site_tag + "\n  " + storage_tag, 1
+            )
+        elif utils_tag in new_source:
+            new_source = new_source.replace(
+                utils_tag, site_tag + "\n  " + utils_tag, 1
+            )
     # Story 1.9: ensure the data-driven section script tag and the inline
     # tools.json fallback are present on the home page. The home-grid.js
     # script is loaded as a sibling of shell.js; the inline JSON block is
@@ -1421,6 +1783,7 @@ def main(argv: list[str]) -> int:
             palette_html=palette_html,
             settings_html=settings_html,
             head_script=head_script,
+            tools_json_inline=tools_json_inline,
             dry_run=args.dry_run,
         ):
             failures += 1

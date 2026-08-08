@@ -39,7 +39,7 @@
     </nav>
   </div>
 </header>
-  <main id="main" class="shell-main" aria-label="Compound Interest Calculator" tabindex="-1">
+  <main id="main" class="shell-main" data-slug="compound-interest" aria-label="Compound Interest Calculator" tabindex="-1">
     <div id="top"></div>
     <header class="tool-header">
       <a href="../../index.html" class="back-link">← All tools</a>
@@ -243,8 +243,13 @@
 
   
 
+  <script src="../../assets/js/site-config.js"></script>
   <script src="../../assets/js/storage-registry.js"></script>
   <script src="../../assets/js/utils.js"></script>
+  <!-- ht:tools-json-inline-start -->
+  <script type="application/json" id="ht-tools-json-inline">{"$schema":"tools.schema.json","generated":"2026-08-06T00:00:00Z","releaseVersion":"0.0.0","schemaVersion":"1","tools":[{"category":"Converters & Calculators","description":"CPI-adjusted value, purchasing power, real vs nominal wage growth, salary to keep up, and period comparison. BLS data 1913–2024, bundled offline.","embed-snippet":{"badge-default":true,"enabled":true,"min-height":480,"min-width":320},"history-keys":["ic-amount","ic-from","ic-to","ic-forward-rate","ic-wage-start-salary","ic-wage-start-year","ic-wage-end-year","ic-wage-end-salary","ic-salary-now","ic-salary-years"],"icon":"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 17l5-5 4 4 8-8' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M14 8h6v6' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E","id":"inflation-calculator","keywords":["inflation","cpi","cpi-u","purchasing-power","wage","salary","real","nominal","bls","us","1913","1920","1970s","2024"],"last-updated":"2026-08-06T00:00:00Z","pack":["finance","household"],"ready":true,"score":9,"search-priority":7,"shortcuts":[{"action":"reset","key":"r","label":"Reset to defaults"},{"action":"sample","key":"s","label":"Load sample ($100 in 2000)"}],"slug":"inflation-calculator","title":"Inflation Calculator","urlState":{"decode":[{"key":"ic-amount","type":"number"},{"key":"ic-from","type":"number"},{"key":"ic-to","type":"number"},{"key":"ic-forward-rate","type":"number"}],"default":{"ic-amount":"100","ic-forward-rate":"3","ic-from":"2000","ic-to":"2024"},"encode":[{"key":"ic-amount","type":"number"},{"key":"ic-from","type":"number"},{"key":"ic-to","type":"number"},{"key":"ic-forward-rate","type":"number"}]},"view-source":{"enabled":true,"path":"tools/inflation-calculator/index.html"}}]}</script>
+  <!-- ht:tools-json-inline-end -->
+
   <script src="../../assets/js/shell.js" defer></script>
   <script src="../../assets/js/search.js" defer></script>
   <script src="./compound-interest.js"></script>
