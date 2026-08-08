@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="For the road, the flight, the family trip.">
+  <title>Travel · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%232F5BFF'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+  <script>(function(){try{var t=localStorage.getItem("ht.theme");var mqd=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)");t=t==="light"||t==="dark"?t:(mqd&&mqd.matches?"dark":"light");var d=document.documentElement;d.setAttribute("data-theme",t);d.style.backgroundColor=t==="dark"?"#0f1117":"#f7f8fb";d.style.color=t==="dark"?"#e8eaf0":"#1a1d29";try{if(/[?&]embed=1(?:&|$)/.test(location.search)){d.setAttribute("data-embed","1");}}catch(_){}}catch(_){}try{var po=window.PerformanceObserver?new PerformanceObserver(function(list){try{var e=list.getEntries().find(function(x){return x.name==="first-paint"});if(e){d.dispatchEvent(new CustomEvent("ht:fouc-resolved",{detail:{elapsedMs:e.startTime}}));po.disconnect();}}catch(_){}}):null;if(po){po.observe({type:"paint",buffered:true});}}catch(_){}}catch(e){document.documentElement.setAttribute("data-theme","light")}})();</script>
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/tools.css">
+</head>
+<body>
+<!-- shell:header -->
+<header class="site-header" role="banner" aria-label="Handy Tools">
+  <div class="container">
+    <a class="shell-brand" href="../index.html">
+      <span class="shell-brand-mark">H</span>
+      <span>Handy Tools</span>
+    </a>
+    <nav class="shell-header-nav" aria-label="Primary">
+      <button class="shell-search-trigger" type="button" aria-label="Search tools">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span>Search</span>
+      </button>
+      <button class="theme-toggle" type="button" aria-label="Toggle theme">
+        <svg class="moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l-1.41-1.41"/></svg>
+      </button>
+      <button class="shell-locale" type="button" aria-label="Change language" data-locale="en" disabled>EN</button>
+      <button class="shell-settings" type="button" aria-label="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+<!-- /shell:header --><!-- shell:settings -->
+<!-- Canonical source for the Settings modal overlay (Story 1.8).
+     Mounted as a static include in every page by `scripts/shell-template.py`
+     (mirrors the palette.html convention). The drift check
+     (`scripts/shell-drift-check.py`) extracts the region between the marker
+     comments and byte-matches every page.
+
+     ARIA pattern: WAI-ARIA 1.2 modal dialog. role="dialog", aria-modal="true",
+     aria-labelledby points at the heading id. Hidden + aria-hidden="true" in
+     the static state — `assets/js/shell.js` toggles [hidden] / aria-hidden
+     when openSettings() / closeSettings() run.
+
+     Settings fields:
+       1. Theme          (LIVE — Story 1.8 wires; mirror of header toggle)
+       2. Language       (LIVE — plain-string persistence; Story 7.7 wires translations)
+       3. Reduced motion (LIVE — sets <html data-reduced-motion>)
+       4. Default units  (DISABLED placeholder — Story 1.10+)
+       5. Default currency (DISABLED placeholder — Story 1.10+)
+       6. Font scale     (DISABLED placeholder — Story 1.10+)
+       7. Clear all local data (LIVE — only consumer of SETTINGS_KEYS)
+
+     Per AD-4 the settings UI never renders inside a tool page; the cog is
+     hidden in ?embed=1 mode (AD-7). The modal opens via openSettings() from
+     the header cog click handler at assets/js/shell.js. -->
+<div id="shell-settings-modal" class="shell-settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" aria-hidden="true" hidden>
+  <div class="shell-settings-modal__backdrop" data-settings-dismiss></div>
+  <div class="shell-settings-modal__panel" tabindex="-1">
+    <header class="shell-settings-modal__header">
+      <h2 id="settings-modal-title" class="shell-settings-modal__title">Settings</h2>
+      <button type="button" class="shell-settings-modal__close" aria-label="Close settings" data-settings-dismiss>×</button>
+    </header>
+
+    <form class="shell-settings-modal__body" id="shell-settings-form" onsubmit="return false;">
+
+      <!-- 1. Theme (LIVE) -->
+      <fieldset class="shell-settings-field" data-setting-key="ht.theme">
+        <legend class="shell-settings-label">Theme</legend>
+        <div class="shell-settings-control">
+          <label class="shell-settings-radio"><input type="radio" name="ht.theme" value="auto" checked> Auto (follow system)</label>
+          <label class="shell-settings-radio"><input type="radio" name="ht.theme" value="light"> Light</label>
+          <label class="shell-settings-radio"><input type="radio" name="ht.theme" value="dark"> Dark</label>
+        </div>
+      </fieldset>
+
+      <!-- 2. Language (LIVE read+write) -->
+      <div class="shell-settings-field" data-setting-key="ht.locale">
+        <label class="shell-settings-label" for="ht-locale">Language</label>
+        <div class="shell-settings-control">
+          <select id="ht-locale" name="ht.locale" class="shell-settings-select">
+            <option value="en">English</option>
+            <option value="bn">বাংলা (Bengali)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 3. Reduced motion (LIVE) -->
+      <div class="shell-settings-field" data-setting-key="ht.reducedMotion">
+        <label class="shell-settings-label" for="ht-reducedMotion">Reduce motion</label>
+        <div class="shell-settings-control">
+          <label class="shell-settings-checkbox"><input id="ht-reducedMotion" type="checkbox" name="ht.reducedMotion" value="1"> Disable animations and transitions</label>
+        </div>
+      </div>
+
+      <!-- 4. Default units (DISABLED placeholder) -->
+      <div class="shell-settings-field">
+        <label class="shell-settings-label">Default units</label>
+        <div class="shell-settings-control">
+          <select disabled aria-describedby="ht-units-hint"><option>Metric</option><option>Imperial</option></select>
+          <small id="ht-units-hint" class="shell-settings-hint">Coming soon</small>
+        </div>
+      </div>
+
+      <!-- 5. Default currency (DISABLED placeholder) -->
+      <div class="shell-settings-field">
+        <label class="shell-settings-label">Default currency</label>
+        <div class="shell-settings-control">
+          <input type="text" value="USD" disabled aria-describedby="ht-currency-hint">
+          <small id="ht-currency-hint" class="shell-settings-hint">Coming soon</small>
+        </div>
+      </div>
+
+      <!-- 6. Font scale (DISABLED placeholder) -->
+      <div class="shell-settings-field">
+        <label class="shell-settings-label" for="ht-fontScale">Font scale</label>
+        <div class="shell-settings-control">
+          <input id="ht-fontScale" type="range" min="80" max="120" step="5" value="100" disabled aria-describedby="ht-fontScale-hint">
+          <output aria-hidden="true">100%</output>
+          <small id="ht-fontScale-hint" class="shell-settings-hint">Coming soon</small>
+        </div>
+      </div>
+
+      <!-- 7. Clear all local data (LIVE — only consumer of SETTINGS_KEYS) -->
+      <div class="shell-settings-field shell-settings-field--danger">
+        <div class="shell-settings-control">
+          <button type="button" id="shell-settings-clear" class="shell-settings-modal__danger">Clear all local data…</button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+<!-- /shell:settings --><!-- shell:palette -->
+<!-- Canonical source for the command palette overlay (Story 1.7).
+     Mounted as a static include in every page by `scripts/shell-template.py`
+     (mirrors the chrome.html header/footer convention). The drift check
+     (`scripts/shell-drift-check.py`) extracts the region between the marker
+     comments and byte-matches every page.
+
+     ARIA pattern: WAI-ARIA 1.1 combobox + listbox (UX-DR-19). The wrapper is
+     role="combobox" with aria-haspopup="listbox" + aria-owns pointing to the
+     listbox id. The input is role="searchbox" with aria-controls pointing to
+     the same listbox. Hidden + aria-hidden="true" in the static state —
+     `assets/js/shell.js` toggles aria-expanded, [hidden], and aria-hidden
+     when openPalette() / closePalette() run.
+
+     The footer slot is empty in this story; Story 3.1 wires keyboard hints
+     (↑↓ navigate, Enter select, Esc close). -->
+<div class="shell-palette" id="palette" role="combobox" aria-haspopup="listbox" aria-owns="palette-listbox" aria-expanded="false" aria-label="Command palette" hidden>
+  <div class="shell-palette-panel">
+    <input class="shell-palette-input" id="palette-input" type="search" role="searchbox" aria-controls="palette-listbox" aria-activedescendant="" aria-autocomplete="list" placeholder="Search tools…" autocomplete="off" spellcheck="false" />
+    <ul class="shell-palette-list" id="palette-listbox" role="listbox" aria-label="Tools">
+      <li class="shell-palette-empty" role="presentation">No recent tools yet</li>
+    </ul>
+    <div class="shell-palette-footer" aria-hidden="true"></div>
+  </div>
+</div>
+<!-- /shell:palette -->  <main id="main" class="shell-main" aria-label="Travel" tabindex="-1">
+    <a id="top"></a>
+    <header class="pack-page-header" data-pack-slug="travel">
+      <a href="../index.html" class="back-link">← All tools</a>
+      <div class="pack-page-header-row">
+        <span class="pack-page-icon" id="pack-page-icon"></span>
+        <div>
+          <h1 class="pack-page-title" id="pack-page-title"></h1>
+          <p class="pack-page-tagline" id="pack-page-tagline"></p>
+          <p class="pack-page-count" id="pack-page-count"></p>
+        </div>
+      </div>
+    </header>
+
+    <section class="pack-page-tools" id="pack-page-tools" data-mounted="false">
+      <div class="tool-grid" id="pack-page-tool-grid"></div>
+    </section>
+  </main>
+<!-- shell:footer -->
+<footer class="site-footer" role="contentinfo" aria-label="Site information">
+  <div class="container">
+    <nav class="shell-footer-nav" aria-label="Footer">
+      <a href="/privacy">Privacy</a>
+      <a href="/quality">Quality</a>
+      <span aria-disabled="true">View source</span>
+      <a href="https://github.com/sanjitdev/useful-tools" rel="noopener noreferrer">GitHub</a>
+    </nav>
+    <small class="shell-footer-copy">&copy; <span id="ht-footer-year">2026</span> Handy Tools. Built with vanilla JS.</small>
+  </div>
+</footer>
+<!-- /shell:footer -->
+<!-- ht:storage-registry-manifest-start -->
+<!-- Hand-maintained mirror of the register() calls in
+     assets/js/storage-registry.js. The shell-template splices this block
+     into index.html on every regeneration; the drift check byte-matches
+     it on every page. Keep the entry list in sync with the JS file —
+     the pre-commit hook blocks commits that change storage-registry.js
+     without updating this manifest. Edit both at once. -->
+<script type="application/json" id="ht-storage-registry-manifest">
+{"entries":[{"key":"handy-tools.bd-tax-calculator.lang","lifetime":"persistent","owner":"bd-tax-calculator.js","purpose":"Selected language for the Bangladesh Tax Calculator","schema":"string"},{"key":"handy-tools.bd-tax-calculator.rules","lifetime":"persistent","owner":"bd-tax-calculator.js","purpose":"Selected ruleset id for the Bangladesh Tax Calculator","schema":"string"},{"key":"handy-tools.bd-tax-calculator.state","lifetime":"persistent","owner":"bd-tax-calculator.js","purpose":"Persisted tool state for the Bangladesh Tax Calculator","schema":"object"},{"key":"handy-tools.countdown-to-date.state","lifetime":"persistent","owner":"countdown-to-date.js","purpose":"Persisted tool state for the Countdown to Date","schema":"object"},{"key":"handy-tools.dashboard","lifetime":"persistent","owner":"shell.js","purpose":"Per-pack dashboard layout (Epic 6)","schema":"object"},{"key":"handy-tools.decision-wheel.state","lifetime":"persistent","owner":"decision-wheel.js","purpose":"Persisted tool state for the Decision Wheel","schema":"object"},{"key":"handy-tools.eisenhower-matrix.state","lifetime":"persistent","owner":"eisenhower-matrix.js","purpose":"Persisted tool state for the Eisenhower Matrix","schema":"object"},{"key":"handy-tools.favorites","lifetime":"persistent","owner":"shell.js","purpose":"Favorite tool slugs (Epic 6 pack composition)","schema":"array<string>"},{"key":"handy-tools.grade-calculator.state","lifetime":"persistent","owner":"grade-calculator.js","purpose":"Persisted tool state for the Grade Calculator","schema":"object"},{"key":"handy-tools.gpa-calculator.state","lifetime":"persistent","owner":"gpa-calculator.js","purpose":"Persisted tool state for the GPA Calculator","schema":"object"},{"key":"handy-tools.habit-tracker.state","lifetime":"persistent","owner":"habit-tracker.js","purpose":"Persisted tool state for the Habit Tracker","schema":"object"},{"key":"handy-tools.hints.seen","lifetime":"persistent","owner":"shell.js","purpose":"Hint ids the user has dismissed (UX EXPERIENCE.md:662)","schema":"array<string>"},{"key":"handy-tools.inflation-calculator.inputs","lifetime":"persistent","owner":"inflation-calculator.js","purpose":"Persisted input history for the Inflation Calculator","schema":"object"},{"key":"handy-tools.lifespan-simulator.plan","lifetime":"persistent","owner":"lifespan-simulator.js","purpose":"Plan Your Changes targets (Story 1.16; WHO-cited delta planner)","schema":"object"},{"key":"handy-tools.pins","lifetime":"persistent","owner":"shell.js","purpose":"Pinned tool slugs (home grid ordering)","schema":"array<string>"},{"key":"handy-tools.pomodoro-timer.state","lifetime":"persistent","owner":"pomodoro-timer.js","purpose":"Persisted tool state for the Pomodoro Timer","schema":"object"},{"key":"handy-tools.pros-cons.state","lifetime":"persistent","owner":"pros-cons.js","purpose":"Persisted tool state for the Pros & Cons tool","schema":"object"},{"key":"handy-tools.pwa.dismissals","lifetime":"persistent","owner":"shell.js","purpose":"PWA install prompt dismissal counter (EXPERIENCE.md:83)","schema":"object"},{"key":"handy-tools.recent","lifetime":"persistent","owner":"shell.js","purpose":"Recently-used tool slugs (palette source)","schema":"array<string>"},{"key":"handy-tools.world-clock.state","lifetime":"persistent","owner":"world-clock.js","purpose":"Persisted tool state for the World Clock","schema":"object"},{"key":"ht.fontScale","lifetime":"persistent","owner":"shell.js","purpose":"Font scale percent (\"100\", \"125\", ...) — Story 3.5","schema":"string"},{"key":"ht.locale","lifetime":"persistent","owner":"shell.js","purpose":"UI locale code (BCP-47; e.g. \"en\", \"bn\", \"hi\")","schema":"string"},{"key":"ht.reducedMotion","lifetime":"persistent","owner":"shell.js","purpose":"Reduced-motion preference (\"0\" or \"1\")","schema":"string in {0,1}"},{"key":"ht.theme","lifetime":"persistent","owner":"theme.js","purpose":"Light/dark/auto theme selection (FOUC IIFE reads at boot)","schema":"string in {auto,light,dark}"},{"key":"ht.units","lifetime":"persistent","owner":"shell.js","purpose":"Preferred unit system (\"metric\" or \"imperial\")","schema":"string"},{"key":"ht.currency","lifetime":"persistent","owner":"shell.js","purpose":"Preferred display currency (ISO 4217)","schema":"string"}]}
+</script>
+<!-- ht:storage-registry-manifest-end -->
+  <script src="../assets/js/site-config.js"></script>
+  <script src="../assets/js/storage-registry.js"></script>
+  <script src="../assets/js/utils.js"></script>
+  <!-- ht:tools-json-inline-start -->
+  <script type="application/json" id="ht-tools-json-inline">{"$schema":"tools.schema.json","schemaVersion":"1","releaseVersion":"0.0.0","generated":"2026-08-06T00:00:00Z","tools":[{"id":"lifespan-simulator","slug":"lifespan-simulator","title":"Lifespan Simulator","description":"Statistical lifespan estimate from lifestyle, health, and habits, with WHO-cited Plan Your Changes tab (cancel-out rule). Not a medical prediction.","category":"Health & Lifestyle","pack":["household","study"],"icon":"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5 3 .8-1.3-4.3-2.6z' fill='%234f46e5'/%3E%3C/svg%3E","keywords":["lifespan","life expectancy","longevity","health","habits","smoking","alcohol","exercise","sleep","BMI","diet","who","plan","cancel-out"],"last-updated":"2026-08-08T00:00:00Z","ready":true,"score":8,"urlState":{"default":{},"encode":[{"key":"tab","type":"string","from":"ls-mode-tabs .tab.is-active[data-tab]"}],"decode":[{"key":"tab","type":"string","to":"ls-mode-tabs .tab[data-tab]"}]},"shortcuts":[{"key":"r","label":"Reset plan targets to WHO optimal","action":"reset"}],"history-keys":["plan-smoking-target","plan-alcohol-target","plan-exercise-target","plan-sleep-target","plan-bmi-target","plan-diet-target","ls-smoking","ls-alcohol","ls-exercise","ls-sleep"],"view-source":{"enabled":true,"path":"tools/lifespan-simulator/index.html"},"embed-snippet":{"enabled":true,"badge-default":true,"min-width":320,"min-height":640},"search-priority":7},{"id":"inflation-calculator","slug":"inflation-calculator","title":"Inflation Calculator","description":"CPI-adjusted value, purchasing power, real vs nominal wage growth, salary to keep up, and period comparison. BLS data 1913\u20132024, bundled offline.","category":"Converters & Calculators","pack":["finance","household"],"icon":"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 17l5-5 4 4 8-8' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M14 8h6v6' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E","keywords":["inflation","cpi","cpi-u","purchasing-power","wage","salary","real","nominal","bls","us","1913","1920","1970s","2024"],"last-updated":"2026-08-06T00:00:00Z","ready":true,"score":9,"urlState":{"default":{"ic-amount":"100","ic-from":"2000","ic-to":"2024","ic-forward-rate":"3"},"encode":[{"key":"ic-amount","type":"number"},{"key":"ic-from","type":"number"},{"key":"ic-to","type":"number"},{"key":"ic-forward-rate","type":"number"}],"decode":[{"key":"ic-amount","type":"number"},{"key":"ic-from","type":"number"},{"key":"ic-to","type":"number"},{"key":"ic-forward-rate","type":"number"}]},"shortcuts":[{"key":"r","label":"Reset to defaults","action":"reset"},{"key":"s","label":"Load sample ($100 in 2000)","action":"sample"}],"history-keys":["ic-amount","ic-from","ic-to","ic-forward-rate","ic-wage-start-salary","ic-wage-start-year","ic-wage-end-year","ic-wage-end-salary","ic-salary-now","ic-salary-years"],"view-source":{"enabled":true,"path":"tools/inflation-calculator/index.html"},"embed-snippet":{"enabled":true,"badge-default":true,"min-width":320,"min-height":480},"search-priority":7},{"id":"qr-code-generator","slug":"qr-code-generator","title":"QR Code Generator","description":"Generate a QR code from any text or URL. Pick an error-correction level and download as SVG or PNG.","category":"Developer","pack":["developer"],"icon":"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='7' height='7' fill='%234f46e5'/%3E%3Crect x='14' y='3' width='7' height='7' fill='%234f46e5'/%3E%3Crect x='3' y='14' width='7' height='7' fill='%234f46e5'/%3E%3Crect x='14' y='14' width='3' height='3' fill='%234f46e5'/%3E%3Crect x='18' y='14' width='3' height='3' fill='%234f46e5'/%3E%3Crect x='14' y='18' width='3' height='3' fill='%234f46e5'/%3E%3Crect x='18' y='18' width='3' height='3' fill='%234f46e5'/%3E%3C/svg%3E","keywords":["qr","qr code","qrcode","barcode","scan","url","text","developer","embed","share"],"last-updated":"2026-08-08T00:00:00Z","ready":true,"score":8,"score-waiver":{"reason":"Wave-1 flagship; per-tool substrate (urlState/sample/history/share) lands in Stories 2.1-2.5.","since-release":"0.0.0","reviewer":"sanjit","expires-after-releases":2},"urlState":{"default":{"qr-text":"https://example.com","qr-ecc":"M","qr-margin":"4"},"encode":[{"key":"qr-text","type":"string","from":"#qr-text"},{"key":"qr-ecc","type":"string","from":"#qr-ecc"},{"key":"qr-margin","type":"number","from":"#qr-margin"}],"decode":[{"key":"qr-text","type":"string","to":"#qr-text"},{"key":"qr-ecc","type":"string","to":"#qr-ecc"},{"key":"qr-margin","type":"number","to":"#qr-margin"}]},"shortcuts":[],"history-keys":["qr-text","qr-ecc","qr-margin"],"view-source":{"enabled":true,"path":"tools/qr-code-generator/index.html"},"embed-snippet":{"enabled":true,"badge-default":true,"min-width":320,"min-height":480},"search-priority":7}]}</script>
+  <!-- ht:tools-json-inline-end -->
+
+  <script src="../assets/js/shell.js" defer></script>
+  <script src="../assets/js/search.js" defer></script>
+  <script src="../assets/js/pack-page.js" defer></script>
+</body>
+</html>

@@ -124,6 +124,13 @@ def iter_target_files(root: Path) -> list[Path]:
             page = slug_dir / "index.html"
             if page.is_file():
                 paths.append(page)
+    # Story 6.2: also scan packs/<slug>.html — pack pages have the same
+    # chrome and the same <main aria-label> requirement.
+    packs_dir = root / "packs"
+    if packs_dir.is_dir():
+        for page in sorted(packs_dir.glob("*.html")):
+            if page.is_file():
+                paths.append(page)
     return paths
 
 

@@ -74,6 +74,9 @@ TOOLS_JSON_REL = Path("tools.json")
 # src="../../assets/js/search.js". We accept either form.
 SEARCH_JS_ANCHOR_HOME = '<script src="assets/js/search.js" defer></script>'
 SEARCH_JS_ANCHOR_TOOL = '<script src="../../assets/js/search.js" defer></script>'
+# Story 6.2: pack pages live at packs/<slug>.html (depth 1), so they use
+# the "../" relative path for assets/js/* scripts (one level up to repo root).
+SEARCH_JS_ANCHOR_PACK = '<script src="../assets/js/search.js" defer></script>'
 # Story 1.12: site-config.js script tag + ordering. Same home-vs-tool
 # path split as search.js (root-relative on home, "../../" on tool pages).
 # Site-config.js must load BEFORE storage-registry.js so HT.siteConfig
@@ -81,8 +84,10 @@ SEARCH_JS_ANCHOR_TOOL = '<script src="../../assets/js/search.js" defer></script>
 # ht.theme fallback is read by the FOUC IIFE).
 SITE_CONFIG_JS_ANCHOR_HOME = '<script src="assets/js/site-config.js"></script>'
 SITE_CONFIG_JS_ANCHOR_TOOL = '<script src="../../assets/js/site-config.js"></script>'
+SITE_CONFIG_JS_ANCHOR_PACK = '<script src="../assets/js/site-config.js"></script>'
 STORAGE_REGISTRY_JS_ANCHOR_HOME = '<script src="assets/js/storage-registry.js"></script>'
 STORAGE_REGISTRY_JS_ANCHOR_TOOL = '<script src="../../assets/js/storage-registry.js"></script>'
+STORAGE_REGISTRY_JS_ANCHOR_PACK = '<script src="../assets/js/storage-registry.js"></script>'
 
 
 def find_repo_root(start: Path) -> Path:
@@ -226,8 +231,8 @@ def load_chrome(root: Path) -> tuple[str, str, str, str, str, str, str, str]:
         settings_match.group(1),
         tools_json_inline_bytes,
         manifest_match.group(1),
-        (SEARCH_JS_ANCHOR_HOME, SEARCH_JS_ANCHOR_TOOL),
-        (SITE_CONFIG_JS_ANCHOR_HOME, SITE_CONFIG_JS_ANCHOR_TOOL),
+        (SEARCH_JS_ANCHOR_HOME, SEARCH_JS_ANCHOR_TOOL, SEARCH_JS_ANCHOR_PACK),
+        (SITE_CONFIG_JS_ANCHOR_HOME, SITE_CONFIG_JS_ANCHOR_TOOL, SITE_CONFIG_JS_ANCHOR_PACK),
     )
 
 
@@ -249,20 +254,33 @@ def iter_target_files(root: Path) -> list[Path]:
             page = child / "index.html"
             if page.is_file():
                 paths.append(page)
+    # Story 6.2: also scan packs/<slug>.html (pack pages live at depth 1
+    # with their own chrome; they share the same canonical chrome parts as
+    # tool pages).
+    packs_dir = root / "packs"
+    if packs_dir.is_dir():
+        for page in sorted(packs_dir.glob("*.html")):
+            if page.is_file():
+                paths.append(page)
     return paths
 
 
 def normalize(text: str) -> str:
-    """Replace per-context hrefs with a placeholder so home and tool pages
-    can be compared against the same canonical chrome. The brand link is
-    the only intentional difference: home uses `#top`, tool pages use
-    `../../index.html`."""
+    """Replace per-context hrefs with a placeholder so home, tool pages, and
+    pack pages can all be compared against the same canonical chrome. The
+    brand link is the only intentional difference: home uses `#top`, tool
+    pages use `../../index.html` (depth 2), pack pages use `../index.html`
+    (depth 1, Story 6.2)."""
     return re.sub(
         r'href="#top"',
         'href="__BRAND_HREF__"',
         text,
     ).replace(
         'href="../../index.html"',
+        'href="__BRAND_HREF__"',
+        1,
+    ).replace(
+        'href="../index.html"',
         'href="__BRAND_HREF__"',
         1,
     )
@@ -276,8 +294,8 @@ def scan(
     settings: str,
     tools_json_inline: str,
     storage_registry_manifest: str,
-    search_js_anchors: tuple[str, str],
-    site_config_anchors: tuple[str, str],
+    search_js_anchors: tuple[str, str, str],
+    site_config_anchors: tuple[str, str, str],
     allowed: set[Path],
 ) -> int:
     header_norm = normalize(header)
@@ -316,9 +334,13 @@ def scan(
         # a plain `python -m http.server` from the repo root.
         if ok:
             is_home = rel == Path("index.html")
-            expected_anchor = (
-                search_js_anchors[0] if is_home else search_js_anchors[1]
-            )
+            is_pack = rel.parent.name == "packs"
+            if is_home:
+                expected_anchor = search_js_anchors[0]
+            elif is_pack:
+                expected_anchor = search_js_anchors[2]
+            else:
+                expected_anchor = search_js_anchors[1]
             search_js_ok = expected_anchor in text_norm
             if not search_js_ok:
                 sys.stderr.write(
@@ -339,9 +361,16 @@ def scan(
         # <main id="main"> for tool pages (home has no slug).
         if ok:
             is_home = rel == Path("index.html")
-            site_anchor = (
-                site_config_anchors[0] if is_home else site_config_anchors[1]
-            )
+            is_pack = rel.parent.name == "packs"
+            if is_home:
+                site_anchor = site_config_anchors[0]
+                storage_anchor = STORAGE_REGISTRY_JS_ANCHOR_HOME
+            elif is_pack:
+                site_anchor = site_config_anchors[2]
+                storage_anchor = STORAGE_REGISTRY_JS_ANCHOR_PACK
+            else:
+                site_anchor = site_config_anchors[1]
+                storage_anchor = STORAGE_REGISTRY_JS_ANCHOR_TOOL
             if site_anchor not in text_norm:
                 sys.stderr.write(
                     f"CHROME DRIFT (site-config.js): {rel} — "
@@ -350,10 +379,7 @@ def scan(
                 )
                 ok = False
             else:
-                storage_anchor = (
-                    STORAGE_REGISTRY_JS_ANCHOR_HOME if is_home
-                    else STORAGE_REGISTRY_JS_ANCHOR_TOOL
-                )
+                pass
                 if storage_anchor in text_norm:
                     site_pos = text_norm.find(site_anchor)
                     storage_pos = text_norm.find(storage_anchor)
@@ -365,11 +391,13 @@ def scan(
                             "registry IIFE runs)\n"
                         )
                         ok = False
-        if ok and not is_home:
+        if ok and not is_home and not is_pack:
             # Tool pages must carry data-slug="<slug>" on <main id="main">.
-            # Home page (no slug) is exempt. The slug is the directory
-            # name; we derive it from the path rather than parsing
-            # location.pathname because the drift check is offline.
+            # Home page (no slug) and pack pages (depth-1 slug comes from
+            # data-pack-slug on the header, not data-slug on <main>) are
+            # exempt. The slug is the directory name; we derive it from
+            # the path rather than parsing location.pathname because the
+            # drift check is offline.
             slug = rel.parent.name
             data_slug_marker = f'data-slug="{slug}"'
             if data_slug_marker not in text:
