@@ -355,6 +355,119 @@
   border-style: dashed;
 }
 
+/* ---------- Pack cards (home grid, Story 6.1) ----------
+   Rendered by assets/js/pack-grid.js into #home-grid-packs. Each card
+   is a real <a> to /packs/<slug>.html (Story 6.2's destination). The
+   layout flips between a horizontal scroller (<md) and a responsive
+   grid (≥md), per EXPERIENCE.md §4 row 338 + §6.3 "No carousels in v1".
+   Cobalt-aware tokens only; no per-card hue. */
+
+.pack-section {
+  margin-top: var(--space-6);
+}
+
+.pack-section > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+.pack-card {
+  display: grid;
+  grid-template-rows: auto auto auto auto auto;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+
+.pack-card:hover {
+  text-decoration: none;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
+}
+
+.pack-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.pack-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pack-card-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.pack-card-title {
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.pack-card-desc {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.pack-card-count {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.pack-card-cta {
+  color: var(--color-accent);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* <md (≤767px): flip from grid to horizontal scroller. The scroll
+   container shows a right-edge gradient to indicate scrollability
+   (per EXPERIENCE.md §6.3 "horizontal scrollers ... gradient edge"). */
+@media (max-width: 767px) {
+  .pack-section > div {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--space-3);
+    gap: var(--space-3);
+    padding-block: var(--space-2);
+    /* Right-edge gradient: fade to surface color to suggest more content. */
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 32px), transparent);
+    mask-image: linear-gradient(to right, black calc(100% - 32px), transparent);
+  }
+
+  .pack-card {
+    flex: 0 0 80%;
+    scroll-snap-align: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pack-card {
+    transition: none !important;
+  }
+  .pack-card:hover {
+    transform: none;
+  }
+}
+
 /* Inline "Coming soon" announcement appended to a locked card on click
    or Enter. role=status + aria-live=polite so screen readers announce it
    without interrupting. */
