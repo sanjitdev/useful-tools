@@ -1,8 +1,8 @@
 # Shell Public API Contract (AD-14)
 
 **Status:** active
-**Story:** [1.14 — Shell Public API and Bypass Prohibition](../_bmad-output/planning-artifacts/epics.md#story-114-shell-public-api-and-bypass-prohibition) + [2.2 — Per-Tool Sample Data and Reset Button](../_bmad-output/planning-artifacts/epics.md#story-22-per-tool-sample-data-and-reset-button)
-**Architecture binding:** AD-14, AD-13, AD-4
+**Story:** [1.14 — Shell Public API and Bypass Prohibition](../_bmad-output/planning-artifacts/epics.md#story-114-shell-public-api-and-bypass-prohibition) + [2.1 — Per-Tool URL State Codec Wiring](../_bmad-output/planning-artifacts/epics.md#story-21-per-tool-url-state-codec-wiring) + [2.2 — Per-Tool Sample Data and Reset Button](../_bmad-output/planning-artifacts/epics.md#story-22-per-tool-sample-data-and-reset-button)
+**Architecture binding:** AD-14, AD-13, AD-4, AD-5
 **Source of truth for runtime:** `assets/js/api-contract.js`
 
 This document is the public, human-readable contract for the `HT.*` namespace.
@@ -113,6 +113,13 @@ bumped from `1.4.0` by Story 2.2).
 | `HT.net.abort` | stable | shell.js (this story) |
 | `HT.provideRegistry` | internal | shell.js (this story) |
 | `HT.netRegistry` | internal | shell.js (this story) |
+| `HT.urlState.encode` | stable | url.js (Story 2.1 / AD-5) |
+| `HT.urlState.decode` | stable | url.js (Story 2.1 / AD-5) |
+| `HT.urlState.bindForm` | stable | url.js (Story 2.1 / AD-5) |
+| `HT.urlState.bindDomTarget` | stable | url.js (Story 2.1 / AD-5) |
+| `HT.urlState.subscribe` | stable | url.js (Story 2.1 / AD-5) |
+| `HT.urlState._loadSchema` | internal | url.js (Story 2.1 / AD-5) |
+| `HT.urlStateUrl` | internal | url.js (Story 2.1 / AD-5) |
 | `HT.sampleData.fill` | stable | sample-data.js (Story 2.2) |
 | `HT.sampleData.button` | stable | sample-data.js (Story 2.2) |
 | `HT.sampleData.hasSample` | stable | sample-data.js (Story 2.2) |

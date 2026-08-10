@@ -81,7 +81,7 @@ development_status:
   # =========================================================================
   epic-2: in-progress
   epic-6: in-progress
-  2-1-per-tool-url-state-codec-wiring: backlog
+  2-1-per-tool-url-state-codec-wiring: done
   2-2-per-tool-sample-data-and-reset-button: done
   2-3-per-tool-history-panel: backlog
   2-4-per-tool-keyboard-complete-surface: backlog
