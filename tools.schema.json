@@ -214,6 +214,12 @@
           "minItems": 1,
           "maxItems": 10
         },
+        "tab-order-canonical": {
+          "description": "Canonical Tab order for the tool page — ordered list of CSS selectors (#id or tag.class) that HT.a11y.tabOrder(slug) should match at each position. Items are matched in order; any number of intervening runtime entries are tolerated. The machine-checkable surface is the 4-slot form ['#shell-skip', 'input', 'button', 'a'] which captures the spec's intent ('skip → inputs → actions (sample/reset/history) → result/footer'); finer-grained role labels (e.g., '#qr-sample', '#ls-reset') are encouraged as each Wave 2.6/2.7/2.8 migration adds its per-tool declaration. When absent, the gate falls back to the Story 2.4 canonical order and emits a warn recommending this per-tool declaration be added.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        },
         "view-source": {
           "description": "Trust surface (FR-16). Every tool footer links to its source.",
           "type": "object",

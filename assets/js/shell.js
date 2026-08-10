@@ -962,9 +962,11 @@
 
     const panel = document.querySelector('.shell-settings-modal__panel');
     if (!panel) return;
-    const focusables = Array.from(panel.querySelectorAll(
-      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    ));
+    const focusables = HT.a11y && HT.a11y.focusable
+      ? Array.from(HT.a11y.focusable(panel))
+      : Array.from(panel.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      ));
     if (focusables.length === 0) return;
     const first = focusables[0];
     const last = focusables[focusables.length - 1];

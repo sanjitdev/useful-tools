@@ -1,0 +1,121 @@
+name: A11y Audit Check
+
+# Story 2.4 — Per-Tool Keyboard-Complete Surface. This workflow
+# enforces PRD rubric criterion #1 ("Keyboard-complete") by running
+# the per-tool audit gate and the Node smoke harness for the new
+# HT.a11y Shell Public API surface.
+#
+# The audit gate (scripts/a11y-audit-tool.py) walks every tools.json
+# entry with ready:true and runs HT.a11y.auditTool in a Node vm
+# context against the tool's index.html. It compares the runtime
+# tabOrder against the per-tool tab-order-canonical array (or falls
+# back to the Story 2.4 canonical order: #shell-skip → input →
+# button → a) and exits 1 on any failed tool.
+#
+# Per AD-15 brownfield truth, today's ready:true set is the three
+# Wave-1 flagships (lifespan-simulator, inflation-calculator,
+# qr-code-generator). The per-tool canonical arrays land in Stories
+# 2.6/2.7/2.8 wave migrations; until those land, the gate emits a
+# `console.warn` per missing canonical array and reports the actual
+# gaps (skip-link, missing-aria) as failures — which is correct
+# behavior because rubric criterion #1 is not yet satisfied.
+#
+# Source of truth: docs/shell-public-api.md §5 (the public API doc)
+#                 docs/quality-rubric.md#Keyboard-complete (the rubric)
+
+on:
+  pull_request:
+    paths:
+      - "tools/**"
+      - "tools.json"
+      - "tools.schema.json"
+      - "scripts/a11y-audit-tool.py"
+      - "scripts/_smoke_a11y.js"
+      - "scripts/shell-bounds-check.py"
+      - "assets/js/a11y.js"
+      - "assets/js/shell.js"
+      - "assets/js/api-contract.js"
+      - "assets/js/utils.js"
+      - "docs/shell-public-api.md"
+      - "docs/quality-rubric.md"
+      - "ARCHITECTURE-SPINE.md"
+      - ".github/workflows/a11y-audit-check.yml"
+      - "Makefile"
+  push:
+    branches: [ main ]
+    paths:
+      - "tools/**"
+      - "tools.json"
+      - "tools.schema.json"
+      - "scripts/a11y-audit-tool.py"
+      - "scripts/_smoke_a11y.js"
+      - "scripts/shell-bounds-check.py"
+      - "assets/js/a11y.js"
+      - "assets/js/shell.js"
+      - "assets/js/api-contract.js"
+      - "assets/js/utils.js"
+      - "docs/shell-public-api.md"
+      - "docs/quality-rubric.md"
+      - "ARCHITECTURE-SPINE.md"
+      - ".github/workflows/a11y-audit-check.yml"
+      - "Makefile"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a11y-audit-check
+  cancel-in-progress: false
+
+jobs:
+  a11y-check:
+    name: A11y Audit Check
+    runs-on: ubuntu-latest
+
+    # The audit spawns one Node subprocess per ready:true tool. With
+    # three ready:true tools today (Wave-1 flagships) and a generous
+    # budget for future growth, ~60s is more than enough.
+    timeout-minutes: 5
+
+    steps:
+      # actions/checkout is pinned to a commit SHA for supply-chain
+      # safety. The mutable tag v4.2.2 resolves to:
+      #   11bd71901bbe5b1630ceea73d27597364c9af683
+      # Bump the SHA only after auditing the new tag's diff against
+      # the previously-pinned version.
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.11"
+
+      # actions/setup-node is pinned to a commit SHA. The mutable tag
+      # v4.1.0 resolves to:
+      #   1e44f9385a0d5f4dee9b2c12e9a38e9d6b5e566d
+      # Required for the per-tool audit (Node evaluates a11y.js in a
+      # vm context against each tool's index.html).
+      - name: Setup Node
+        uses: actions/setup-node@1e44f9385a0d5f4dee9b2c12e9a38e9d6b5e566d # v4.1.0
+        with:
+          node-version: "22"
+
+      - name: Smoke a11y.js Shell Public API surface (Story 2.4 / AD-4 + AD-14)
+        # Loads assets/js/a11y.js in a fresh vm context against five
+        # fixtures (clean-tool, hover-only-tool, unlabeled-tool,
+        # tabindex-positive-tool, missing-skip-tool), asserts the
+        # HT.a11y surface is frozen, the five public + one internal
+        # entry are registered, and audit shape + all gap categories
+        # behave per spec. 42 PASS expected. Vacuous-pass guard
+        # (pass===0 && fail===0 → exit 1) catches hollow runs.
+        run: make a11y-smoke
+
+      - name: Per-tool audit gate (Story 2.4 AC-2)
+        # Runs scripts/a11y-audit-tool.py against every ready:true
+        # tools.json entry. Exits 1 on any failed tool or tabOrder
+        # mismatch. Per AD-15, today's ready:true set has real gaps
+        # (missing skip-link, unlabeled inputs) — the gate will exit
+        # 1 until Stories 2.6/2.7/2.8 wave migrations land.
+        run: make a11y-audit

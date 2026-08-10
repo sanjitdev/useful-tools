@@ -49,6 +49,16 @@ Forbidden surfaces (scanned in tools/<slug>/<slug>.js only)
                                             these strings — the canonical copies
                                             come from sample-data.js.
 
+Forbidden surfaces (scanned in tools/<slug>/<slug>.js AND tools/<slug>/index.html)
+---------------------------------------------------------------------------------
+  - tabindex="N" for N >= 1               > Story 2.4 / EXPERIENCE.md §6.2 row 4.
+                                            No positive tabindex values — fix tab
+                                            order by re-ordering the DOM, not via
+                                            tabindex hacks. Allowlisted values:
+                                            tabindex="-1" (skip-target / modal-trap),
+                                            tabindex="0" (canonical "tabbable but
+                                            not script-focusable" pattern).
+
 Allowlist (the policy docs/shell-public-api.md §6 explains)
 ------------------------------------------------------------
   1. Inline <script> blocks in tools/<slug>/index.html are NOT scanned.
@@ -70,7 +80,8 @@ cleanly (run it before this gate). The cross-check is informational; a
 failure here names the violated module + the offending line.
 
 Author: Handy Tools (Story 1.14 — Shell Public API and Bypass Prohibition
-                     + Story 2.2 — Per-Tool Sample Data and Reset Button)
+                     + Story 2.2 — Per-Tool Sample Data and Reset Button
+                     + Story 2.4 — Per-Tool Keyboard-Complete Surface)
 """
 
 from __future__ import annotations
@@ -165,6 +176,24 @@ SAMPLE_LITERAL_RE = re.compile(
 # optional `(r)`). Raw-line scanner.
 SAMPLE_ARIA_RE = re.compile(
     r"""['"](?:Try an example|Reset to sample)(?:\s*\([sr]\))?['"]"""
+)
+
+
+# ---------------------------------------------------------------------------
+# Story 2.4 — positive tabindex prohibition (AC-7)
+# ---------------------------------------------------------------------------
+#
+# EXPERIENCE.md §6.2 row 4 forbids any positive tabindex value
+# (1, 2, 3, …). The only allowlist is `tabindex="-1"` (the
+# documented skip-target pattern at `assets/shell/chrome.html:33`
+# and the focus-trap fallback for modals). The scanner matches
+# the literal attribute form: tabindex="1", tabindex='2',
+# tabindex=3, tabindex= 4 — the regex captures the numeric value
+# so the allowlist (`-1` and zero) is enforced. A tool author
+# who needs to fix tab order does so via DOM re-ordering, not
+# tabindex hacks.
+TABINDEX_RE = re.compile(
+    r"""tabindex\s*=\s*['"]?\s*(-?[0-9]+)\s*['"]?"""
 )
 
 
@@ -575,6 +604,14 @@ def _scan_file(path: Path) -> list[tuple[str, int, str]]:
         on a block-comment-stripped copy of the source, so an HTML
         attribute literal or ARIA-label string inside a `setAttribute`
         call or template-literal HTML fragment still trips the gate.
+
+    Story 2.4 additions:
+      - TABINDEX_RE is run as a raw-line scanner against the
+        block-comment-stripped source. Matches tabindex="N" with N
+        a positive integer (1, 2, 3, ...). tabindex="-1" and
+        tabindex="0" are allowlisted (the latter is the documented
+        "tabbable but not focusable via script" pattern; EXPERIENCE.md
+        §6.2 row 4 forbids only positive values).
     """
     try:
         text = path.read_text(encoding="utf-8")
@@ -607,11 +644,50 @@ def _scan_file(path: Path) -> list[tuple[str, int, str]]:
         hits.append(("sample/reset", ln, line))
     for ln, line in _line_numbers(stripped, SAMPLE_ARIA_RE):
         hits.append(("sample/reset", ln, line))
+    # Story 2.4 positive-tabindex rule (raw-line, allowlists -1 / 0).
+    for ln, line in _line_numbers(stripped, TABINDEX_RE):
+        m = TABINDEX_RE.search(line)
+        if m is None:
+            continue
+        try:
+            value = int(m.group(1))
+        except (TypeError, ValueError):
+            continue
+        if value >= 1:
+            hits.append(("positive-tabindex", ln, line))
+    return hits
+
+
+def _scan_index_html(path: Path) -> list[tuple[str, int, str]]:
+    """Story 2.4 — scan a tool page's index.html for positive
+    tabindex attributes. Unlike <slug>.js, the index.html is mostly
+    HTML markup, not code — only the TABINDEX_RE rule applies. The
+    block-comment stripper is a no-op for HTML (no /* */ comments)
+    but we run it for symmetry so the line numbers in the report
+    match the source file.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        sys.stderr.write(f"shell-bounds-check: cannot read {path}: {e}\n")
+        return [("read-error", 0, str(e))]
+    stripped = _strip_block_comments(text)
+    hits: list[tuple[str, int, str]] = []
+    for ln, line in _line_numbers(stripped, TABINDEX_RE):
+        m = TABINDEX_RE.search(line)
+        if m is None:
+            continue
+        try:
+            value = int(m.group(1))
+        except (TypeError, ValueError):
+            continue
+        if value >= 1:
+            hits.append(("positive-tabindex", ln, line))
     return hits
 
 
 def _print_policy() -> None:
-    print("shell-bounds-check policy (Story 1.14 / AD-14 + Story 2.2 / AD-4):")
+    print("shell-bounds-check policy (Story 1.14 / AD-14 + Story 2.2 / AD-4 + Story 2.4):")
     print("  Forbidden in tools/<slug>/<slug>.js:")
     print("    - localStorage.<getItem|setItem|removeItem|clear|key|length>")
     print("    - document.cookie")
@@ -621,12 +697,20 @@ def _print_policy() -> None:
     print("    - dataset.htAction = ... (Story 2.2 — Shell owns sample/reset)")
     print("    - data-ht-action=\"...\" (Story 2.2 — raw HTML attribute form)")
     print("    - 'Try an example' / 'Reset to sample' literals (Story 2.2)")
+    print("  Forbidden in tools/<slug>/<slug>.js AND tools/<slug>/index.html:")
+    print("    - tabindex=\"N\" for N >= 1 (Story 2.4 / EXPERIENCE.md §6.2 —")
+    print("      no positive tabindex; reorder the DOM instead)")
     print("  Allowed:")
     print("    - Inline <script> blocks in tools/<slug>/index.html (not scanned)")
+    print("      for any JS-side rule. (The tabindex rule still applies to")
+    print("      the HTML markup.)")
     print("    - Lifecycle fallback block:")
     print("        if (HT.storage && HT.storage.<op>) { ... } else { ... }")
     print("      where the block contains both a HT.storage.<op> call AND a")
     print("      localStorage.<op> call.")
+    print("    - tabindex=\"-1\" (the documented skip-target / modal-trap pattern)")
+    print("    - tabindex=\"0\" (the documented 'tabbable but not focusable via")
+    print("      script' pattern; EXPERIENCE.md §6.2 forbids only positive values)")
 
 
 def _walk_tool_js(root: Path) -> Iterable[Path]:
@@ -642,6 +726,21 @@ def _walk_tool_js(root: Path) -> Iterable[Path]:
         js = slug_dir / f"{slug}.js"
         if js.is_file():
             yield js
+
+
+def _walk_tool_index_html(root: Path) -> Iterable[Path]:
+    """Yield every tools/<slug>/index.html under `root`. Story 2.4
+    adds the positive-tabindex scan to the index.html walker —
+    the rule applies to HTML markup, not just JS code."""
+    tools_dir = root / TOOLS_DIRNAME
+    if not tools_dir.is_dir():
+        return
+    for slug_dir in sorted(tools_dir.iterdir()):
+        if not slug_dir.is_dir():
+            continue
+        page = slug_dir / "index.html"
+        if page.is_file():
+            yield page
 
 
 def main() -> int:
@@ -675,6 +774,7 @@ def main() -> int:
     print()
 
     files = list(_walk_tool_js(root))
+    pages = list(_walk_tool_index_html(root))
     total_hits = 0
     files_with_hits = 0
     summary_rows: list[str] = []
@@ -701,6 +801,31 @@ def main() -> int:
             if len(trimmed) > 200:
                 trimmed = trimmed[:197] + "…"
             # Escape pipes so the markdown table doesn't break.
+            trimmed = trimmed.replace("|", "\\|")
+            print(f"| {ln} | `{rule}` | `{trimmed}` |")
+        print()
+
+    for page in pages:
+        hits = _scan_index_html(page)
+        slug = page.parent.name
+        if not hits:
+            summary_rows.append(f"| `tools/{slug}/index.html` | 0 | ✓ pass |")
+            continue
+        files_with_hits += 1
+        total_hits += len(hits)
+        rule_counter: dict[str, int] = {}
+        for rule, _, _ in hits:
+            rule_counter[rule] = rule_counter.get(rule, 0) + 1
+        rule_str = ", ".join(f"{rule}×{n}" for rule, n in sorted(rule_counter.items()))
+        summary_rows.append(f"| `tools/{slug}/index.html` | {len(hits)} | ✗ {rule_str} |")
+        print(f"### Violations in `tools/{slug}/index.html`")
+        print()
+        print("| Line | Rule | Offending text |")
+        print("|---:|---|---|")
+        for rule, ln, line in hits:
+            trimmed = line.strip()
+            if len(trimmed) > 200:
+                trimmed = trimmed[:197] + "…"
             trimmed = trimmed.replace("|", "\\|")
             print(f"| {ln} | `{rule}` | `{trimmed}` |")
         print()
@@ -954,6 +1079,43 @@ def _run_self_tests() -> int:
         (
             "SAMPLE_ARIA_RE ignores unrelated label",
             not _line_numbers("'Reset to defaults'\n", SAMPLE_ARIA_RE),
+        ),
+        # Story 2.4 — positive-tabindex rule. The TABINDEX_RE captures
+        # any digit string after `tabindex=`, and the scanner fires
+        # only when the captured integer is >= 1. The allowlist
+        # (`tabindex="-1"`, `tabindex="0"`) is enforced by the
+        # integer-comparison branch in _scan_file / _scan_index_html.
+        (
+            "TABINDEX_RE captures tabindex=\"1\"",
+            bool(_line_numbers('<a tabindex="1">x</a>\n', TABINDEX_RE)),
+        ),
+        (
+            "TABINDEX_RE captures tabindex='2' (single quotes)",
+            bool(_line_numbers("<a tabindex='2'>x</a>\n", TABINDEX_RE)),
+        ),
+        (
+            "TABINDEX_RE captures unquoted tabindex=3",
+            bool(_line_numbers('<a tabindex=3>x</a>\n', TABINDEX_RE)),
+        ),
+        (
+            "TABINDEX_RE captures tabindex= 4 (whitespace)",
+            bool(_line_numbers('<a tabindex= 4>x</a>\n', TABINDEX_RE)),
+        ),
+        (
+            "TABINDEX_RE does not capture tabindex=\"-1\"",
+            not _line_numbers('<a tabindex="-1">x</a>\n', TABINDEX_RE) or
+            # The regex DOES match "-1" (any digit string), but the
+            # downstream integer check excludes it. Verify the match
+            # captures the literal -1 (so the allowlist can compare).
+            TABINDEX_RE.search('<a tabindex="-1">x</a>').group(1) == '-1',
+        ),
+        (
+            "TABINDEX_RE does not capture tabindex=\"0\"",
+            TABINDEX_RE.search('<a tabindex="0">x</a>').group(1) == '0',
+        ),
+        (
+            "TABINDEX_RE ignores block-comment literal",
+            not _line_numbers(_strip_block_comments('/* tabindex="1" */\n'), TABINDEX_RE),
         ),
     ]
     for name, ok in sample_cases:

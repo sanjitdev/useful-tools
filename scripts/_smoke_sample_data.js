@@ -3,9 +3,10 @@
    Loads url.js + sample-data.js in a fresh vm context
    with stub window/document/HT objects and asserts
    the HT.sampleData and HT.reset surfaces per
-   api-contract.js (version 1.5.0 — Story 2.2 standalone
-   bumps 1.4.0 → 1.5.0; if Story 2.1 ships first, Story
-   2.2 will land at 1.6.0 in a follow-up commit).
+   api-contract.js (version 1.6.0 as of this writing —
+   Story 2.2 standalone bumps 1.4.0 → 1.5.0; Story 2.4
+   then bumps 1.5.0 → 1.6.0 to register the HT.a11y.*
+   surface in the same commit window).
 
    Loads url.js first because sample-data.js composes
    on HT.urlState._loadSchema (the same facade Story 2.1
@@ -497,8 +498,8 @@ const contractSrc = fs.readFileSync(
   path.resolve(__dirname, '../assets/js/api-contract.js'),
   'utf8'
 );
-check('api-contract: version bumped to 1.5.0 (Story 2.1: 1.5.0; Story 2.2 standalone: 1.5.0; bundled Story 2.1+2.2: 1.6.0)',
-  /version:\s*['"]1\.5\.0['"]/.test(contractSrc));
+check('api-contract: version bumped to 1.6.0 (Story 2.2 standalone: 1.5.0; bundled Story 2.2+2.4: 1.6.0)',
+  /version:\s*['"]1\.6\.0['"]/.test(contractSrc));
 check('api-contract: HT.sampleData.fill entry present',
   /HT\.sampleData\.fill/.test(contractSrc));
 check('api-contract: HT.sampleData.button entry present',

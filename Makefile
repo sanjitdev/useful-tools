@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -39,7 +39,9 @@ help: ## Show available targets
 	@echo "  make shell-bounds-self-test  Run the embedded unit tests for the bypass check"
 	@echo "  make shell-public-api-smoke  Run the Node smoke harness for HT.provide / HT.use / HT.net (Story 1.14)"
 	@echo "  make sample-data-smoke   Run the Node smoke harness for assets/js/sample-data.js (Story 2.2 / AD-4 + AD-14)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke"
+	@echo "  make a11y-smoke          Run the Node smoke harness for assets/js/a11y.js (Story 2.4 / AD-4 + AD-14)"
+	@echo "  make a11y-audit          Per-tool keyboard-complete audit (Story 2.4 AC-2) — exit 1 on any failed ready:true tool"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit"
 
 validate: validate-tools-json
 
@@ -83,7 +85,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -214,3 +216,29 @@ shell-public-api-smoke:
 # (pass===0 && fail===0 → exit 1) means a hollow run fails the gate.
 sample-data-smoke:
 	@node scripts/_smoke_sample_data.js
+
+# `a11y-smoke` runs the Node smoke harness for assets/js/a11y.js
+# (Story 2.4 — Per-Tool Keyboard-Complete Surface). Loads a11y.js in
+# a fresh vm context against five fixtures (clean-tool,
+# hover-only-tool, unlabeled-tool, tabindex-positive-tool,
+# missing-skip-tool), asserts the HT.a11y surface is frozen and
+# registers five public entries (auditTool, tabOrder, missingAria,
+# hoverOnly, focusRingOk) plus one internal (focusable), verifies
+# audit shape + all gap categories, and pins api-contract.js at
+# version 1.6.0 with the six expected entries. Vacuous-pass guard
+# (pass===0 && fail===0 → exit 1) catches hollow runs.
+a11y-smoke:
+	@node scripts/_smoke_a11y.js
+
+# `a11y-audit` runs the per-tool audit gate (Story 2.4 AC-2). For
+# every tools.json entry with ready:true, runs HT.a11y.auditTool in
+# a Node vm context against the tool's index.html, compares the
+# runtime tabOrder against the per-tool tab-order-canonical array
+# (or falls back to the Story 2.4 order: #shell-skip → input →
+# button → a), and exits 1 on any failed tool. Per AD-15 brownfield
+# truth, today's ready:true set is the three Wave-1 flagships; the
+# per-tool canonical arrays land in Stories 2.6/2.7/2.8. The
+# fallback warning keeps the gate meaningful while the migrations
+# land. Exit 2 = repo layout issue; exit 3 = I/O failure.
+a11y-audit:
+	@$(PYTHON) scripts/a11y-audit-tool.py

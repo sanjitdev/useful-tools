@@ -86,6 +86,7 @@ Namespace / directory map:
 - **Binds:** FR-7, FR-8, FR-9, FR-12, FR-13, FR-17, FR-18, FR-19
 - **Prevents:** two Tools independently implementing theme, locale, history, settings, or toast conventions and producing subtly incompatible UX
 - **Rule:** Theme, locale, settings modal, command palette, toast region, install prompt, offline banner, history API, and data export/import are exclusively in the Shell (`assets/js/`). A Tool calls `HT.toast()`, `HT.history.push(slug, entry)`, `HT.formatNumber()`, `HT.t(key)` — it never re-implements them. The Tool folder ships only its own `index.html`, `<slug>.js`, `<slug>.css`. `[ADOPTED from PRD §4.3, §4.5 + UX §1.1]`
+- **Extension (Story 2.4):** Keyboard-complete accessibility enforcement is also a Shell-owned global concern. The Shell exposes `HT.a11y.auditTool(slug, rootEl)` + `tabOrder` / `missingAria` / `hoverOnly` / `focusRingOk` / `focusable` as the single source of truth for "what Tab can reach" on any tool page. The Shell owns the focus-ring token (`{elevation.ring}` = 3px solid at 2px offset) and the skip-link injection. A Tool never re-implements focus management, never declares its own `tabindex >= 1`, and never ships a hover-only affordance without a matching `:focus-visible` rule. The per-tool audit gate (`scripts/a11y-audit-tool.py`) consumes the Shell-owned `HT.a11y.*` surface to verify rubric criterion #1 ("Keyboard-complete") on every `ready:true` entry in `tools.json`.
 
 ### AD-5 — URL is canonical state
 
@@ -349,6 +350,7 @@ flowchart LR
 | Tool Expansion (FR-21) | New `tools/<slug>/` + `tools.json` entry | AD-1, AD-2, AD-3 |
 | Shell Public API Contract (AD-14) | `assets/js/api-contract.js` | AD-4, AD-13 |
 | Brownfield Migration (AD-15) | `docs/tool-inventory.md`, staged home grid | AD-2, AD-3, AD-6 |
+| Keyboard-Complete Audit (Rubric #1) | `assets/js/a11y.js` + `scripts/a11y-audit-tool.py` | AD-4, AD-15 |
 
 ## Deferred
 

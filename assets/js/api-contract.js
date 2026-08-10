@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.5.0',
+  version: '1.6.0',
   generated: '2026-08-10',
   entries: Object.freeze([
     Object.freeze({
@@ -278,6 +278,48 @@ window.HT.__apiContract = Object.freeze({
       stability: 'stable',
       module: 'assets/js/sample-data.js',
       notes: 'Story 2.2. Builds a <button data-ht-action="reset"> wired to HT.reset.run(slug, {confirm: true}). The visible label is "Reset to sample" by default (overridable via opts.label), and the aria-label is the canonical "Reset to sample (r)" regardless of opts.label — the shortcut key surfaces for the Story 3.3 overlay. The destructive variant is the default per DESIGN.md §5.',
+    }),
+    Object.freeze({
+      name: 'HT.a11y.auditTool',
+      signature: '(slug: string, rootEl?: HTMLElement) => AuditReport',
+      stability: 'stable',
+      module: 'assets/js/a11y.js',
+      notes: 'Story 2.4 / AD-2 rubric criterion #1. Read-only audit that composes every HT.a11y.* check into a frozen AuditReport {slug, passed, tabOrder, interactiveCount, gaps:{positiveTabindex, missingAria, hoverOnly, focusRingMissing, unreachableInteractive, missingSkip}, ts}. passed === true iff every gaps.* array is empty. Default rootEl is document.querySelector("main[data-slug]"). Tools do not call this — the gate scripts/a11y-audit-tool.py runs it against every ready:true tool under make a11y-audit. Throws UrlStateSchemaError(INVALID_SLUG) for malformed slugs.',
+    }),
+    Object.freeze({
+      name: 'HT.a11y.tabOrder',
+      signature: '(slug: string, rootEl?: HTMLElement) => readonly string[]',
+      stability: 'stable',
+      module: 'assets/js/a11y.js',
+      notes: 'Story 2.4. Returns the document order of focusable elements under rootEl, expressed as CSS selectors (#id or tag.class). Same selector as HT.a11y.focusable. Mirrors what Tab traversal reaches — the gate compares the returned order against the entry\'s tools.json tab-order-canonical array.',
+    }),
+    Object.freeze({
+      name: 'HT.a11y.missingAria',
+      signature: '(slug: string, rootEl?: HTMLElement) => readonly HTMLElement[]',
+      stability: 'stable',
+      module: 'assets/js/a11y.js',
+      notes: 'Story 2.4. Returns every focusable element without an accessible name (aria-label, aria-labelledby, title for <a>, or visible text for <a>/<button>). EXCLUDES <input> with a sibling <label for="…"> so labeled inputs don\'t false-positive.',
+    }),
+    Object.freeze({
+      name: 'HT.a11y.hoverOnly',
+      signature: '(rootEl?: HTMLElement) => readonly HTMLElement[]',
+      stability: 'stable',
+      module: 'assets/js/a11y.js',
+      notes: 'Story 2.4. Heuristic: returns focusables whose :hover computed style differs from :focus-visible on background-color or opacity — the 80/20 indicator of a hover-only affordance. Implemented via window.getComputedStyle(el, \':hover\').backgroundColor which is supported on all browsers in project-context §1 NFR-4.',
+    }),
+    Object.freeze({
+      name: 'HT.a11y.focusRingOk',
+      signature: '(rootEl?: HTMLElement) => {ok: boolean, missing: readonly HTMLElement[]}',
+      stability: 'stable',
+      module: 'assets/js/a11y.js',
+      notes: 'Story 2.4. Asserts every focusable shows a 3px solid outline at 2px offset on :focus-visible (the DESIGN.md §5 ring token). Returns {ok, missing}. Elements whose parent rule installs the ring are tolerated (the audit reads outline-width/outline-offset; empty values mean "covered by parent selector").',
+    }),
+    Object.freeze({
+      name: 'HT.a11y.focusable',
+      signature: '(rootEl?: HTMLElement) => readonly HTMLElement[]',
+      stability: 'internal',
+      module: 'assets/js/a11y.js',
+      notes: 'Story 2.4. Internal helper — returns the focusable-selector result applied to rootEl. Same selector as shell.js:966 (the settings-modal focus-trap literal). Tools calling this is undefined behavior; the Shell uses it for the focus trap. The selector is the single source of truth — both shell.js and a11y.js route through this surface.',
     }),
   ]),
 });

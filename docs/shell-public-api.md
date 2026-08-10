@@ -1,8 +1,8 @@
 # Shell Public API Contract (AD-14)
 
 **Status:** active
-**Story:** [1.14 — Shell Public API and Bypass Prohibition](../_bmad-output/planning-artifacts/epics.md#story-114-shell-public-api-and-bypass-prohibition) + [2.1 — Per-Tool URL State Codec Wiring](../_bmad-output/planning-artifacts/epics.md#story-21-per-tool-url-state-codec-wiring) + [2.2 — Per-Tool Sample Data and Reset Button](../_bmad-output/planning-artifacts/epics.md#story-22-per-tool-sample-data-and-reset-button)
-**Architecture binding:** AD-14, AD-13, AD-4, AD-5
+**Story:** [1.14 — Shell Public API and Bypass Prohibition](../_bmad-output/planning-artifacts/epics.md#story-114-shell-public-api-and-bypass-prohibition) + [2.1 — Per-Tool URL State Codec Wiring](../_bmad-output/planning-artifacts/epics.md#story-21-per-tool-url-state-codec-wiring) + [2.2 — Per-Tool Sample Data and Reset Button](../_bmad-output/planning-artifacts/epics.md#story-22-per-tool-sample-data-and-reset-button) + [2.4 — Per-Tool Keyboard-Complete Surface](../_bmad-output/planning-artifacts/epics.md#story-24-per-tool-keyboard-complete-surface)
+**Architecture binding:** AD-14, AD-13, AD-4, AD-5, AD-15
 **Source of truth for runtime:** `assets/js/api-contract.js`
 
 This document is the public, human-readable contract for the `HT.*` namespace.
@@ -83,8 +83,8 @@ calls `HT.provide(slug, api)` once at boot, after `HT.boot()`.
 ## 5. The `HT.*` surface (stable + experimental + internal)
 
 The current entries live in `assets/js/api-contract.js` (read that file for
-the canonical, machine-verified list — version `1.5.0` as of this writing,
-bumped from `1.4.0` by Story 2.2).
+the canonical, machine-verified list — version `1.6.0` as of this writing,
+bumped from `1.5.0` by Story 2.4).
 
 | Entry | Stability | Module |
 |---|---|---|
@@ -126,6 +126,12 @@ bumped from `1.4.0` by Story 2.2).
 | `HT.sampleData.mount` | stable | sample-data.js (Story 2.2) |
 | `HT.reset.run` | stable | sample-data.js (Story 2.2) |
 | `HT.reset.button` | stable | sample-data.js (Story 2.2) |
+| `HT.a11y.auditTool` | stable | a11y.js (Story 2.4) |
+| `HT.a11y.tabOrder` | stable | a11y.js (Story 2.4) |
+| `HT.a11y.missingAria` | stable | a11y.js (Story 2.4) |
+| `HT.a11y.hoverOnly` | stable | a11y.js (Story 2.4) |
+| `HT.a11y.focusRingOk` | stable | a11y.js (Story 2.4) |
+| `HT.a11y.focusable` | internal | a11y.js (Story 2.4) |
 
 ---
 
@@ -199,6 +205,64 @@ the gate.
 2. Surface the deprecation in the help overlay (Story 3.3).
 3. After one release, bump the major version on the contract and remove
    the entry.
+
+---
+
+## 9. Keyboard-Complete audit gate (Story 2.4 / AD-15 brownfield)
+
+The Shell exposes `HT.a11y.auditTool(slug, rootEl)` (§5) so the per-tool
+audit gate (`scripts/a11y-audit-tool.py`, wired into
+`.github/workflows/a11y-audit-check.yml`) can verify PRD rubric criterion
+#1 ("Keyboard-complete") on every `ready:true` entry in `tools.json`.
+
+**Audit shape.** `HT.a11y.auditTool` returns a frozen `AuditReport`:
+
+```js
+{
+  slug: string,                       // the kebab-case slug
+  passed: boolean,                    // every gaps.* array is empty AND skip-link is present
+  tabOrder: string[],                 // CSS selectors for every focusable in DOM order
+  interactiveCount: number,           // == tabOrder.length
+  gaps: {
+    positiveTabindex: Element[],      // tabindex >= 1 (EXPERIENCE.md §6.2 row 4)
+    missingAria: Element[],           // focusables without accessible name or label
+    hoverOnly: Element[],             // :hover + no matching :focus-visible for SIGNIFICANT properties
+    focusRingMissing: Element[],      // :focus-visible ring != 3px solid at 2px offset
+    unreachableInteractive: Element[],// <form> with focusables but no submit button
+    missingSkip: Element[]            // absent #shell-skip / .shell-skip
+  },
+  ts: number                          // Date.now() — purely informational
+}
+```
+
+**Tab-order canonical declaration.** Every `tools.json` entry may carry an
+optional `tab-order-canonical` array (see `tools.schema.json`). The gate
+walks the array in order and confirms each entry matches the runtime
+`tabOrder` at the corresponding position (id selectors match exactly;
+type selectors match any element of that tag). The
+machine-checkable surface is the 4-slot form `["#shell-skip", "input",
+"button", "a"]`, which captures the spec's intent ("skip → inputs →
+actions (sample/reset/history) → result/footer") at a granularity that
+applies across all 33 tools. Finer-grained role labels (e.g.,
+`#qr-sample`, `#ls-reset`) are encouraged as each Wave 2.6/2.7/2.8
+migration adds its per-tool declaration. When the array is absent, the
+gate falls back to the Story 2.4 canonical order and emits a
+`console.warn` recommending the per-tool declaration.
+
+**Brownfield status.** Per AD-15, today's `ready:true` set is the three
+Wave-1 flagships (`lifespan-simulator`, `inflation-calculator`,
+`qr-code-generator`) plus whatever Waves 2.6/2.7/2.8 have migrated. The
+audit gate **exits 1** on any failed tool today — by design. The exit
+will turn to 0 as each Wave migration lands the substrate (skip-link
+everywhere, labels on every input, focus-ring on every focusable) and
+adds the per-tool `tab-order-canonical` array. The gate's per-tool
+breakdown makes the remaining work visible.
+
+**Why a real gate, not advisory.** Rubric criterion #1 is load-bearing
+(it's the first of ten) and is what keyboard-only users rely on for
+navigation. The audit is read-only — it never mutates the DOM. Tools
+that fail the audit are simply not ready to ship as `ready:true`.
+Waves 2.6/2.7/2.8 own the fix; Story 2.4 owns the visibility.
 
 ---
 
