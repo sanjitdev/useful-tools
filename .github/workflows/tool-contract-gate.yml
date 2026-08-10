@@ -25,6 +25,11 @@ on:
       - "scripts/_smoke_site_config.js"
       - "scripts/shell-bounds-check.py"
       - "scripts/_smoke_share_dialog.js"
+      - "scripts/_promote_wave_1.py"
+      - "scripts/_audit_wave_1.py"
+      - "scripts/_smoke_wave_1_pages.js"
+      - "docs/tool-inventory.md"
+      - "docs/quality-audit.md"
       - "assets/shell/**"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
@@ -56,6 +61,11 @@ on:
       - "scripts/_smoke_site_config.js"
       - "scripts/shell-bounds-check.py"
       - "scripts/_smoke_share_dialog.js"
+      - "scripts/_promote_wave_1.py"
+      - "scripts/_audit_wave_1.py"
+      - "scripts/_smoke_wave_1_pages.js"
+      - "docs/tool-inventory.md"
+      - "docs/quality-audit.md"
       - "assets/shell/**"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
@@ -199,3 +209,15 @@ jobs:
         # vacuous-pass guard (pass===0 && fail===0 → exit 1) means a
         # hollow run fails the gate.
         run: make share-dialog-smoke
+
+      - name: Smoke wave-1 page wiring (Story 2.6)
+        # Story 2.6: static Node smoke verifying each Wave-1 page
+        # (qr-code-generator, inflation-calculator, lifespan-
+        # simulator) is in tools.json with ready:true, score>=8,
+        # urlState + history-keys + view-source.path, and that the
+        # tool's index.html wires the Story 2.x Shell script tags
+        # (share.js, a11y.js, shell.js, sample-data.js, history.js).
+        # 43 PASS expected. The script's vacuous-pass guard
+        # (pass===0 && fail===0 → exit 1) means a hollow run fails
+        # the gate.
+        run: make wave-1-smoke

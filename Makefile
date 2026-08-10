@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -43,6 +43,10 @@ help: ## Show available targets
 	@echo "  make a11y-audit          Per-tool keyboard-complete audit (Story 2.4 AC-2) — exit 1 on any failed ready:true tool"
 	@echo "  make history-smoke       Run the Node smoke harness for assets/js/history.js (Story 2.3 / AD-4 + AD-14)"
 	@echo "  make share-dialog-smoke  Run the Node smoke harness for assets/js/share.js (Story 2.5 / AD-4 + AD-14)"
+	@echo "  make tool-inventory      Regenerate docs/tool-inventory.md (Story 2.6 / Story 1.4)"
+	@echo "  make promote-wave-1      Validate the three Wave-1 tools are at the 8/10 bar and refresh the inventory (Story 2.6)"
+	@echo "  make audit-wave-1        Run docs/quality-rubric.md against each Wave-1 tool and emit docs/quality-audit.md (Story 2.6)"
+	@echo "  make wave-1-smoke        Run the static smoke harness verifying the three Wave-1 pages are wired to the Shell (Story 2.6)"
 	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke"
 
 validate: validate-tools-json
@@ -87,7 +91,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke wave-1-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -276,3 +280,33 @@ history-smoke:
 # catches hollow runs.
 share-dialog-smoke:
 	@node scripts/_smoke_share_dialog.js
+
+# Story 2.6 — Wave-1 promotion + inventory + audit + page smoke.
+# `tool-inventory` regenerates docs/tool-inventory.md, listing all
+# tools on disk with their wave assignment (Wave-1 = ready:true;
+# Wave-2 = ready:false; Wave-3 = not yet in tools.json).
+tool-inventory:
+	@$(PYTHON) scripts/_promote_wave_1.py --inventory-only --quiet
+
+# `promote-wave-1` is idempotent: validates that the three Wave-1
+# tools (qr-code-generator, inflation-calculator, lifespan-simulator)
+# are at score>=8 with urlState + history-keys + view-source, and
+# refreshes docs/tool-inventory.md. Exits 1 if any Wave-1 tool is
+# below the 8/10 bar.
+promote-wave-1:
+	@$(PYTHON) scripts/_promote_wave_1.py
+
+# `audit-wave-1` runs scripts/rubric-lint.py against each Wave-1
+# tool, captures the per-criterion table, and emits
+# docs/quality-audit.md. Exits 1 if any tool scores below 8.
+audit-wave-1:
+	@$(PYTHON) scripts/_audit_wave_1.py
+
+# `wave-1-smoke` runs the static Node smoke harness verifying each
+# Wave-1 page (i) is in tools.json with ready:true, score>=8,
+# urlState + history-keys + view-source.path; (ii) has the Shell
+# script tags (share.js, a11y.js, shell.js, sample-data.js,
+# history.js); and (iii) ships a non-empty <slug>.js. 43 PASS
+# expected. Vacuous-pass guard catches hollow runs.
+wave-1-smoke:
+	@node scripts/_smoke_wave_1_pages.js
