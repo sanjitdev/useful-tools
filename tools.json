@@ -82,7 +82,12 @@
           { "key": "ic-from", "type": "number" },
           { "key": "ic-to", "type": "number" },
           { "key": "ic-forward-rate", "type": "number" }
-        ]
+        ],
+        "sample": {
+          "ic-amount": 100,
+          "ic-from": 2000,
+          "ic-to": 2024
+        }
       },
       "shortcuts": [
         { "key": "r", "label": "Reset to defaults", "action": "reset" },
@@ -145,7 +150,12 @@
           { "key": "qr-text", "type": "string", "to": "#qr-text" },
           { "key": "qr-ecc", "type": "string", "to": "#qr-ecc" },
           { "key": "qr-margin", "type": "number", "to": "#qr-margin" }
-        ]
+        ],
+        "sample": {
+          "qr-text": "https://handy.tools/?qr=demo",
+          "qr-ecc": "H",
+          "qr-margin": "2"
+        }
       },
       "shortcuts": [],
       "history-keys": [

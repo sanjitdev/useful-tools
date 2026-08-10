@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -38,7 +38,8 @@ help: ## Show available targets
 	@echo "  make shell-bounds        Run the Story 1.14 bypass check (tools/<slug>/<slug>.js only)"
 	@echo "  make shell-bounds-self-test  Run the embedded unit tests for the bypass check"
 	@echo "  make shell-public-api-smoke  Run the Node smoke harness for HT.provide / HT.use / HT.net (Story 1.14)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke"
+	@echo "  make sample-data-smoke   Run the Node smoke harness for assets/js/sample-data.js (Story 2.2 / AD-4 + AD-14)"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke"
 
 validate: validate-tools-json
 
@@ -82,7 +83,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -196,3 +197,20 @@ shell-bounds-self-test:
 # (pass===0 && fail===0 → exit 1) means a hollow run fails the gate.
 shell-public-api-smoke:
 	@node scripts/_smoke_shell_public_api.js
+
+# `sample-data-smoke` runs the Node smoke harness for
+# assets/js/sample-data.js (Story 2.2 / AD-4 + AD-14). Loads
+# utils → sample-data in a fresh vm context with stub
+# HTMLInputElement + HT.homeGrid, asserts the HT.sampleData / HT.reset
+# surfaces are frozen (AD-14), hasSample / fill return merged-or-default
+# for has-sample/default-only/none-of-either slugs with Object.freeze
+# holding under sloppy-mode mutation, button factories emit the right
+# data-ht-action + aria-label + destructive class, mount inserts the
+# sample/reset buttons into a .tool-actions row and tears them down,
+# api-contract.js pins version 1.5.0 + the 6 new entries, tools.json
+# carries a urlState.sample block on inflation-calculator and
+# qr-code-generator, and tools.schema.json declares urlState.sample as
+# an optional property. 54 PASS expected. Vacuous-pass guard
+# (pass===0 && fail===0 → exit 1) means a hollow run fails the gate.
+sample-data-smoke:
+	@node scripts/_smoke_sample_data.js

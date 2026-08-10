@@ -143,6 +143,13 @@
           "required": ["default", "encode", "decode"],
           "properties": {
             "default": { "type": "object" },
+            "sample": {
+              "type": "object",
+              "description": "Per-tool sample-data preset (AD-5 state preset). Each key is a form-field id; each value must match the type declared in `encode[]` for that field. Merged on top of `default` at runtime; absent fields fall back to default values. The merged object is frozen before return — see HT.sampleData.fill.",
+              "additionalProperties": {
+                "type": ["string", "number", "boolean"]
+              }
+            },
             "encode": {
               "type": "array",
               "items": {

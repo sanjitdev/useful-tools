@@ -113,3 +113,16 @@ The full review (5 lenses, 72 findings) was run on Story 1.10 — 48 code/behavi
 - **`HT.settings` missing `read`/`write` accessors.** *Reason deferred: Story 1.10 (Storage Registry with Namespaced Keys) is the canonical contract.*
 - **`localStorage` value coercion validation across all `ht.*` reads.** *Reason deferred: Story 1.10 owns runtime read-side validation.*
 - **Documented z-index scale across shell overlays.** `palette` z-index is unstated; `.shell-settings-modal` is 1100; the comment at `assets/css/components.css:608` incorrectly says the palette is z-index 1000. Cross-cutting Epic-1 concern. *Reason deferred: needs an Epic-1-wide design decision; not Story 1.8's scope.*
+
+
+## Deferred from: code review of 2-2-per-tool-sample-data-and-reset-button (2026-08-10)
+
+The 2026-08-10 review covered 4 of 4 layers (blind-hunter + edge-case-hunter + verification-gap + acceptance-auditor). 2 decision-needed + 11 patch + 4 defer items; the 4 below are the items tagged `defer` after triage.
+
+- **W-1 — Destructive reset confirm dialog lacks `aria-describedby` linking the dialog to a confirmation prompt.** Dialog uses native `HTMLDialogElement.showModal()` which provides focus-trap + `Esc`-to-dismiss, but no element inside the dialog explains what will happen ("This will discard your current values…"). *Reason deferred: WCAG 2.2 SC 4.1.2 is met by the dialog itself; SC 2.4.6 / 3.3.2 polish is a low-impact enhancement. Story 3.5 (Settings Modal Full Control Surface) owns the cross-shell a11y upgrade.*
+
+- **W-2 — Dialog has no explicit `id`/`data-testid`; smoke harness targets it via `document.querySelector('dialog[open]')` which is fragile if any future dialog lands in chrome.** *Reason deferred: only one dialog exists today; defensive hardening, not a regression. Next dialog-bearing story should adopt `id="ht-confirm-dialog"` convention.*
+
+- **W-3 — Sample-data + reset UI strings (`"Try an example"`, `"Reset to sample"`) are hardcoded English in `assets/js/sample-data.js`.** Project-context.md §6 declares all chrome strings must live in `assets/js/i18n.js` with locale fallback. *Reason deferred: cross-cutting i18n retrofit across every tool is out of scope for Story 2.2. Tracked as Epic-3 hardening.*
+
+- **W-4 — `HT.sampleData` registered at version `'1.0.0'`; `HT.reset` not versioned at all.** `assets/js/api-contract.js` exposes `HT.sampleData` at `1.0.0` (correct) but does not list `HT.reset`. Minor version-drift between in-module marker and contract surface. *Reason deferred: `HT.reset` is a thin façade over `_doReset()`; api-contract listing is a doc gap, not a runtime risk. Add to next api-contract refresh.*

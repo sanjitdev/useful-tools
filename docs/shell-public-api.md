@@ -1,8 +1,8 @@
 # Shell Public API Contract (AD-14)
 
 **Status:** active
-**Story:** [1.14 — Shell Public API and Bypass Prohibition](../_bmad-output/planning-artifacts/epics.md#story-114-shell-public-api-and-bypass-prohibition)
-**Architecture binding:** AD-14, AD-13
+**Story:** [1.14 — Shell Public API and Bypass Prohibition](../_bmad-output/planning-artifacts/epics.md#story-114-shell-public-api-and-bypass-prohibition) + [2.2 — Per-Tool Sample Data and Reset Button](../_bmad-output/planning-artifacts/epics.md#story-22-per-tool-sample-data-and-reset-button)
+**Architecture binding:** AD-14, AD-13, AD-4
 **Source of truth for runtime:** `assets/js/api-contract.js`
 
 This document is the public, human-readable contract for the `HT.*` namespace.
@@ -83,7 +83,8 @@ calls `HT.provide(slug, api)` once at boot, after `HT.boot()`.
 ## 5. The `HT.*` surface (stable + experimental + internal)
 
 The current entries live in `assets/js/api-contract.js` (read that file for
-the canonical, machine-verified list — version `1.4.0` as of this writing).
+the canonical, machine-verified list — version `1.5.0` as of this writing,
+bumped from `1.4.0` by Story 2.2).
 
 | Entry | Stability | Module |
 |---|---|---|
@@ -112,6 +113,12 @@ the canonical, machine-verified list — version `1.4.0` as of this writing).
 | `HT.net.abort` | stable | shell.js (this story) |
 | `HT.provideRegistry` | internal | shell.js (this story) |
 | `HT.netRegistry` | internal | shell.js (this story) |
+| `HT.sampleData.fill` | stable | sample-data.js (Story 2.2) |
+| `HT.sampleData.button` | stable | sample-data.js (Story 2.2) |
+| `HT.sampleData.hasSample` | stable | sample-data.js (Story 2.2) |
+| `HT.sampleData.mount` | stable | sample-data.js (Story 2.2) |
+| `HT.reset.run` | stable | sample-data.js (Story 2.2) |
+| `HT.reset.button` | stable | sample-data.js (Story 2.2) |
 
 ---
 
@@ -146,6 +153,17 @@ in the architectural sense:
    string is in the storage-registry manifest passes the gate. The
    `scripts/storage-registry-gate.py` script enforces the same invariant
    independently; the bypass gate cross-checks that script's exit code.
+
+4. **No ad-hoc sample / reset buttons in `<slug>.js`** (Story 2.2) — the
+   canonical Sample and Reset affordances are inserted by the Shell at boot
+   via `HT.sampleData.mount(slug, rootEl)` and `HT.reset.button(slug, rootEl)`
+   (see `assets/js/sample-data.js`). A Tool never binds its own
+   `#<slug>-sample` / `#<slug>-reset` click handlers, never injects a literal
+   "Load sample" or "Reset" button into the DOM, and never reaches for
+   `history.replaceState` / `location.hash` to "apply sample" itself. The
+   gate scans `<slug>.js` for the literal `#-sample` / `#-reset`
+   handler-shape and the keyword sample/reset literals; both fail the gate.
+   Tools delegate to the Shell.
 
 All other `localStorage.*`, `document.cookie`, `fetch(`, `XMLHttpRequest`,
 and bare `HT.provide(...)` references under `tools/<slug>/<slug>.js` fail

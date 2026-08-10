@@ -267,6 +267,25 @@
     syncThemeToggleAria();
     refreshFooterYear();
 
+    // Story 2.2 / AD-4: mount the Sample / Reset buttons onto every tool
+    // page. Sample is global, Tools opt in via the urlState.sample block
+    // in tools.json. The mount helper renders both buttons into a
+    // .tool-actions flex row. Skipped in embed mode and on any page
+    // without data-slug. The Shell boot() calls this for tool pages
+    // after the URL hash has been bound by the Story 2.1 codec (when
+    // that lands); for the Story 2.2 standalone commit, the sample/
+    // reset affordance still works because HT.sampleData.mount reads
+    // the schema via the inline splice / HT.homeGrid fallback rather
+    // than the codec.
+    if (!isEmbedMode() && main && HT.sampleData
+        && typeof HT.sampleData.mount === 'function') {
+      const toolSlug = main.getAttribute && main.getAttribute('data-slug');
+      if (toolSlug && /^[a-z][a-z0-9-]*[a-z0-9]$/.test(toolSlug)) {
+        try { HT.sampleData.mount(toolSlug, main); }
+        catch (err) { console.warn('shell.boot: HT.sampleData.mount failed', err); }
+      }
+    }
+
     // Story 1.7: install the command palette wiring (skip entirely in
     // embed mode per AD-7 — the trigger is hidden and the chord is a no-op).
     if (!isEmbedMode()) {

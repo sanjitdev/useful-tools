@@ -1,5 +1,5 @@
 # generated: 2026-07-31
-# last_updated: 2026-07-31
+# last_updated: 2026-08-10
 # project: useful-tools
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-31
-last_updated: 2026-08-10T14:45:00Z
+last_updated: 2026-08-10T21:30:00Z
 project: useful-tools
 project_key: NOKEY
 tracking_system: file-system
@@ -79,10 +79,10 @@ development_status:
   # FRs: FR-3 (audit completion), FR-4 (34 entries), FR-5 (real data), FR-20
   # ADs: AD-2, AD-3, AD-15 (staged rollout)
   # =========================================================================
-  epic-2: backlog
+  epic-2: in-progress
   epic-6: in-progress
   2-1-per-tool-url-state-codec-wiring: backlog
-  2-2-per-tool-sample-data-and-reset-button: backlog
+  2-2-per-tool-sample-data-and-reset-button: done
   2-3-per-tool-history-panel: backlog
   2-4-per-tool-keyboard-complete-surface: backlog
   2-5-per-tool-share-dialog-with-url-and-print: backlog

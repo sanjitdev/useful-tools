@@ -4,9 +4,15 @@ name: Shell Bounds Check
 # enforces the Tool-side prohibition in docs/shell-public-api.md §2:
 # code under tools/<slug>/<slug>.js must reach the registered HT.* APIs
 # only — no direct localStorage / document.cookie / fetch / XMLHttpRequest
-# / HT.provide calls. Inline <script> blocks in tools/<slug>/index.html
-# are intentionally out of scope (FOUC IIFE grandfather + lifecycle
-# fallback allowlist; see docs/shell-public-api.md §6).
+# / HT.provide / HT.sampleData / HT.reset calls. Inline <script> blocks
+# in tools/<slug>/index.html are intentionally out of scope (FOUC IIFE
+# grandfather + lifecycle fallback allowlist; see docs/shell-public-api.md §6).
+#
+# Story 2.2 — Per-Tool Sample Data and Reset Button. Extends the gate
+# with the ad-hoc sample/reset button rule (data-ht-action attribute,
+# setAttribute form, ARIA shortcut literals) and runs the sample-data
+# smoke harness that exercises HT.sampleData / HT.reset surfaces in a
+# fresh vm context.
 #
 # Source of truth: docs/shell-public-api.md (the policy doc)
 #                 scripts/shell-bounds-check.py (the gate)
@@ -15,8 +21,12 @@ on:
   pull_request:
     paths:
       - "tools/**"
+      - "tools.json"
+      - "tools.schema.json"
       - "scripts/shell-bounds-check.py"
       - "scripts/_smoke_shell_public_api.js"
+      - "scripts/_smoke_sample_data.js"
+      - "assets/js/sample-data.js"
       - "docs/shell-public-api.md"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
@@ -28,8 +38,12 @@ on:
     branches: [ main ]
     paths:
       - "tools/**"
+      - "tools.json"
+      - "tools.schema.json"
       - "scripts/shell-bounds-check.py"
       - "scripts/_smoke_shell_public_api.js"
+      - "scripts/_smoke_sample_data.js"
+      - "assets/js/sample-data.js"
       - "docs/shell-public-api.md"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
@@ -102,3 +116,18 @@ jobs:
         # Vacuous-pass guard (pass===0 && fail===0 → exit 1) means a
         # hollow run fails the gate.
         run: make shell-public-api-smoke
+
+      - name: Smoke sample-data.js per-tool Sample + Reset (Story 2.2 / AD-4 + AD-14)
+        # Loads utils → sample-data in a fresh vm context with stub
+        # HTMLInputElement + HT.homeGrid, asserts the HT.sampleData / HT.reset
+        # surfaces are frozen (AD-14), hasSample / fill return merged-or-default
+        # for has-sample/default-only/none-of-either slugs with Object.freeze
+        # holding under sloppy-mode mutation, button factories emit the right
+        # data-ht-action + aria-label + destructive class, mount inserts the
+        # sample/reset buttons into a .tool-actions row and tears them down,
+        # api-contract.js pins version 1.5.0 + the 6 new entries, tools.json
+        # carries a urlState.sample block on inflation-calculator and
+        # qr-code-generator, and tools.schema.json declares urlState.sample
+        # as an optional property. 54 PASS expected. Vacuous-pass guard
+        # means a hollow run fails the gate.
+        run: make sample-data-smoke

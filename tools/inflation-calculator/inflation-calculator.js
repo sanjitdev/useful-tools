@@ -566,32 +566,26 @@
     if (el) el.value = val;
   }
 
-  function applyDefaults() {
-    Object.keys(DEFAULTS).forEach(function (k) { setVal(k, DEFAULTS[k]); });
-  }
-
-  var resetBtn = HT.$('#ic-reset');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', function () {
-      applyDefaults();
-      render();
-      HT.toast('Reset to defaults');
-    });
-  }
-
-  var sampleBtn = HT.$('#ic-sample');
-  if (sampleBtn) {
-    sampleBtn.addEventListener('click', function () {
-      setVal('ic-amount', 100);
-      setVal('ic-from', 2000);
-      setVal('ic-to', 2024);
-      render();
-      HT.toast('Loaded: $100 in 2000');
-    });
-  }
+  // Sample / Reset buttons are owned by HT.sampleData.mount() (Story 2.2).
+  // The legacy #ic-sample and #ic-reset handlers were removed in the
+  // 2.2 code-review pass (DN-1) so the Shell owns the single insertion
+  // point and the canonical Sample / Reset copy comes from the Shell.
+  // The keyboard shortcuts `r` (reset) and `s` (sample) are wired by the
+  // Shell from tools.json shortcuts[].action="reset" / "sample" and
+  // resolve to HT.reset.run and HT.sampleData.fill respectively.
+  // See assets/js/sample-data.js for the canonical wiring.
 
   // -------------------------------------------------------------
-  // URL hash state (shareable)
+  // URL hash state (shareable) — Story 2.1 / AD-5
+  //
+  // All hash encoding/decoding/initial-state wiring is delegated to the
+  // Shell's HT.urlState codec (assets/js/url.js). The four urlState
+  // keys in tools.json (ic-amount / ic-from / ic-to / ic-forward-rate)
+  // are bound by HT.urlState.bindForm(slug, main) which the Shell boot()
+  // calls after this module runs; the URL-restored state is written
+  // into the DOM inputs before any change event fires. This file does
+  // NOT register its own `hashchange` listener — that lives in
+  // HT.urlState.subscribe (AD-5).
   // -------------------------------------------------------------
 
   var SHARE_HASH_FIELDS = ['ic-amount', 'ic-from', 'ic-to', 'ic-forward-rate'];

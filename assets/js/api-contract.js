@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.4.0',
+  version: '1.5.0',
   generated: '2026-08-10',
   entries: Object.freeze([
     Object.freeze({
@@ -187,6 +187,48 @@ window.HT.__apiContract = Object.freeze({
       stability: 'internal',
       module: 'assets/js/shell.js',
       notes: 'Story 1.14. Internal view of in-flight net requests. Tools calling this is undefined behavior.',
+    }),
+    Object.freeze({
+      name: 'HT.sampleData.fill',
+      signature: '(slug: string) => Readonly<Record<string, string|number|boolean>> | null',
+      stability: 'stable',
+      module: 'assets/js/sample-data.js',
+      notes: 'Story 2.2. Returns Object.freeze(Object.assign({}, schema.urlState.default, schema.urlState.sample)) — i.e., the merged sample-on-default preset for the slug. Returns null when the slug has neither a sample nor a default block. Tools that need to read urlState for codec binding should look up the schema via HT.urlState._loadSchema (Story 2.1 surface, not yet committed) — sample-data.js does NOT depend on it at runtime; the smoke harness stubs HT.urlState.',
+    }),
+    Object.freeze({
+      name: 'HT.sampleData.button',
+      signature: '(slug: string, opts?: {label?: string, variant?: \'link\'|\'ghost\'}) => HTMLButtonElement',
+      stability: 'stable',
+      module: 'assets/js/sample-data.js',
+      notes: 'Story 2.2. Builds a <button data-ht-action="sample"> wired to HT.sampleData.fill: writes values into the tool inputs, updates location.hash via history.replaceState, and focuses the first input. The aria-label is "Try an example (s)" by default. The keyboard binding for `s` is owned by Story 3.3 — sample-data.js only emits the aria-label, it does NOT install a keydown listener. Tools MUST NOT call this directly — the Shell mount helper (HT.sampleData.mount) is the single insertion point.',
+    }),
+    Object.freeze({
+      name: 'HT.sampleData.hasSample',
+      signature: '(slug: string) => boolean',
+      stability: 'stable',
+      module: 'assets/js/sample-data.js',
+      notes: 'Story 2.2. Returns true iff the slug has a non-empty urlState.sample block. Used by the rubric gate and by HT.sampleData.mount to decide whether to render the sample button.',
+    }),
+    Object.freeze({
+      name: 'HT.sampleData.mount',
+      signature: '(slug: string, rootEl: HTMLElement) => {teardown: () => void}',
+      stability: 'stable',
+      module: 'assets/js/sample-data.js',
+      notes: 'Story 2.2. Shell-side helper. Renders the sample button (when applicable) and the reset button (when applicable) inside a .tool-actions flex row in rootEl. Returns {teardown} which removes the inserted buttons and detaches handlers. The Shell boot() calls this for tool pages after HT.urlState.bindForm. Tools MUST NOT call HT.sampleData.button or HT.reset.button directly — the mount helper is the single insertion point.',
+    }),
+    Object.freeze({
+      name: 'HT.reset.run',
+      signature: '(slug: string, opts?: {confirm?: boolean}) => void',
+      stability: 'stable',
+      module: 'assets/js/sample-data.js',
+      notes: 'Story 2.2. Resets the tool to its sample payload (= HT.sampleData.fill(slug) = sample merged on default, per canonical Epic 2.2 AC line 530 "reset restores the sample values"). Writes the payload into the inputs, clears location.hash via history.replaceState(null, "", location.pathname + location.search), and (when current input state differs from the payload and opts.confirm !== false) opens an inline <dialog> confirm modal with the destructive button variant. opts.confirm=false skips the dialog (used after the dialog\'s "Reset" button has already confirmed).',
+    }),
+    Object.freeze({
+      name: 'HT.reset.button',
+      signature: '(slug: string, opts?: {label?: string, variant?: \'ghost\'|\'destructive\'}) => HTMLButtonElement',
+      stability: 'stable',
+      module: 'assets/js/sample-data.js',
+      notes: 'Story 2.2. Builds a <button data-ht-action="reset"> wired to HT.reset.run(slug, {confirm: true}). The visible label is "Reset to sample" by default (overridable via opts.label), and the aria-label is the canonical "Reset to sample (r)" regardless of opts.label — the shortcut key surfaces for the Story 3.3 overlay. The destructive variant is the default per DESIGN.md §5.',
     }),
   ]),
 });

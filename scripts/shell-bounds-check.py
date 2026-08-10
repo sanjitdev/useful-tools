@@ -35,6 +35,19 @@ Forbidden surfaces (scanned in tools/<slug>/<slug>.js only)
                                             via a non-Tool caller; the bypass
                                             grep flags ANY occurrence under
                                             tools/.)
+  - dataset.htAction = ...                > Use HT.sampleData.button / HT.reset.button
+                                            (Story 2.2 — ad-hoc sample/reset DOM
+                                            insertion is forbidden; the Shell owns
+                                            the canonical button factory.)
+  - data-ht-action="..."                  > Same — raw HTML attribute form (catches
+                                            setAttribute('data-ht-action', ...) and
+                                            inline '<button data-ht-action="sample">'
+                                            strings that the stripper-aware scanner
+                                            would miss).
+  - 'Try an example' / 'Reset to sample'  > ARIA-label / text-content literals the
+                                            Shell owns. Tool code MUST NOT hard-code
+                                            these strings — the canonical copies
+                                            come from sample-data.js.
 
 Allowlist (the policy docs/shell-public-api.md §6 explains)
 ------------------------------------------------------------
@@ -56,7 +69,8 @@ The gate also cross-checks that scripts/storage-registry-gate.py exited
 cleanly (run it before this gate). The cross-check is informational; a
 failure here names the violated module + the offending line.
 
-Author: Handy Tools (Story 1.14 — Shell Public API and Bypass Prohibition)
+Author: Handy Tools (Story 1.14 — Shell Public API and Bypass Prohibition
+                     + Story 2.2 — Per-Tool Sample Data and Reset Button)
 """
 
 from __future__ import annotations
@@ -123,6 +137,35 @@ XHR_RE = re.compile(r"\bnew\s+XMLHttpRequest\s*\(|\bXMLHttpRequest\b")
 # `HT.provide` reference under tools/ so an author can't bypass the
 # Tool-to-Tool API mount.
 HT_PROVIDE_RE = re.compile(r"\bHT\.provide\b")
+
+# Story 2.2 — ad-hoc sample/reset DOM insertion (see
+# docs/shell-public-api.md §6 #4). Three patterns:
+#
+# SAMPLE_ACTION_RE flags `dataset.htAction = <expr>` in code (the
+# stripper-aware scanner catches JS code, not raw HTML strings).
+# The `(?!=)` negative lookahead avoids matching the comparison
+# form `dataset.htAction === 'sample'` (P-11 fix).
+SAMPLE_ACTION_RE = re.compile(
+    r"""\bdataset\.htAction\s*=(?!=)"""
+)
+
+# SAMPLE_LITERAL_RE flags the raw `data-ht-action="..."` HTML
+# attribute literal anywhere in the file — including inside
+# setAttribute('data-ht-action', ...) strings and inside
+# template-literal HTML that the stripper would otherwise treat as
+# non-code. This is a raw-line scanner (not code-span-aware) on
+# purpose.
+SAMPLE_LITERAL_RE = re.compile(
+    r"""data-ht-action\s*=\s*['"]"""
+)
+
+# SAMPLE_ARIA_RE flags the canonical ARIA-label / visible-text
+# literals the Shell owns. Catches `'Try an example'` (with
+# optional `(s)` shortcut suffix) and `'Reset to sample'` (with
+# optional `(r)`). Raw-line scanner.
+SAMPLE_ARIA_RE = re.compile(
+    r"""['"](?:Try an example|Reset to sample)(?:\s*\([sr]\))?['"]"""
+)
 
 
 # ---------------------------------------------------------------------------
@@ -492,11 +535,47 @@ def _line_numbers(text: str, pattern: re.Pattern[str]) -> list[tuple[int, str]]:
     return out
 
 
+# Story 2.2 review fix P-4: pre-strip /* ... */ block comments before
+# raw-line scanners run, so a long comment on its own line isn't
+# matched by a `data-ht-action="..."` literal scan, AND so a literal
+# hidden inside a multi-line block comment doesn't pollute the
+# per-line table. The stripper preserves line numbers by replacing
+# each block with same-length whitespace (newlines kept verbatim).
+_BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
+
+
+def _strip_block_comments(text: str) -> str:
+    """Replace every /* ... */ block comment in `text` with same-length
+    whitespace (newlines preserved verbatim) so that:
+      - line numbers in the returned text match the original,
+      - raw-line scanners (SAMPLE_LITERAL_RE, SAMPLE_ARIA_RE) that
+        run on the stripped text ignore block-comment contents,
+      - any surviving `// ...` line comments are still inside code
+        spans the stripper-aware scanner already skips.
+
+    The replacement uses newlines, not spaces, so `text.count("\n", ...)`
+    in the downstream reporting path still works correctly."""
+    def _repl(m: re.Match[str]) -> str:
+        s = m.group(0)
+        # Keep every newline; replace other chars with space.
+        return "".join(ch if ch == "\n" else " " for ch in s)
+    return _BLOCK_COMMENT_RE.sub(_repl, text)
+
+
 def _scan_file(path: Path) -> list[tuple[str, int, str]]:
     """Scan a single tool JS file. Returns a list of (rule, line, text).
     The scan is string/comment-aware (see _scan_pattern_in_code): a
     tool's UI text or doc comment that mentions 'XMLHttpRequest' is
-    not flagged."""
+    not flagged.
+
+    Story 2.2 additions:
+      - SAMPLE_ACTION_RE runs via the code-span scanner (assignment
+        only; comparison form is suppressed by the `(?!=)` lookahead).
+      - SAMPLE_LITERAL_RE + SAMPLE_ARIA_RE run as raw-line scanners
+        on a block-comment-stripped copy of the source, so an HTML
+        attribute literal or ARIA-label string inside a `setAttribute`
+        call or template-literal HTML fragment still trips the gate.
+    """
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as e:
@@ -504,6 +583,9 @@ def _scan_file(path: Path) -> list[tuple[str, int, str]]:
         return [("read-error", 0, str(e))]
 
     allowed = find_lifecycle_allowlist_lines(text)
+    # Pre-strip block comments so raw-line scanners (Story 2.2) see
+    # the same line numbers as the original but ignore comment contents.
+    stripped = _strip_block_comments(text)
     hits: list[tuple[str, int, str]] = []
 
     for ln, line in _scan_pattern_in_code(text, LOCAL_STORAGE_RE):
@@ -518,17 +600,27 @@ def _scan_file(path: Path) -> list[tuple[str, int, str]]:
         hits.append(("XMLHttpRequest", ln, line))
     for ln, line in _scan_pattern_in_code(text, HT_PROVIDE_RE):
         hits.append(("HT.provide", ln, line))
+    # Story 2.2 ad-hoc sample/reset button rule.
+    for ln, line in _scan_pattern_in_code(text, SAMPLE_ACTION_RE):
+        hits.append(("sample/reset", ln, line))
+    for ln, line in _line_numbers(stripped, SAMPLE_LITERAL_RE):
+        hits.append(("sample/reset", ln, line))
+    for ln, line in _line_numbers(stripped, SAMPLE_ARIA_RE):
+        hits.append(("sample/reset", ln, line))
     return hits
 
 
 def _print_policy() -> None:
-    print("shell-bounds-check policy (Story 1.14 / AD-14):")
+    print("shell-bounds-check policy (Story 1.14 / AD-14 + Story 2.2 / AD-4):")
     print("  Forbidden in tools/<slug>/<slug>.js:")
     print("    - localStorage.<getItem|setItem|removeItem|clear|key|length>")
     print("    - document.cookie")
     print("    - fetch(<url>, ...)")
     print("    - XMLHttpRequest / new XMLHttpRequest()")
     print("    - HT.provide(...)")
+    print("    - dataset.htAction = ... (Story 2.2 — Shell owns sample/reset)")
+    print("    - data-ht-action=\"...\" (Story 2.2 — raw HTML attribute form)")
+    print("    - 'Try an example' / 'Reset to sample' literals (Story 2.2)")
     print("  Allowed:")
     print("    - Inline <script> blocks in tools/<slug>/index.html (not scanned)")
     print("    - Lifecycle fallback block:")
@@ -786,6 +878,91 @@ def _run_self_tests() -> int:
     else:
         fail += 1
         print(f"  FAIL  lifecycle walker — expected {{1,2,3,4,5}}, got {sorted(allowed2)}")
+
+    # Story 2.2 sample/reset patterns. Keep these assertions explicit
+    # instead of routing them through the legacy pattern-name map so
+    # each scanner's boundary is documented by the test itself.
+    sample_cases: list[tuple[str, bool]] = [
+        (
+            "SAMPLE_ACTION_RE flags dataset.htAction assignment",
+            bool(_scan_pattern_in_code("el.dataset.htAction = 'sample';\n", SAMPLE_ACTION_RE)),
+        ),
+        (
+            "SAMPLE_ACTION_RE flags dataset.htAction spaced assignment",
+            bool(_scan_pattern_in_code("el.dataset.htAction   =   value;\n", SAMPLE_ACTION_RE)),
+        ),
+        (
+            "SAMPLE_ACTION_RE does not flag strict equality",
+            not _scan_pattern_in_code("el.dataset.htAction === 'sample';\n", SAMPLE_ACTION_RE),
+        ),
+        (
+            "SAMPLE_ACTION_RE does not flag loose equality",
+            not _scan_pattern_in_code("el.dataset.htAction == 'sample';\n", SAMPLE_ACTION_RE),
+        ),
+        (
+            "SAMPLE_ACTION_RE ignores single-quoted string",
+            not _scan_pattern_in_code("var s = 'dataset.htAction = sample';\n", SAMPLE_ACTION_RE),
+        ),
+        (
+            "SAMPLE_ACTION_RE ignores double-quoted string",
+            not _scan_pattern_in_code('var s = "dataset.htAction = sample";\n', SAMPLE_ACTION_RE),
+        ),
+        (
+            "SAMPLE_ACTION_RE ignores line comment",
+            not _scan_pattern_in_code("// dataset.htAction = sample\n", SAMPLE_ACTION_RE),
+        ),
+        (
+            "SAMPLE_ACTION_RE ignores block comment",
+            not _scan_pattern_in_code("/* dataset.htAction = sample */\n", SAMPLE_ACTION_RE),
+        ),
+        (
+            "SAMPLE_LITERAL_RE flags HTML attribute",
+            bool(_line_numbers('<button data-ht-action="sample">\n', SAMPLE_LITERAL_RE)),
+        ),
+        (
+            "SAMPLE_LITERAL_RE flags single-quoted attribute",
+            bool(_line_numbers("<button data-ht-action='reset'>\n", SAMPLE_LITERAL_RE)),
+        ),
+        (
+            "SAMPLE_LITERAL_RE flags template-literal HTML attribute",
+            bool(_line_numbers("var html = `<button data-ht-action=\"sample\">`;\n", SAMPLE_LITERAL_RE)),
+        ),
+        (
+            "SAMPLE_LITERAL_RE flags whitespace around equals",
+            bool(_line_numbers('<button data-ht-action = \'reset\'>\n', SAMPLE_LITERAL_RE)),
+        ),
+        (
+            "SAMPLE_LITERAL_RE ignores block-comment literal",
+            not _line_numbers(_strip_block_comments('/* data-ht-action="sample" */\n'), SAMPLE_LITERAL_RE),
+        ),
+        (
+            "SAMPLE_LITERAL_RE preserves line count after block comment",
+            _strip_block_comments('/* hidden\ndata-ht-action="sample"\n*/\ncode;\n').count("\n") == 4,
+        ),
+        (
+            "SAMPLE_ARIA_RE flags Try an example",
+            bool(_line_numbers("el.setAttribute('aria-label', 'Try an example');\n", SAMPLE_ARIA_RE)),
+        ),
+        (
+            "SAMPLE_ARIA_RE flags Try an example shortcut",
+            bool(_line_numbers("'Try an example (s)'\n", SAMPLE_ARIA_RE)),
+        ),
+        (
+            "SAMPLE_ARIA_RE flags Reset to sample shortcut",
+            bool(_line_numbers("'Reset to sample (r)'\n", SAMPLE_ARIA_RE)),
+        ),
+        (
+            "SAMPLE_ARIA_RE ignores unrelated label",
+            not _line_numbers("'Reset to defaults'\n", SAMPLE_ARIA_RE),
+        ),
+    ]
+    for name, ok in sample_cases:
+        if ok:
+            pass_ += 1
+            print(f"  PASS  {name}")
+        else:
+            fail += 1
+            print(f"  FAIL  {name}")
 
     print()
     print(f"self-test: {pass_} passed, {fail} failed")
