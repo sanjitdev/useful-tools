@@ -38,11 +38,31 @@
       metaEl.textContent = 'Size: ' + modules + '×' + modules + ' modules · ' +
         'Error correction ' + ecc + ' · ' +
         HT.formatNumber(text.length) + ' chars';
+      pushHistoryDebounced(text, ecc, quiet, modules);
     } catch (e) {
       outEl.innerHTML = '';
       metaEl.textContent = 'Failed: ' + (e.message || e);
     }
   }
+
+  // Story 2.3 exemplar: debounced push so each settled text change
+  // (rather than every keystroke) lands one history entry.
+  var pushHistoryDebounced = HT.debounce(function (text, ecc, quiet, modules) {
+    if (!HT.history || typeof HT.history.push !== 'function') return;
+    var state = {
+      'qr-text': text,
+      'qr-ecc': ecc,
+      'qr-margin': String(quiet),
+    };
+    var newest = HT.history.lastEntry('qr-code-generator');
+    if (newest && JSON.stringify(newest.state) === JSON.stringify(state)) return;
+    var preview = text.length > 40 ? (text.slice(0, 37) + '…') : text;
+    HT.history.push('qr-code-generator', {
+      state: state,
+      result: modules + '×' + modules + ' modules, ECC ' + ecc,
+      label: preview,
+    });
+  }, 750);
 
   function downloadSvg() {
     var svg = outEl.querySelector('svg');

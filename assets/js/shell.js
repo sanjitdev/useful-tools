@@ -286,6 +286,27 @@
       }
     }
 
+    // Story 2.3: mount the per-tool history panel. The Shell wires this
+    // (NOT each tool) so the panel layout, mobile-vs-desktop split, and
+    // cross-tab sync are consistent across every tool. Skipped in embed
+    // mode (AD-7) and when the slug declares no history-keys block —
+    // the panel helper itself is defensive and returns an empty
+    // teardown for misconfigured slugs, but we also early-out here to
+    // skip the work entirely on home / Settings / other non-tool pages
+    // where data-slug is absent.
+    if (!isEmbedMode() && main && HT.history
+        && typeof HT.history.panel === 'function') {
+      const historySlug = main.getAttribute && main.getAttribute('data-slug');
+      if (historySlug && /^[a-z][a-z0-9-]*[a-z0-9]$/.test(historySlug)) {
+        try {
+          if (HT.history.hasHistory && HT.history.hasHistory(historySlug)) {
+            HT.history.panel(historySlug, main);
+          }
+        }
+        catch (err) { console.warn('shell.boot: HT.history.panel failed', err); }
+      }
+    }
+
     // Story 1.7: install the command palette wiring (skip entirely in
     // embed mode per AD-7 — the trigger is hidden and the chord is a no-op).
     if (!isEmbedMode()) {

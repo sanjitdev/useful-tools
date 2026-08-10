@@ -208,7 +208,7 @@
           }
         },
         "history-keys": {
-          "description": "Ordered list of input field ids that participate in the tool's history entry. Capped at 10 entries per tool (FR-12).",
+          "description": "Ordered list of input field ids that participate in the tool's history entry. Capped at 10 entries per tool (FR-12). Story 2.3: this array is one half of the hasHistory() AND-gate — a slug is eligible for history (HT.history.hasHistory(slug) === true) only if BOTH this array is non-empty AND the tool has a urlState block. When both conditions hold, HT.history.panel(slug, main) auto-mounts a sidebar (≥768px) or a sheet (<768px) showing the FIFO-capped last 10 entries; HT.history.button(slug) returns a one-click affordance; HT.history.push/list/restore/clear/subscribe are exposed on the AD-14 frozen surface.",
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
           "minItems": 1,

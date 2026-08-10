@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.6.0',
+  version: '1.7.0',
   generated: '2026-08-10',
   entries: Object.freeze([
     Object.freeze({
@@ -320,6 +320,76 @@ window.HT.__apiContract = Object.freeze({
       stability: 'internal',
       module: 'assets/js/a11y.js',
       notes: 'Story 2.4. Internal helper — returns the focusable-selector result applied to rootEl. Same selector as shell.js:966 (the settings-modal focus-trap literal). Tools calling this is undefined behavior; the Shell uses it for the focus trap. The selector is the single source of truth — both shell.js and a11y.js route through this surface.',
+    }),
+    Object.freeze({
+      name: 'HT.history.push',
+      signature: '(slug: string, entry?: {id?: string, ts?: number, state?: Record<string, string|number|boolean>, result?: string, label?: string}) => {id: string, ts: number, state: Readonly<Record<string, string|number|boolean>>, result: string, label: string} | null',
+      stability: 'stable',
+      module: 'assets/js/history.js',
+      notes: 'Story 2.3. Appends a history entry for the slug to HT.storage under handy-tools.history.<slug>. The entry shape carries {id, ts, state, result, label} — state is the canonical urlState-shaped map (same keys as HT.urlState.encode). push enforces a FIFO cap of 10 entries per FR-12 (PRD §line223-230); oldest entries are dropped when the cap is exceeded. Returns the frozen HistoryEntry pushed, or null + console.warn when the slug has no urlState block (defensive — Story 2.1 F-12 disposition). Same-tab subscribers are notified synchronously; cross-tab subscribers (storage event) are notified via the browser-native storage event. Throws UrlStateSchemaError(INVALID_SLUG) on bad slug or UrlStateSchemaError(NO_URLSTATE) when HT.urlState._loadSchema is unavailable.',
+    }),
+    Object.freeze({
+      name: 'HT.history.list',
+      signature: '(slug: string) => readonly Array<{id: string, ts: number, state: Readonly<Record<string, string|number|boolean>>, result: string, label: string}>',
+      stability: 'stable',
+      module: 'assets/js/history.js',
+      notes: 'Story 2.3. Returns the chronologically-newest-first array of history entries for the slug (most recent push at index 0; tie-break on id ascending for determinism). Returns a frozen empty array when the slug has no history block. Each entry is frozen; mutations throw in strict mode.',
+    }),
+    Object.freeze({
+      name: 'HT.history.restore',
+      signature: '(slug: string, id: string, opts?: {confirm?: boolean, focus?: boolean}) => void',
+      stability: 'stable',
+      module: 'assets/js/history.js',
+      notes: 'Story 2.3. Looks up the entry by id (not array index) and writes entry.state into the tool\'s inputs under <main data-slug="<slug>">, then calls history.replaceState with the encoded URL hash (reusing HT.urlState.encode). opts.focus defaults to true (focuses the first input after restore). When opts.confirm !== false AND the current input state differs from entry.state, an inline <dialog> confirm modal is shown before restore (same pattern as HT.reset.run). Throws UrlStateSchemaError(UNKNOWN_ID) when id is not present in the list; soft-warns (no throw) when <main data-slug> is absent.',
+    }),
+    Object.freeze({
+      name: 'HT.history.clear',
+      signature: '(slug: string, opts?: {confirm?: boolean}) => void',
+      stability: 'stable',
+      module: 'assets/js/history.js',
+      notes: 'Story 2.3. Removes the entire handy-tools.history.<slug> key from storage (via HT.storage.remove). Subscribers are notified synchronously (same-tab) and via the storage event (cross-tab). Idempotent — no-op when the key is absent. When opts.confirm !== false and there are > 0 entries, an inline <dialog> confirm modal is shown before removal (same pattern as HT.reset.run).',
+    }),
+    Object.freeze({
+      name: 'HT.history.subscribe',
+      signature: '(slug: string, callback: (entries: readonly Array<{id, ts, state, result, label}>) => void) => () => void',
+      stability: 'stable',
+      module: 'assets/js/history.js',
+      notes: 'Story 2.3. Registers a same-tab subscriber for the slug\'s history changes (push, clear, restore). The callback receives the full frozen entries array (newest-first) on every change. Cross-tab subscribers are also installed automatically — when the storage event fires for handy-tools.history.<slug>, the callback runs with the new entries. Returns an idempotent unsubscribe function. Tools MUST NOT subscribe to the storage event directly (bypass prohibition / AD-14).',
+    }),
+    Object.freeze({
+      name: 'HT.history.panel',
+      signature: '(slug: string, rootEl: HTMLElement) => {teardown: () => void, open: () => void, close: () => void, isOpen: boolean, refresh: () => void}',
+      stability: 'stable',
+      module: 'assets/js/history.js',
+      notes: 'Story 2.3. Shell-side helper. Mounts the per-tool history UI under rootEl: on viewports >=768px (AD-1 / EXPERIENCE.md §1.2) renders a persistent right sidebar; on smaller viewports renders a slide-up bottom sheet with a toggle button. Returns {teardown, open, close, isOpen, refresh} — isOpen is a getter (mobile sheet state); desktop sidebar reports isOpen === true permanently. Skips (returns {teardown: () => {}, open: () => {}, close: () => {}, isOpen: false, refresh: () => {}}) when the slug has no urlState block or has no history-keys declared in tools.json — emits console.warn in that case (defensive, soft). Skipped entirely in embed mode (?embed=1) per AD-7.',
+    }),
+    Object.freeze({
+      name: 'HT.history.button',
+      signature: '(slug: string, opts?: {variant?: \'icon\'|\'ghost\'|\'link\'}) => HTMLButtonElement',
+      stability: 'stable',
+      module: 'assets/js/history.js',
+      notes: 'Story 2.3. Builds a <button data-ht-action="history"> that lazy-mounts HT.history.panel on first click and toggles open/close on subsequent clicks. The aria-label is "Show history (h)" (the keyboard shortcut h is wired by Story 3.3, not by this module). variant defaults to "icon" (the ↻ glyph + ghost styling); "ghost" emits a text "History" button with ghost styling; "link" emits a text "History" anchor-style button. Tools MUST NOT call this directly — HT.history.panel(slug, rootEl) is the single insertion point.',
+    }),
+    Object.freeze({
+      name: 'HT.history.hasHistory',
+      signature: '(slug: string) => boolean',
+      stability: 'stable',
+      module: 'assets/js/history.js',
+      notes: 'Story 2.3. Returns true iff the slug declares BOTH a non-empty urlState block AND a non-empty history-keys block in tools.json. Used by HT.history.panel to decide whether to render the UI, and by the rubric gate to scope which tools carry a history panel. Defensive: returns false on any schema-lookup error rather than throwing.',
+    }),
+    Object.freeze({
+      name: 'HT.history.lastEntry',
+      signature: '(slug: string) => HistoryEntry | null',
+      stability: 'stable',
+      module: 'assets/js/history.js',
+      notes: 'Story 2.3. Returns the most-recent HistoryEntry for `slug`, or null if no entries exist. Thin convenience over list(slug)[0] that tools use for the dedup-by-state idiom — pair with HT.history.push to skip recording when state matches the latest entry. Throws if slug is missing or invalid (same precondition as list).',
+    }),
+    Object.freeze({
+      name: 'HT.history._loadSchema',
+      signature: '(slug: string) => {default?, encode: readonly any[], decode: readonly any[], historyKeys: readonly string[]} | null',
+      stability: 'internal',
+      module: 'assets/js/history.js',
+      notes: 'Story 2.3. Internal: returns the parsed urlState block + the history-keys declaration for the slug. Composes on HT.urlState._loadSchema to avoid duplicating the schema parser; the historyKeys slice is the per-tool array from tools.json entries[i].history-keys. Throws UrlStateSchemaError(NO_URLSTATE) when HT.urlState._loadSchema is unavailable — load assets/js/url.js BEFORE assets/js/history.js. Tools calling this is undefined behavior — use HT.history.hasHistory for the boolean predicate.',
     }),
   ]),
 });

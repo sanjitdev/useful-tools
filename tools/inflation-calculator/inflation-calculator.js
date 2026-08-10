@@ -502,6 +502,19 @@
       out.compareDelta.innerHTML =
         'Period 1 averaged <strong>' + pct(Math.abs(delta)) + ' / yr ' + deltaLabel + '</strong> than Period 2.';
     }
+
+    // Story 2.3 / FR-12: push this state into the per-tool history.
+    // render() fires on every keystroke (debounced 30ms) AND on change
+    // events, so we use a separate debounced helper that waits 750ms
+    // after the last change before pushing — producing one entry per
+    // user-meaningful action, not one per keystroke. Skip on the very
+    // first render (boot) so we don't pollute history with the default
+    // state before the user has interacted.
+    if (out._historyReady && HT.history && typeof HT.history.push === 'function') {
+      pushHistoryDebounced();
+    } else {
+      out._historyReady = true;
+    }
   }
 
   function renderCompareCard(label, p, amount) {
@@ -514,6 +527,30 @@
       '<div class="ic-compare-stat"><span class="ic-compare-stat-label">$' + HT.formatNumber(amount, { minFractionDigits: 0, maxFractionDigits: 0 }) + ' then \u2192 now</span><span class="ic-compare-stat-value">' + money(p.valueEnd) + '</span></div>' +
       '</div>';
   }
+
+  // Story 2.3 exemplar integration: a single debounced history push per
+  // settled input change. History owns persistence/capping; the tool only
+  // supplies the state snapshot + human-readable result/label.
+  var pushHistoryDebounced = HT.debounce(function () {
+    if (!HT.history || typeof HT.history.push !== 'function') return;
+    var state = {};
+    SHARE_HASH_FIELDS.forEach(function (id) {
+      var el = HT.$('#' + id);
+      if (el && el.value !== '') state[id] = String(el.value);
+    });
+    var newest = (typeof HT.history.lastEntry === 'function')
+      ? HT.history.lastEntry('inflation-calculator')
+      : null;
+    if (newest && JSON.stringify(newest.state) === JSON.stringify(state)) return;
+    var amount = state['ic-amount'] || '';
+    var from = state['ic-from'] || '';
+    var to = state['ic-to'] || '';
+    HT.history.push('inflation-calculator', {
+      state: state,
+      result: (out.adjusted && out.adjusted.textContent) || '',
+      label: amount && from ? ('$' + amount + ' in ' + from + (to ? ' → ' + to : '')) : '',
+    });
+  }, 750);
 
   // -------------------------------------------------------------
   // Event wiring

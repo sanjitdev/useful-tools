@@ -135,6 +135,7 @@
         "reviewer": "sanjit",
         "expires-after-releases": 2
       },
+      "history-keys": ["qr-text", "qr-ecc", "qr-margin"],
       "urlState": {
         "default": {
           "qr-text": "https://example.com",
@@ -158,11 +159,6 @@
         }
       },
       "shortcuts": [],
-      "history-keys": [
-        "qr-text",
-        "qr-ecc",
-        "qr-margin"
-      ],
       "view-source": {
         "enabled": true,
         "path": "tools/qr-code-generator/index.html"

@@ -48,6 +48,10 @@ Forbidden surfaces (scanned in tools/<slug>/<slug>.js only)
                                             Shell owns. Tool code MUST NOT hard-code
                                             these strings — the canonical copies
                                             come from sample-data.js.
+  - localStorage.*('handy-tools.history.') > Use HT.history.push / list / clear.
+                                            Direct reads, writes, removals, and
+                                            JSON.parse(getItem(...)) bypass the
+                                            Shell-owned history controller (Story 2.3).
 
 Forbidden surfaces (scanned in tools/<slug>/<slug>.js AND tools/<slug>/index.html)
 ---------------------------------------------------------------------------------
@@ -81,6 +85,7 @@ failure here names the violated module + the offending line.
 
 Author: Handy Tools (Story 1.14 — Shell Public API and Bypass Prohibition
                      + Story 2.2 — Per-Tool Sample Data and Reset Button
+                     + Story 2.3 — Per-Tool History Panel
                      + Story 2.4 — Per-Tool Keyboard-Complete Surface)
 """
 
@@ -148,6 +153,26 @@ XHR_RE = re.compile(r"\bnew\s+XMLHttpRequest\s*\(|\bXMLHttpRequest\b")
 # `HT.provide` reference under tools/ so an author can't bypass the
 # Tool-to-Tool API mount.
 HT_PROVIDE_RE = re.compile(r"\bHT\.provide\b")
+
+# Story 2.3 — ad-hoc history storage (AC-6 / docs/shell-public-api.md §6 #5).
+# Tools MUST go through HT.history.push / list / restore / clear; the
+# module handles HT.storage.set('handy-tools.history.<slug>', …) internally.
+# Three patterns the gate flags:
+#
+#   1. localStorage.setItem('handy-tools.history.…', …) — direct write
+#      bypass. The lifecycle fallback allowlist (find_lifecycle_allowlist_lines)
+#      still applies — a tool with the documented if/else pattern that
+#      ALSO has HT.history.push in the if-arm is tolerated.
+#   2. localStorage.getItem('handy-tools.history.…') — direct read bypass;
+#      use HT.history.list(slug) instead.
+#   3. JSON.parse(localStorage.getItem('handy-tools.history.…') — ad-hoc
+#      parse; same fix.
+HISTORY_KEY_SET_RE = re.compile(
+    r"""localStorage\.(?:setItem|getItem|removeItem)\(\s*['"]handy-tools\.history\.[a-z0-9-]+['"]"""
+)
+HISTORY_KEY_PARSE_RE = re.compile(
+    r"""JSON\.parse\(\s*localStorage\.getItem\(\s*['"]handy-tools\.history\.[a-z0-9-]+['"]"""
+)
 
 # Story 2.2 — ad-hoc sample/reset DOM insertion (see
 # docs/shell-public-api.md §6 #4). Three patterns:
@@ -655,6 +680,19 @@ def _scan_file(path: Path) -> list[tuple[str, int, str]]:
             continue
         if value >= 1:
             hits.append(("positive-tabindex", ln, line))
+    # Story 2.3 ad-hoc history storage rule (AC-6). Tools must call
+    # HT.history.push / list, not write handy-tools.history.<slug>
+    # directly. The lifecycle allowlist applies (the documented
+    # if (HT.history && …) / else { localStorage.setItem(…) } fallback
+    # pattern is tolerated as a whole).
+    for ln, line in _line_numbers(stripped, HISTORY_KEY_SET_RE):
+        if ln in allowed:
+            continue
+        hits.append(("ad-hoc-history-storage", ln, line))
+    for ln, line in _line_numbers(stripped, HISTORY_KEY_PARSE_RE):
+        if ln in allowed:
+            continue
+        hits.append(("ad-hoc-history-storage", ln, line))
     return hits
 
 
@@ -687,7 +725,7 @@ def _scan_index_html(path: Path) -> list[tuple[str, int, str]]:
 
 
 def _print_policy() -> None:
-    print("shell-bounds-check policy (Story 1.14 / AD-14 + Story 2.2 / AD-4 + Story 2.4):")
+    print("shell-bounds-check policy (Story 1.14 / AD-14 + Story 2.2 / AD-4 + Story 2.3 / AD-4 + Story 2.4):")
     print("  Forbidden in tools/<slug>/<slug>.js:")
     print("    - localStorage.<getItem|setItem|removeItem|clear|key|length>")
     print("    - document.cookie")
@@ -697,6 +735,10 @@ def _print_policy() -> None:
     print("    - dataset.htAction = ... (Story 2.2 — Shell owns sample/reset)")
     print("    - data-ht-action=\"...\" (Story 2.2 — raw HTML attribute form)")
     print("    - 'Try an example' / 'Reset to sample' literals (Story 2.2)")
+    print("    - localStorage.{get,set,remove}Item('handy-tools.history.<slug>')")
+    print("      (Story 2.3 — Shell owns history; route through HT.history.*)")
+    print("    - JSON.parse(localStorage.getItem('handy-tools.history.<slug>'))")
+    print("      (Story 2.3 — same rule)")
     print("  Forbidden in tools/<slug>/<slug>.js AND tools/<slug>/index.html:")
     print("    - tabindex=\"N\" for N >= 1 (Story 2.4 / EXPERIENCE.md §6.2 —")
     print("      no positive tabindex; reorder the DOM instead)")

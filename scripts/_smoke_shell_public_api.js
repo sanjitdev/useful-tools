@@ -90,6 +90,18 @@ check('HT.provideRegistry.list() includes test-slug', HT.provideRegistry.list().
 check('HT.netRegistry.inflight is function', typeof HT.netRegistry.inflight === 'function');
 check('HT.netRegistry.inflight() returns array', Array.isArray(HT.netRegistry.inflight()));
 
+// Story 2.3 cross-pin: HT.provideRegistry is for Tool-mounted APIs
+// (Tools that expose APIs to other Tools). The History Panel is a
+// Shell-owned surface (HT.history.panel/section); Tools never mount
+// it via HT.provide. The registry must not contain the literal
+// 'history-panel' (or any other Shell-internal name) — that's the
+// distinction this assertion protects.
+const registryList = HT.provideRegistry.list();
+check('HT.provideRegistry.list() does NOT contain history-panel',
+  registryList.indexOf('history-panel') === -1);
+check('HT.provideRegistry.list() does NOT contain sample-data',
+  registryList.indexOf('sample-data') === -1);
+
 // Frozen touch: the provide function itself is frozen by
 // Object.freeze(provide). Property-level mutation via `HT.provide =
 // ...` only works if the parent (HT) is frozen, which it isn't — so

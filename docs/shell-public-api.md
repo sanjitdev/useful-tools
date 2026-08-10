@@ -1,7 +1,7 @@
 # Shell Public API Contract (AD-14)
 
 **Status:** active
-**Story:** [1.14 — Shell Public API and Bypass Prohibition](../_bmad-output/planning-artifacts/epics.md#story-114-shell-public-api-and-bypass-prohibition) + [2.1 — Per-Tool URL State Codec Wiring](../_bmad-output/planning-artifacts/epics.md#story-21-per-tool-url-state-codec-wiring) + [2.2 — Per-Tool Sample Data and Reset Button](../_bmad-output/planning-artifacts/epics.md#story-22-per-tool-sample-data-and-reset-button) + [2.4 — Per-Tool Keyboard-Complete Surface](../_bmad-output/planning-artifacts/epics.md#story-24-per-tool-keyboard-complete-surface)
+**Story:** [1.14 — Shell Public API and Bypass Prohibition](../_bmad-output/planning-artifacts/epics.md#story-114-shell-public-api-and-bypass-prohibition) + [2.1 — Per-Tool URL State Codec Wiring](../_bmad-output/planning-artifacts/epics.md#story-21-per-tool-url-state-codec-wiring) + [2.2 — Per-Tool Sample Data and Reset Button](../_bmad-output/planning-artifacts/epics.md#story-22-per-tool-sample-data-and-reset-button) + [2.3 — Per-Tool History Panel](../_bmad-output/planning-artifacts/epics.md#story-23-per-tool-history-panel) + [2.4 — Per-Tool Keyboard-Complete Surface](../_bmad-output/planning-artifacts/epics.md#story-24-per-tool-keyboard-complete-surface)
 **Architecture binding:** AD-14, AD-13, AD-4, AD-5, AD-15
 **Source of truth for runtime:** `assets/js/api-contract.js`
 
@@ -83,8 +83,8 @@ calls `HT.provide(slug, api)` once at boot, after `HT.boot()`.
 ## 5. The `HT.*` surface (stable + experimental + internal)
 
 The current entries live in `assets/js/api-contract.js` (read that file for
-the canonical, machine-verified list — version `1.6.0` as of this writing,
-bumped from `1.5.0` by Story 2.4).
+the canonical, machine-verified list — version `1.7.0` as of this writing,
+bumped from `1.6.0` by Story 2.3).
 
 | Entry | Stability | Module |
 |---|---|---|
@@ -132,6 +132,16 @@ bumped from `1.5.0` by Story 2.4).
 | `HT.a11y.hoverOnly` | stable | a11y.js (Story 2.4) |
 | `HT.a11y.focusRingOk` | stable | a11y.js (Story 2.4) |
 | `HT.a11y.focusable` | internal | a11y.js (Story 2.4) |
+| `HT.history.push` | stable | history.js (Story 2.3 / AD-4) |
+| `HT.history.list` | stable | history.js (Story 2.3 / AD-4) |
+| `HT.history.restore` | stable | history.js (Story 2.3 / AD-4) |
+| `HT.history.clear` | stable | history.js (Story 2.3 / AD-4) |
+| `HT.history.subscribe` | stable | history.js (Story 2.3 / AD-4) |
+| `HT.history.panel` | stable | history.js (Story 2.3 / AD-4) |
+| `HT.history.button` | stable | history.js (Story 2.3 / AD-4) |
+| `HT.history.hasHistory` | stable | history.js (Story 2.3 / AD-4) |
+| `HT.history.lastEntry` | stable | history.js (Story 2.3 / AD-4) |
+| `HT.history._loadSchema` | internal | history.js (Story 2.3 / AD-4) |
 
 ---
 
@@ -177,6 +187,21 @@ in the architectural sense:
    gate scans `<slug>.js` for the literal `#-sample` / `#-reset`
    handler-shape and the keyword sample/reset literals; both fail the gate.
    Tools delegate to the Shell.
+
+5. **No direct reads/writes of the `handy-tools.history.*` key family**
+   (Story 2.3) — the Shell owns per-tool history persistence via
+   `HT.history.push` / `HT.history.list` / `HT.history.restore` /
+   `HT.history.clear` (see `assets/js/history.js`), and history data
+   always lives under the `handy-tools.history.<slug>` storage key. A
+   Tool never reaches for `localStorage.getItem('handy-tools.history.<slug>')`
+   directly, never `JSON.parse`s that key itself, and never short-circuits
+   `HT.history.*` by writing to that key. The gate scans `<slug>.js` for
+   the `localStorage.(setItem|getItem|removeItem)('handy-tools.history.*')`
+   pattern and `JSON.parse(localStorage.getItem('handy-tools.history.*'))`;
+   both fail the gate. Tools delegate to the Shell. The lifecycle-fallback
+   pattern from rule 2 above is the only allowed wrap shape (a `HT.history.*`
+   call inside the `if` arm with a defensive `localStorage` arm in the
+   `else`).
 
 All other `localStorage.*`, `document.cookie`, `fetch(`, `XMLHttpRequest`,
 and bare `HT.provide(...)` references under `tools/<slug>/<slug>.js` fail

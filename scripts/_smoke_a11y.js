@@ -3,7 +3,8 @@
    Loads a11y.js in a fresh vm context with stub
    window / document / getComputedStyle and asserts
    the HT.a11y surface + AuditReport behavior per
-   api-contract.js (version 1.6.0). Five synthetic
+   api-contract.js (version 1.7.0; bumped from 1.6.0 by Story 2.3).
+   Five synthetic
    tools exercise every check: clean-tool,
    hover-only-tool, unlabeled-tool,
    tabindex-positive-tool, missing-skip-tool.
@@ -449,8 +450,8 @@ const contractSrc = fs.readFileSync(
   path.resolve(__dirname, '../assets/js/api-contract.js'),
   'utf8'
 );
-check('api-contract: version === 1.6.0',
-  /version:\s*['"]1\.6\.0['"]/.test(contractSrc));
+check('api-contract: version === 1.7.0 (Story 2.4 standalone: 1.6.0; bundled 2.3+2.4: 1.7.0)',
+  /version:\s*['"]1\.7\.0['"]/.test(contractSrc));
 const matches = contractSrc.match(/name:\s*['"]HT\.a11y\.[\w.]+['"]/g) || [];
 const names = matches.map(function (m) {
   return /['"](HT\.a11y\.[\w.]+)['"]/.exec(m)[1];

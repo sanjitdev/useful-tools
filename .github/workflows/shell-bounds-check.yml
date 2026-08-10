@@ -14,6 +14,14 @@ name: Shell Bounds Check
 # smoke harness that exercises HT.sampleData / HT.reset surfaces in a
 # fresh vm context.
 #
+# Story 2.3 — Per-Tool History Panel. Extends the path filter to cover
+# assets/js/history.js + scripts/_smoke_history_panel.js and adds a
+# step that exercises the HT.history surface (AD-14 frozen) plus
+# push/list/restore/storage/replay/hasHistory/panel/button behaviors.
+# The bypass check itself also gained HISTORY_KEY_{SET,PARSE}_RE patterns
+# to prohibit direct localStorage writes/reads of the handy-tools.history.*
+# key family (see scripts/shell-bounds-check.py + docs/shell-public-api.md §6).
+#
 # Source of truth: docs/shell-public-api.md (the policy doc)
 #                 scripts/shell-bounds-check.py (the gate)
 
@@ -26,7 +34,9 @@ on:
       - "scripts/shell-bounds-check.py"
       - "scripts/_smoke_shell_public_api.js"
       - "scripts/_smoke_sample_data.js"
+      - "scripts/_smoke_history_panel.js"
       - "assets/js/sample-data.js"
+      - "assets/js/history.js"
       - "docs/shell-public-api.md"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
@@ -43,7 +53,9 @@ on:
       - "scripts/shell-bounds-check.py"
       - "scripts/_smoke_shell_public_api.js"
       - "scripts/_smoke_sample_data.js"
+      - "scripts/_smoke_history_panel.js"
       - "assets/js/sample-data.js"
+      - "assets/js/history.js"
       - "docs/shell-public-api.md"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
@@ -131,3 +143,18 @@ jobs:
         # as an optional property. 54 PASS expected. Vacuous-pass guard
         # means a hollow run fails the gate.
         run: make sample-data-smoke
+
+      - name: Smoke history.js per-tool History Panel (Story 2.3 / AD-4 + AD-14)
+        # Loads url.js + history.js in a fresh vm context against a
+        # synthetic HT.homeGrid + HT.storage facade, asserts the
+        # HT.history surface (push, list, restore, clear, subscribe,
+        # panel, button, hasHistory) is frozen (AD-14), push/list
+        # round-trip with FIFO cap of 10 (FR-12), per-tool isolation,
+        # the hasHistory AND-gate across the four matrix cases AC-5
+        # specifies (has-both / has-keys-no-urlstate /
+        # has-urlstate-no-keys / neither), panel + button factories
+        # emit the right DOM + aria-* attributes, and api-contract.js
+        # pins version 1.7.0 + 9 entries. 44 PASS expected.
+        # Vacuous-pass guard (pass===0 && fail===0 → exit 1) catches
+        # hollow runs.
+        run: make history-smoke
