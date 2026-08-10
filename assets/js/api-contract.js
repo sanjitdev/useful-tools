@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.7.0',
+  version: '1.8.0',
   generated: '2026-08-10',
   entries: Object.freeze([
     Object.freeze({
@@ -390,6 +390,76 @@ window.HT.__apiContract = Object.freeze({
       stability: 'internal',
       module: 'assets/js/history.js',
       notes: 'Story 2.3. Internal: returns the parsed urlState block + the history-keys declaration for the slug. Composes on HT.urlState._loadSchema to avoid duplicating the schema parser; the historyKeys slice is the per-tool array from tools.json entries[i].history-keys. Throws UrlStateSchemaError(NO_URLSTATE) when HT.urlState._loadSchema is unavailable — load assets/js/url.js BEFORE assets/js/history.js. Tools calling this is undefined behavior — use HT.history.hasHistory for the boolean predicate.',
+    }),
+    Object.freeze({
+      name: 'HT.share.open',
+      signature: '(slug: string, opts?: {focus?: "url"|"embed"|"print", sourceEl?: HTMLElement}) => void',
+      stability: 'stable',
+      module: 'assets/js/share.js',
+      notes: 'Story 2.5. Opens the share <dialog> via showModal(). focus "url" (default) focuses and selects the URL input; "embed" focuses the embed textarea; "print" opens the dialog then immediately calls window.print() and closes. sourceEl is the element to re-focus on close (defaults to the trigger button). No-op when HT.share is not yet defined.',
+    }),
+    Object.freeze({
+      name: 'HT.share.close',
+      signature: '() => void',
+      stability: 'stable',
+      module: 'assets/js/share.js',
+      notes: 'Story 2.5. Closes the share dialog via dialog.close() and returns focus to opts.sourceEl. No-op if already closed.',
+    }),
+    Object.freeze({
+      name: 'HT.share.isOpen',
+      signature: '() => boolean',
+      stability: 'stable',
+      module: 'assets/js/share.js',
+      notes: 'Story 2.5. Returns true if the share dialog exists in the DOM and is currently open (dialog.open === true).',
+    }),
+    Object.freeze({
+      name: 'HT.share.url',
+      signature: '(slug: string) => string',
+      stability: 'stable',
+      module: 'assets/js/share.js',
+      notes: 'Story 2.5. Returns location.href. The location.hash already encodes the codec state because bindForm / HT.urlState.subscribe sync it on every input change — no URL construction is needed. The function exists for clarity at the call site.',
+    }),
+    Object.freeze({
+      name: 'HT.share.embedCode',
+      signature: '(slug: string) => string',
+      stability: 'stable',
+      module: 'assets/js/share.js',
+      notes: 'Story 2.5. Returns the <iframe> snippet string built from tools.json embed-snippet.min-width/min-height (defaults 320/480, enforced minimum 240 per B3 a11y). Returns "" when the slug has no embed-snippet block. The snippet includes loading="lazy" for LCP. Throws if slug is invalid.',
+    }),
+    Object.freeze({
+      name: 'HT.share.button',
+      signature: '(slug: string, opts?: {variant?: "link"|"ghost"|"icon"}) => HTMLButtonElement',
+      stability: 'stable',
+      module: 'assets/js/share.js',
+      notes: 'Story 2.5. Builds a <button data-ht-action="share" aria-haspopup="dialog" aria-expanded="false" aria-label="Share tool (s)"> that opens the share dialog on click. variant defaults to "icon" (the ↗ glyph); "ghost"/"link" emit text "Share" buttons with the corresponding styling. Tools MUST NOT call this directly — HT.share.mount(slug, rootEl) is the single insertion point.',
+    }),
+    Object.freeze({
+      name: 'HT.share.hasShare',
+      signature: '(slug: string) => boolean',
+      stability: 'stable',
+      module: 'assets/js/share.js',
+      notes: 'Story 2.5. Returns true iff the slug declares a urlState block in tools.json (the share URL is meaningful only when there is state to share). Mirrors HT.history.hasHistory. Requires HT.urlState._loadSchema — load assets/js/url.js BEFORE assets/js/share.js. Returns false defensively when urlState is unavailable or the schema lookup throws.',
+    }),
+    Object.freeze({
+      name: 'HT.share.mount',
+      signature: '(slug: string, rootEl: HTMLElement) => {teardown: () => void}',
+      stability: 'stable',
+      module: 'assets/js/share.js',
+      notes: 'Story 2.5. Shell-side insertion helper: finds-or-creates a .tool-actions flex row on rootEl and appends the share button (from HT.share.button). Pre-builds the dialog so the first open is instant. Returns {teardown} that removes the button + dialog DOM. Skipped when hasShare(slug) returns false or when ?embed=1 is in location.search — the boot orchestrator guards the latter case before calling mount.',
+    }),
+    Object.freeze({
+      name: 'HT.share.print',
+      signature: '(slug: string) => void',
+      stability: 'stable',
+      module: 'assets/js/share.js',
+      notes: 'Story 2.5. Convenience API for tools that want a Print affordance without the full Share dialog UI (e.g. legacy tools with a custom #print-btn). Calls window.print() directly — Shell\'s @media print block hides chrome so the tool\'s <main> prints cleanly. Allowlisted by shell-bounds-check.py so tools can use this without bypassing the bypass gate.',
+    }),
+    Object.freeze({
+      name: 'HT.share._loadSchema',
+      signature: '(slug: string) => {embedMinWidth: number, embedMinHeight: number, embedBadgeDefault: boolean, title: string} | null',
+      stability: 'internal',
+      module: 'assets/js/share.js',
+      notes: 'Story 2.5. Internal: reads the embed-snippet block from HT.homeGrid.entries (or the inline tools.json splice). Returns null when the slug has no embed-snippet block. The width/height are clamped to a minimum of 240 per the B3 a11y floor in tools.schema.json. Tools calling this is undefined behavior — use HT.share.hasShare for the boolean predicate.',
     }),
   ]),
 });

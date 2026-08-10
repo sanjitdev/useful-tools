@@ -1,7 +1,7 @@
 # Shell Public API Contract (AD-14)
 
 **Status:** active
-**Story:** [1.14 — Shell Public API and Bypass Prohibition](../_bmad-output/planning-artifacts/epics.md#story-114-shell-public-api-and-bypass-prohibition) + [2.1 — Per-Tool URL State Codec Wiring](../_bmad-output/planning-artifacts/epics.md#story-21-per-tool-url-state-codec-wiring) + [2.2 — Per-Tool Sample Data and Reset Button](../_bmad-output/planning-artifacts/epics.md#story-22-per-tool-sample-data-and-reset-button) + [2.3 — Per-Tool History Panel](../_bmad-output/planning-artifacts/epics.md#story-23-per-tool-history-panel) + [2.4 — Per-Tool Keyboard-Complete Surface](../_bmad-output/planning-artifacts/epics.md#story-24-per-tool-keyboard-complete-surface)
+**Story:** [1.14 — Shell Public API and Bypass Prohibition](../_bmad-output/planning-artifacts/epics.md#story-114-shell-public-api-and-bypass-prohibition) + [2.1 — Per-Tool URL State Codec Wiring](../_bmad-output/planning-artifacts/epics.md#story-21-per-tool-url-state-codec-wiring) + [2.2 — Per-Tool Sample Data and Reset Button](../_bmad-output/planning-artifacts/epics.md#story-22-per-tool-sample-data-and-reset-button) + [2.3 — Per-Tool History Panel](../_bmad-output/planning-artifacts/epics.md#story-23-per-tool-history-panel) + [2.4 — Per-Tool Keyboard-Complete Surface](../_bmad-output/planning-artifacts/epics.md#story-24-per-tool-keyboard-complete-surface) + [2.5 — Per-Tool Share Dialog with URL and Print](../_bmad-output/planning-artifacts/epics.md#story-25-per-tool-share-dialog-with-url-and-print)
 **Architecture binding:** AD-14, AD-13, AD-4, AD-5, AD-15
 **Source of truth for runtime:** `assets/js/api-contract.js`
 
@@ -83,8 +83,8 @@ calls `HT.provide(slug, api)` once at boot, after `HT.boot()`.
 ## 5. The `HT.*` surface (stable + experimental + internal)
 
 The current entries live in `assets/js/api-contract.js` (read that file for
-the canonical, machine-verified list — version `1.7.0` as of this writing,
-bumped from `1.6.0` by Story 2.3).
+the canonical, machine-verified list — version `1.8.0` as of this writing,
+bumped from `1.7.0` by Story 2.5).
 
 | Entry | Stability | Module |
 |---|---|---|
@@ -142,6 +142,16 @@ bumped from `1.6.0` by Story 2.3).
 | `HT.history.hasHistory` | stable | history.js (Story 2.3 / AD-4) |
 | `HT.history.lastEntry` | stable | history.js (Story 2.3 / AD-4) |
 | `HT.history._loadSchema` | internal | history.js (Story 2.3 / AD-4) |
+| `HT.share.open` | stable | share.js (Story 2.5 / AD-4 / AD-5) |
+| `HT.share.close` | stable | share.js (Story 2.5 / AD-4) |
+| `HT.share.isOpen` | stable | share.js (Story 2.5 / AD-4) |
+| `HT.share.url` | stable | share.js (Story 2.5 / AD-5 — returns `location.href`) |
+| `HT.share.embedCode` | stable | share.js (Story 2.5 / AD-5 — builds the `<iframe>` snippet from `embed-snippet`) |
+| `HT.share.button` | stable | share.js (Story 2.5 / AD-4 — factory emits `data-ht-action="share"`) |
+| `HT.share.hasShare` | stable | share.js (Story 2.5 / AD-4 — predicate, mirrors `HT.history.hasHistory`) |
+| `HT.share.mount` | stable | share.js (Story 2.5 / AD-4 — Shell-side insertion helper, 3rd `.tool-actions` consumer) |
+| `HT.share.print` | stable | share.js (Story 2.5 / AD-4 — sanctioned Print wrapper for legacy tools) |
+| `HT.share._loadSchema` | internal | share.js (Story 2.5 / AD-4) |
 
 ---
 
@@ -202,6 +212,30 @@ in the architectural sense:
    pattern from rule 2 above is the only allowed wrap shape (a `HT.history.*`
    call inside the `if` arm with a defensive `localStorage` arm in the
    `else`).
+
+6. **No ad-hoc share / print UI in `<slug>.js`** (Story 2.5) — the
+   canonical Share and Print affordances are owned by the Shell. A Tool
+   never binds its own `#share-dialog`, never injects a literal "Copy URL"
+   / "Print" / "Embed Code" / "Share tool" button into the DOM, never
+   reaches for `window.print(` directly, and never reaches for
+   `navigator.clipboard.writeText(` (the Shell exposes `HT.copyToClipboard`
+   from `utils.js` — always available, no fallback needed). The
+   sanctioned Print path for legacy tools with a custom Print button is
+   `HT.share.print(slug)` (which wraps `window.print()` internally — the
+   gate allowlists the wrapper call). The sanctioned Share entry point
+   is `HT.share.hasShare(slug)` (predicate) and `HT.share.url(slug)`
+   (read-only canonical URL) — Tools may *call* these; they may NOT
+   construct their own `<dialog>` UI or call `HT.share.open` /
+   `HT.share.close` / `HT.share.embedCode` / `HT.share.button` /
+   `HT.share.mount` directly (the Shell mounts the button at boot via
+   `HT.share.mount(slug, main)`). The gate scans `<slug>.js` for
+   `getElementById('share-dialog')`, `querySelector('#share-dialog')`,
+   the literal `Copy URL` / `Print` / `Embed Code` / `Share tool` strings,
+   direct calls to `HT.share.open/.close/.embedCode/.button/.mount`,
+   `window.print(`, and `navigator.clipboard.writeText(` — all fail the
+   gate. The lifecycle-fallback pattern from rule 2 above wraps any
+   `HT.share.*` / `HT.copyToClipboard` call (defensive against a stale
+   shell that hasn't loaded yet).
 
 All other `localStorage.*`, `document.cookie`, `fetch(`, `XMLHttpRequest`,
 and bare `HT.provide(...)` references under `tools/<slug>/<slug>.js` fail

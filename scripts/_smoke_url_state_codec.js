@@ -304,8 +304,8 @@ check(
   /HT\.urlState\.bindDomTarget/.test(contractSrc)
 );
 check(
-  'api-contract.js: version bumped to 1.6.0 (Story 2.4 — bundled with Story 2.1+2.2 ships at 1.6.0)',
-  /version:\s*['"]1\.6\.0['"]/.test(contractSrc)
+  'api-contract.js: version bumped to 1.8.0 (Story 2.5 — per-tool share dialog surfaces bump)',
+  /version:\s*['"]1\.8\.0['"]/.test(contractSrc)
 );
 
 // 16. The _smoke_shell_public_api harness registry-match extension lands here too.

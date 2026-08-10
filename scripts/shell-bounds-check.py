@@ -86,7 +86,8 @@ failure here names the violated module + the offending line.
 Author: Handy Tools (Story 1.14 — Shell Public API and Bypass Prohibition
                      + Story 2.2 — Per-Tool Sample Data and Reset Button
                      + Story 2.3 — Per-Tool History Panel
-                     + Story 2.4 — Per-Tool Keyboard-Complete Surface)
+                     + Story 2.4 — Per-Tool Keyboard-Complete Surface
+                     + Story 2.5 — Per-Tool Share Dialog)
 """
 
 from __future__ import annotations
@@ -201,6 +202,112 @@ SAMPLE_LITERAL_RE = re.compile(
 # optional `(r)`). Raw-line scanner.
 SAMPLE_ARIA_RE = re.compile(
     r"""['"](?:Try an example|Reset to sample)(?:\s*\([sr]\))?['"]"""
+)
+
+
+# ---------------------------------------------------------------------------
+# Story 2.5 — ad-hoc share / print / clipboard (AC-6)
+# ---------------------------------------------------------------------------
+#
+# Per docs/shell-public-api.md §6 #6 (and the Story 2.5 update to
+# §6 rule 6): Tools MUST go through HT.share.{open,close,url,
+# embedCode,button,mount} for any share affordance, HT.history's
+# pattern for the dialog, and HT.copyToClipboard (NOT
+# navigator.clipboard.writeText) for the actual clipboard write.
+# Print goes through `window.print()` (the Shell injects it via
+# the share dialog's Print button), not the Tool.
+#
+# The Tool must NOT:
+#   1. Reach for the dialog directly: `getElementById('share-dialog')`
+#      or `querySelector('#share-dialog')`. (Code-span aware.)
+#   2. Hard-code the canonical UI strings ('Copy URL', 'Print',
+#      'Embed Code', 'Share') — those are owned by share.js.
+#      (Raw-line scanner so template-literal HTML is caught.)
+#   3. Call `HT.share.open|close|embedCode|button|mount` directly.
+#      HT.share.url is exempt — Tools MAY read HT.share.url(slug)
+#      to compose their own URL strings (it's a pure getter, no
+#      side-effects). HT.share.hasShare is exempt — Tools may
+#      predicate their own affordances on whether the Shell's
+#      share dialog exists. (Code-span aware.)
+#   4. Call `window.print(` directly. (Code-span aware.)
+#   5. Call `navigator.clipboard.writeText(` directly. (Code-span
+#      aware.)
+#
+# Allowlist:
+#   - Comments and string literals are stripped by the existing
+#     _code_spans + _strip_block_comments machinery.
+#   - The HT.copyToClipboard call in tools/lifespan-simulator/
+#     lifespan-simulator.js (the #ls-share tile's pre-existing
+#     copy-to-clipboard affordance) is NOT a bypass — it's a
+#     different surface (Shell-owned, Tool-invoked helper).
+
+# (1) ad-hoc share-dialog lookup — raw-line scanner (the
+# 'share-dialog' string literal inside the parens makes the
+# argument not part of any code span; a code-span-aware scan
+# would miss it).
+SHARE_DIALOG_ID_RE = re.compile(
+    r"""getElementById\s*\(\s*['"]share-dialog['"]\s*\)"""
+)
+SHARE_DIALOG_QS_RE = re.compile(
+    r"""querySelector(?:All)?\s*\(\s*['"]#share-dialog['"]"""
+)
+
+# (2) canonical share UI strings (Shell-owned). Catches the
+# canonical labels inside single/double-quoted JS strings:
+# 'Copy URL', "Embed Code", 'Share tool (s)'. The label may
+# carry a `(s)` / `(e)` keyboard shortcut suffix. Raw-line scanner.
+# (Template-literal HTML fragments like `<button>Copy URL</button>`
+# are not in scope — the realistic bypass surface is the quoted
+# string form, since tools don't construct their own share markup
+# at runtime; that's the Shell's job.)
+SHARE_UI_LITERAL_RE = re.compile(
+    r"""['"](?:Copy URL|Embed Code|Share tool)(?:\s*\([se]\))?['"]"""
+)
+# `Print` is a generic word — many tools use it for non-share
+# contexts (print to PDF, print preview, etc.). We restrict to the
+# Share-dialog contexts by requiring the adjacent button action
+# OR by matching only when both Copy URL / Share and Print appear
+# together. Simplest correct policy: flag the bare literal `'Print'`
+# or `"Print"` when used as a button label. The Share dialog uses
+# `<button data-ht-action="share-print" class="btn--primary">Print</button>`
+# — Tool authors must use HT.share.* to surface that button. So
+# flag a raw `'Print'` only when it's the entire button text or the
+# entire ARIA-label. The regex below matches a string that is
+# exactly "Print" with optional surrounding quotes — too narrow
+# would miss `'Print\n'` (template). Use a stricter rule: a JS
+# expression whose matched value is exactly "Print" or starts with
+# "Print" + shortcut. We restrict to the exact literals in the
+# _share_print_button context. To keep false-positives low, we
+# only flag the literal 'Print' when it appears as the value of an
+# aria-label OR inside a `data-ht-action` attribute OR inside a
+# setAttribute('aria-label', 'Print') call. The simplest robust
+# check is: a string literal exactly equal to "Print" (with
+# optional shortcut suffix) AND not part of a longer word. False
+# positives: a tool whose UI text says "Print this result" — that's
+# a UI affordance, not a Share-Dialog button. The SHARE_PRINT_LABEL_RE
+# below flags only the standalone "Print" string (or with `(s)`
+# suffix) — Tool code that says "Print this result" still scans OK.
+SHARE_PRINT_LABEL_RE = re.compile(
+    r"""['"]Print(?:\s*\([a-z]\))?['"]"""
+)
+
+# (3) direct HT.share.* calls (exempt: .url, .hasShare)
+HT_SHARE_OPEN_RE = re.compile(r"\bHT\.share\.open\b")
+HT_SHARE_CLOSE_RE = re.compile(r"\bHT\.share\.close\b")
+HT_SHARE_EMBED_RE = re.compile(r"\bHT\.share\.embedCode\b")
+HT_SHARE_BUTTON_RE = re.compile(r"\bHT\.share\.button\b")
+HT_SHARE_MOUNT_RE = re.compile(r"\bHT\.share\.mount\b")
+# Compound: any of the above.
+HT_SHARE_DIRECT_RE = re.compile(
+    r"\bHT\.share\.(?:open|close|embedCode|button|mount)\b"
+)
+
+# (4) direct window.print() call
+WINDOW_PRINT_RE = re.compile(r"\bwindow\.print\s*\(")
+
+# (5) direct navigator.clipboard.writeText() call
+NAV_CLIPBOARD_WRITE_RE = re.compile(
+    r"\bnavigator\.clipboard\.writeText\s*\("
 )
 
 
@@ -693,6 +800,26 @@ def _scan_file(path: Path) -> list[tuple[str, int, str]]:
         if ln in allowed:
             continue
         hits.append(("ad-hoc-history-storage", ln, line))
+    # Story 2.5 ad-hoc share / print / clipboard rules (AC-6).
+    # SHARE_DIALOG_ID_RE / SHARE_DIALOG_QS_RE: raw-line scanner
+    # (the 'share-dialog' / '#share-dialog' is a string literal
+    # INSIDE the parens; code-span-aware scanning would suppress it).
+    # Block comments are stripped first so a comment mentioning
+    # these IDs isn't flagged.
+    for ln, line in _line_numbers(stripped, SHARE_DIALOG_ID_RE):
+        hits.append(("ad-hoc-share-dialog", ln, line))
+    for ln, line in _line_numbers(stripped, SHARE_DIALOG_QS_RE):
+        hits.append(("ad-hoc-share-dialog", ln, line))
+    for ln, line in _line_numbers(stripped, SHARE_UI_LITERAL_RE):
+        hits.append(("ad-hoc-share-ui", ln, line))
+    for ln, line in _line_numbers(stripped, SHARE_PRINT_LABEL_RE):
+        hits.append(("ad-hoc-share-ui", ln, line))
+    for ln, line in _scan_pattern_in_code(text, HT_SHARE_DIRECT_RE):
+        hits.append(("ad-hoc-share-call", ln, line))
+    for ln, line in _scan_pattern_in_code(text, WINDOW_PRINT_RE):
+        hits.append(("ad-hoc-window-print", ln, line))
+    for ln, line in _scan_pattern_in_code(text, NAV_CLIPBOARD_WRITE_RE):
+        hits.append(("ad-hoc-clipboard-write", ln, line))
     return hits
 
 
@@ -725,7 +852,7 @@ def _scan_index_html(path: Path) -> list[tuple[str, int, str]]:
 
 
 def _print_policy() -> None:
-    print("shell-bounds-check policy (Story 1.14 / AD-14 + Story 2.2 / AD-4 + Story 2.3 / AD-4 + Story 2.4):")
+    print("shell-bounds-check policy (Story 1.14 / AD-14 + Story 2.2 / AD-4 + Story 2.3 / AD-4 + Story 2.4 + Story 2.5 / AD-4 + AD-5):")
     print("  Forbidden in tools/<slug>/<slug>.js:")
     print("    - localStorage.<getItem|setItem|removeItem|clear|key|length>")
     print("    - document.cookie")
@@ -739,6 +866,19 @@ def _print_policy() -> None:
     print("      (Story 2.3 — Shell owns history; route through HT.history.*)")
     print("    - JSON.parse(localStorage.getItem('handy-tools.history.<slug>'))")
     print("      (Story 2.3 — same rule)")
+    print("    - getElementById('share-dialog') / querySelector('#share-dialog')")
+    print("      (Story 2.5 — Shell owns the dialog; tools MUST NOT reach for it)")
+    print("    - HT.share.{open|close|embedCode|button|mount}(...)")
+    print("      (Story 2.5 — Shell mounts the share dialog; tools MUST NOT call")
+    print("      these directly. HT.share.url, HT.share.hasShare, and HT.share.print")
+    print("      are exempt — tools may read the canonical URL, predicate their own")
+    print("      affordances, or invoke a Print affordance without rendering the full")
+    print("      share dialog.)")
+    print("    - 'Copy URL' / 'Print' / 'Embed Code' / 'Share tool' literals")
+    print("      (Story 2.5 — canonical UI strings owned by share.js)")
+    print("    - window.print( — direct print call (Story 2.5 — Shell owns Print)")
+    print("    - navigator.clipboard.writeText( — direct clipboard write")
+    print("      (Story 2.5 — use HT.copyToClipboard)")
     print("  Forbidden in tools/<slug>/<slug>.js AND tools/<slug>/index.html:")
     print("    - tabindex=\"N\" for N >= 1 (Story 2.4 / EXPERIENCE.md §6.2 —")
     print("      no positive tabindex; reorder the DOM instead)")
@@ -753,6 +893,12 @@ def _print_policy() -> None:
     print("    - tabindex=\"-1\" (the documented skip-target / modal-trap pattern)")
     print("    - tabindex=\"0\" (the documented 'tabbable but not focusable via")
     print("      script' pattern; EXPERIENCE.md §6.2 forbids only positive values)")
+    print("    - HT.share.url(slug) and HT.share.hasShare(slug) — pure getters,")
+    print("      no side effects; tools may call them.")
+    print("    - HT.share.print(slug) — convenience for legacy tools with a")
+    print("      custom Print affordance; calls window.print() directly. The")
+    print("      Shell's @media print block hides chrome so the tool's <main>")
+    print("      prints cleanly.")
 
 
 def _walk_tool_js(root: Path) -> Iterable[Path]:
@@ -1158,6 +1304,115 @@ def _run_self_tests() -> int:
         (
             "TABINDEX_RE ignores block-comment literal",
             not _line_numbers(_strip_block_comments('/* tabindex="1" */\n'), TABINDEX_RE),
+        ),
+        # Story 2.5 — share / print / clipboard patterns.
+        (
+            "SHARE_DIALOG_ID_RE flags getElementById('share-dialog')",
+            bool(_line_numbers("var d = document.getElementById('share-dialog');\n", SHARE_DIALOG_ID_RE)),
+        ),
+        (
+            "SHARE_DIALOG_ID_RE flags double-quote variant",
+            bool(_line_numbers('var d = document.getElementById("share-dialog");\n', SHARE_DIALOG_ID_RE)),
+        ),
+        (
+            "SHARE_DIALOG_ID_RE ignores block-comment literal",
+            not _line_numbers(_strip_block_comments("/* getElementById('share-dialog') */\n"), SHARE_DIALOG_ID_RE),
+        ),
+        (
+            "SHARE_DIALOG_QS_RE flags querySelector('#share-dialog')",
+            bool(_line_numbers("var d = document.querySelector('#share-dialog');\n", SHARE_DIALOG_QS_RE)),
+        ),
+        (
+            "SHARE_DIALOG_QS_RE flags querySelectorAll('#share-dialog')",
+            bool(_line_numbers("var ds = document.querySelectorAll('#share-dialog');\n", SHARE_DIALOG_QS_RE)),
+        ),
+        (
+            "SHARE_UI_LITERAL_RE flags 'Copy URL'",
+            bool(_line_numbers("btn.textContent = 'Copy URL';\n", SHARE_UI_LITERAL_RE)),
+        ),
+        (
+            "SHARE_UI_LITERAL_RE flags 'Embed Code'",
+            bool(_line_numbers("var l = 'Embed Code';\n", SHARE_UI_LITERAL_RE)),
+        ),
+        (
+            "SHARE_UI_LITERAL_RE flags 'Share tool (s)' shortcut",
+            bool(_line_numbers("btn.setAttribute('aria-label', 'Share tool (s)');\n", SHARE_UI_LITERAL_RE)),
+        ),
+        (
+            "SHARE_UI_LITERAL_RE ignores 'Reset'",
+            not _line_numbers("var l = 'Reset';\n", SHARE_UI_LITERAL_RE),
+        ),
+        (
+            "SHARE_PRINT_LABEL_RE flags bare 'Print' string",
+            bool(_line_numbers("btn.textContent = 'Print';\n", SHARE_PRINT_LABEL_RE)),
+        ),
+        (
+            "SHARE_PRINT_LABEL_RE ignores 'Print this tool' (UI text)",
+            not _line_numbers("var l = 'Print this tool';\n", SHARE_PRINT_LABEL_RE),
+        ),
+        (
+            "SHARE_PRINT_LABEL_RE flags 'Print (p)' shortcut",
+            bool(_line_numbers("var l = 'Print (p)';\n", SHARE_PRINT_LABEL_RE)),
+        ),
+        (
+            "HT_SHARE_DIRECT_RE flags HT.share.open",
+            bool(_scan_pattern_in_code("HT.share.open(slug);\n", HT_SHARE_DIRECT_RE)),
+        ),
+        (
+            "HT_SHARE_DIRECT_RE flags HT.share.button",
+            bool(_scan_pattern_in_code("var b = HT.share.button(slug);\n", HT_SHARE_DIRECT_RE)),
+        ),
+        (
+            "HT_SHARE_DIRECT_RE flags HT.share.mount",
+            bool(_scan_pattern_in_code("HT.share.mount(slug, root);\n", HT_SHARE_DIRECT_RE)),
+        ),
+        (
+            "HT_SHARE_DIRECT_RE flags HT.share.close",
+            bool(_scan_pattern_in_code("HT.share.close();\n", HT_SHARE_DIRECT_RE)),
+        ),
+        (
+            "HT_SHARE_DIRECT_RE flags HT.share.embedCode",
+            bool(_scan_pattern_in_code("var c = HT.share.embedCode(slug);\n", HT_SHARE_DIRECT_RE)),
+        ),
+        (
+            "HT_SHARE_DIRECT_RE does NOT flag HT.share.url (exempt)",
+            not _scan_pattern_in_code("var u = HT.share.url(slug);\n", HT_SHARE_DIRECT_RE),
+        ),
+        (
+            "HT_SHARE_DIRECT_RE does NOT flag HT.share.print (exempt)",
+            not _scan_pattern_in_code("HT.share.print(slug);\n", HT_SHARE_DIRECT_RE),
+        ),
+        (
+            "HT_SHARE_DIRECT_RE does NOT flag HT.share.hasShare (exempt)",
+            not _scan_pattern_in_code("if (HT.share.hasShare(slug)) {}\n", HT_SHARE_DIRECT_RE),
+        ),
+        (
+            "HT_SHARE_DIRECT_RE does NOT flag HT.share._loadSchema (internal)",
+            not _scan_pattern_in_code("var s = HT.share._loadSchema(slug);\n", HT_SHARE_DIRECT_RE),
+        ),
+        (
+            "HT_SHARE_DIRECT_RE ignores string literal",
+            not _scan_pattern_in_code("var s = 'HT.share.open';\n", HT_SHARE_DIRECT_RE),
+        ),
+        (
+            "HT_SHARE_DIRECT_RE ignores block comment",
+            not _scan_pattern_in_code(_strip_block_comments("/* HT.share.open(slug) */\n"), HT_SHARE_DIRECT_RE),
+        ),
+        (
+            "WINDOW_PRINT_RE flags window.print(",
+            bool(_scan_pattern_in_code("window.print();\n", WINDOW_PRINT_RE)),
+        ),
+        (
+            "WINDOW_PRINT_RE ignores string literal",
+            not _scan_pattern_in_code("var s = 'window.print(';\n", WINDOW_PRINT_RE),
+        ),
+        (
+            "NAV_CLIPBOARD_WRITE_RE flags navigator.clipboard.writeText(",
+            bool(_scan_pattern_in_code("navigator.clipboard.writeText(s);\n", NAV_CLIPBOARD_WRITE_RE)),
+        ),
+        (
+            "NAV_CLIPBOARD_WRITE_RE ignores string literal",
+            not _scan_pattern_in_code("var s = 'navigator.clipboard.writeText(s)';\n", NAV_CLIPBOARD_WRITE_RE),
         ),
     ]
     for name, ok in sample_cases:

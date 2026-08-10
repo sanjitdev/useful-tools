@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -42,7 +42,8 @@ help: ## Show available targets
 	@echo "  make a11y-smoke          Run the Node smoke harness for assets/js/a11y.js (Story 2.4 / AD-4 + AD-14)"
 	@echo "  make a11y-audit          Per-tool keyboard-complete audit (Story 2.4 AC-2) — exit 1 on any failed ready:true tool"
 	@echo "  make history-smoke       Run the Node smoke harness for assets/js/history.js (Story 2.3 / AD-4 + AD-14)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke"
+	@echo "  make share-dialog-smoke  Run the Node smoke harness for assets/js/share.js (Story 2.5 / AD-4 + AD-14)"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke"
 
 validate: validate-tools-json
 
@@ -86,7 +87,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -254,3 +255,24 @@ a11y-audit:
 # Vacuous-pass guard (pass===0 && fail===0 → exit 1) catches hollow runs.
 history-smoke:
 	@node scripts/_smoke_history_panel.js
+
+# `share-dialog-smoke` runs the Node smoke harness for
+# assets/js/share.js (Story 2.5 — Per-Tool Share Dialog with URL and
+# Print). Loads url.js + share.js in a fresh vm context against a
+# synthetic HT.homeGrid.entries fixture (3 slugs: has-share-and-embed,
+# has-share-no-embed, neither) with stubbed HT.copyToClipboard +
+# HT.toast + window.print. Asserts the HT.share surface (AD-14 frozen
+# — 9 stable + 1 internal), url/embedCode correctness (including B3
+# a11y min-width + loading="lazy"), the hasShare predicate across the
+# 3-slug matrix, dialog open/close lifecycle (showModal, focus on
+# URL input by default, focus selects content, isOpen), affordances
+# (Copy URL → HT.copyToClipboard + 'URL copied' toast; Print →
+# window.print(); Copy embed code → toast), embed section hidden when
+# no embed-snippet, button factory (data-ht-action="share" +
+# aria-haspopup="dialog" + aria-label "Share tool (s)"), the
+# HT.share.print convenience (window.print wrapper), the mount
+# teardown helper, and api-contract.js version 1.8.0 + 10 entries.
+# 50 PASS expected. Vacuous-pass guard (pass===0 && fail===0 → exit 1)
+# catches hollow runs.
+share-dialog-smoke:
+	@node scripts/_smoke_share_dialog.js

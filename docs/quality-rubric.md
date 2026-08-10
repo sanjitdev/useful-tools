@@ -105,6 +105,7 @@ current computation. Pasted links work. (FR-4 + Tool Contract #4.)
 | Automated | `tools.json[slug].urlState.encode` is non-empty AND every `encode[].key` is mirrored in `decode[].key` AND the Tool's HTML has elements with matching `id`/`name`. Empty `urlState.encode` ⇒ `FAIL`. |
 | Pass | URL hash carries the full input set; reload reproduces the result. |
 | Remediation | "`urlState.encode` is empty; declare each input field under `encode[]`/`decode[]` so AD-5 (URL is canonical state) holds." |
+| **Shell-level fulfillment (Story 2.5)** | The Shell inserts the canonical Share affordance via `HT.share.mount(slug, main)` at boot — the share button's `data-ht-action="share"` invokes `HT.share.open(slug)`, which renders the Share dialog with the canonical URL (`location.href`) pre-selected. Copy URL → `HT.copyToClipboard` toasts. Print → `window.print()` (sanctioned wrapper: `HT.share.print(slug)`). Embed Code → `HT.share.embedCode(slug)` returns the `<iframe>` snippet. Rubric #4 is satisfied at the Shell level for any tool that declares a `urlState` block; the per-tool `urlState.encode` non-empty check remains the gate's source of truth (a Tool cannot paste-share what doesn't exist in the URL). |
 
 ### 5. Printable
 
@@ -117,6 +118,7 @@ and supports multi-page result sets.
 | Automated | Tool's CSS contains `@media print` (case-insensitive). Absence ⇒ `FAIL`. |
 | Pass | Print preview is single-column, readable, no interactive chrome. |
 | Remediation | "No `@media print` block in <slug>.css; add one that hides the header/footer and forces black-on-white text." |
+| **Shell-level fulfillment (Story 2.5)** | The Shell's `@media print` block appended to `assets/css/base.css` hides Shell chrome (`#shell-header`, `#shell-nav`, `#shell-footer`, `#palette-trigger`, `#shell-settings-trigger`, `#shell-skip`, `aside.history-panel`, `aside.history-sheet`, `dialog.share-dialog`) and tool chrome (`.tool-actions`, `.sample-button`, `.reset-button`, `.history-button`, `.share-button`), sets `@page { margin: 0.5in }`, and forces `background: transparent; color: black` so every tool page prints cleanly by default. The per-tool CSS file may extend this block for tool-specific layout (multi-page schedules, etc.) but the base hides chrome unconditionally. Rubric #5 is satisfied at the Shell level for every tool — the per-tool `@media print` check remains as a progressive-enhancement signal for tool-specific layout work. |
 
 ### 6. Sample data
 

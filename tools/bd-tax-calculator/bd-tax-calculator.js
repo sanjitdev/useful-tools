@@ -1369,7 +1369,11 @@
 
     // Print
     HT.$('#print-btn').addEventListener('click', function () {
-      window.print();
+      // Story 2.5: route through HT.share.print() — Shell owns Print
+      // (Story 2.6 will migrate bd-tax-calculator to urlState + the
+      // auto-mounted Share dialog, which contains the Print button;
+      // until then the legacy #print-btn routes through HT.share.print).
+      HT.share.print('bd-tax-calculator');
     });
 
     // Share link
@@ -1378,11 +1382,10 @@
       shareBtn.addEventListener('click', function () {
         updateShareHash();
         var url = location.href;
-        if (HT.copyToClipboard) {
-          HT.copyToClipboard(url).then(function () { showToast(T('toastLinkCopied')); });
-        } else if (navigator.clipboard) {
-          navigator.clipboard.writeText(url).then(function () { showToast(T('toastLinkCopied')); });
-        }
+        // Story 2.5: HT.copyToClipboard is always available (utils.js
+        // registers it on Shell load); the legacy navigator.clipboard
+        // fallback is removed (was a shell-bounds bypass).
+        HT.copyToClipboard(url).then(function () { showToast(T('toastLinkCopied')); });
       });
     }
 
@@ -1392,11 +1395,8 @@
       copyBtn.addEventListener('click', function () {
         if (!state.result) return;
         var text = buildSummaryText(state.result, readInput());
-        if (HT.copyToClipboard) {
-          HT.copyToClipboard(text).then(function () { showToast(T('toastSummaryCopied')); });
-        } else if (navigator.clipboard) {
-          navigator.clipboard.writeText(text).then(function () { showToast(T('toastSummaryCopied')); });
-        }
+        // Story 2.5: same as above — HT.copyToClipboard is the only path.
+        HT.copyToClipboard(text).then(function () { showToast(T('toastSummaryCopied')); });
       });
     }
 

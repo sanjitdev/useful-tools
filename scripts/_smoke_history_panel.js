@@ -4,8 +4,8 @@
    with stub window/document/HT objects, plus a
    synthetic HT.storage facade, and asserts the
    HT.history surface per api-contract.js (version
-   1.7.0 as of this writing — Story 2.3 bumps the
-   contract 1.6.0 → 1.7.0).
+   1.8.0 as of this writing — Story 2.3 bumped the
+   contract 1.6.0 → 1.7.0, Story 2.5 bumped 1.7.0 → 1.8.0).
 
    The synthetic HT.homeGrid.entries fixture carries
    four slugs covering the four matrix cases AC-5
@@ -434,8 +434,8 @@ for (const name of requiredEntries) {
 }
 check('api-contract.js: all 10 HT.history.* entries registered (9 stable + 1 internal)',
   allEntriesFound);
-check('api-contract.js: version bumped to 1.7.0',
-  /version:\s*['"]1\.7\.0['"]/.test(CONTRACT_SRC));
+check('api-contract.js: version bumped to 1.8.0',
+  /version:\s*['"]1\.8\.0['"]/.test(CONTRACT_SRC));
 
 // === Vacuous-pass guard (assertion 31) ===
 

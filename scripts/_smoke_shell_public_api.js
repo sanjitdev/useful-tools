@@ -101,6 +101,11 @@ check('HT.provideRegistry.list() does NOT contain history-panel',
   registryList.indexOf('history-panel') === -1);
 check('HT.provideRegistry.list() does NOT contain sample-data',
   registryList.indexOf('sample-data') === -1);
+// Story 2.5 cross-pin: the Share Dialog is also a Shell-owned
+// surface (HT.share.open/.close/.panel); Tools never mount it via
+// HT.provide. The registry must not contain 'share-dialog' either.
+check('HT.provideRegistry.list() does NOT contain share-dialog',
+  registryList.indexOf('share-dialog') === -1);
 
 // Frozen touch: the provide function itself is frozen by
 // Object.freeze(provide). Property-level mutation via `HT.provide =

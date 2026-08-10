@@ -3,11 +3,12 @@
    Loads url.js + sample-data.js in a fresh vm context
    with stub window/document/HT objects and asserts
    the HT.sampleData and HT.reset surfaces per
-   api-contract.js (version 1.7.0 as of this writing —
+   api-contract.js (version 1.8.0 as of this writing —
    Story 2.2 standalone bumps 1.4.0 → 1.5.0; Story 2.4
    then bumps 1.5.0 → 1.6.0 to register the HT.a11y.*
    surface; Story 2.3 bumps 1.6.0 → 1.7.0 to register
-   the HT.history.* surface).
+   the HT.history.* surface; Story 2.5 bumps 1.7.0 → 1.8.0
+   to register the HT.share.* surface).
 
    Loads url.js first because sample-data.js composes
    on HT.urlState._loadSchema (the same facade Story 2.1
@@ -499,8 +500,8 @@ const contractSrc = fs.readFileSync(
   path.resolve(__dirname, '../assets/js/api-contract.js'),
   'utf8'
 );
-check('api-contract: version bumped to 1.7.0 (Story 2.2: 1.5.0; bundled 2.2+2.4: 1.6.0; bundled 2.2+2.3+2.4: 1.7.0)',
-  /version:\s*['"]1\.7\.0['"]/.test(contractSrc));
+check('api-contract: version bumped to 1.8.0 (Story 2.2: 1.5.0; bundled 2.2+2.4: 1.6.0; bundled 2.2+2.3+2.4: 1.7.0; bundled 2.2+2.3+2.4+2.5: 1.8.0)',
+  /version:\s*['"]1\.8\.0['"]/.test(contractSrc));
 check('api-contract: HT.sampleData.fill entry present',
   /HT\.sampleData\.fill/.test(contractSrc));
 check('api-contract: HT.sampleData.button entry present',

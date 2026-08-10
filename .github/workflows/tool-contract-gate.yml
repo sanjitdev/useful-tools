@@ -23,11 +23,14 @@ on:
       - "scripts/storage-registry-gate.py"
       - "scripts/site-config-gate.py"
       - "scripts/_smoke_site_config.js"
+      - "scripts/shell-bounds-check.py"
+      - "scripts/_smoke_share_dialog.js"
       - "assets/shell/**"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
       - "assets/js/storage-registry.js"
       - "assets/js/site-config.js"
+      - "assets/js/share.js"
       - "assets/js/utils.js"
       - "assets/css/base.css"
       - "assets/css/components.css"
@@ -51,11 +54,14 @@ on:
       - "scripts/storage-registry-gate.py"
       - "scripts/site-config-gate.py"
       - "scripts/_smoke_site_config.js"
+      - "scripts/shell-bounds-check.py"
+      - "scripts/_smoke_share_dialog.js"
       - "assets/shell/**"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
       - "assets/js/storage-registry.js"
       - "assets/js/site-config.js"
+      - "assets/js/share.js"
       - "assets/js/utils.js"
       - "assets/css/base.css"
       - "assets/css/components.css"
@@ -181,3 +187,15 @@ jobs:
         # override in assets/css/base.css. Added after the Story 1.5
         # code review (Decision #1).
         run: make shell-a11y
+
+      - name: Smoke share-dialog surface (Story 2.5)
+        # Story 2.5: loads assets/js/url.js + share.js in a fresh vm
+        # context against a synthetic HT.homeGrid.entries fixture,
+        # asserts the HT.share surface (AD-14 frozen — 9 stable + 1
+        # internal), url/embedCode correctness, dialog lifecycle,
+        # affordances, button factory, the HT.share.print wrapper,
+        # the mount teardown helper, and api-contract.js at version
+        # 1.8.0 with the 10 entries. 50 PASS expected. The script's
+        # vacuous-pass guard (pass===0 && fail===0 → exit 1) means a
+        # hollow run fails the gate.
+        run: make share-dialog-smoke

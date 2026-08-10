@@ -234,7 +234,7 @@
           }
         },
         "embed-snippet": {
-          "description": "Embed mode settings (FR-10, Story 4.1). badge-default controls the 'Powered by handy.tools' link; min-width/min-height enforce the per-B3 a11y minimum of 240x240.",
+          "description": "Embed mode settings (FR-10, Story 4.1). badge-default controls the 'Powered by handy.tools' link; min-width/min-height enforce the per-B3 a11y minimum of 240x240. Read by `HT.share.embedCode(slug)` (Story 2.5) to build the `<iframe>` snippet returned by the Share dialog's Embed Code section; missing/empty → embedCode returns '' and the dialog hides the section.",
           "type": "object",
           "additionalProperties": false,
           "required": ["enabled", "badge-default", "min-width", "min-height"],

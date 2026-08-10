@@ -307,6 +307,24 @@
       }
     }
 
+    // Story 2.5: mount the per-tool share dialog affordance. The Shell
+    // wires this (NOT each tool) so the dialog, print button, and
+    // embed snippet are consistent across every tool. Skipped in
+    // embed mode (AD-7) and when the slug declares no urlState block
+    // (the share URL is meaningful only when there's state to share).
+    if (!isEmbedMode() && main && HT.share
+        && typeof HT.share.mount === 'function') {
+      const shareSlug = main.getAttribute && main.getAttribute('data-slug');
+      if (shareSlug && /^[a-z][a-z0-9-]*[a-z0-9]$/.test(shareSlug)) {
+        try {
+          if (HT.share.hasShare && HT.share.hasShare(shareSlug)) {
+            HT.share.mount(shareSlug, main);
+          }
+        }
+        catch (err) { console.warn('shell.boot: HT.share.mount failed', err); }
+      }
+    }
+
     // Story 1.7: install the command palette wiring (skip entirely in
     // embed mode per AD-7 — the trigger is hidden and the chord is a no-op).
     if (!isEmbedMode()) {
