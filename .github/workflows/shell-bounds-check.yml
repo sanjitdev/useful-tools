@@ -87,6 +87,13 @@ jobs:
         # the job and the PR check.
         run: make shell-bounds
 
+      - name: Self-test the bypass check
+        # The stripper + walker are subtle. The self-test exercises
+        # 11 cases against known inputs (strings, comments, template
+        # literals, mixed lines). Catches regressions to the
+        # string/comment-aware scanner.
+        run: make shell-bounds-self-test
+
       - name: Smoke shell.js Public API surface (Story 1.14)
         # Loads assets/js/shell.js in a fresh vm context with a stub
         # document, asserts the HT.provide / HT.use / HT.net surfaces

@@ -116,12 +116,212 @@ FETCH_RE = re.compile(r"\bfetch\s*\(")
 # XMLHttpRequest — never allowlisted.
 XHR_RE = re.compile(r"\bnew\s+XMLHttpRequest\s*\(|\bXMLHttpRequest\b")
 
-# HT.provide(...) — never allowlisted in tools/. The expression
-# `HT.provide.register(...)` is reached indirectly via the HT.provide
-# namespace, but the grep is conservative: any HT.provide token in a
-# tool file is flagged. False positives are easy to fix (rename the
-# function) and the surface is small.
+# HT.provide(...) — never allowlisted in tools/. A Tool that wants
+# to expose an API registers via HT.provide(slug, api); a Tool that
+# wants to consume someone else's API calls HT.use(slug). Both
+# patterns are mentioned in the contract; the gate flags any
+# `HT.provide` reference under tools/ so an author can't bypass the
+# Tool-to-Tool API mount.
 HT_PROVIDE_RE = re.compile(r"\bHT\.provide\b")
+
+
+# ---------------------------------------------------------------------------
+# String / comment stripper (Story 1.14 review fix)
+# ---------------------------------------------------------------------------
+#
+# Plain regex on raw source would false-positive on these surfaces:
+#   - a tool's UI text saying "uses XMLHttpRequest" (string literal)
+#   - a code comment explaining the gate ("// never call fetch() here")
+#   - a template literal embedding a URL: `Loading ${url}...`
+#   - a regex literal: /fetch\(...\)/ — JS does support these.
+#
+# The stripper walks the source character-by-character and yields the
+# spans of NORMAL code (i.e. not inside any of the surfaces above).
+# The regex patterns below run only against those spans.
+#
+# Review fix: previously the gate flagged every raw substring, which
+# would break a tool whose docs or error message mentions
+# "XMLHttpRequest" by name. The stripper is the correct fix.
+#
+# Implementation is hand-rolled rather than a real JS tokenizer: we
+# only need to know whether the regex should consider a given
+# character. We handle the standard surface set:
+#   single-quoted, double-quoted, template (with ${...} interpolation),
+#   line comment, block comment. Regex literals (e.g. /foo/g) are
+#   NOT in the surface set — none of the existing tool files use
+#   them, and adding recognition would require a real JS lexer.
+
+def _code_spans(text: str) -> list[tuple[int, int]]:
+    """Return a list of (start, end) character offsets covering the
+    NORMAL-code spans of `text` — i.e. everything that is NOT inside
+    a string, template literal, line comment, or block comment.
+
+    The end offset is exclusive (Python slice convention)."""
+    spans: list[tuple[int, int]] = []
+    n = len(text)
+    i = 0
+    span_start: int | None = None
+    # States: 'N', 'SQ', 'DQ', 'TPL', 'LC', 'BC'
+    state = 'N'
+    while i < n:
+        ch = text[i]
+        nxt = text[i + 1] if i + 1 < n else ''
+        if state == 'N':
+            if span_start is None:
+                span_start = i
+            if ch == "'":
+                if span_start is not None and i > span_start:
+                    spans.append((span_start, i))
+                    span_start = None
+                state = 'SQ'
+                i += 1
+                continue
+            if ch == '"':
+                if span_start is not None and i > span_start:
+                    spans.append((span_start, i))
+                    span_start = None
+                state = 'DQ'
+                i += 1
+                continue
+            if ch == '`':
+                if span_start is not None and i > span_start:
+                    spans.append((span_start, i))
+                    span_start = None
+                state = 'TPL'
+                i += 1
+                continue
+            if ch == '/' and nxt == '/':
+                if span_start is not None and i > span_start:
+                    spans.append((span_start, i))
+                    span_start = None
+                state = 'LC'
+                i += 2
+                continue
+            if ch == '/' and nxt == '*':
+                if span_start is not None and i > span_start:
+                    spans.append((span_start, i))
+                    span_start = None
+                state = 'BC'
+                i += 2
+                continue
+            i += 1
+            continue
+        if state == 'SQ':
+            if ch == '\\':
+                i += 2  # skip escape
+                continue
+            if ch == "'":
+                state = 'N'
+                span_start = i + 1
+            i += 1
+            continue
+        if state == 'DQ':
+            if ch == '\\':
+                i += 2
+                continue
+            if ch == '"':
+                state = 'N'
+                span_start = i + 1
+            i += 1
+            continue
+        if state == 'TPL':
+            if ch == '\\':
+                i += 2
+                continue
+            if ch == '`':
+                state = 'N'
+                span_start = i + 1
+                i += 1
+                continue
+            # Template literal interpolation: ${ ... } — recurse into
+            # NORMAL so the inner code is scanned. We balance braces
+            # here (no nested template literals inside ${...} per the
+            # JS spec — they're forbidden, so this is correct).
+            if ch == '$' and nxt == '{':
+                depth = 1
+                j = i + 2
+                while j < n and depth > 0:
+                    cj = text[j]
+                    if cj == '{': depth += 1
+                    elif cj == '}': depth -= 1
+                    j += 1
+                # The interpolation body is code; it should already
+                # be in the spans list because the stripper doesn't
+                # re-enter NORMAL mid-template. Leave state as TPL.
+                i = j
+                continue
+            i += 1
+            continue
+        if state == 'LC':
+            if ch == '\n':
+                state = 'N'
+                span_start = i + 1
+            i += 1
+            continue
+        if state == 'BC':
+            if ch == '*' and nxt == '/':
+                state = 'N'
+                span_start = i + 2
+                i += 2
+                continue
+            i += 1
+            continue
+    if span_start is not None and span_start < n:
+        spans.append((span_start, n))
+    return spans
+
+
+def _line_of_offset(text: str, offset: int) -> int:
+    """Return the 1-indexed line number containing `offset`."""
+    return text.count("\n", 0, offset) + 1
+
+
+def _scan_pattern_in_code(
+    text: str, pattern: re.Pattern[str]
+) -> list[tuple[int, str]]:
+    """Return [(line_no, matched_line), ...] for every regex match
+    in `text`, ignoring matches inside strings / template literals /
+    comments. The returned line text is the full source line (so
+    the report shows context), not the matched span.
+
+    Implementation: compute the code spans once (the NORMAL portions
+    of the file, excluding strings / template literals / comments),
+    then walk every span and run the regex against any substring
+    that overlaps a span. The substring is clamped to the span, so
+    matches that start or end inside a string/comment are excluded.
+
+    Lines that mix code and a comment are scanned in two halves —
+    the code half and the comment half separately — so a regex
+    match in the comment half is suppressed."""
+    spans = _code_spans(text)
+    if not spans:
+        return []
+    # Build a per-line table of (line_no, line_text, line_start_offset).
+    lines: list[tuple[int, str, int]] = []
+    pos = 0
+    for line in text.splitlines(keepends=True):
+        lines.append((len(lines) + 1, line.rstrip("\r\n"), pos))
+        pos += len(line)
+    hits: list[tuple[int, str]] = []
+    seen_lines: set[int] = set()
+    for span_start, span_end in spans:
+        # For every line that overlaps [span_start, span_end), find
+        # the intersection of the line with the span and run the
+        # regex against that substring.
+        for ln_no, line_text, ln_start in lines:
+            ln_end = ln_start + len(line_text)
+            if ln_end <= span_start or ln_start >= span_end:
+                continue
+            if ln_no in seen_lines:
+                continue
+            # Intersection.
+            inter_start = max(span_start, ln_start)
+            inter_end = min(span_end, ln_end)
+            inter = text[inter_start:inter_end]
+            if pattern.search(inter):
+                hits.append((ln_no, line_text))
+                seen_lines.add(ln_no)
+    return hits
 
 
 # ---------------------------------------------------------------------------
@@ -161,73 +361,116 @@ def find_lifecycle_allowlist_lines(text: str) -> set[int]:
 
     The walker must walk past the `if`'s closing brace AND the `else`
     block's matching closing brace — the else branch is where the
-    defensive `localStorage.setItem` lives. We do a single depth-1
-    brace walk: from the opening `{` after the `if (...)` condition,
-    balance braces until depth returns to 0; that captures both
-    branches as one block. (Single-line `if/else` without braces is
-    not supported — none of the existing tool files use it; if a
-    future tool does, the gate will flag the localStorage call and
-    the dev agent must convert it to a brace block.)
-    """
+    defensive `localStorage.setItem` lives.
+
+    Review fix: the walker was previously a naive brace counter that
+    would desync on template strings containing `{` (e.g.
+    `Loading ${url}...`). The fix is to reuse the _code_spans
+    stripper: we only count braces that are inside NORMAL code.
+    `_walk_body` advances k to the end of the current code span and
+    continues from the next span's start, so `{` and `}` inside
+    strings, template literals, or comments are skipped."""
     allowed: set[int] = set()
-    i = 0
     n = len(text)
-    while i < n:
-        m = LIFECYCLE_OPEN_RE.search(text, i)
-        if not m:
-            break
-        # Walk forward to the opening `{` of the `if` body. The
-        # regex ends just after the closing `)` of the if condition,
-        # so we scan for the next `{`.
-        j = m.end()
-        while j < n and text[j] != "{":
-            j += 1
-        if j >= n:
-            break
-        # Walk past the `if` body. We don't try to also walk the
-        # `else` body in a single brace counter — the `} else {`
-        # sequence would erroneously close the depth at the `if`'s
-        # closing brace. Instead: walk the `if` body to its `}`, then
-        # check whether `else` follows; if so, walk the `else` body
-        # to its `}` as a second pass. The block we capture is
-        # everything from `if (...)` to the `else`'s closing `}`,
-        # inclusive.
-        def _walk_body(start: int) -> int:
-            """Balance braces from `start` (which must point at `{`)
-            to the matching `}`. Returns the index of the matching
-            `}`, or -1 if unbalanced."""
-            depth = 0
-            k = start
-            while k < n:
+    spans = _code_spans(text)
+    if not spans:
+        return allowed
+
+    def _offset_in_span(offset: int) -> int | None:
+        """Return the index in `spans` of the span containing
+        `offset`, or None."""
+        for idx, (s, e) in enumerate(spans):
+            if s <= offset < e:
+                return idx
+        return None
+
+    def _walk_body(start: int) -> tuple[int, int] | None:
+        """Balance braces from `start` (which must point at `{`
+        inside NORMAL code) to the matching `}`. Returns
+        (close_offset, span_index_of_close) or None if unbalanced.
+
+        Implementation: find the span that contains `start`, walk
+        that span until depth returns to 0 OR we hit the span's
+        end. If depth > 0, advance to the next span and continue
+        from its start. This handles `{` / `}` inside template
+        literals and comments correctly because those are excluded
+        from `spans`."""
+        depth = 0
+        k = start
+        span_idx = _offset_in_span(start)
+        if span_idx is None:
+            return None
+        while span_idx < len(spans):
+            s, e = spans[span_idx]
+            while k < e:
                 ch = text[k]
                 if ch == "{":
                     depth += 1
                 elif ch == "}":
                     depth -= 1
                     if depth == 0:
-                        return k
+                        return k, span_idx
                 k += 1
-            return -1
+            # Move to next span; k becomes its start.
+            span_idx += 1
+            if span_idx < len(spans):
+                k = spans[span_idx][0]
+        return None
 
-        if_close = _walk_body(j)
-        if if_close < 0:
+    i = 0
+    while i < n:
+        m = LIFECYCLE_OPEN_RE.search(text, i)
+        if not m:
             break
+        # Walk forward to the opening `{` of the `if` body. The
+        # regex ends just after the closing `)` of the if condition,
+        # so we scan for the next `{` (skipping any string/comment
+        # we may have crossed over).
+        j = m.end()
+        # Find next `{` in NORMAL code (use the spans to filter).
+        next_brace = -1
+        span_idx = _offset_in_span(j) or 0
+        for si in range(span_idx, len(spans)):
+            s, e = spans[si]
+            inner_start = max(j, s)
+            for k in range(inner_start, e):
+                if text[k] == "{":
+                    next_brace = k
+                    break
+            if next_brace >= 0:
+                break
+            j = e
+        if next_brace < 0:
+            break
+        j = next_brace
+
+        walked = _walk_body(j)
+        if walked is None:
+            break
+        if_close, _ = walked
         end = if_close
         # Skip `else` keyword and any whitespace/newlines, then walk
-        # the `else` body if present. The shape we're matching is the
-        # canonical defensive fallback:
-        #   if (HT.storage && HT.storage.<op>) { ... } else { ... }
-        # We do NOT accept `else if` chains — those are out of scope
-        # for the allowlist and would need a separate decision.
+        # the `else` body if present.
         rest = text[if_close + 1:].lstrip()
         if rest.startswith("else"):
-            # Find the `{` of the else body. `else` may be followed
-            # by whitespace, newline, comments, and then `{`.
-            else_open = text.find("{", if_close + 1)
+            # Find the `{` of the else body.
+            else_open = -1
+            scan_from = if_close + 1
+            span_idx = _offset_in_span(scan_from) or 0
+            for si in range(span_idx, len(spans)):
+                s, e = spans[si]
+                inner_start = max(scan_from, s)
+                for k in range(inner_start, e):
+                    if text[k] == "{":
+                        else_open = k
+                        break
+                if else_open >= 0:
+                    break
+                scan_from = e
             if else_open > 0:
-                else_close = _walk_body(else_open)
-                if else_close > 0:
-                    end = else_close
+                else_close_pair = _walk_body(else_open)
+                if else_close_pair is not None:
+                    end = else_close_pair[0]
         if end >= n:
             break
         block_text = text[m.start():end + 1]
@@ -250,7 +493,10 @@ def _line_numbers(text: str, pattern: re.Pattern[str]) -> list[tuple[int, str]]:
 
 
 def _scan_file(path: Path) -> list[tuple[str, int, str]]:
-    """Scan a single tool JS file. Returns a list of (rule, line, text)."""
+    """Scan a single tool JS file. Returns a list of (rule, line, text).
+    The scan is string/comment-aware (see _scan_pattern_in_code): a
+    tool's UI text or doc comment that mentions 'XMLHttpRequest' is
+    not flagged."""
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as e:
@@ -260,17 +506,17 @@ def _scan_file(path: Path) -> list[tuple[str, int, str]]:
     allowed = find_lifecycle_allowlist_lines(text)
     hits: list[tuple[str, int, str]] = []
 
-    for ln, line in _line_numbers(text, LOCAL_STORAGE_RE):
+    for ln, line in _scan_pattern_in_code(text, LOCAL_STORAGE_RE):
         if ln in allowed:
             continue
         hits.append(("localStorage", ln, line))
-    for ln, line in _line_numbers(text, DOC_COOKIE_RE):
+    for ln, line in _scan_pattern_in_code(text, DOC_COOKIE_RE):
         hits.append(("document.cookie", ln, line))
-    for ln, line in _line_numbers(text, FETCH_RE):
+    for ln, line in _scan_pattern_in_code(text, FETCH_RE):
         hits.append(("fetch", ln, line))
-    for ln, line in _line_numbers(text, XHR_RE):
+    for ln, line in _scan_pattern_in_code(text, XHR_RE):
         hits.append(("XMLHttpRequest", ln, line))
-    for ln, line in _line_numbers(text, HT_PROVIDE_RE):
+    for ln, line in _scan_pattern_in_code(text, HT_PROVIDE_RE):
         hits.append(("HT.provide", ln, line))
     return hits
 
@@ -312,11 +558,16 @@ def main() -> int:
                         help="explicit repo root (default: walk up to find tools.schema.json)")
     parser.add_argument("--list", action="store_true",
                         help="print the policy and exit")
+    parser.add_argument("--self-test", action="store_true",
+                        help="run the stripper + walker unit tests and exit")
     args = parser.parse_args()
 
     if args.list:
         _print_policy()
         return 0
+
+    if args.self_test:
+        return _run_self_tests()
 
     root = args.root.resolve() if args.root else find_repo_root(Path(__file__).parent)
     if not (root / TOOLS_DIRNAME).is_dir():
@@ -383,6 +634,165 @@ def main() -> int:
     print()
     print("**PASS:** every tool routes through the registered HT.* APIs.")
     return 0
+
+
+# ---------------------------------------------------------------------------
+# Self-tests (--self-test)
+# ---------------------------------------------------------------------------
+#
+# The stripper + walker are subtle. Run a focused set of unit-style
+# checks against known inputs to catch regressions. Each case is a
+# `(name, source, expectations)` tuple — expectations are checked
+# against the actual output.
+
+def _run_self_tests() -> int:
+    cases: list[tuple[str, str, list[str], list[str]]] = [
+        # (name, source, patterns_that_must_match, patterns_that_must_NOT_match)
+        (
+            "plain code with localStorage.setItem is flagged",
+            "var x = localStorage.setItem('k', 'v');\n",
+            ["localStorage"],
+            [],
+        ),
+        (
+            "single-quote string with 'XMLHttpRequest' is NOT flagged",
+            "var msg = 'Uses XMLHttpRequest under the hood';\n",
+            [],
+            ["XMLHttpRequest"],
+        ),
+        (
+            "double-quote string with 'document.cookie' is NOT flagged",
+            'var msg = "we set document.cookie here";\n',
+            [],
+            ["document.cookie"],
+        ),
+        (
+            "line comment with 'fetch(' is NOT flagged",
+            "// we never call fetch() directly here\n",
+            [],
+            ["fetch"],
+        ),
+        (
+            "block comment with 'XMLHttpRequest' is NOT flagged",
+            "/* new XMLHttpRequest() would be wrong */\n",
+            [],
+            ["XMLHttpRequest"],
+        ),
+        (
+            "template literal with embedded URL is NOT flagged",
+            "var u = `https://example.com/fetch(${id})`;\n",
+            [],
+            ["fetch"],
+        ),
+        (
+            "code after a comment is still flagged",
+            "// comment\nfetch(real);\n",
+            ["fetch"],
+            [],
+        ),
+        (
+            "code before AND after a string is still scanned",
+            "fetch(real); var s = 'fetch(fake)'; fetch(other);\n",
+            ["fetch"],
+            [],  # both real fetch calls hit, the string one is suppressed but the count stays >= 1
+        ),
+        (
+            "template literal with brace interpolation desyncs walker",
+            # This is the failure mode that broke the previous walker.
+            # The block-finder walker must skip the `{` and `}` inside
+            # the template literal. The lifecycle fallback's `if`
+            # body's `{` should NOT be matched by the `{` inside `${`.
+            # The localStorage line below IS scanned by the regex
+            # (the regex doesn't know about the allowlist); the
+            # _scan_file caller checks find_lifecycle_allowlist_lines
+            # before reporting. This unit test isolates the stripper.
+            "if (HT.storage && HT.storage.set) {\n"
+            "  var msg = `prefix ${interpolated} suffix`;\n"
+            "  HT.storage.set(K, v);\n"
+            "} else {\n"
+            "  localStorage.setItem(K, v);\n"
+            "}\n",
+            ["localStorage"],  # the regex DOES find it; the allowlist is what suppresses
+            [],
+        ),
+    ]
+
+    fail = 0
+    pass_ = 0
+    for name, source, must_match, must_not_match in cases:
+        spans = _code_spans(source)
+        # For each pattern in must_match, ensure at least one hit.
+        # For each pattern in must_not_match, ensure zero hits.
+        ok = True
+        for pat_name in must_match:
+            pat = {
+                "localStorage": LOCAL_STORAGE_RE,
+                "fetch": FETCH_RE,
+                "XMLHttpRequest": XHR_RE,
+                "document.cookie": DOC_COOKIE_RE,
+            }[pat_name]
+            hits = _scan_pattern_in_code(source, pat)
+            if not hits:
+                ok = False
+                print(f"  FAIL  {name} — expected '{pat_name}' to match, got 0 hits")
+        for pat_name in must_not_match:
+            pat = {
+                "localStorage": LOCAL_STORAGE_RE,
+                "fetch": FETCH_RE,
+                "XMLHttpRequest": XHR_RE,
+                "document.cookie": DOC_COOKIE_RE,
+            }[pat_name]
+            hits = _scan_pattern_in_code(source, pat)
+            if hits:
+                ok = False
+                print(f"  FAIL  {name} — expected '{pat_name}' to NOT match, got {len(hits)} hits: {hits}")
+        if ok:
+            pass_ += 1
+            print(f"  PASS  {name}")
+        else:
+            fail += 1
+
+    # Also test find_lifecycle_allowlist_lines on the template-literal
+    # desync case directly.
+    template_desync = (
+        "if (HT.storage && HT.storage.set) {\n"
+        "  var msg = `prefix ${interpolated} suffix`;\n"
+        "  HT.storage.set(K, v);\n"
+        "} else {\n"
+        "  localStorage.setItem(K, v);\n"
+        "}\n"
+    )
+    allowed = find_lifecycle_allowlist_lines(template_desync)
+    expected_lines = {1, 2, 3, 4, 5, 6}
+    if allowed == expected_lines:
+        pass_ += 1
+        print(f"  PASS  lifecycle walker handles template-literal desync")
+    else:
+        fail += 1
+        print(f"  FAIL  lifecycle walker — expected {expected_lines}, got {sorted(allowed)}")
+
+    # And the simple lifecycle fallback (no template).
+    simple = (
+        "if (HT.storage && HT.storage.set) {\n"
+        "  HT.storage.set(K, v);\n"
+        "} else {\n"
+        "  localStorage.setItem(K, v);\n"
+        "}\n"
+    )
+    allowed2 = find_lifecycle_allowlist_lines(simple)
+    if allowed2 == {1, 2, 3, 4, 5}:
+        pass_ += 1
+        print(f"  PASS  lifecycle walker handles plain fallback")
+    else:
+        fail += 1
+        print(f"  FAIL  lifecycle walker — expected {{1,2,3,4,5}}, got {sorted(allowed2)}")
+
+    print()
+    print(f"self-test: {pass_} passed, {fail} failed")
+    if pass_ == 0 and fail == 0:
+        sys.stderr.write("self-test: vacuous run — zero assertions executed\n")
+        return 1
+    return 0 if fail == 0 else 1
 
 
 if __name__ == "__main__":

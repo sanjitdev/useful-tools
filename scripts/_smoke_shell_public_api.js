@@ -52,8 +52,8 @@ function check(name, ok, info) {
   else { fail++; console.log('  FAIL  ' + name + (info ? ' — ' + info : '')); }
 }
 
-check('HT.provide exists', typeof HT.provide === 'object' && typeof HT.provide.register === 'function');
-check('HT.use exists', typeof HT.use === 'object' && typeof HT.use.get === 'function');
+check('HT.provide is function', typeof HT.provide === 'function');
+check('HT.use is function', typeof HT.use === 'function');
 check('HT.net exists', typeof HT.net === 'object');
 check('HT.net.get is function', typeof HT.net.get === 'function');
 check('HT.net.head is function', typeof HT.net.head === 'function');
@@ -64,24 +64,25 @@ check('HT.net frozen', Object.isFrozen(HT.net));
 
 // Behavioral: register+use round-trip.
 let regOk = true;
-try { HT.provide.register('test-slug', { foo: 1 }); }
+try { HT.provide('test-slug', { foo: 1 }); }
 catch (e) { regOk = false; console.error(e); }
-check('HT.provide.register(valid slug, object) ok', regOk);
-check('HT.use.get(test-slug) returns the api', HT.use.get('test-slug') && HT.use.get('test-slug').foo === 1);
-check('HT.use.get(unknown-slug) returns null', HT.use.get('does-not-exist') === null);
+check('HT.provide(valid slug, object) ok', regOk);
+const useResult = HT.use('test-slug');
+check('HT.use(test-slug) returns the api', useResult && useResult.foo === 1);
+check('HT.use(unknown-slug) returns null', HT.use('does-not-exist') === null);
 
 // Validation: bad slug throws.
 let badSlugThrew = false;
-try { HT.provide.register('BadSlug', {}); } catch (e) { badSlugThrew = true; }
-check('HT.provide.register(invalid slug) throws', badSlugThrew);
+try { HT.provide('BadSlug', {}); } catch (e) { badSlugThrew = true; }
+check('HT.provide(invalid slug) throws', badSlugThrew);
 
 let nullApiThrew = false;
-try { HT.provide.register('valid-slug', null); } catch (e) { nullApiThrew = true; }
-check('HT.provide.register(null api) throws', nullApiThrew);
+try { HT.provide('valid-slug', null); } catch (e) { nullApiThrew = true; }
+check('HT.provide(null api) throws', nullApiThrew);
 
 let dupThrew = false;
-try { HT.provide.register('test-slug', { foo: 2 }); } catch (e) { dupThrew = true; }
-check('HT.provide.register(duplicate slug) throws', dupThrew);
+try { HT.provide('test-slug', { foo: 2 }); } catch (e) { dupThrew = true; }
+check('HT.provide(duplicate slug) throws', dupThrew);
 
 // Internal registry surfaces.
 check('HT.provideRegistry.list is function', typeof HT.provideRegistry.list === 'function');
@@ -89,21 +90,23 @@ check('HT.provideRegistry.list() includes test-slug', HT.provideRegistry.list().
 check('HT.netRegistry.inflight is function', typeof HT.netRegistry.inflight === 'function');
 check('HT.netRegistry.inflight() returns array', Array.isArray(HT.netRegistry.inflight()));
 
-// Frozen touch: mutation throws in strict mode. The duplicate
-// registration we set up at the top of the script has already
-// saturated the registry; we confirm the frozen surface by
-// attempting to overwrite `register` and reading it back. We do NOT
-// attempt a fresh register — it would (correctly) throw on
-// duplicate, masking the test outcome.
-let readBack = false;
-try {
-  // Attempt to overwrite; throws in strict mode because the parent
-  // object is frozen.
-  HT.provide.register = function () { return 'overwritten'; };
-  // If we got here, the overwrite took — surface as a failure.
-  readBack = typeof HT.provide.register === 'function' && HT.provide.register() === 'overwritten';
-} catch (e) { readBack = false; }
-check('HT.provide.register is the original function (frozen)', !readBack && typeof HT.provide.register === 'function');
+// Frozen touch: the provide function itself is frozen by
+// Object.freeze(provide). Property-level mutation via `HT.provide =
+// ...` only works if the parent (HT) is frozen, which it isn't — so
+// the strong claim we can make is that the function reference is
+// the same before/after a no-op assignment attempt. We confirm by
+// calling HT.provide and checking the validation rule fires.
+let mutationTook = false;
+try { HT.provide = function () { return 'overwritten'; }; } catch (e) { /* strict */ }
+// Even if the assignment took, the frozen function reference is
+// gone — but the contract surface is the function itself, not the
+// property. The simplest durable check is: call HT.provide with a
+// bad slug and verify it still throws the validation error from
+// the original function (not 'overwritten').
+let stillOriginal = false;
+try { HT.provide('BadSlug', {}); }
+catch (e) { stillOriginal = /invalid slug|kebab-case/.test(String(e.message)); }
+check('HT.provide is the original function (still validates)', stillOriginal);
 
 console.log('');
 console.log('passed: ' + pass + ', failed: ' + fail);

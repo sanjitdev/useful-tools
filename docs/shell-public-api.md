@@ -83,7 +83,7 @@ calls `HT.provide(slug, api)` once at boot, after `HT.boot()`.
 ## 5. The `HT.*` surface (stable + experimental + internal)
 
 The current entries live in `assets/js/api-contract.js` (read that file for
-the canonical, machine-verified list — version `1.3.0` as of this writing).
+the canonical, machine-verified list — version `1.4.0` as of this writing).
 
 | Entry | Stability | Module |
 |---|---|---|
@@ -111,7 +111,6 @@ the canonical, machine-verified list — version `1.3.0` as of this writing).
 | `HT.net.head` | stable | shell.js (this story) |
 | `HT.net.abort` | stable | shell.js (this story) |
 | `HT.provideRegistry` | internal | shell.js (this story) |
-| `HT.useRegistry` | internal | shell.js (this story) |
 | `HT.netRegistry` | internal | shell.js (this story) |
 
 ---

@@ -144,7 +144,7 @@ window.HT.__apiContract = Object.freeze({
       signature: '(slug: string, api: object) => void',
       stability: 'stable',
       module: 'assets/js/shell.js',
-      notes: 'Story 1.14 / AD-14. A Tool that exposes an API to other Tools registers it here. Slug must be kebab-case (^[a-z][a-z0-9-]*[a-z0-9]$, 2-64 chars). Throws on duplicate slug, invalid slug, or null/non-object api. The api is frozen by Object.freeze after registration. Tools must NOT call HT.provide on themselves — the registry exists for Tool-to-Tool APIs only.',
+      notes: 'Story 1.14 / AD-14. A Tool that exposes an API to other Tools registers it here. Slug must be kebab-case (^[a-z][a-z0-9-]*[a-z0-9]$, 2-64 chars). Throws on duplicate slug, invalid slug, or null/non-object api. The api is frozen by Object.freeze after registration. Tools must NOT call HT.provide on themselves — the registry exists for Tool-to-Tool APIs only. The frozen binding is the contract surface; the underlying implementation is internal.',
     }),
     Object.freeze({
       name: 'HT.use',
@@ -158,7 +158,7 @@ window.HT.__apiContract = Object.freeze({
       signature: '(url: string, options?: object) => Promise<Response>',
       stability: 'stable',
       module: 'assets/js/shell.js',
-      notes: 'Story 1.14. The only fetch API Tools may use. Wraps fetch with a single-flight abort per (method, url) pair so a superseding superseding call cancels the previous one. The bypass grep flags direct fetch() / XMLHttpRequest calls under tools/<slug>/<slug>.js as violations.',
+      notes: 'Story 1.14. The only fetch API Tools may use. Wraps fetch with a single-flight abort per (method, url) pair so a superseding call cancels the previous one. The bypass grep flags direct fetch() / XMLHttpRequest calls under tools/<slug>/<slug>.js as violations.',
     }),
     Object.freeze({
       name: 'HT.net.head',
@@ -179,14 +179,7 @@ window.HT.__apiContract = Object.freeze({
       signature: '{ list: () => readonly string[] }',
       stability: 'internal',
       module: 'assets/js/shell.js',
-      notes: 'Story 1.14. Internal List of registered slugs for the bypass gate + tests. Tools calling this is undefined behavior.',
-    }),
-    Object.freeze({
-      name: 'HT.useRegistry',
-      signature: '{ list: () => readonly string[] }',
-      stability: 'internal',
-      module: 'assets/js/shell.js',
-      notes: 'Story 1.14. Alias for HT.provideRegistry — same keys, same semantics. Tools calling this is undefined behavior.',
+      notes: 'Story 1.14. Internal list of registered slugs for the bypass gate + tests. Tools calling this is undefined behavior.',
     }),
     Object.freeze({
       name: 'HT.netRegistry',

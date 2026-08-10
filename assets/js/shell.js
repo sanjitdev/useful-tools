@@ -117,26 +117,47 @@
     delete _netInflight[inflightKey];
   }
 
-  // Public surface (frozen, AD-14).
-  HT.provide = Object.freeze({ version: '1.0.0', register: provide });
-  HT.use = Object.freeze({ version: '1.0.0', get: use });
-  HT.net = Object.freeze({
-    version: '1.0.0',
-    get: netGet,
-    head: netHead,
-    abort: netAbort,
-  });
+  // AD-14 requires the public surface to be frozen. The functions
+  // themselves are frozen via Object.freeze(...) (a no-op on
+  // function objects but documents intent and prevents the body
+  // from being mutated). The HT.* property assignments that
+  // follow are made via a single Object.defineProperties call so
+  // the property descriptors are {configurable: false, writable:
+  // false} — overwrite attempts via `HT.provide = ...` throw in
+  // strict mode.
+  Object.freeze(provide);
+  Object.freeze(use);
 
-  // Internal registries — exposed for the bypass gate + tests. Tools
-  // calling these is undefined behavior. The names are deliberately
-  // distinct from the public surfaces so a grep can tell them apart.
-  HT.provideRegistry = Object.freeze({ list: function () {
-    return Object.keys(_providedApis).sort();
-  }});
-  HT.useRegistry = HT.provideRegistry;
-  HT.netRegistry = Object.freeze({ inflight: function () {
-    return Object.keys(_netInflight).slice().sort();
-  }});
+  // Public surface (frozen, AD-14). Per Story 1.14 AC#3, the
+  // signature is `HT.provide(slug, api)` directly — NOT a namespace
+  // (`HT.provide.register(...)`). The spec at epics.md:464-492 reads
+  // "`HT.provide(key, fn)` is the only way a Tool may register an
+  // API" — `key` is the registry slug and `fn` is the API object the
+  // Tool is providing (named "api" here for parity with AD-14's
+  // "a Tool that wants to expose an API to other Tools registers it
+  // via `HT.provide(slug, api)`"). The frozen binding is the
+  // contract surface; the underlying `provide` function is internal.
+  //
+  // defineProperties (not direct assignment) so the property
+  // descriptors are configurable: false, writable: false. A
+  // `HT.provide = ...` overwrite attempt throws in strict mode
+  // (the shell.js IIFE is strict-mode via `'use strict'` on line 11).
+  Object.defineProperties(HT, {
+    provide: { value: provide, writable: false, configurable: false, enumerable: true },
+    use: { value: use, writable: false, configurable: false, enumerable: true },
+    net: { value: Object.freeze({
+      version: '1.0.0',
+      get: netGet,
+      head: netHead,
+      abort: netAbort,
+    }), writable: false, configurable: false, enumerable: true },
+    provideRegistry: { value: Object.freeze({ list: function () {
+      return Object.keys(_providedApis).sort();
+    }}), writable: false, configurable: false, enumerable: true },
+    netRegistry: { value: Object.freeze({ inflight: function () {
+      return Object.keys(_netInflight).slice().sort();
+    }}), writable: false, configurable: false, enumerable: true },
+  });
 
   // Cycle order (UX-DR-50) — auto → light → dark → auto. `ht.theme` is
   // a plain string in localStorage (not JSON-encoded) so the FOUC IIFE
