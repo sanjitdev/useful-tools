@@ -10,8 +10,8 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.3.0',
-  generated: '2026-08-07',
+  version: '1.4.0',
+  generated: '2026-08-10',
   entries: Object.freeze([
     Object.freeze({
       name: 'HT.boot',
@@ -138,6 +138,62 @@ window.HT.__apiContract = Object.freeze({
       stability: 'stable',
       module: 'assets/js/site-config.js',
       notes: 'Frozen repo/site config consumed by the Shell footer link wiring (Story 1.12, AD-11). The blobBase is the GitHub blob URL prefix for the default branch; the footer "View source" link is "<blobBase>/<entry.path or tools/<slug>/index.html>". Mutation throws in strict mode (Object.freeze). The repo fields (repoOwner, repoName, defaultBranch, brand, defaultLocale) live on HT_SITE_CONFIG (window) for the gate; HT.siteConfig exposes only the derived public surface.',
+    }),
+    Object.freeze({
+      name: 'HT.provide',
+      signature: '(slug: string, api: object) => void',
+      stability: 'stable',
+      module: 'assets/js/shell.js',
+      notes: 'Story 1.14 / AD-14. A Tool that exposes an API to other Tools registers it here. Slug must be kebab-case (^[a-z][a-z0-9-]*[a-z0-9]$, 2-64 chars). Throws on duplicate slug, invalid slug, or null/non-object api. The api is frozen by Object.freeze after registration. Tools must NOT call HT.provide on themselves — the registry exists for Tool-to-Tool APIs only.',
+    }),
+    Object.freeze({
+      name: 'HT.use',
+      signature: '(slug: string) => any',
+      stability: 'stable',
+      module: 'assets/js/shell.js',
+      notes: 'Story 1.14 / AD-14. Returns the frozen API object registered by HT.provide(slug, ...), or null if absent. Invalid slugs return null silently (defensive). Consumer-side counterpart to HT.provide.',
+    }),
+    Object.freeze({
+      name: 'HT.net.get',
+      signature: '(url: string, options?: object) => Promise<Response>',
+      stability: 'stable',
+      module: 'assets/js/shell.js',
+      notes: 'Story 1.14. The only fetch API Tools may use. Wraps fetch with a single-flight abort per (method, url) pair so a superseding superseding call cancels the previous one. The bypass grep flags direct fetch() / XMLHttpRequest calls under tools/<slug>/<slug>.js as violations.',
+    }),
+    Object.freeze({
+      name: 'HT.net.head',
+      signature: '(url: string, options?: object) => Promise<Response>',
+      stability: 'stable',
+      module: 'assets/js/shell.js',
+      notes: 'Story 1.14. Convenience wrapper for HEAD requests that routes through the same single-flight layer as HT.net.get.',
+    }),
+    Object.freeze({
+      name: 'HT.net.abort',
+      signature: '(key: string) => void',
+      stability: 'stable',
+      module: 'assets/js/shell.js',
+      notes: 'Story 1.14. Cancel an in-flight request by inflight key (e.g. "GET <url>") or by URL string. No-op if nothing matches; idempotent.',
+    }),
+    Object.freeze({
+      name: 'HT.provideRegistry',
+      signature: '{ list: () => readonly string[] }',
+      stability: 'internal',
+      module: 'assets/js/shell.js',
+      notes: 'Story 1.14. Internal List of registered slugs for the bypass gate + tests. Tools calling this is undefined behavior.',
+    }),
+    Object.freeze({
+      name: 'HT.useRegistry',
+      signature: '{ list: () => readonly string[] }',
+      stability: 'internal',
+      module: 'assets/js/shell.js',
+      notes: 'Story 1.14. Alias for HT.provideRegistry — same keys, same semantics. Tools calling this is undefined behavior.',
+    }),
+    Object.freeze({
+      name: 'HT.netRegistry',
+      signature: '{ inflight: () => readonly string[] }',
+      stability: 'internal',
+      module: 'assets/js/shell.js',
+      notes: 'Story 1.14. Internal view of in-flight net requests. Tools calling this is undefined behavior.',
     }),
   ]),
 });

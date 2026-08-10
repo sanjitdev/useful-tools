@@ -1,0 +1,97 @@
+name: Shell Bounds Check
+
+# Story 1.14 — Shell Public API and Bypass Prohibition. This workflow
+# enforces the Tool-side prohibition in docs/shell-public-api.md §2:
+# code under tools/<slug>/<slug>.js must reach the registered HT.* APIs
+# only — no direct localStorage / document.cookie / fetch / XMLHttpRequest
+# / HT.provide calls. Inline <script> blocks in tools/<slug>/index.html
+# are intentionally out of scope (FOUC IIFE grandfather + lifecycle
+# fallback allowlist; see docs/shell-public-api.md §6).
+#
+# Source of truth: docs/shell-public-api.md (the policy doc)
+#                 scripts/shell-bounds-check.py (the gate)
+
+on:
+  pull_request:
+    paths:
+      - "tools/**"
+      - "scripts/shell-bounds-check.py"
+      - "scripts/_smoke_shell_public_api.js"
+      - "docs/shell-public-api.md"
+      - "assets/js/shell.js"
+      - "assets/js/api-contract.js"
+      - "assets/js/utils.js"
+      - "assets/js/storage-registry.js"
+      - ".github/workflows/shell-bounds-check.yml"
+      - "Makefile"
+  push:
+    branches: [ main ]
+    paths:
+      - "tools/**"
+      - "scripts/shell-bounds-check.py"
+      - "scripts/_smoke_shell_public_api.js"
+      - "docs/shell-public-api.md"
+      - "assets/js/shell.js"
+      - "assets/js/api-contract.js"
+      - "assets/js/utils.js"
+      - "assets/js/storage-registry.js"
+      - ".github/workflows/shell-bounds-check.yml"
+      - "Makefile"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shell-bounds-check
+  cancel-in-progress: false
+
+jobs:
+  bounds-check:
+    name: Shell Bounds Check
+    runs-on: ubuntu-latest
+
+    # The bypass check is a pure-stdlib Python script; ~30s of CI
+    # budget is generous (cold checkout + setup-python install).
+    timeout-minutes: 5
+
+    steps:
+      # actions/checkout is pinned to a commit SHA for supply-chain
+      # safety. The mutable tag v4.2.2 resolves to:
+      #   11bd71901bbe5b1630ceea73d27597364c9af683
+      # Bump the SHA only after auditing the new tag's diff against
+      # the previously-pinned version.
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.11"
+
+      # actions/setup-node is pinned to a commit SHA. The mutable tag
+      # v4.1.0 resolves to:
+      #   1e44f9385a0d5f4dee9b2c12e9a38e9d6b5e566d
+      # Required for the Story 1.14 shell-bounds smoke step (Node
+      # loads shell.js in a vm context to assert HT.provide / HT.use /
+      # HT.net surface).
+      - name: Setup Node
+        uses: actions/setup-node@1e44f9385a0d5f4dee9b2c12e9a38e9d6b5e566d # v4.1.0
+        with:
+          node-version: "22"
+
+      - name: Run bypass check
+        # Story 1.14: fail the PR if any code under tools/<slug>/<slug>.js
+        # reaches past the registered HT.* APIs. The script's exit code
+        # propagates as the step's exit code; any non-zero result fails
+        # the job and the PR check.
+        run: make shell-bounds
+
+      - name: Smoke shell.js Public API surface (Story 1.14)
+        # Loads assets/js/shell.js in a fresh vm context with a stub
+        # document, asserts the HT.provide / HT.use / HT.net surfaces
+        # are frozen, the register/use round-trip works, and the
+        # validation rules fire on bad input. 20 PASS expected.
+        # Vacuous-pass guard (pass===0 && fail===0 → exit 1) means a
+        # hollow run fails the gate.
+        run: make shell-public-api-smoke

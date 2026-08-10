@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-public-api-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -35,7 +35,9 @@ help: ## Show available targets
 	@echo "  make site-config-smoke   Run the Node smoke harness for site-config.js (frozen AD-14 surface)"
 	@echo "  make verify-compound     Run the Python verification harness for the compound-interest fix"
 	@echo "  make compound-smoke      Run the structural check for scripts/compound-smoke.html"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke"
+	@echo "  make shell-bounds        Run the Story 1.14 bypass check (tools/<slug>/<slug>.js only)"
+	@echo "  make shell-public-api-smoke  Run the Node smoke harness for HT.provide / HT.use / HT.net (Story 1.14)"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-public-api-smoke"
 
 validate: validate-tools-json
 
@@ -79,7 +81,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-public-api-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -167,3 +169,22 @@ verify-compound:
 # browser-driven test pattern.
 compound-smoke:
 	@$(PYTHON) scripts/compound-smoke.py
+
+# `shell-bounds` runs the Story 1.14 bypass check. Walks every
+# tools/<slug>/<slug>.js and fails on direct localStorage /
+# document.cookie / fetch / XMLHttpRequest / HT.provide references.
+# The FOUC IIFE in index.html is grandfathered (it's not scanned).
+# The defensive-fallback pattern is allowed as a whole block — see
+# docs/shell-public-api.md §6. Exit 0 = clean; exit 1 = violations.
+shell-bounds:
+	@$(PYTHON) scripts/shell-bounds-check.py
+
+# `shell-public-api-smoke` runs the Node smoke harness for
+# assets/js/shell.js's Story 1.14 additions (HT.provide, HT.use,
+# HT.net, HT.provideRegistry, HT.netRegistry). Loads shell.js in a
+# fresh vm context with a stub document, asserts the public surface
+# is frozen, the register/use round-trip works, and the validation
+# rules fire on bad input. 20 PASS expected. Vacuous-pass guard
+# (pass===0 && fail===0 → exit 1) means a hollow run fails the gate.
+shell-public-api-smoke:
+	@node scripts/_smoke_shell_public_api.js

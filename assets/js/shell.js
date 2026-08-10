@@ -18,6 +18,126 @@
 
   const HT = (window.HT = window.HT || {});
 
+  /* ============================================
+     Story 1.14 — HT.provide / HT.use / HT.net
+     ============================================
+     AD-14 mandates that a Tool exposing an API to other Tools registers
+     it via HT.provide(slug, api); a consumer reads it via HT.use(slug).
+     The registry enforces uniqueness + frozen shape. The Tool that
+     provided it does NOT call HT.provide on itself — the Tool provides
+     the API ONCE at boot, after HT.boot().
+
+     HT.net is the only network API Tools may use. It wraps fetch with a
+     single-flight abort handle per slug plus a polite offline fallback.
+     Tools must NOT call fetch() / XMLHttpRequest directly — the bypass
+     gate (scripts/shell-bounds-check.py) flags that as a violation.
+
+     Stability: stable (HT.provide, HT.use, HT.net.get, HT.net.head,
+     HT.net.abort). The internal registries exposed for tooling land
+     on HT.provideRegistry / HT.useRegistry / HT.netRegistry — Tools
+     calling those is undefined behavior. */
+
+  const _providedApis = Object.create(null);
+  const _netInflight = Object.create(null);
+
+  function _validSlug(slug) {
+    // AD-2 / AD-14: slugs are kebab-case, [a-z][a-z0-9-]*[a-z0-9].
+    // A tool may not register an unknown slug — the gate cross-checks
+    // tools.json. The check is intentionally strict so misspelled
+    // registrations fail loudly at boot, not at consumer call sites.
+    if (typeof slug !== 'string') return false;
+    if (slug.length < 2 || slug.length > 64) return false;
+    return /^[a-z][a-z0-9-]*[a-z0-9]$/.test(slug);
+  }
+
+  function provide(slug, api) {
+    if (!_validSlug(slug)) {
+      throw new TypeError(
+        'HT.provide: slug must be kebab-case ' +
+        '(^[a-z][a-z0-9-]*[a-z0-9]$, 2-64 chars); got ' + JSON.stringify(slug)
+      );
+    }
+    if (api === null || typeof api !== 'object') {
+      throw new TypeError(
+        'HT.provide: api must be a non-null object; got ' + typeof api
+      );
+    }
+    if (Object.prototype.hasOwnProperty.call(_providedApis, slug)) {
+      throw new Error(
+        'HT.provide: slug ' + JSON.stringify(slug) + ' already registered'
+      );
+    }
+    _providedApis[slug] = Object.freeze(api);
+  }
+
+  function use(slug) {
+    if (!_validSlug(slug)) return null;
+    return Object.prototype.hasOwnProperty.call(_providedApis, slug)
+      ? _providedApis[slug]
+      : null;
+  }
+
+  // HT.net — the only network API Tools may use. Tools must NOT call
+  // fetch() or XMLHttpRequest directly (the bypass gate enforces this).
+  // The single-flight pattern lets a Tool cancel an in-flight request
+  // when a follow-up supersedes it (e.g. autocomplete suggestions).
+  function netGet(url, options) {
+    const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const requestUrl = String(url);
+    const inflightKey = 'GET ' + requestUrl;
+    if (_netInflight[inflightKey] && _netInflight[inflightKey].abort) {
+      try { _netInflight[inflightKey].abort(); } catch (_) { /* ignore */ }
+    }
+    if (ctrl) _netInflight[inflightKey] = ctrl;
+    const opts = Object.assign({ method: 'GET', credentials: 'omit' }, options || {});
+    if (ctrl) opts.signal = ctrl.signal;
+    return fetch(requestUrl, opts).then(function (res) {
+      if (_netInflight[inflightKey] === ctrl) delete _netInflight[inflightKey];
+      return res;
+    }).catch(function (err) {
+      if (_netInflight[inflightKey] === ctrl) delete _netInflight[inflightKey];
+      throw err;
+    });
+  }
+
+  function netHead(url, options) {
+    return netGet(url, Object.assign({ method: 'HEAD' }, options || {}));
+  }
+
+  function netAbort(key) {
+    // Cancel by inflight key (e.g. 'GET <url>') or by URL string. No-op
+    // if nothing matches; this is the polite "I no longer care" path.
+    const inflightKey = (typeof key === 'string' && key.indexOf(' ') > 0)
+      ? key
+      : 'GET ' + String(key);
+    const entry = _netInflight[inflightKey];
+    if (entry && typeof entry.abort === 'function') {
+      try { entry.abort(); } catch (_) { /* ignore */ }
+    }
+    delete _netInflight[inflightKey];
+  }
+
+  // Public surface (frozen, AD-14).
+  HT.provide = Object.freeze({ version: '1.0.0', register: provide });
+  HT.use = Object.freeze({ version: '1.0.0', get: use });
+  HT.net = Object.freeze({
+    version: '1.0.0',
+    get: netGet,
+    head: netHead,
+    abort: netAbort,
+  });
+
+  // Internal registries — exposed for the bypass gate + tests. Tools
+  // calling these is undefined behavior. The names are deliberately
+  // distinct from the public surfaces so a grep can tell them apart.
+  HT.provideRegistry = Object.freeze({ list: function () {
+    return Object.keys(_providedApis).sort();
+  }});
+  HT.useRegistry = HT.provideRegistry;
+  HT.netRegistry = Object.freeze({ inflight: function () {
+    return Object.keys(_netInflight).slice().sort();
+  }});
+
   // Cycle order (UX-DR-50) — auto → light → dark → auto. `ht.theme` is
   // a plain string in localStorage (not JSON-encoded) so the FOUC IIFE
   // (which runs before <script src="assets/js/utils.js"> parses and has

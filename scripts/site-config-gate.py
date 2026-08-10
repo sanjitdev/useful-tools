@@ -25,7 +25,7 @@
 #      with HT_SITE_CONFIG (repoUrl = "https://github.com/<owner>/<name>",
 #      blobBase = "<repoUrl>/blob/<defaultBranch>").
 #   4. assets/js/api-contract.js exposes HT.siteConfig and bumps the
-#      contract version to "1.3.0".
+#      contract version to "1.4.0".
 #   5. Every tool page + the home page carries the canonical
 #      `<script src="…/assets/js/site-config.js"></script>` tag AND the
 #      tag's order (site-config.js before storage-registry.js) is
@@ -68,7 +68,7 @@ EXPECTED_FIELDS_INTERNAL = (
 EXPECTED_FIELDS_PUBLIC = (
     "repoUrl", "blobBase", "defaultBranch", "brand", "defaultLocale",
 )
-EXPECTED_VERSION = "1.3.0"
+EXPECTED_VERSION = "1.4.0"
 
 TOOL_SCRIPT_RE = re.compile(
     r'<script\s+src="\.\./\.\./assets/js/site-config\.js"></script>'
@@ -213,7 +213,7 @@ def check_size(path: Path) -> list[str]:
 
 
 def check_api_contract(path: Path) -> list[str]:
-    """Verify api-contract.js exposes HT.siteConfig and the version is 1.3.0."""
+    """Verify api-contract.js exposes HT.siteConfig and the version is 1.4.0."""
     violations: list[str] = []
     if not path.is_file():
         violations.append(f"{path} missing — cannot verify API contract entry")
