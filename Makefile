@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -33,7 +33,9 @@ help: ## Show available targets
 	@echo "  make install-hooks       Install scripts/hooks/pre-commit into .git/hooks/"
 	@echo "  make site-config         Verify the Story 1.12 site-config.js + page script tags"
 	@echo "  make site-config-smoke   Run the Node smoke harness for site-config.js (frozen AD-14 surface)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y"
+	@echo "  make verify-compound     Run the Python verification harness for the compound-interest fix"
+	@echo "  make compound-smoke      Run the structural check for scripts/compound-smoke.html"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke"
 
 validate: validate-tools-json
 
@@ -77,7 +79,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -148,3 +150,20 @@ site-config:
 # converts a hollow run into a hard failure (exit 1).
 site-config-smoke:
 	@node scripts/_smoke_site_config.js
+
+# `verify-compound` runs the Python verification harness for the
+# compound-interest calculator fix (Story 1.13). Re-implements the
+# fixed buildSchedule in pure Python and compares against closed-form
+# formulas for all 5 frequencies and both contribution timings.
+# Exits non-zero on any failed assertion.
+verify-compound:
+	@$(PYTHON) scripts/verify-compound-fix.py
+
+# `compound-smoke` runs the structural check for the browser smoke
+# harness at scripts/compound-smoke.html. This verifies the file is
+# present and exposes the expected test count + CI mode gate. The
+# actual iframe-driven JS execution requires a headless browser and is
+# not covered by this target — see docs/quality-rubric.md for the
+# browser-driven test pattern.
+compound-smoke:
+	@$(PYTHON) scripts/compound-smoke.py

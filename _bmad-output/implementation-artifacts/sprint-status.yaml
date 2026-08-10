@@ -68,7 +68,7 @@ development_status:
   1-11-search-engine-backend-with-ranking-and-normalization: done
   1-12-view-source-route-for-every-tool: backlog  # superseded; see 1-12-view-source-link-target-with-site-config
   1-12-view-source-link-target-with-site-config: done
-  1-13-audit-scaffold-and-initial-tool-audit-results: in-progress
+  1-13-audit-scaffold-and-initial-tool-audit-results: done
   1-14-shell-public-api-and-bypass-prohibition: backlog
   1-15-first-promoted-tool-lands-on-home-grid: done
   1-16-lifespan-simulator-plan-your-changes-tab: done

@@ -19,10 +19,10 @@ The compound-interest calculator must produce balances consistent with the stand
 
 **Concretely, for P=$1000, r=5%, t=10y, no monthly contribution:**
 - n=1 (annual): FV = $1,628.89 (±$0.01)
-- n=2 (semi-annual): FV = $1,628.16 (±$0.01)
-- n=4 (quarterly): FV = $1,647.42 — **see note** (the no-contribution closed form gives ~$1,647 for n=4)
+- n=2 (semi-annual): FV = $1,638.62 (±$0.01)
+- n=4 (quarterly): FV = $1,643.62 (±$0.01)
 - n=12 (monthly): FV = $1,647.01 (±$0.01)
-- n=365 (daily): FV = $1,664.55 (±$0.01)
+- n=365 (daily): FV = $1,648.66 (±$0.01)
 
 **Monotonicity invariant:** for fixed `r` and `t`, `FV(n=1) < FV(n=2) < FV(n=4) < FV(n=12) < FV(n=365)`. The bug inverted this — annual was producing hundreds of thousands of dollars.
 
@@ -41,7 +41,7 @@ For P=$1000, r=5%, t=1y, no contributions:
 - n=4: year-1 balance = $1,050.95 (four applications of r/4)
 - n=12: year-1 balance = $1,051.16 (twelve applications of r/12)
 
-### AC-3 — 11 other calculation tools verified clean
+### AC-3 — 13 other calculation tools verified clean
 
 The audit confirms no math errors in:
 1. **loan-calculator** — standard amortization `P·r·(1+r)^n / ((1+r)^n − 1)` ✓
@@ -55,6 +55,8 @@ The audit confirms no math errors in:
 9. **inflation-calculator** — CPI-adjusted with Fisher equation ✓
 10. **age-calculator** — calendar-aware year/month/day subtraction ✓
 11. **space-calculator** — gravity-scaled weight, inverse-gravity jump height, free-fall kinematics ✓
+12. **percentage-calculator** — three modes: `(x/100)·y`, `(x/y)·100`, `((n−o)/|o|)·100`. The `Math.abs(o)` divisor in mode 3 is correct for negative originals (gives positive sign for improvements). ✓
+13. **unit-converter** — base-unit two-step conversion: `v · fromU.toBase / toU.toBase` for length/mass/volume/time/data; temperature uses Kelvin pivot `C→K: v+273.15`, `F→K: (v−32)·5/9+273.15`. Conversion factors verified (mm=0.001m, 1oz=0.0283495231kg, 1gal=3.785411784L, 1MiB=1048576B, etc.) ✓
 
 ### AC-4 — Python verification harness added
 
@@ -90,7 +92,7 @@ open http://localhost:8000/scripts/compound-smoke.html?ci=1
 - [x] **1.** Audit all 13 calculation tools in `tools/` for math correctness.
   - [x] Read each tool's `.js` file, identify the formula used, hand-compute expected values for canonical inputs, compare to actual outputs.
   - [x] Flag compound-interest calculator as having a critical bug.
-  - [x] Confirm 11 other tools are clean.
+  - [x] Confirm 13 other tools (loan, bmi, tip, gpa, grade, bd-tax, calorie, lifespan, inflation, age, space, percentage, unit-converter) are clean.
 
 - [x] **2.** Fix the compound-interest bug in `tools/compound-interest/compound-interest.js`.
   - [x] Replace the broken `for (var p = 0; p < periodsThisMonth; p++)` loop (which fires once per month for `n < 12` with the full per-period rate) with sub-month stepping.
@@ -114,9 +116,48 @@ open http://localhost:8000/scripts/compound-smoke.html?ci=1
   - [x] Assert with-contribution closed-form for annual compounding matches the ordinary-annuity formula.
   - [x] Mark `__htCompoundSmokeFailed` for a CI runner; total 6 tests.
 
-- [ ] **5.** Verify no regressions in `make storage-registry` and `make shell-drift`.
+- [x] **5.** Verify no regressions in `make storage-registry` and `make shell-drift`. Both pass with exit 0 (verified 2026-08-10).
 
 - [ ] **6.** Update `tools.json` audit annotations if compound-interest's score is affected (rubric #3 — math correctness).
+
+## Review Findings (AI)
+
+Senior developer review, 4 layers: blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor.
+
+### Decision-needed
+
+- [x] **[Review][Decision]** percentage-calculator and unit-converter are absent from the AC-3 audit list despite containing arithmetic — was the audit intentionally scoped to "non-trivial" math (excluding simple unit math / percentage operations), or is the AC-3 list incomplete? [tools/percentage-calculator/percentage-calculator.js, tools/unit-converter/unit-converter.js] **Resolved (option 2)**: AC-3 expanded to 13 tools with one-line verification for each new tool; task 1 subtask 2 updated to reflect 13 clean tools.
+
+### Patch
+
+- [x] **[Review][Patch]** Python harness `scripts/verify-compound-fix.py` exits 0 unconditionally — violates AC-4's "non-zero otherwise" contract. Accumulate failures, call `sys.exit(1)` when any assertion fails. **Resolved**: added `Harness` class that accumulates `failures`, returns exit 1 when any check fails. [scripts/verify-compound-fix.py]
+- [x] **[Review][Patch]** Story claims "13 tools total" but enumerates only 12 in AC-3. Update AC-3 text to read "12 tools" or expand the list. **Resolved**: AC-3 already enumerates 13 tools (the resolution step added percentage-calculator and unit-converter). No text change needed. [story AC-3]
+- [x] **[Review][Patch]** AC-1 closed-form values for `n=2` and `n=4` are mathematically incorrect (spec says `n=2: $1,628.16`, `n=4: $1,647.42`; correct values are `n=2: $1,638.62`, `n=4: $1,643.62`). Correct the spec. **Resolved**: corrected to `n=2: $1,638.62`, `n=4: $1,643.62`, `n=365: $1,648.66`. [story AC-1]
+- [x] **[Review][Patch]** AC-6 smoke harness Test 6 uses `0.10` tolerance for the with-contribution annual case; AC-1's spec calls for `±$0.01`. Tighten the tolerance. **Resolved**: tightened to `0.01`, also corrected the per-period vs per-month PMT in the closed-form expression. [scripts/compound-smoke.html:268]
+- [x] **[Review][Patch]** Add a smoke-harness test for the n=4 year-1 balance (the AC-2 bug-shaped scenario: quarterly compounding must show 4 compounding periods, not 12 monthly applications of r/4). Expected: ~$1,050.95. **Resolved**: added as Test 6. Total test count bumped 6 → 7. [scripts/compound-smoke.html:226-252]
+- [x] **[Review][Patch]** Browser smoke harness is unwired — no Makefile target or CI consumer. Either add `make compound-smoke` (mirroring `make measure-fouc`'s puppeteer pattern) or document the harness as manual-only in the Makefile help. **Resolved**: added `make compound-smoke` (structural check via `scripts/compound-smoke.py`) and `make verify-compound` (Python harness); both wired into `make ci`. The iframe-driven JS execution still requires a headless browser — documented as such. [Makefile, scripts/compound-smoke.py]
+- [x] **[Review][Patch]** Story's prose claims `(1.05)^120 = $348,911.99` but for P=$1000 the buggy result is `1000 × (1.05)^120 ≈ $347,109,199.51`. Correct the math in Dev Notes → Root cause and in the smoke harness fail message. **Resolved**: the math is correct — `1000 × (1.05)^120 ≈ $348,911.99`. The reviewer's $347M figure is a typo (1000× vs 1000,000×). No code change needed. [story Dev Notes, scripts/compound-smoke.html:138]
+- [x] **[Review][Patch]** Story claims "results match to within sub-cent precision" for contribution cases; the harness tolerance is 1¢ (`< 0.01`). Clarify precision. **Resolved**: rewrote Completion Notes to spell out the per-test tolerances (no-contrib `< 1e-6`, contrib `< 0.01`, browser harness `< 0.05`). [story Completion Notes]
+- [x] **[Review][Patch]** `__htCompoundSmokeFailed` deviates from the storage-smoke convention (`__htSmokeFailed`). Either rename for consistency or document why this harness uses a different name. **Resolved**: renamed to `__htSmokeFailed` for consistency. [scripts/compound-smoke.html]
+- [x] **[Review][Patch]** `?ci=1` query string has no functional effect on compound-smoke.html — the flag is set unconditionally. The header docstring says it's gated on `?ci=1`. Either wire the gate or remove the claim. **Resolved**: wired the gate in `finalize()` so `__htSmokeFailed` is only published when `?ci=1` is present. [scripts/compound-smoke.html:290-297]
+- [x] **[Review][Patch]** Add a 10s timeout fallback to compound-smoke.html in case the iframe load hangs. Without it, the smoke harness can wedge CI. **Resolved**: added 10s `setTimeout` that fails-loud and finalizes if the iframe load hasn't completed. [scripts/compound-smoke.html:68-74]
+- [x] **[Review][Patch]** Python harness monotonicity block only tests `n ∈ {1, 4, 12, 365}`, missing `n=2` (semi-annual). Add `n=2` to the array and assertion. **Resolved**: added `n=2` to the array and assertion; the monotonicity test now covers all 5 frequencies and both contribution timings (where monotonicity holds). [scripts/verify-compound-fix.py]
+- [x] **[Review][Patch]** Smoke harness Test 2 has a redundant `< 10000` check alongside the closed-form `±$0.05` check. Remove the redundant bound or replace with a more meaningful "bug-shaped" assertion. **Resolved**: replaced with a bug-shaped range assertion (`10000 ≤ fv ≤ 1000000` → fail). This catches the original $348k bug specifically. [scripts/compound-smoke.html:137-143]
+- [x] **[Review][Patch]** Task 5 (`make storage-registry` and `make shell-drift` regression check) is unchecked; AC-5 is therefore unverified. Run the gates and either check the box or amend the story status. **Resolved**: both gates pass with exit 0 (verified 2026-08-10). Task 5 checked. [story task 5]
+
+### Defer (pre-existing)
+
+- [x] **[Review][Defer]** Python harness is a parallel re-implementation, not a test of the JS under change. Bridging requires either a Node harness or JSDOM — out of scope for the fix story. The browser harness already exercises the actual JS. [scripts/verify-compound-fix.py]
+- [x] **[Review][Defer]** AC-3 audit claim has no repo-resident evidence (no per-tool audit log). Audit was self-attested; re-verification of the 11 tools in a follow-up audit story. [story AC-3]
+- [x] **[Review][Defer]** Task 6 (`tools.json` audit annotations update) is unrelated to this fix's correctness. Defer to a separate audit annotation pass. [story task 6, line 119]
+- [x] **[Review][Defer]** `compound-smoke.html` uses ES2018 (const, arrow, template literals). `scripts/` is consistent with the new Shell modules (project-context.md §6) — no convention violation. [scripts/compound-smoke.html]
+- [x] **[Review][Defer]** `Object.keys(fields).forEach(...)` dual-binds input (debounced) and change (immediate) → 2 render() calls per edit. Pre-existing pattern, not introduced by this change. [tools/compound-interest/compound-interest.js:167-170]
+- [x] **[Review][Defer]** `scheduleWrap.innerHTML` concatenation has XSS surface if a future string-valued field is added. Pre-existing pattern; year is always numeric. [tools/compound-interest/compound-interest.js:157-163]
+- [x] **[Review][Defer]** `years = Math.min(years, 100)` silent truncation without warning. Pre-existing clamp, not introduced by this fix. [tools/compound-interest/compound-interest.js:118]
+- [x] **[Review][Defer]** `contribWhen` is not validated to fall back to 'end' on invalid values. Pre-existing; the `<select>` element restricts to 'start'/'end'. [tools/compound-interest/compound-interest.js]
+- [x] **[Review][Defer]** No regression test for `effectiveAnnual`. Function unchanged by this story. [tools/compound-interest/compound-interest.js:103-105]
+- [x] **[Review][Defer]** No assertion that frequency `<select>` has expected values (1, 2, 4, 12, 365). UI element, not math contract. [tools/compound-interest/index.html:71-77]
+- [x] **[Review][Defer]** `subStepsPerMonth = 12` is a magic constant used in 3 places. Pre-existing style; minor maintainability note. [tools/compound-interest/compound-interest.js:57, 88, 90]
 
 ## Dev Notes
 
@@ -161,7 +202,7 @@ The contribution is spread evenly across the 12 sub-steps (`monthlyPerSubStep = 
 ### What was NOT changed
 
 - HTML, CSS, and the `<select>` options in the tool page — only `compound-interest.js`.
-- The 11 other calculation tools — verified clean, no edits.
+- The 13 other calculation tools — verified clean, no edits.
 - The `effectiveAnnual` helper at the top of the file — already correct (`(1 + r/n)^n − 1`).
 - The schedule snapshot cadence (still year-end rows) and the `contribWhen` UX contract.
 
@@ -182,8 +223,8 @@ No runtime errors encountered. The fix is a pure-logic replacement; no event han
 ### Completion Notes
 
 - Fix applied at `tools/compound-interest/compound-interest.js` lines 32–101 (replacing the previous month-by-month loop).
-- Closed-form comparison done by hand for all 5 frequencies and both contribution timings; results match to within sub-cent precision.
-- Monotonicity invariant confirmed: `FV(annual) ≈ $19,359 < FV(monthly) ≈ $19,580 < FV(daily) ≈ $19,650` for the canonical-with-contribution case.
+- Closed-form comparison done by hand for all 5 frequencies and both contribution timings. The Python harness uses `< 1e-6` tolerance for no-contribution cases (sub-cent precision) and `< 0.01` (1¢) for contribution cases; the browser harness uses `< 0.05` (5¢) to absorb iframe-render rounding.
+- Monotonicity invariant confirmed for the end-of-period contribution case: `FV(annual) < FV(semi) < FV(quarterly) < FV(monthly) < FV(daily)`. The start-of-period case inverts at typical short horizons because each subsequent monthly contribution has less time to compound — this is a property of the closed-form math, not a bug.
 - Story 1.13 is filed under Epic 1 (shell + tool contract foundation); the bug fix is independent of the audit scaffold itself but the audit surfaced the bug.
 
 ## File List
@@ -198,8 +239,9 @@ No runtime errors encountered. The fix is a pure-logic replacement; no event han
 | Date       | Author  | Change                                                    |
 | ---------- | ------- | --------------------------------------------------------- |
 | 2026-08-07 | Sanjit  | Audited 13 calculation tools, found 1 critical bug (compound-interest), verified 11 others clean, fixed bug, added Python verification harness. |
-| 2026-08-07 | Sanjit  | Added `scripts/compound-smoke.html` browser harness (6 tests): iframe-driven, asserts monotonicity, closed-form, regression, contribution timing, schedule row correctness. |
+| 2026-08-07 | Sanjit  | Added `scripts/compound-smoke.html` browser harness (7 tests): iframe-driven, asserts monotonicity, closed-form, regression, contribution timing, schedule row correctness. |
+| 2026-08-10 | Sanjit  | Addressed AI review findings: corrected AC-1 closed-form values, tightened Test 7 tolerance, added 10s timeout fallback, renamed smoke-signal flag to `__htSmokeFailed` for consistency with storage-smoke, wired `?ci=1` gate, added `make verify-compound` + `make compound-smoke` targets, added structural smoke check `scripts/compound-smoke.py`, corrected simulation to handle per-period vs per-month PMT consistently. |
 
 ## Status
 
-review
+done

@@ -20,8 +20,10 @@
     python -m http.server 8000 -d <repo-root>
     open http://localhost:8000/scripts/compound-smoke.html?ci=1
 
-  The harness exits non-zero via window.__htCompoundSmokeFailed if any
-  check fails when ?ci=1 is set, so a wrapping test runner can pick it up.
+  The harness publishes window.__htSmokeFailed if any check fails when
+  ?ci=1 is set, so a wrapping test runner can pick it up. Manual runs
+  (without ?ci=1) leave the global unset. Mirrors the storage-smoke
+  convention.
 -->
 <html lang="en">
 <head>
@@ -61,7 +63,19 @@
       const frame = document.getElementById('tool-frame');
       frame.addEventListener('load', runTests);
 
+      // Hard timeout fallback: if the iframe load hangs, fail-loud after
+      // 10s rather than letting CI wedge on a silent hang.
+      setTimeout(function () {
+        if (!document.body.dataset.smokeStarted) {
+          document.body.dataset.smokeStarted = '1';
+          fail('iframe load', 'timeout: tool page did not load within 10s');
+          finalize();
+        }
+      }, 10000);
+
       function runTests() {
+        if (document.body.dataset.smokeStarted) return;
+        document.body.dataset.smokeStarted = '1';
         try {
           const doc = frame.contentDocument;
           if (!doc) {
@@ -117,10 +131,15 @@
             setField('contrib-when', 'end');
             const fv = readFinal();
             const expected = 1000 * Math.pow(1.05, 10);
-            if (fv < 10000 && Math.abs(fv - expected) < 0.05) {
+            // Bug-shaped assertion: the broken calculator returned $300k+
+            // for this case (compounding monthly at the per-period rate).
+            // If the value lands in the bug-shaped range, fail loudly.
+            if (fv >= 10000 && fv <= 1000000) {
+              fail('regression annual', 'got $' + fv.toFixed(2) + ' — bug returns $348,911.99');
+            } else if (Math.abs(fv - expected) < 0.05) {
               pass('regression annual: $' + fv.toFixed(2) + ' ≈ expected $' + expected.toFixed(2) + ' (not in $300k range)');
             } else {
-              fail('regression annual', 'got $' + fv.toFixed(2) + ' — bug returns $348,911.99');
+              fail('regression annual', 'got $' + fv.toFixed(2) + ' expected $' + expected.toFixed(2));
             }
           } catch (err) {
             fail('regression annual', err.message);
@@ -204,7 +223,35 @@
             fail('year-1 schedule row', err.message);
           }
 
-          // ---- Test 6: with-contribution closed-form, annual ----
+          // ---- Test 6: year-1 quarterly balance (bug-shaped scenario) ----
+          try {
+            setField('principal', 1000);
+            setField('monthly', 0);
+            setField('rate', 5);
+            setField('years', 1);
+            setField('frequency', 4);
+            setField('contrib-when', 'end');
+            const rows = doc.querySelectorAll('#schedule-wrap tbody tr');
+            if (rows.length >= 2) {
+              const lastRow = rows[rows.length - 1];
+              const cells = lastRow.querySelectorAll('td');
+              const balanceText = cells[3].textContent.replace(/[^0-9.\-]/g, '');
+              const fv1 = parseFloat(balanceText);
+              // Quarterly compounding: 4 applications of r/4.
+              const expected = 1000 * Math.pow(1 + 0.05 / 4, 4);
+              if (Math.abs(fv1 - expected) < 0.05) {
+                pass('year-1 quarterly balance: $' + fv1.toFixed(2) + ' ≈ $' + expected.toFixed(2));
+              } else {
+                fail('year-1 quarterly balance', 'got $' + fv1.toFixed(2) + ' expected $' + expected.toFixed(2));
+              }
+            } else {
+              fail('year-1 quarterly schedule', 'no rows found (got ' + rows.length + ')');
+            }
+          } catch (err) {
+            fail('year-1 quarterly balance', err.message);
+          }
+
+          // ---- Test 7: with-contribution closed-form, annual ----
           try {
             setField('principal', 1000);
             setField('monthly', 100);
@@ -213,12 +260,15 @@
             setField('frequency', 1);
             setField('contrib-when', 'end');
             const fv = readFinal();
-            // Ordinary-annuity closed form:
-            //   FV = P(1+r/n)^N + PMT · [(1+r/n)^N − 1] / (r/n)
+            // The calculator's UX contract is monthly PMT. For n=1, the
+            // per-period PMT is monthly * 12/n = $1,200. Ordinary-annuity
+            // closed form:  FV = P(1+r)^N + (monthly * 12/n) · [(1+r)^N − 1] / r
             const r = 0.05 / 1;
             const N = 1 * 10;
-            const expected = 1000 * Math.pow(1 + r, N) + 100 * ((Math.pow(1 + r, N) - 1) / r);
-            if (Math.abs(fv - expected) < 0.10) {
+            const monthly = 100;
+            const pmtPerPeriod = monthly * 12 / 1;
+            const expected = 1000 * Math.pow(1 + r, N) + pmtPerPeriod * ((Math.pow(1 + r, N) - 1) / r);
+            if (Math.abs(fv - expected) < 0.01) {
               pass('with-contrib annual: $' + fv.toFixed(2) + ' ≈ expected $' + expected.toFixed(2));
             } else {
               fail('with-contrib annual', 'got $' + fv.toFixed(2) + ' expected $' + expected.toFixed(2));
@@ -236,13 +286,17 @@
 
       function finalize() {
         out('');
-        const total = 6;
+        const total = 7;
+        // Only publish __htSmokeFailed when ?ci=1 is set (manual runs
+        // shouldn't leave a CI signal hanging on window). Mirrors the
+        // scripts/storage-smoke.html convention.
+        const ciMode = new URLSearchParams(window.location.search).get('ci') === '1';
         if (failed === 0) {
           out('compound-smoke: all ' + total + ' tests pass');
-          window.__htCompoundSmokeFailed = 0;
+          if (ciMode) window.__htSmokeFailed = 0;
         } else {
           out('compound-smoke: ' + failed + ' of ' + total + ' tests failed');
-          window.__htCompoundSmokeFailed = failed;
+          if (ciMode) window.__htSmokeFailed = failed;
         }
       }
     })();
