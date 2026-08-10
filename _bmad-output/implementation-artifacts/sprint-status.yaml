@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-31
-last_updated: 2026-08-10T13:30:00Z
+last_updated: 2026-08-10T14:45:00Z
 project: useful-tools
 project_key: NOKEY
 tracking_system: file-system
@@ -72,7 +72,7 @@ development_status:
   1-14-shell-public-api-and-bypass-prohibition: done
   1-15-first-promoted-tool-lands-on-home-grid: done
   1-16-lifespan-simulator-plan-your-changes-tab: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   # =========================================================================
   # Epic 2: Promoted Tool Suite — Bring 34 Tools to the 8/10 Bar
@@ -424,6 +424,89 @@ action_items:
     epic: 0
     story: null
     revisit_condition: "Resolving — done"
+
+  # === Epic 1 Retrospective (2026-08-10) ===
+  # Story 1.14 review was done via the anchored code-review skill instead of
+  # bmad-code-review. Process gap logged; forward-only commitments below.
+  - id: AI-E1-1
+    title: "Default to bmad Story cycle (CS -> VS -> DS -> CR -> ER) for every story"
+    description: "Story 1.14 was implemented by direct file edits; bmad-dev-story was bypassed. Default to the bmad workflow going forward; deviations are explicit and noted in the story doc."
+    severity: medium
+    status: open
+    owner: Sanjit (project lead)
+    epic: 1
+    story: null
+    revisit_condition: "Before Story 2.1 kicks off"
+
+  - id: AI-E1-2
+    title: "Use bmad-code-review as primary review path; anchored code-review as additional layer only"
+    description: "The two skills have different review shapes. bmad-code-review audits against the story's AC list; the anchored code-review skill runs Standards+Spec axes. Use bmad-code-review by default; the anchored skill when Sanjit asks for it."
+    severity: medium
+    status: open
+    owner: Sanjit (project lead)
+    epic: 1
+    story: null
+    revisit_condition: "Before Story 2.1 review"
+
+  - id: AI-E1-3
+    title: "Smoke harnesses that touch a contract manifest must read the manifest"
+    description: "Story 1.14 MUST-FIX #1: harness called HT.provide directly while manifest documented HT.provide.register. Future harnesses against api-contract.js (or any contract manifest) must read the manifest as the source of truth."
+    severity: medium
+    status: open
+    owner: epic authors
+    epic: 1
+    story: null
+    revisit_condition: "Next story that introduces a manifest-bound harness"
+
+  - id: AI-E1-4
+    title: "String/comment-aware scanning is the baseline for any future regex gate"
+    description: "Three of Story 1.14's four MUST-FIX issues were scanners that didn't honor strings, comments, or template literals. The _code_spans stripper (~50 lines pure-stdlib Python) is the reusable pattern."
+    severity: medium
+    status: open
+    owner: epic authors
+    epic: 1
+    story: null
+    revisit_condition: "Next regex-style gate (embed-bounds-check, future shell-a11y extensions, etc.)"
+
+  - id: AI-E1-5
+    title: "Document Object.defineProperties + {writable: false, configurable: false} pattern in project-context.md section 6"
+    description: "Story 1.14 MUST-FIX #2. The pattern is small but consequential and currently lives only in shell.js. Capture it in the brownfield fact base so future Shell additions follow it."
+    severity: low
+    status: open
+    owner: epic-1 author (deferred)
+    epic: 1
+    story: null
+    revisit_condition: "When project-context.md is next touched, or in Epic 2 first sprint"
+
+  - id: AI-E1-6
+    title: "Document HT.use(slug) deep-freeze semantics (or its absence) in docs/shell-public-api.md section 5"
+    description: "SHOULD-FIX from the Story 1.14 review. A consumer can mutate nested properties of a received API. Acceptable by design but should be documented so future consumers don't assume deep-freeze."
+    severity: low
+    status: open
+    owner: epic-1 author (deferred)
+    epic: 1
+    story: 1-14
+    revisit_condition: "When Story 1.14 docs are next touched"
+
+  - id: AI-E1-7
+    title: "Document HT.netRegistry key format (METHOD|URL) in docs/shell-public-api.md section 5"
+    description: "NIT. The key format is currently only documented in shell.js source. Surface it in the public API doc for any future tool that reads the registry."
+    severity: low
+    status: open
+    owner: epic-1 author (deferred)
+    epic: 1
+    story: 1-14
+    revisit_condition: "When Story 1.14 docs are next touched"
+
+  - id: AI-E1-8
+    title: "Shell-public-api smoke harness should assert registry list against api-contract.js, not test-slug"
+    description: "NIT. The harness asserts that 'test-slug' is in the registry, but the stronger assertion is that the registry's contents match the api-contract.js manifest's stable+internal entries."
+    severity: low
+    status: open
+    owner: epic-1 author (deferred)
+    epic: 1
+    story: 1-14
+    revisit_condition: "When Story 1.14 smoke harness is next touched"
 
 # -----------------------------------------------------------------------------
 # Suggested Sprint Sequencing (Reference)
