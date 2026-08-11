@@ -54,6 +54,20 @@ MIGRATED_FILES = (
     "theme.js",
 )
 
+# Path prefixes that qualify as "migrated" (the gate fires on `var`).
+# Used instead of basename-only matching so a future tool script at
+# e.g. assets/js/tools/utils.js is not promoted to the strict tier.
+MIGRATED_PATH_PREFIXES = (
+    "assets/js/utils.js",
+    "assets/js/layout.js",
+    "assets/js/theme.js",
+)
+
+def is_migrated(rel_path: str) -> bool:
+    """True iff rel_path is exactly one of the three migrated files
+    (no path-prefix collision with future tool scripts)."""
+    return rel_path in MIGRATED_PATH_PREFIXES
+
 # `\bvar\s+` matches `var ` (with trailing whitespace) — avoids matching
 # identifiers like `myvar` or `my_var`. The migration is required to
 # replace `var foo` with `let foo` or `const foo`, so any match here
@@ -107,12 +121,20 @@ def main() -> int:
 
     all_files = find_files(ASSETS_JS)
 
+    # Vacuous-pass guard: assets/js/ exists but contains zero .js files
+    # would otherwise print PASS without scanning anything. Treat this
+    # the same as a missing directory (exit 2) so the maintainer notices.
+    if not all_files:
+        print(f"FAIL: no .js files found under {ASSETS_JS}", file=sys.stderr)
+        return 2
+
     # Phase 1: strict scan of the three migrated files (var + concat).
     # Phase 2: relaxed scan of assets/js/** (concat only — the broader
     # tool JS may still use legitimate `var` patterns in tool-internal
     # code if needed, but `.concat(` is universally banned).
     migrated_violations: list[tuple[Path, list]] = []
     concat_violations: list[tuple[Path, list]] = []
+    read_errors: list[tuple[Path, str]] = []
 
     for path in all_files:
         rel = path.relative_to(REPO_ROOT).as_posix()
@@ -121,20 +143,34 @@ def main() -> int:
             if not args.quiet:
                 print(f"  ok    {rel}")
             continue
+        # Read errors get their own bucket — they fail the gate
+        # unconditionally (a file we couldn't read could contain any
+        # number of anti-patterns).
+        read_error_hits = [v for v in violations if v[2] == "read-error"]
+        if read_error_hits:
+            read_errors.append((path, read_error_hits[0][1]))
+            if not args.quiet:
+                print(f"  FAIL  {rel}  (read error)")
+            continue
         # Filter: if this is a migrated file, every violation fails.
-        is_migrated = path.name in MIGRATED_FILES
         var_hits = [v for v in violations if v[2] == "var"]
         concat_hits = [v for v in violations if v[2] == "concat"]
-        if is_migrated and var_hits:
+        if is_migrated(rel) and var_hits:
             migrated_violations.append((path, var_hits))
         if concat_hits:
             # Even for non-migrated files, .concat( is banned.
             concat_violations.append((path, concat_hits))
-        if not args.quiet and (is_migrated or concat_hits):
+        if not args.quiet and (is_migrated(rel) or concat_hits):
             print(f"  FAIL  {rel}")
 
     # Report
     failed = False
+    if read_errors:
+        print("\nUnreadable files (gate fails — could not scan):", file=sys.stderr)
+        for path, msg in read_errors:
+            rel = path.relative_to(REPO_ROOT).as_posix()
+            print(f"  {rel}: {msg}", file=sys.stderr)
+        failed = True
     if migrated_violations:
         print("\nMIGRATED FILES — `var` declarations found:", file=sys.stderr)
         for path, hits in migrated_violations:
@@ -151,9 +187,9 @@ def main() -> int:
         failed = True
 
     if failed:
-        print("\nes5-grep: FAIL — ES5 anti-patterns detected", file=sys.stderr)
+        print("\nes5-grep: FAIL — ES5 anti-patterns or scan errors detected", file=sys.stderr)
         return 1
-    print("\nes5-grep: PASS — no ES5 anti-patterns in assets/js/**")
+    print(f"\nes5-grep: PASS — scanned {len(all_files)} JS files, no ES5 anti-patterns")
     return 0
 
 
