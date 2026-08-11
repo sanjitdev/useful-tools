@@ -39,7 +39,16 @@ on:
       - "scripts/_smoke_pack_tags.js"
       - "scripts/_es5_grep.py"
       - "scripts/_smoke_quality.js"
+      - "scripts/_smoke_regression_sweep.js"
+      - "scripts/_regression_sweep.py"
       - "assets/js/quality.js"
+      - "assets/js/utils.js"
+      - "assets/js/storage.js"
+      - "assets/js/history.js"
+      - "assets/js/share.js"
+      - "assets/js/a11y.js"
+      - "assets/js/shell.js"
+      - "assets/js/api-contract.js"
       - "docs/tool-inventory.md"
       - "docs/quality-audit.md"
       - "docs/pack-taxonomy.md"
@@ -84,7 +93,16 @@ on:
       - "scripts/_smoke_pack_tags.js"
       - "scripts/_es5_grep.py"
       - "scripts/_smoke_quality.js"
+      - "scripts/_smoke_regression_sweep.js"
+      - "scripts/_regression_sweep.py"
       - "assets/js/quality.js"
+      - "assets/js/utils.js"
+      - "assets/js/storage.js"
+      - "assets/js/history.js"
+      - "assets/js/share.js"
+      - "assets/js/a11y.js"
+      - "assets/js/shell.js"
+      - "assets/js/api-contract.js"
       - "docs/tool-inventory.md"
       - "docs/quality-audit.md"
       - "docs/pack-taxonomy.md"
@@ -292,3 +310,31 @@ jobs:
         # check is the AC-1 chrome-equivalence enforcement point).
         # Vacuous-pass guard catches hollow runs.
         run: make quality-smoke
+
+      - name: Cross-cutting tool-JS regression sweep (Story 2.12)
+        # Story 2.12: load every ready:true tool's <slug>.js in a fresh
+        # vm context with a synthetic DOM + a minimal HT.* facade (the
+        # top-22 HT.* helpers + the shell APIs the tool JS touches).
+        # Run the 6-check battery — schema, HTML, JS load, HT.history
+        # roundtrip, console.error gate, fetch gate (no external URLs).
+        # Exits 0 only when all 35 ready:true tools pass all 6 checks
+        # (210/210). The Python wrapper writes
+        # `.regression-sweep-output.txt` so the Markdown report is
+        # uploadable as a build artifact. The path filter covers
+        # tools/**, assets/js/**, scripts/_smoke_regression_sweep.js,
+        # scripts/_regression_sweep.py, and the workflow file itself.
+        run: make regression-sweep
+
+      - name: Upload regression sweep report
+        # Story 2.12 AC-7: when the sweep fails (or passes) the
+        # Markdown report at the repo root should be downloadable
+        # from the Actions UI for post-mortem analysis. Always upload
+        # even on success — the report doubles as a tool-by-tool
+        # health snapshot for the build.
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.4.3
+        with:
+          name: regression-sweep-report
+          path: .regression-sweep-output.txt
+          if-no-files-found: warn
+          retention-days: 14

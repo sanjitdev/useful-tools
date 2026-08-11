@@ -23,7 +23,9 @@
    Static-only — does NOT execute the modules
    (loading storage-registry.js etc. has side effects
    that require a real browser-like environment;
-   that's the Story 2.12 cross-cutting smoke's job).
+   that's the Story 2.12 cross-cutting smoke's job —
+   see scripts/_smoke_regression_sweep.js and the
+   regression-sweep Makefile target).
 
    Exit codes: 0 = all green, 1 = any failure,
    2 = vacuous pass (no assertions ran).

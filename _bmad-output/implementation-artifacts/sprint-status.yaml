@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-31
-last_updated: 2026-08-11T12:00:00Z
+last_updated: 2026-08-11T21:30:00Z
 project: useful-tools
 project_key: NOKEY
 tracking_system: file-system
@@ -92,7 +92,7 @@ development_status:
   2-9-existing-tool-pack-tag-wiring: done
   2-10-shared-layout-theme-utils-migration-to-modern-js: done
   2-11-brownfield-tool-inventory-view-in-quality: done
-  2-12-cross-cutting-regression-sweep: backlog
+  2-12-cross-cutting-regression-sweep: done
   epic-2-retrospective: optional
 
   # =========================================================================

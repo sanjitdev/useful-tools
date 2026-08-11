@@ -33,3 +33,7 @@ _bmad/render/
 **/.working/
 **/imports/
 
+# Regression-sweep report (regenerated on every CI run; uploaded as an
+# artifact in the tool-contract-gate workflow, never committed).
+.regression-sweep-output.txt
+
