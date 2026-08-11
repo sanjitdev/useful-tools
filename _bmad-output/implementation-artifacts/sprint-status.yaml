@@ -101,7 +101,7 @@ development_status:
   # UX-DRs: UX-DR-6 (full), UX-DR-14 (offline banner), UX-DR-19 (palette on every page)
   # =========================================================================
   epic-3: in-progress
-  3-1-full-command-palette-with-top-5-fuzzy-matches-and-footer-hints: review
+  3-1-full-command-palette-with-top-5-fuzzy-matches-and-footer-hints: done
   3-2-command-palette-global-actions: backlog
   3-3-per-tool-keyboard-shortcuts-overlay: backlog
   3-4-global-keyboard-chords-for-cross-page-navigation: backlog

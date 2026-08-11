@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.9.0',
+  version: '1.9.1',
   generated: '2026-08-11',
   entries: Object.freeze([
     Object.freeze({
@@ -487,7 +487,7 @@ window.HT.__apiContract = Object.freeze({
       signature: '(query: string, fieldValue: string) => {start: number, end: number} | null',
       stability: 'internal',
       module: 'assets/js/search.js',
-      notes: 'Story 3.1 palette bold-match hook. Returns the [start, end] of the first matching tier of query inside fieldValue, in the *normalized* form. Mirrors the tier ranking in HT.search (exact > prefix > word-boundary > substring > fuzzy). Returns null on no match. Underscore-prefixed; not a stable surface. If HT.search gains [start, end] in the result shape (Story 1.11 deferred), this becomes a thin alias.',
+      notes: 'Story 3.1 palette bold-match hook. Returns the [start, end] of the first matching tier of query inside fieldValue, as indices into the *raw* (original) fieldValue — safe for buildMatchFragment to slice directly even when the title contains diacritics, ligatures, or case differences that normalize() strips. Tier dispatch runs on the normalized form (in sync with searchIndex) and is mapped back to raw boundaries. Returns null on no match. Underscore-prefixed; not a stable surface. If HT.search gains [start, end] in the result shape (Story 1.11 deferred), this becomes a thin alias.',
     }),
   ]),
 });

@@ -19,7 +19,11 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 const SEARCH_JS = path.join(REPO_ROOT, 'assets/js/search.js');
 const SHELL_JS = path.join(REPO_ROOT, 'assets/js/shell.js');
 
-// 4 fixture tools (matches AC-14 inline JSON)
+// 8 fixture tools: the 4 from AC-14, plus 4 `qr-`-titled tools so a
+// search for "qr" returns 5+ matches. This lets the top-5 cap test
+// actually exercise the .slice(0, 5) boundary. The 4 `qr-` extras use
+// descending search-priority so the engine keeps a stable order; the
+// cap then trims the tail.
 const INLINE_JSON = JSON.stringify({
   tools: [
     {
@@ -29,6 +33,42 @@ const INLINE_JSON = JSON.stringify({
       keywords: ['qr', 'barcode', 'code'],
       category: 'Converters',
       'search-priority': 8,
+      ready: true,
+    },
+    {
+      slug: 'qr-reader',
+      title: 'QR Reader',
+      description: 'Scan a QR code from an image.',
+      keywords: ['qr', 'scan', 'read'],
+      category: 'Converters',
+      'search-priority': 7,
+      ready: true,
+    },
+    {
+      slug: 'qr-batch',
+      title: 'QR Batch',
+      description: 'Bulk QR generation.',
+      keywords: ['qr', 'bulk', 'batch'],
+      category: 'Converters',
+      'search-priority': 6,
+      ready: true,
+    },
+    {
+      slug: 'qr-styler',
+      title: 'QR Styler',
+      description: 'Style QR codes with colors and logos.',
+      keywords: ['qr', 'style', 'logo'],
+      category: 'Converters',
+      'search-priority': 5,
+      ready: true,
+    },
+    {
+      slug: 'qr-tracker',
+      title: 'QR Tracker',
+      description: 'Track QR scans over time.',
+      keywords: ['qr', 'track', 'analytics'],
+      category: 'Converters',
+      'search-priority': 4,
       ready: true,
     },
     {
@@ -180,15 +220,66 @@ async function run(query) {
   if (HT.search && typeof HT.search._matchRange === 'function') {
     const range = HT.search._matchRange('comp', 'Compound Interest');
     assert('HT.search._matchRange returns {start,end}', range && typeof range.start === 'number' && typeof range.end === 'number');
+    // Verify the indices actually identify the matched substring (raw
+    // index space, not normalized). This catches a regression that
+    // returns offsets into a different field or wrong tier.
+    if (range) {
+      const matched = 'Compound Interest'.slice(range.start, range.end);
+      assert('HT.search._matchRange indices point to "comp" in "Compound Interest"',
+        matched.toLowerCase() === 'comp',
+        'sliced=' + JSON.stringify(matched));
+    }
+    // Verify the off-by-normalization fix: queries with diacritics must
+    // map back to raw indices that slice the raw (diacritics-bearing)
+    // string correctly. 'naive' has no diacritics; 'Café' is the raw
+    // value with the combining acute.
+    const cafeRange = HT.search._matchRange('cafe', 'Café');
+    assert('HT.search._matchRange handles diacritics (Café, query=cafe)',
+      cafeRange && cafeRange.start === 0 && cafeRange.end === 4,
+      'range=' + JSON.stringify(cafeRange));
     const noMatch = HT.search._matchRange('xyzzy', 'Compound Interest');
     assert('HT.search._matchRange returns null on no-match', noMatch === null);
   } else {
     assert('HT.search._matchRange is exposed (skipped)', true);
   }
 
-  // AC-2 / AC-3: top-5 cap + result shape from Story 1.11 contract
+  // _actions registry dispatch (Story 3.2 will populate, but the
+  // dispatcher contract is Story 3.1's surface). Register a handler and
+  // dispatch.
+  if (palette && HT.palette && HT.palette._actions) {
+    const before = HT.palette._actions['__smoke_test_action'];
+    HT.palette._actions['__smoke_test_action'] = () => '__smoke_test_action_invoked';
+    const ret = HT.palette.runAction('__smoke_test_action');
+    assert('palette.runAction dispatches to registered handler', ret === '__smoke_test_action_invoked',
+      'got ' + JSON.stringify(ret));
+    // Handler throws — must return null + console.warn, not propagate.
+    HT.palette._actions['__smoke_test_throw'] = () => { throw new Error('intentional'); };
+    const retThrow = HT.palette.runAction('__smoke_test_throw');
+    assert('palette.runAction returns null when handler throws', retThrow === null,
+      'got ' + JSON.stringify(retThrow));
+    // Clean up so we don't pollute the registry.
+    if (before === undefined) delete HT.palette._actions['__smoke_test_action'];
+    else HT.palette._actions['__smoke_test_action'] = before;
+    delete HT.palette._actions['__smoke_test_throw'];
+  } else {
+    assert('palette._actions registry exposed (skipped)', true);
+  }
+
+  // AC-2 / AC-3: top-5 cap + result shape from Story 1.11 contract.
+  // The fixture has 5 tools matching "qr" (qr-code-generator, qr-reader,
+  // qr-batch, qr-styler, qr-tracker) so a search for "qr" returns exactly
+  // 5 results. The palette's renderPaletteList slices this to top-5; we
+  // verify the engine side here, and verify the slice in the HTML
+  // harness (Test #4) which actually renders the listbox.
   const qrResults = await run('qr');
-  assert('search("qr") returns qr-code-generator', qrResults.length >= 1 && qrResults[0].slug === 'qr-code-generator');
+  assert('search("qr") returns >=5 results (fixture has 5 qr-tools)',
+    qrResults.length >= 5,
+    'got ' + qrResults.length + ' results');
+  assert('all "qr" results are qr-* slugs',
+    qrResults.every((r) => r.slug.indexOf('qr-') === 0),
+    'slugs=' + JSON.stringify(qrResults.map((r) => r.slug)));
+  assert('search("qr") includes qr-code-generator',
+    qrResults.some((r) => r.slug === 'qr-code-generator'));
   if (qrResults.length >= 1) {
     assert('result has matchedField', typeof qrResults[0].matchedField === 'string',
       'matchedField=' + qrResults[0].matchedField);

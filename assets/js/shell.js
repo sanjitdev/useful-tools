@@ -894,10 +894,29 @@
       li.appendChild(meta);
     }
 
-    const labelSuffix = match.matchedField === 'title'
-      ? ' — match in title'
-      : (match.matchedField ? ' — match in ' + match.matchedField : '');
-    li.setAttribute('aria-label', match.title + labelSuffix);
+    // aria-label per AC-4: <title> — match in <field>: '<substring>'.
+    // The substring is the actual text that matched (raw, not normalized),
+    // derived from the same index space as the visible <strong> via
+    // _matchRange so visible UX and AT UX stay in sync. If the index
+    // helper is unavailable for any reason, fall back to the field name
+    // without a substring so the label is still meaningful.
+    let ariaLabel;
+    if (match.matchedField === 'title') {
+      const range = (typeof HT !== 'undefined' && HT.search && typeof HT.search._matchRange === 'function')
+        ? HT.search._matchRange(match._query || '', match.title)
+        : null;
+      const sub = (range && range.end > range.start && range.end <= match.title.length)
+        ? match.title.slice(range.start, range.end)
+        : '';
+      ariaLabel = sub
+        ? match.title + " — match in title: '" + sub + "'"
+        : match.title + ' — match in title';
+    } else if (match.matchedField) {
+      ariaLabel = match.title + ' — matched in ' + match.matchedField;
+    } else {
+      ariaLabel = match.title;
+    }
+    li.setAttribute('aria-label', ariaLabel);
     return li;
   }
 
@@ -1009,7 +1028,7 @@
     }
     const totalOptions = listbox.querySelectorAll('[role="option"]').length;
     if (totalOptions === 0) {
-      listbox.appendChild(buildEmptyRow('No tools match "' + query + '"'));
+      listbox.appendChild(buildEmptyRow("No tools match '" + query + "'"));
     }
   }
 
@@ -1046,7 +1065,7 @@
       return;
     }
     if (toolCount === 0 && actionCount === 0) {
-      live.textContent = 'No tools match "' + query + '". Try a shorter query, or press ? for shortcuts.';
+      live.textContent = "No tools match '" + query + "'. Try a shorter query, or press ? for shortcuts.";
       return;
     }
     const parts = [];

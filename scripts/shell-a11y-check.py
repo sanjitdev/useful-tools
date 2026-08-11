@@ -369,11 +369,20 @@ PALETTE_LIVE_REGION_RE = re.compile(
 # actual selector in components.css is
 # `.shell-palette-list [role="option"][aria-selected="true"]` (the
 # `<li role="option">` elements live inside `.shell-palette-list`).
-# Both the selector and the declaration must be present in components.css.
-# A naive greedy-once-only check suffices because the CSS file only
-# contains ONE palette forced-colors block (the tool-card and settings
-# blocks have different selectors); a regression that splits or moves
-# the rule between blocks would still surface here.
+# Both the selector and the declaration must co-occur inside the same
+# rule block (selector + opening brace + declarations) so a regression
+# that drops the forced-colors scope from the palette rule, or moves
+# the border to a different rule, surfaces here. (An earlier independent
+# regex check was vacuous — the components.css file carries other
+# `[aria-selected="true"]` selectors and other `solid CanvasText`
+# declarations in unrelated rules.)
+PALETTE_FORCED_RULE_RE = re.compile(
+    r"\.[\w-]*shell-palette-list[^{]*\[aria-selected\s*=\s*[\"']true[\"']\][^{]*"
+    r"\{[^}]*border\s*:\s*[^;}]*solid\s+CanvasText[^}]*\}",
+    re.IGNORECASE | re.DOTALL,
+)
+# Retained for diagnostic messages if a future regression splits the
+# selector and declaration across rules.
 PALETTE_SELECTOR_FORCED = re.compile(
     r"\[aria-selected\s*=\s*[\"']true[\"']\]",
     re.IGNORECASE,
@@ -458,10 +467,7 @@ def check_palette_aria(path: Path, root: Path) -> list[str]:
     except OSError:
         css_text = ""
     if combos and css_text:
-        if not (
-            PALETTE_SELECTOR_FORCED.search(css_text)
-            and PALETTE_BORDER_FORCED.search(css_text)
-        ):
+        if not PALETTE_FORCED_RULE_RE.search(css_text):
             violations.append(
                 "components.css is missing the forced-colors 2px cursor border "
                 "on .shell-palette-list [role=\"option\"][aria-selected=\"true\"] "

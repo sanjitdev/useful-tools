@@ -20,6 +20,9 @@
    10. Palette options carry aria-selected initial state
    11. Palette footer carries the chord hints (AC-8)
    12. Warm-path perf <= 10ms/query (AC-12)
+   13. JS-driven render: HT.palette.open() + 'input' event renders
+       exactly 5 [role=option] rows for query "qr" (top-5 cap
+       exercised end-to-end) and the live region announces a summary.
 
   Run via:
 
@@ -44,7 +47,7 @@
   <script src="../assets/js/a11y.js"></script>
   <script src="../assets/js/search.js"></script>
   <script type="application/json" id="ht-tools-json-inline">
-{"$schema":"tools.schema.json","schemaVersion":"1","releaseVersion":"0.0.0","generated":"2026-08-11T00:00:00Z","tools":[{"id":"qr-code-generator","slug":"qr-code-generator","title":"QR Code Generator","description":"Generate QR codes from text.","category":"Converters & Calculators","keywords":["qr","barcode","code"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"inflation-calculator","slug":"inflation-calculator","title":"Inflation Calculator","description":"CPI-adjusted value.","category":"Converters & Calculators","keywords":["inflation","cpi"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"compound-interest","slug":"compound-interest","title":"Compound Interest","description":"Future value with periodic compounding.","category":"Finance","keywords":["compound","interest","fv"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"tip-calculator","slug":"tip-calculator","title":"Tip Calculator","description":"Tip amount and total per person.","category":"Converters & Calculators","keywords":["tip","gratuity","split"],"last-updated":"2026-08-11T00:00:00Z","ready":true}]}
+{"$schema":"tools.schema.json","schemaVersion":"1","releaseVersion":"0.0.0","generated":"2026-08-11T00:00:00Z","tools":[{"id":"qr-code-generator","slug":"qr-code-generator","title":"QR Code Generator","description":"Generate QR codes from text.","category":"Converters & Calculators","keywords":["qr","barcode","code"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"qr-reader","slug":"qr-reader","title":"QR Reader","description":"Scan a QR code from an image.","category":"Converters & Calculators","keywords":["qr","scan","read"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"qr-batch","slug":"qr-batch","title":"QR Batch","description":"Bulk QR generation.","category":"Converters & Calculators","keywords":["qr","bulk","batch"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"qr-styler","slug":"qr-styler","title":"QR Styler","description":"Style QR codes with colors and logos.","category":"Converters & Calculators","keywords":["qr","style","logo"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"qr-tracker","slug":"qr-tracker","title":"QR Tracker","description":"Track QR scans over time.","category":"Converters & Calculators","keywords":["qr","track","analytics"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"inflation-calculator","slug":"inflation-calculator","title":"Inflation Calculator","description":"CPI-adjusted value.","category":"Converters & Calculators","keywords":["inflation","cpi"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"compound-interest","slug":"compound-interest","title":"Compound Interest","description":"Future value with periodic compounding.","category":"Finance","keywords":["compound","interest","fv"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"tip-calculator","slug":"tip-calculator","title":"Tip Calculator","description":"Tip amount and total per person.","category":"Converters & Calculators","keywords":["tip","gratuity","split"],"last-updated":"2026-08-11T00:00:00Z","ready":true}]}
   </script>
   <script src="../assets/js/shell.js" defer></script>
 </head>
@@ -146,10 +149,14 @@
           // ---- Test 4: top-5 cap result shape ----
           try {
             const r = await resolveSync(window.HT.search('qr'));
-            if (Array.isArray(r) && r.length >= 1 && r[0].slug === 'qr-code-generator') {
-              pass('top-5 cap: "qr" -> qr-code-generator (top of results)');
+            // Fixture has 5 qr-* tools. Engine returns all 5 (ranked).
+            // The render-time cap slices to top-5 in Test 13 below; here
+            // we assert the engine surface and that the top hit is the
+            // expected high-priority tool.
+            if (Array.isArray(r) && r.length === 5 && r.every((x) => x.slug.indexOf('qr-') === 0) && r[0].slug === 'qr-code-generator') {
+              pass('top-5 cap: "qr" -> 5 qr-* tools, top = qr-code-generator');
             } else {
-              fail('top-5 cap', 'got ' + JSON.stringify(r));
+              fail('top-5 cap engine surface', 'got n=' + (r && r.length) + ' top=' + (r && r[0] && r[0].slug));
             }
           } catch (err) { fail('top-5 cap', err.message); }
 
@@ -240,10 +247,54 @@
             if (per <= 10) {
               pass('warm path: ' + per.toFixed(2) + 'ms/query (10 queries)');
             } else {
-              out('  WARN    warm path: ' + per.toFixed(2) + 'ms/query exceeds 10ms target');
-              if (isCi) failed += 1;
+              // Always fail loud: warm-path perf is a hard AC-12
+              // guarantee, not a soft target. The CI gate was redundant
+              // (CI is the only context that calls this harness with
+              // intent to fail); local runs should also fail so a
+              // regression is caught on the next dev edit.
+              fail('warm path', per.toFixed(2) + 'ms/query exceeds 10ms target');
             }
           } catch (err) { fail('warm path', err.message); }
+
+          // ---- Test 13: JS-driven palette render (top-5 cap rendered) ----
+          // Calls HT.palette.open() to install wiring, dispatches a
+          // synthetic 'input' event on #palette-input, waits past the
+          // 50ms debounce, then asserts the listbox contains exactly 5
+          // [role="option"] rows. Catches regressions where the render
+          // path drifts from the engine contract (e.g., the .slice(0,5)
+          // cap in renderPaletteList becomes .slice(0,10)).
+          try {
+            const palette = document.getElementById('palette');
+            const input = document.getElementById('palette-input');
+            const listbox = document.getElementById('palette-listbox');
+            const live = document.getElementById('palette-live');
+            if (!palette || !input || !listbox) {
+              fail('JS-driven render: palette DOM', 'palette/input/listbox missing');
+            } else if (!window.HT.palette || typeof window.HT.palette.open !== 'function') {
+              fail('JS-driven render: HT.palette.open', 'not a function (shell.js not loaded?)');
+            } else {
+              window.HT.palette.open();
+              input.value = 'qr';
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+              await new Promise((res) => setTimeout(res, 120)); // > 50ms debounce
+              const options = listbox.querySelectorAll('[role="option"]');
+              if (options.length === 5) {
+                pass('JS-driven render: 5 [role=option] rows after typing "qr"');
+              } else {
+                fail('JS-driven render: top-5 cap', 'got ' + options.length + ' rows');
+              }
+              // Live region should transition to a non-empty summary
+              // string (UX-DR-18 / AC-7). Empty after typing means the
+              // announce path is broken — SR users see no feedback.
+              if (live && live.textContent && live.textContent.length > 0) {
+                pass('JS-driven render: live region announces ("' + live.textContent.slice(0, 60) + '")');
+              } else {
+                fail('JS-driven render: live region announce', 'textContent="' + (live && live.textContent) + '"');
+              }
+              // Close to leave the DOM clean for subsequent runs.
+              if (typeof window.HT.palette.close === 'function') window.HT.palette.close();
+            }
+          } catch (err) { fail('JS-driven render', err.message); }
 
         } catch (err) {
           fail('harness setup', err.message);

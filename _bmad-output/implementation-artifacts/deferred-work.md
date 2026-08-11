@@ -126,3 +126,11 @@ The 2026-08-10 review covered 4 of 4 layers (blind-hunter + edge-case-hunter + v
 - **W-3 — Sample-data + reset UI strings (`"Try an example"`, `"Reset to sample"`) are hardcoded English in `assets/js/sample-data.js`.** Project-context.md §6 declares all chrome strings must live in `assets/js/i18n.js` with locale fallback. *Reason deferred: cross-cutting i18n retrofit across every tool is out of scope for Story 2.2. Tracked as Epic-3 hardening.*
 
 - **W-4 — `HT.sampleData` registered at version `'1.0.0'`; `HT.reset` not versioned at all.** `assets/js/api-contract.js` exposes `HT.sampleData` at `1.0.0` (correct) but does not list `HT.reset`. Minor version-drift between in-module marker and contract surface. *Reason deferred: `HT.reset` is a thin façade over `_doReset()`; api-contract listing is a doc gap, not a runtime risk. Add to next api-contract refresh.*
+
+## Deferred from: code review of story-3-1-full-command-palette-with-top-5-fuzzy-matches-and-footer-hints (2026-08-11)
+
+The 2026-08-11 review covered 4 of 4 layers (blind-hunter + edge-case-hunter + verification-gap + acceptance-auditor). 0 decision-needed + 13 patch + 2 defer + 7 dismissed. The 2 items below are tagged `defer` after triage.
+
+- **W-5 — NFR-1 byte budget violation (131 KB combined vs 30 KB target) — pre-existing at ~115 KB baseline; Story 3.1 adds ~16 KB (palette render + smoke harnesses + doc rewrites).** AC-13 final bullet requires `combined total stays under 30 KB NFR-1`; spec line 52 carves out `≤2 KB for the render + footer + helpers` which is met. The Story's Resolution Notes acknowledge the overshoot and propose a separate `x-3-bundle-size-budget` cross-epic story. *Reason deferred: pre-existing baseline + carved-out scope; not a Story 3.1 regression. Remediation tracked under `x-3-bundle-size-budget`.*
+
+- **W-6 — `strip_duplicate_includes` regex in `scripts/shell-template.py` has no fixture-based unit test.** The pre-commit hook + `make shell-drift` catch regressions in practice (and the original latent bug surfaced via `make shell-a11y` 36 failures on the 36 affected pages). A pytest-style fixture (one palette, two palettes, two settings, both duplicated) would harden the regex against future boundary tweaks. *Reason deferred: low risk in practice; existing gates catch drift. Add fixture tests when a real regression lands.*

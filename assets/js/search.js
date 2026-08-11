@@ -418,9 +418,19 @@
   search._isEmbedMode = isEmbedMode;
 
   // Palette bold-match hook. Returns the [start, end] of the first matching
-  // tier of `query` inside `fieldValue` (indices into the normalized form).
-  // Mirrors the tier dispatch in `searchIndex` so the bold span matches the
-  // result the engine would have reported.
+  // tier of `query` inside `fieldValue` — INDICES INTO THE RAW (original)
+  // `fieldValue` (not the normalized form). The tier dispatch runs on
+  // normalized strings (so the match logic stays in sync with `searchIndex`)
+  // but the returned indices are mapped back to the raw string so callers
+  // like `buildMatchFragment` can `fieldValue.slice(start, end)` without
+  // landing on the wrong characters when the raw string contains
+  // diacritics, ligatures, or case differences that `normalize` strips.
+  //
+  // Mapping strategy: walk both strings in parallel, copying each raw
+  // codepoint to the next normalized codepoint(s). When the normalized
+  // cursor reaches `hit.start` / `hit.end`, record the corresponding raw
+  // cursor. This is O(n) and handles NFKD expansion (nfd → multiple
+  // codepoints) correctly.
   search._matchRange = function (query, fieldValue) {
     if (typeof query !== 'string' || typeof fieldValue !== 'string') return null;
     if (query.length === 0 || fieldValue.length === 0) return null;
@@ -430,8 +440,65 @@
     var hit = scoreExact(q, f) || scorePrefix(q, f) || scoreWordBoundary(q, f) || scoreSubstring(q, f);
     if (!hit && q.length >= MIN_FUZZY_QUERY_LENGTH) hit = scoreFuzzy(q, f);
     if (!hit) return null;
-    return { start: hit.start, end: hit.end };
+    // Map normalized [hit.start, hit.end) back to raw indices.
+    var raw = mapNormToRaw(fieldValue, hit.start, hit.end);
+    return raw;
   };
+
+  // Helper: walk `fieldValue` codepoint-by-codepoint and report the raw
+  // indices that correspond to normalized indices [nStart, nEnd).
+  // `normalize` is `NFKD` + strip combining marks + lowercase, so a single
+  // raw codepoint may contribute 0+ normalized chars (combining marks
+  // contribute 0; ASCII letters contribute 1; accented chars like 'é'
+  // contribute 2 after NFKD: 'e' + combining acute).
+  function mapNormToRaw(fieldValue, nStart, nEnd) {
+    var rawStart = -1, rawEnd = -1;
+    var nCursor = 0;
+    // Walk codepoints (surrogate pairs iterate as one item).
+    var iter = fieldValue[Symbol.iterator]();
+    var step = iter.next(), i = 0;
+    while (!step.done) {
+      var ch = step.value;
+      var nLen = normalizedLengthOf(ch);
+      if (rawStart === -1 && nCursor + nLen > nStart) rawStart = i;
+      nCursor += nLen;
+      if (rawStart !== -1 && rawEnd === -1 && nCursor >= nEnd) {
+        // rawEnd is the offset AFTER this codepoint — the codepoint we
+        // just advanced past is part of (or the last of) the match, so
+        // the slice boundary sits at i + ch.length, not at i (which is
+        // the codepoint's START).
+        rawEnd = i + ch.length;
+        break;
+      }
+      step = iter.next(); i += ch.length;
+    }
+    if (rawStart === -1) rawStart = fieldValue.length;
+    if (rawEnd === -1) rawEnd = fieldValue.length;
+    return { start: rawStart, end: rawEnd };
+  }
+
+  // How many normalized codepoints does one raw codepoint produce?
+  // Combining marks (U+0300–U+036F) yield 0 after the strip in `normalize`.
+  // Everything else yields 1 (BMP) or the NFKD expansion length of the
+  // surrogate-pair codepoint, but practically all input is BMP so 1 is fine.
+  function normalizedLengthOf(ch) {
+    if (ch.length === 1) {
+      var code = ch.charCodeAt(0);
+      // Strip range applied by `normalize`: \u0300-\u036f combining marks.
+      // Keep this in sync with the stripper in `normalize`.
+      if (code >= 0x0300 && code <= 0x036f) return 0;
+      return 1;
+    }
+    // Surrogate pair (a single emoji-style codepoint) — normalize yields 1+ chars.
+    // Compute the NFKD length to be precise. But for the palette's use case
+    // (tool titles in Cobalt tokens), surrogate-pair codepoints don't appear
+    // in matching paths, so a 1 is a safe lower bound.
+    try {
+      return ch.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').length;
+    } catch (_) {
+      return 1;
+    }
+  }
 
   window.HT.search = Object.freeze(search);
 })();
