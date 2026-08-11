@@ -38,6 +38,8 @@ on:
       - "scripts/_pack_tags.py"
       - "scripts/_smoke_pack_tags.js"
       - "scripts/_es5_grep.py"
+      - "scripts/_smoke_quality.js"
+      - "assets/js/quality.js"
       - "docs/tool-inventory.md"
       - "docs/quality-audit.md"
       - "docs/pack-taxonomy.md"
@@ -46,6 +48,7 @@ on:
       - "assets/css/base.css"
       - "assets/css/components.css"
       - "index.html"
+      - "quality.html"
       - "docs/quality-rubric.md"
       - "docs/ci-gate.md"
       - ".github/workflows/tool-contract-gate.yml"
@@ -80,6 +83,8 @@ on:
       - "scripts/_pack_tags.py"
       - "scripts/_smoke_pack_tags.js"
       - "scripts/_es5_grep.py"
+      - "scripts/_smoke_quality.js"
+      - "assets/js/quality.js"
       - "docs/tool-inventory.md"
       - "docs/quality-audit.md"
       - "docs/pack-taxonomy.md"
@@ -88,6 +93,7 @@ on:
       - "assets/css/base.css"
       - "assets/css/components.css"
       - "index.html"
+      - "quality.html"
       - "docs/quality-rubric.md"
       - "docs/ci-gate.md"
       - ".github/workflows/tool-contract-gate.yml"
@@ -271,3 +277,18 @@ jobs:
         # (`var` declarations in the migrated shared files + `.concat(`
         # calls across all assets/js/**). Exits 1 if any are found.
         run: make es5-grep
+
+      - name: Smoke quality scorecard
+        # Story 2.11: /quality inventory view. Static checks on
+        # quality.html (chrome footer link, <main aria-label>, empty-
+        # table skeleton with 5 base <th> cells, zero inline
+        # <tr data-ht-tool>, last-script assertion). Behavioral
+        # checks: loads assets/js/quality.js in a vm context with
+        # stubbed fetch + DOM, dispatches DOMContentLoaded, asserts
+        # 2 rows × 15 <td> render with verbatim remediation text +
+        # slug sort + waiver row class + frozen HT.quality surface.
+        # The `make shell-drift` step earlier verifies quality.html's
+        # chrome bytes match `assets/shell/chrome.html` (the drift
+        # check is the AC-1 chrome-equivalence enforcement point).
+        # Vacuous-pass guard catches hollow runs.
+        run: make quality-smoke

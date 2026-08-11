@@ -262,7 +262,22 @@ def iter_target_files(root: Path) -> list[Path]:
         for page in sorted(packs_dir.glob("*.html")):
             if page.is_file():
                 paths.append(page)
+    # Story 2.11: also scan other root-level non-index pages that carry
+    # the Shell chrome — currently `quality.html` (the `/quality` page).
+    # Each carries the same chrome bytes as `index.html` (header + footer +
+    # palette + settings) and uses root-relative script paths.
+    for extra_root_page in ROOT_PAGES_WITH_CHROME:
+        candidate = root / extra_root_page
+        if candidate.is_file():
+            paths.append(candidate)
     return paths
+
+
+# Story 2.11: root-level non-index pages that carry the Shell chrome.
+# Used to classify them in `is_home`-like checks below. The drift check
+# allows the inline tools.json + storage-registry manifests only on
+# `index.html`; other root pages (e.g. `quality.html`) skip those two.
+ROOT_PAGES_WITH_CHROME = ("quality.html",)
 
 
 def normalize(text: str) -> str:
@@ -333,9 +348,16 @@ def scan(
         # load on a webserver with a catch-all rewrite, but would 404 on
         # a plain `python -m http.server` from the repo root.
         if ok:
-            is_home = rel == Path("index.html")
+            # `is_home` requires the page to live at the repo root, not
+            # just to be named index.html. Tool pages are also named
+            # `index.html` but live under tools/<slug>/, which uses a
+            # relative path for assets/js/*.
+            is_home = rel == Path(INDEX_REL)
             is_pack = rel.parent.name == "packs"
-            if is_home:
+            is_root_page = (
+                not is_home and rel.name in ROOT_PAGES_WITH_CHROME
+            )
+            if is_home or is_root_page:
                 expected_anchor = search_js_anchors[0]
             elif is_pack:
                 expected_anchor = search_js_anchors[2]
@@ -360,9 +382,12 @@ def scan(
         # check, on every page. Plus a data-slug attribute check on
         # <main id="main"> for tool pages (home has no slug).
         if ok:
-            is_home = rel == Path("index.html")
+            is_home = rel == Path(INDEX_REL)
             is_pack = rel.parent.name == "packs"
-            if is_home:
+            is_root_page = (
+                not is_home and rel.name in ROOT_PAGES_WITH_CHROME
+            )
+            if is_home or is_root_page:
                 site_anchor = site_config_anchors[0]
                 storage_anchor = STORAGE_REGISTRY_JS_ANCHOR_HOME
             elif is_pack:
@@ -391,12 +416,13 @@ def scan(
                             "registry IIFE runs)\n"
                         )
                         ok = False
-        if ok and not is_home and not is_pack:
+        if ok and not is_home and not is_pack and rel.name not in ROOT_PAGES_WITH_CHROME:
             # Tool pages must carry data-slug="<slug>" on <main id="main">.
-            # Home page (no slug) and pack pages (depth-1 slug comes from
-            # data-pack-slug on the header, not data-slug on <main>) are
-            # exempt. The slug is the directory name; we derive it from
-            # the path rather than parsing location.pathname because the
+            # Home page (no slug), pack pages (depth-1 slug comes from
+            # data-pack-slug on the header, not data-slug on <main>), and
+            # root pages like `quality.html` (no tool slug) are exempt.
+            # The slug is the directory name; we derive it from the path
+            # rather than parsing location.pathname because the
             # drift check is offline.
             slug = rel.parent.name
             data_slug_marker = f'data-slug="{slug}"'

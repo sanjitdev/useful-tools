@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Tool inventory and audit scorecard for every Handy Tools tool. Generated from tools.json on every page load.">
+  <title>Quality scorecard · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%232F5BFF'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+<script> (function(){try{var t=localStorage.getItem("ht.theme");var mqd=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)");t=t==="light"||t==="dark"?t:(mqd&&mqd.matches?"dark":"light");var d=document.documentElement;d.setAttribute("data-theme",t);d.style.backgroundColor=t==="dark"?"#0f1117":"#f7f8fb";d.style.color=t==="dark"?"#e8eaf0":"#1a1d29";try{if(/[?&]embed=1(?:&|$)/.test(location.search)){d.setAttribute("data-embed","1");}}catch(_){}}catch(_){}try{var po=window.PerformanceObserver?new PerformanceObserver(function(list){try{var e=list.getEntries().find(function(x){return x.name==="first-paint"});if(e){d.dispatchEvent(new CustomEvent("ht:fouc-resolved",{detail:{elapsedMs:e.startTime}}));po.disconnect();}}catch(_){}}):null;if(po){po.observe({type:"paint",buffered:true});}}catch(_){}}catch(e){document.documentElement.setAttribute("data-theme","light")}})(); </script>
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <style>
+    .ht-quality-score-row[data-status="PASS"] { background: rgba(34, 197, 94, 0.18); }
+    .ht-quality-score-row[data-status="FAIL"] { background: rgba(239, 68, 68, 0.22); }
+    .ht-quality-score-row[data-status="WARN"] { background: rgba(234, 179, 8, 0.22); }
+    .ht-quality-score-row[data-status="MANUAL"] { background: rgba(148, 163, 184, 0.22); }
+    .ht-quality-score-row[data-status="UNKNOWN"] { background: rgba(148, 163, 184, 0.10); }
+    .ht-quality-remediation-cell {
+      cursor: pointer;
+      border: 0;
+      font: inherit;
+      padding: 4px 6px;
+      border-radius: 4px;
+    }
+    .ht-quality-remediation-cell:focus-visible {
+      outline: 2px solid #2F5BFF;
+    }
+    .ht-quality-remediation-detail {
+      display: none;
+      padding: 12px;
+      background: rgba(47, 91, 255, 0.06);
+      border-left: 3px solid #2F5BFF;
+      margin: 4px 0;
+    }
+    .ht-quality-remediation-detail.is-open { display: block; }
+    .ht-quality-summary details {
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      background: rgba(148, 163, 184, 0.06);
+    }
+    .ht-quality-summary summary {
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .ht-quality-summary summary .ht-quality-num {
+      display: inline-block;
+      width: 1.6em;
+      color: #2F5BFF;
+    }
+    .ht-quality-summary .ht-quality-remediation {
+      margin: 6px 0 0 1.6em;
+      font-style: italic;
+      color: rgba(0, 0, 0, 0.65);
+    }
+    html[data-theme="dark"] .ht-quality-summary .ht-quality-remediation {
+      color: rgba(232, 234, 240, 0.7);
+    }
+    .ht-quality-status-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.85em;
+      font-weight: 600;
+    }
+    .ht-quality-status-pill[data-status="GREEN"] { background: rgba(34, 197, 94, 0.25); color: #15803d; }
+    .ht-quality-status-pill[data-status="WAIVER"] { background: rgba(234, 179, 8, 0.25); color: #b45309; }
+    .ht-quality-status-pill[data-status="FAIL"] { background: rgba(239, 68, 68, 0.25); color: #b91c1c; }
+    .ht-quality-error {
+      padding: 16px;
+      border-radius: 6px;
+      background: rgba(239, 68, 68, 0.12);
+      color: #b91c1c;
+      margin: 16px 0;
+    }
+    .ht-quality-error button {
+      margin-left: 12px;
+    }
+    .ht-quality-meta-line {
+      font-size: 0.9em;
+      color: rgba(0, 0, 0, 0.6);
+      margin: 0 0 16px 0;
+    }
+    html[data-theme="dark"] .ht-quality-meta-line { color: rgba(232, 234, 240, 0.65); }
+  </style>
+</head>
+<body>
+  <a class="shell-skip" href="#main">Skip to main content</a>
+  <header class="site-header" role="banner" aria-label="Handy Tools">
+  <div class="container">
+    <a class="shell-brand" href="#top">
+      <span class="shell-brand-mark">H</span>
+      <span>Handy Tools</span>
+    </a>
+    <nav class="shell-header-nav" aria-label="Primary">
+      <button class="shell-search-trigger" type="button" aria-label="Search tools">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span>Search</span>
+      </button>
+      <button class="theme-toggle" type="button" aria-label="Toggle theme">
+        <svg class="moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l-1.41-1.41"/></svg>
+      </button>
+      <button class="shell-locale" type="button" aria-label="Change language" data-locale="en" disabled>EN</button>
+      <button class="shell-settings" type="button" aria-label="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+
+  <noscript>
+    <section class="ht-quality-error" role="alert">
+      <strong>JavaScript is disabled.</strong> The quality scorecard renders client-side from <code>tools.json</code>.
+      See <a href="docs/quality-rubric.md">docs/quality-rubric.md</a> for the rubric and
+      <a href="docs/quality-audit.md">docs/quality-audit.md</a> for the latest audit snapshot.
+    </section>
+  </noscript>
+
+  <main id="main" class="shell-main" aria-label="Quality scorecard" tabindex="-1">
+    <a id="top"></a>
+    <section class="hero">
+      <h1>Quality scorecard</h1>
+      <p>Every tool, every rubric criterion, one table. Generated from <code>tools.json</code> on every page load.</p>
+      <p class="ht-quality-meta-line" id="ht-quality-meta">Loading…</p>
+    </section>
+
+    <section class="ht-quality-summary" aria-label="Rubric summary">
+      <h2>Rubric summary</h2>
+      <p>Click a criterion for the one-line fix-it hint. Click a column header in the table below to jump back to it.</p>
+      <div id="ht-quality-rubric-list" data-mounted="false"></div>
+    </section>
+
+    <section aria-label="Tool inventory">
+      <h2>Tool inventory</h2>
+      <p id="ht-quality-table-intro">One row per tool. Hover or focus any colored cell for the criterion name; click to expand the one-line remediation copy.</p>
+      <div id="ht-quality-table-error" hidden></div>
+      <table id="ht-quality-table" class="ht-quality-table">
+        <caption class="ht-quality-caption">Tool quality scorecard</caption>
+        <thead>
+          <tr id="ht-quality-thead-row">
+            <th scope="col" id="ht-quality-col-tool">Tool</th>
+            <th scope="col" id="ht-quality-col-slug">Slug</th>
+            <th scope="col" id="ht-quality-col-score">Score</th>
+            <th scope="col" id="ht-quality-col-audit">Last audit</th>
+            <th scope="col" id="ht-quality-col-bar">Bar</th>
+            <!-- 10 criterion columns are appended by assets/js/quality.js; the
+                 initial <th> count is exactly 5 to avoid encoding bogus
+                 criterion names. JS appends to this row only. -->
+          </tr>
+        </thead>
+        <tbody id="ht-quality-tbody">
+          <!-- rows are rendered by assets/js/quality.js -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer class="site-footer" role="contentinfo" aria-label="Site information">
+  <div class="container">
+    <nav class="shell-footer-nav" aria-label="Footer">
+      <a href="/privacy">Privacy</a>
+      <a href="/quality">Quality</a>
+      <span aria-disabled="true">View source</span>
+      <a href="https://github.com/sanjitdev/useful-tools" rel="noopener noreferrer">GitHub</a>
+    </nav>
+    <small class="shell-footer-copy">&copy; <span id="ht-footer-year">2026</span> Handy Tools. Built with vanilla JS.</small>
+  </div>
+</footer>
+
+  <!-- Canonical source for the Settings modal overlay (Story 1.8).
+     Mounted as a static include in every page by `scripts/shell-template.py`
+     (mirrors the palette.html convention). The drift check
+     (`scripts/shell-drift-check.py`) extracts the region between the marker
+     comments and byte-matches every page.
+
+     ARIA pattern: WAI-ARIA 1.2 modal dialog. role="dialog", aria-modal="true",
+     aria-labelledby points at the heading id. Hidden + aria-hidden="true" in
+     the static state — `assets/js/shell.js` toggles [hidden] / aria-hidden
+     when openSettings() / closeSettings() run.
+
+     Settings fields:
+       1. Theme          (LIVE — Story 1.8 wires; mirror of header toggle)
+       2. Language       (LIVE — plain-string persistence; Story 7.7 wires translations)
+       3. Reduced motion (LIVE — sets <html data-reduced-motion>)
+       4. Default units  (DISABLED placeholder — Story 1.10+)
+       5. Default currency (DISABLED placeholder — Story 1.10+)
+       6. Font scale     (DISABLED placeholder — Story 1.10+)
+       7. Clear all local data (LIVE — only consumer of SETTINGS_KEYS)
+
+     Per AD-4 the settings UI never renders inside a tool page; the cog is
+     hidden in ?embed=1 mode (AD-7). The modal opens via openSettings() from
+     the header cog click handler at assets/js/shell.js. -->
+<div id="shell-settings-modal" class="shell-settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" aria-hidden="true" hidden>
+  <div class="shell-settings-modal__backdrop" data-settings-dismiss></div>
+  <div class="shell-settings-modal__panel" tabindex="-1">
+    <header class="shell-settings-modal__header">
+      <h2 id="settings-modal-title" class="shell-settings-modal__title">Settings</h2>
+      <button type="button" class="shell-settings-modal__close" aria-label="Close settings" data-settings-dismiss>×</button>
+    </header>
+
+    <form class="shell-settings-modal__body" id="shell-settings-form" onsubmit="return false;">
+
+      <!-- 1. Theme (LIVE) -->
+      <fieldset class="shell-settings-field" data-setting-key="ht.theme">
+        <legend class="shell-settings-label">Theme</legend>
+        <div class="shell-settings-control">
+          <label class="shell-settings-radio"><input type="radio" name="ht.theme" value="auto" checked> Auto (follow system)</label>
+          <label class="shell-settings-radio"><input type="radio" name="ht.theme" value="light"> Light</label>
+          <label class="shell-settings-radio"><input type="radio" name="ht.theme" value="dark"> Dark</label>
+        </div>
+      </fieldset>
+
+      <!-- 2. Language (LIVE read+write) -->
+      <div class="shell-settings-field" data-setting-key="ht.locale">
+        <label class="shell-settings-label" for="ht-locale">Language</label>
+        <div class="shell-settings-control">
+          <select id="ht-locale" name="ht.locale" class="shell-settings-select">
+            <option value="en">English</option>
+            <option value="bn">বাংলা (Bengali)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 3. Reduced motion (LIVE) -->
+      <div class="shell-settings-field" data-setting-key="ht.reducedMotion">
+        <label class="shell-settings-label" for="ht-reducedMotion">Reduce motion</label>
+        <div class="shell-settings-control">
+          <label class="shell-settings-checkbox"><input id="ht-reducedMotion" type="checkbox" name="ht.reducedMotion" value="1"> Disable animations and transitions</label>
+        </div>
+      </div>
+
+      <!-- 4. Default units (DISABLED placeholder) -->
+      <div class="shell-settings-field">
+        <label class="shell-settings-label">Default units</label>
+        <div class="shell-settings-control">
+          <select disabled aria-describedby="ht-units-hint"><option>Metric</option><option>Imperial</option></select>
+          <small id="ht-units-hint" class="shell-settings-hint">Coming soon</small>
+        </div>
+      </div>
+
+      <!-- 5. Default currency (DISABLED placeholder) -->
+      <div class="shell-settings-field">
+        <label class="shell-settings-label">Default currency</label>
+        <div class="shell-settings-control">
+          <input type="text" value="USD" disabled aria-describedby="ht-currency-hint">
+          <small id="ht-currency-hint" class="shell-settings-hint">Coming soon</small>
+        </div>
+      </div>
+
+      <!-- 6. Font scale (DISABLED placeholder) -->
+      <div class="shell-settings-field">
+        <label class="shell-settings-label" for="ht-fontScale">Font scale</label>
+        <div class="shell-settings-control">
+          <input id="ht-fontScale" type="range" min="80" max="120" step="5" value="100" disabled aria-describedby="ht-fontScale-hint">
+          <output aria-hidden="true">100%</output>
+          <small id="ht-fontScale-hint" class="shell-settings-hint">Coming soon</small>
+        </div>
+      </div>
+
+      <!-- 7. Clear all local data (LIVE — only consumer of SETTINGS_KEYS) -->
+      <div class="shell-settings-field shell-settings-field--danger">
+        <div class="shell-settings-control">
+          <button type="button" id="shell-settings-clear" class="shell-settings-modal__danger">Clear all local data…</button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+  <!-- Canonical source for the command palette overlay (Story 1.7).
+     Mounted as a static include in every page by `scripts/shell-template.py`
+     (mirrors the chrome.html header/footer convention). The drift check
+     (`scripts/shell-drift-check.py`) extracts the region between the marker
+     comments and byte-matches every page.
+
+     ARIA pattern: WAI-ARIA 1.1 combobox + listbox (UX-DR-19). The wrapper is
+     role="combobox" with aria-haspopup="listbox" + aria-owns pointing to the
+     listbox id. The input is role="searchbox" with aria-controls pointing to
+     the same listbox. Hidden + aria-hidden="true" in the static state —
+     `assets/js/shell.js` toggles aria-expanded, [hidden], and aria-hidden
+     when openPalette() / closePalette() run.
+
+     The footer slot is empty in this story; Story 3.1 wires keyboard hints
+     (↑↓ navigate, Enter select, Esc close). -->
+<div class="shell-palette" id="palette" role="combobox" aria-haspopup="listbox" aria-owns="palette-listbox" aria-expanded="false" aria-label="Command palette" hidden>
+  <div class="shell-palette-panel">
+    <input class="shell-palette-input" id="palette-input" type="search" role="searchbox" aria-controls="palette-listbox" aria-activedescendant="" aria-autocomplete="list" placeholder="Search tools…" autocomplete="off" spellcheck="false" />
+    <ul class="shell-palette-list" id="palette-listbox" role="listbox" aria-label="Tools">
+      <li class="shell-palette-empty" role="presentation">No recent tools yet</li>
+    </ul>
+    <div class="shell-palette-footer" aria-hidden="true"></div>
+  </div>
+</div>
+
+
+
+
+  <script src="assets/js/site-config.js"></script>
+  <script src="assets/js/storage-registry.js"></script>
+  <script src="assets/js/utils.js"></script>
+  <script src="assets/js/api-contract.js"></script>
+  <script src="assets/js/url.js"></script>
+  <script src="assets/js/history.js"></script>
+  <script src="assets/js/sample-data.js"></script>
+  <script src="assets/js/share.js"></script>
+  <script src="assets/js/a11y.js"></script>
+  <script src="assets/js/shell.js" defer></script>
+  <script src="assets/js/search.js" defer></script>
+
+  <!-- ht:storage-registry-manifest-start -->
+<!-- Hand-maintained mirror of the register() calls in
+     assets/js/storage-registry.js. The shell-template splices this block
+     into index.html on every regeneration; the drift check byte-matches
+     it on every page. Keep the entry list in sync with the JS file —
+     the pre-commit hook blocks commits that change storage-registry.js
+     without updating this manifest. Edit both at once. -->
+<script type="application/json" id="ht-storage-registry-manifest">
+{"entries":[{"key":"handy-tools.bd-tax-calculator.lang","lifetime":"persistent","owner":"bd-tax-calculator.js","purpose":"Selected language for the Bangladesh Tax Calculator","schema":"string"},{"key":"handy-tools.bd-tax-calculator.rules","lifetime":"persistent","owner":"bd-tax-calculator.js","purpose":"Selected ruleset id for the Bangladesh Tax Calculator","schema":"string"},{"key":"handy-tools.bd-tax-calculator.state","lifetime":"persistent","owner":"bd-tax-calculator.js","purpose":"Persisted tool state for the Bangladesh Tax Calculator","schema":"object"},{"key":"handy-tools.countdown-to-date.state","lifetime":"persistent","owner":"countdown-to-date.js","purpose":"Persisted tool state for the Countdown to Date","schema":"object"},{"key":"handy-tools.dashboard","lifetime":"persistent","owner":"shell.js","purpose":"Per-pack dashboard layout (Epic 6)","schema":"object"},{"key":"handy-tools.decision-wheel.state","lifetime":"persistent","owner":"decision-wheel.js","purpose":"Persisted tool state for the Decision Wheel","schema":"object"},{"key":"handy-tools.eisenhower-matrix.state","lifetime":"persistent","owner":"eisenhower-matrix.js","purpose":"Persisted tool state for the Eisenhower Matrix","schema":"object"},{"key":"handy-tools.favorites","lifetime":"persistent","owner":"shell.js","purpose":"Favorite tool slugs (Epic 6 pack composition)","schema":"array<string>"},{"key":"handy-tools.grade-calculator.state","lifetime":"persistent","owner":"grade-calculator.js","purpose":"Persisted tool state for the Grade Calculator","schema":"object"},{"key":"handy-tools.gpa-calculator.state","lifetime":"persistent","owner":"gpa-calculator.js","purpose":"Persisted tool state for the GPA Calculator","schema":"object"},{"key":"handy-tools.habit-tracker.state","lifetime":"persistent","owner":"habit-tracker.js","purpose":"Persisted tool state for the Habit Tracker","schema":"object"},{"key":"handy-tools.hints.seen","lifetime":"persistent","owner":"shell.js","purpose":"Hint ids the user has dismissed (UX EXPERIENCE.md:662)","schema":"array<string>"},{"key":"handy-tools.inflation-calculator.inputs","lifetime":"persistent","owner":"inflation-calculator.js","purpose":"Persisted input history for the Inflation Calculator","schema":"object"},{"key":"handy-tools.lifespan-simulator.plan","lifetime":"persistent","owner":"lifespan-simulator.js","purpose":"Plan Your Changes targets (Story 1.16; WHO-cited delta planner)","schema":"object"},{"key":"handy-tools.pins","lifetime":"persistent","owner":"shell.js","purpose":"Pinned tool slugs (home grid ordering)","schema":"array<string>"},{"key":"handy-tools.pomodoro-timer.state","lifetime":"persistent","owner":"pomodoro-timer.js","purpose":"Persisted tool state for the Pomodoro Timer","schema":"object"},{"key":"handy-tools.pros-cons.state","lifetime":"persistent","owner":"pros-cons.js","purpose":"Persisted tool state for the Pros & Cons tool","schema":"object"},{"key":"handy-tools.pwa.dismissals","lifetime":"persistent","owner":"shell.js","purpose":"PWA install prompt dismissal counter (EXPERIENCE.md:83)","schema":"object"},{"key":"handy-tools.recent","lifetime":"persistent","owner":"shell.js","purpose":"Recently-used tool slugs (palette source)","schema":"array<string>"},{"key":"handy-tools.world-clock.state","lifetime":"persistent","owner":"world-clock.js","purpose":"Persisted tool state for the World Clock","schema":"object"},{"key":"ht.fontScale","lifetime":"persistent","owner":"shell.js","purpose":"Font scale percent (\"100\", \"125\", ...) — Story 3.5","schema":"string"},{"key":"ht.locale","lifetime":"persistent","owner":"shell.js","purpose":"UI locale code (BCP-47; e.g. \"en\", \"bn\", \"hi\")","schema":"string"},{"key":"ht.reducedMotion","lifetime":"persistent","owner":"shell.js","purpose":"Reduced-motion preference (\"0\" or \"1\")","schema":"string in {0,1}"},{"key":"ht.theme","lifetime":"persistent","owner":"theme.js","purpose":"Light/dark/auto theme selection (FOUC IIFE reads at boot)","schema":"string in {auto,light,dark}"},{"key":"ht.units","lifetime":"persistent","owner":"shell.js","purpose":"Preferred unit system (\"metric\" or \"imperial\")","schema":"string"},{"key":"ht.currency","lifetime":"persistent","owner":"shell.js","purpose":"Preferred display currency (ISO 4217)","schema":"string"}]}
+</script>
+<!-- ht:storage-registry-manifest-end -->
+
+  <!-- Story 2.11: client-side table render. Must come AFTER shell.js +
+       search.js because it depends on HT.qs / HT.qsa / HT.debounce and
+       must run after the palette + settings overlays are wired (so a11y
+       + the keyboard chord for the scorecard work the same on every
+       page). -->
+  <script src="assets/js/quality.js" defer></script>
+</body>
+</html>

@@ -12,6 +12,25 @@ HT.qsa = (sel, root) => Array.from((root || document).querySelectorAll(sel));
 HT.$ = HT.qs;
 HT.$$ = HT.qsa;
 
+/* HT.fetch — thin wrapper around the native fetch with a non-2xx -> reject
+   contract. Mirrors the surface of HT.qs/HT.qsa so tool scripts (Story 2.11
+   /quality, future tools) can use the HT.* trio consistently instead of
+   reaching for raw fetch + manual ok-checks. Returns parsed JSON by default
+   (the most common use case for static-deployed tools); pass type:'text'
+   to get the body as a string instead. */
+HT.fetch = (url, opts) => {
+  if (typeof fetch !== 'function') {
+    return Promise.reject(new Error('fetch unavailable'));
+  }
+  const type = (opts && opts.type) || 'json';
+  return fetch(url, { cache: 'no-cache' }).then((response) => {
+    if (!response.ok) {
+      throw new Error('HTTP ' + response.status + ' for ' + url);
+    }
+    return type === 'text' ? response.text() : response.json();
+  });
+};
+
 HT.formatNumber = (n, opts) => {
   const min = (opts && typeof opts.minFractionDigits === 'number') ? opts.minFractionDigits : 0;
   const max = (opts && typeof opts.maxFractionDigits === 'number') ? opts.maxFractionDigits : 4;
