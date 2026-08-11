@@ -130,6 +130,42 @@ No `tools.json` change. No `tools/<slug>/*.js` change. No HTML change.
 - [x] T5 — Makefile + CI wiring.
 - [x] T6 — Run regression sweep.
 
+### Review Findings
+
+- [x] [Review][Patch] read-error handling — unreadable files were
+      silently dropped (the script appended a 'read-error' violation
+      but main() filtered on v[2] == 'var'/'concat', so the error
+      never surfaced). Fixed by adding a dedicated read_errors bucket
+      that fails the gate unconditionally.
+- [x] [Review][Patch] vacuous-pass guard — if `assets/js/` exists
+      but contains zero `.js` files, the script would print PASS
+      without scanning anything. Fixed by adding an early exit 2
+      with a clear message.
+- [x] [Review][Patch] migrated-file identification — was using
+      basename match (`path.name in MIGRATED_FILES`), which would
+      incorrectly promote a future tool script at e.g.
+      `assets/js/tools/utils.js` to the strict scan tier. Fixed by
+      switching to full relative-path match via `MIGRATED_PATH_PREFIXES`
+      + `is_migrated()` helper.
+- [x] [Review][Patch] CI path filter coverage — the workflow path
+      filter listed 8 individual `assets/js/*.js` files but not
+      `history.js`, `url.js`, `sample-data.js`, `a11y.js`, etc. — a
+      PR editing only one of those unlisted files would skip the
+      gate. Fixed by replacing the 8 individual entries with a
+      single `assets/js/**` glob (PR + push).
+- [x] [Review][Defer] 14 of 20 HT.* helpers have no behavioral
+      test coverage — verification-gap finding. Out of scope for
+      this ES5 migration story (which preserves byte-equivalent
+      behavior); defer to a follow-up "HT.* behavioral smoke" story.
+- [x] [Review][Defer] theme.js click handler has no runtime
+      smoke — verification-gap finding. Pre-existing gap (theme.js
+      is unchanged in click-handler logic). Defer to a "theme
+      toggle smoke" follow-up story.
+- [x] [Review][Defer] spec body vs YAML `status:` mismatch
+      (initially `in-progress` in frontmatter, `done` in body) —
+      resolved by flipping the YAML to `done` (the workflow manages
+      this field). Now consistent.
+
 ## Dev Agent Record
 
 ### Implementation Plan
