@@ -1206,12 +1206,14 @@
 
 
   /* ============================================
-     Settings Modal Skeleton (Story 1.8)
+     Settings Modal Skeleton (Story 1.8 + Story 3.5)
      ============================================
-     Static include from assets/shell/settings.html. Theme, locale,
-     and reduced-motion are live; units, currency, and font scale remain
-     disabled placeholders for later stories. All ht.* values are plain
-     strings so the head FOUC snippet can read ht.theme before boot. */
+     Static include from assets/shell/settings.html. All seven fields
+     are live: theme, locale, units, currency, fontScale, reducedMotion,
+     and clear-all. All ht.* values are plain strings so the head FOUC
+     snippet can read ht.theme before boot. The fontScale default is
+     '1' (string — Story 3.5 D4) so the slider's <input type="range">
+     and the storage layer agree on the same representation. */
 
   const SETTINGS_KEYS = Object.freeze([
     'ht.theme',
@@ -1228,7 +1230,7 @@
     'ht.reducedMotion': '0',
     'ht.units': 'metric',
     'ht.currency': 'USD',
-    'ht.fontScale': '100',
+    'ht.fontScale': '1',
   });
 
   let settingsState = null;
@@ -1277,29 +1279,95 @@
   }
 
   function populateSettings() {
-    // Theme: only auto/light/dark are valid; a legacy or corrupt value
-    // (e.g. from a future migration) falls back to the default rather
-    // than rendering with no radio checked. Unknown values are not
-    // preserved — the user re-selects on next open.
-    const storedTheme = readSetting('ht.theme', SETTINGS_DEFAULTS['ht.theme']);
-    const validTheme = (storedTheme === 'auto' || storedTheme === 'light' || storedTheme === 'dark')
-      ? storedTheme
-      : SETTINGS_DEFAULTS['ht.theme'];
-    document.querySelectorAll('input[name="ht.theme"]').forEach((radio) => {
-      radio.checked = radio.value === validTheme;
-    });
-
-    const locale = document.querySelector('select[name="ht.locale"]');
-    if (locale) {
-      const storedLocale = readSetting('ht.locale', SETTINGS_DEFAULTS['ht.locale']);
-      locale.value = Array.from(locale.options).some((option) => option.value === storedLocale)
-        ? storedLocale
-        : SETTINGS_DEFAULTS['ht.locale'];
+    // 1. Theme (Story 3.5: single <select> with auto/light/dark).
+    // A legacy or corrupt value (e.g. from a future migration) falls
+    // back to the default rather than rendering with no option selected.
+    const themeSelect = document.querySelector('select[name="ht.theme"]');
+    if (themeSelect) {
+      const storedTheme = readSetting('ht.theme', SETTINGS_DEFAULTS['ht.theme']);
+      const validTheme = (storedTheme === 'auto' || storedTheme === 'light' || storedTheme === 'dark')
+        ? storedTheme
+        : SETTINGS_DEFAULTS['ht.theme'];
+      themeSelect.value = validTheme;
     }
 
+    // 2. Language — dynamic populate from navigator.languages
+    // (clipped to first 2 chars, lowercased, deduplicated, with 'en'
+    // always appended if missing). Stored value wins; otherwise default
+    // to navigator.language.slice(0,2).toLowerCase() or 'en'.
+    const locale = document.querySelector('select[name="ht.locale"]');
+    if (locale) {
+      const navList = (Array.isArray(navigator.languages) && navigator.languages.length > 0)
+        ? navigator.languages
+        : (navigator.language ? [navigator.language] : []);
+      const codes = Array.from(new Set(
+        navList
+          .filter(function (entry) { return typeof entry === 'string' && entry.length > 0; })
+          .map(function (entry) { return entry.slice(0, 2).toLowerCase(); })
+      ));
+      if (codes.indexOf('en') === -1) codes.push('en');
+      // Replace the static <option> children with the dynamic set.
+      while (locale.firstChild) locale.removeChild(locale.firstChild);
+      codes.forEach(function (code) {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = code;
+        locale.appendChild(option);
+      });
+      const storedLocale = readSetting('ht.locale', SETTINGS_DEFAULTS['ht.locale']);
+      locale.value = Array.from(locale.options).some(function (option) { return option.value === storedLocale; })
+        ? storedLocale
+        : (codes.length > 0 ? codes[0] : SETTINGS_DEFAULTS['ht.locale']);
+    }
+
+    // 3. Reduced motion — OS-override (prefers-reduced-motion: reduce).
+    // The user's explicit stored value always wins; the OS preference
+    // only seeds the default when nothing has been persisted yet. This
+    // matches the UX-DR-19 a11y contract: respect the OS unless the user
+    // has already opted in/out explicitly.
     const reducedMotion = document.querySelector('input[name="ht.reducedMotion"]');
     if (reducedMotion) {
-      reducedMotion.checked = readSetting('ht.reducedMotion', SETTINGS_DEFAULTS['ht.reducedMotion']) === '1';
+      let storedRaw;
+      try { storedRaw = localStorage.getItem('ht.reducedMotion'); } catch (_) { storedRaw = null; }
+      let effective;
+      if (storedRaw !== null) {
+        effective = storedRaw === '1';
+      } else {
+        const mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+        effective = Boolean(mq && mq.matches);
+      }
+      reducedMotion.checked = effective;
+    }
+
+    // 4. Default units (Story 3.5 — metric/imperial select).
+    const unitsSelect = document.querySelector('select[name="ht.units"]');
+    if (unitsSelect) {
+      const stored = readSetting('ht.units', SETTINGS_DEFAULTS['ht.units']);
+      unitsSelect.value = Array.from(unitsSelect.options).some(function (option) { return option.value === stored; })
+        ? stored
+        : SETTINGS_DEFAULTS['ht.units'];
+    }
+
+    // 5. Default currency (Story 3.5 — ISO-4217 select).
+    const currencySelect = document.querySelector('select[name="ht.currency"]');
+    if (currencySelect) {
+      const stored = readSetting('ht.currency', SETTINGS_DEFAULTS['ht.currency']);
+      currencySelect.value = Array.from(currencySelect.options).some(function (option) { return option.value === stored; })
+        ? stored
+        : SETTINGS_DEFAULTS['ht.currency'];
+    }
+
+    // 6. Font scale (Story 3.5 — 0.85–1.4 range; default '1').
+    const fontScale = document.querySelector('input[name="ht.fontScale"]');
+    const fontOutput = document.querySelector('#ht-fontScale-output');
+    if (fontScale) {
+      const stored = readSetting('ht.fontScale', SETTINGS_DEFAULTS['ht.fontScale']);
+      const parsed = parseFloat(stored);
+      const safe = Number.isFinite(parsed) ? parsed : parseFloat(SETTINGS_DEFAULTS['ht.fontScale']);
+      fontScale.value = String(safe);
+      if (fontOutput) {
+        fontOutput.textContent = Math.round(safe * 100) + '%';
+      }
     }
   }
 
@@ -1310,20 +1378,49 @@
       return;
     }
 
-    document.querySelectorAll('input[name="ht.theme"]').forEach((radio) => {
-      radio.addEventListener('change', () => {
-        if (radio.checked) setSettingsTheme(radio.value);
-      });
-    });
+    // 1. Theme — Story 3.5: single <select> with auto/light/dark. The
+    // setSettingsTheme() body accepts the same 3 values the radios did.
+    const themeSelect = modal.querySelector('select[name="ht.theme"]');
+    if (themeSelect) {
+      themeSelect.addEventListener('change', () => setSettingsTheme(themeSelect.value));
+    }
 
+    // 2. Language — wire stays; the <select> already had a change listener.
     const locale = modal.querySelector('select[name="ht.locale"]');
     if (locale) {
       locale.addEventListener('change', () => writeSetting('ht.locale', locale.value));
     }
 
+    // 3. Reduced motion — wire stays.
     const reducedMotion = modal.querySelector('input[name="ht.reducedMotion"]');
     if (reducedMotion) {
       reducedMotion.addEventListener('change', () => setSettingsReducedMotion(reducedMotion.checked));
+    }
+
+    // 4. Default units — Story 3.5.
+    const unitsSelect = modal.querySelector('select[name="ht.units"]');
+    if (unitsSelect) {
+      unitsSelect.addEventListener('change', () => writeSetting('ht.units', unitsSelect.value));
+    }
+
+    // 5. Default currency — Story 3.5.
+    const currencySelect = modal.querySelector('select[name="ht.currency"]');
+    if (currencySelect) {
+      currencySelect.addEventListener('change', () => writeSetting('ht.currency', currencySelect.value));
+    }
+
+    // 6. Font scale — Story 3.5. Listens for `input` (NOT `change`) so the
+    // value streams while the user drags. Updates both the storage layer
+    // AND the visible <output> percentage on every step.
+    const fontScale = modal.querySelector('input[name="ht.fontScale"]');
+    const fontOutput = modal.querySelector('#ht-fontScale-output');
+    if (fontScale) {
+      fontScale.addEventListener('input', () => {
+        writeSetting('ht.fontScale', String(fontScale.value));
+        if (fontOutput) {
+          fontOutput.textContent = Math.round(parseFloat(fontScale.value) * 100) + '%';
+        }
+      });
     }
 
     modal.querySelectorAll('[data-settings-dismiss]').forEach((dismiss) => {
@@ -1335,7 +1432,18 @@
 
     // Apply the persisted reduced-motion preference at boot as well as when
     // the modal field changes, so a reload preserves the setting immediately.
-    setSettingsReducedMotion(readSetting('ht.reducedMotion', SETTINGS_DEFAULTS['ht.reducedMotion']) === '1');
+    // Story 3.5: respect an explicit stored value; otherwise default to the
+    // OS preference (`prefers-reduced-motion: reduce`) when it matches.
+    let bootReducedMotionRaw;
+    try { bootReducedMotionRaw = localStorage.getItem('ht.reducedMotion'); } catch (_) { bootReducedMotionRaw = null; }
+    let bootReducedMotion;
+    if (bootReducedMotionRaw !== null) {
+      bootReducedMotion = bootReducedMotionRaw === '1';
+    } else {
+      const mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+      bootReducedMotion = Boolean(mq && mq.matches);
+    }
+    setSettingsReducedMotion(bootReducedMotion);
   }
 
   function openSettings() {

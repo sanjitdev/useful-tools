@@ -151,9 +151,9 @@
        1. Theme          (LIVE — Story 1.8 wires; mirror of header toggle)
        2. Language       (LIVE — plain-string persistence; Story 7.7 wires translations)
        3. Reduced motion (LIVE — sets <html data-reduced-motion>)
-       4. Default units  (DISABLED placeholder — Story 1.10+)
-       5. Default currency (DISABLED placeholder — Story 1.10+)
-       6. Font scale     (DISABLED placeholder — Story 1.10+)
+       4. Default units  (LIVE — Story 3.5 wires; metric/imperial select)
+       5. Default currency (LIVE — Story 3.5 wires; ISO-4217 select)
+       6. Font scale     (LIVE — Story 3.5 wires; 0.85–1.4 range, 0.05 step)
        7. Clear all local data (LIVE — only consumer of SETTINGS_KEYS)
 
      Per AD-4 the settings UI never renders inside a tool page; the cog is
@@ -169,23 +169,24 @@
 
     <form class="shell-settings-modal__body" id="shell-settings-form" onsubmit="return false;">
 
-      <!-- 1. Theme (LIVE) -->
-      <fieldset class="shell-settings-field" data-setting-key="ht.theme">
-        <legend class="shell-settings-label">Theme</legend>
+      <!-- 1. Theme (LIVE — single <select> per Story 3.5 AC-1) -->
+      <div class="shell-settings-field" data-setting-key="ht.theme">
+        <label class="shell-settings-label" for="ht-theme">Theme</label>
         <div class="shell-settings-control">
-          <label class="shell-settings-radio"><input type="radio" name="ht.theme" value="auto" checked> Auto (follow system)</label>
-          <label class="shell-settings-radio"><input type="radio" name="ht.theme" value="light"> Light</label>
-          <label class="shell-settings-radio"><input type="radio" name="ht.theme" value="dark"> Dark</label>
+          <select id="ht-theme" name="ht.theme" class="shell-settings-select">
+            <option value="auto">Auto (follow system)</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
         </div>
-      </fieldset>
+      </div>
 
-      <!-- 2. Language (LIVE read+write) -->
+      <!-- 2. Language (LIVE read+write — JS populates from navigator.languages) -->
       <div class="shell-settings-field" data-setting-key="ht.locale">
         <label class="shell-settings-label" for="ht-locale">Language</label>
         <div class="shell-settings-control">
           <select id="ht-locale" name="ht.locale" class="shell-settings-select">
             <option value="en">English</option>
-            <option value="bn">বাংলা (Bengali)</option>
           </select>
         </div>
       </div>
@@ -198,31 +199,40 @@
         </div>
       </div>
 
-      <!-- 4. Default units (DISABLED placeholder) -->
-      <div class="shell-settings-field">
-        <label class="shell-settings-label">Default units</label>
+      <!-- 4. Default units (LIVE — Story 3.5) -->
+      <div class="shell-settings-field" data-setting-key="ht.units">
+        <label class="shell-settings-label" for="ht-units">Default units</label>
         <div class="shell-settings-control">
-          <select disabled aria-describedby="ht-units-hint"><option>Metric</option><option>Imperial</option></select>
-          <small id="ht-units-hint" class="shell-settings-hint">Coming soon</small>
+          <select id="ht-units" name="ht.units" class="shell-settings-select">
+            <option value="metric">Metric</option>
+            <option value="imperial">Imperial</option>
+          </select>
         </div>
       </div>
 
-      <!-- 5. Default currency (DISABLED placeholder) -->
-      <div class="shell-settings-field">
-        <label class="shell-settings-label">Default currency</label>
+      <!-- 5. Default currency (LIVE — Story 3.5, ISO-4217 select) -->
+      <div class="shell-settings-field" data-setting-key="ht.currency">
+        <label class="shell-settings-label" for="ht-currency">Default currency</label>
         <div class="shell-settings-control">
-          <input type="text" value="USD" disabled aria-describedby="ht-currency-hint">
-          <small id="ht-currency-hint" class="shell-settings-hint">Coming soon</small>
+          <select id="ht-currency" name="ht.currency" class="shell-settings-select">
+            <option value="USD">USD — US Dollar</option>
+            <option value="EUR">EUR — Euro</option>
+            <option value="GBP">GBP — British Pound</option>
+            <option value="JPY">JPY — Japanese Yen</option>
+            <option value="CAD">CAD — Canadian Dollar</option>
+            <option value="AUD">AUD — Australian Dollar</option>
+            <option value="INR">INR — Indian Rupee</option>
+            <option value="CNY">CNY — Chinese Yuan</option>
+          </select>
         </div>
       </div>
 
-      <!-- 6. Font scale (DISABLED placeholder) -->
-      <div class="shell-settings-field">
+      <!-- 6. Font scale (LIVE — Story 3.5, 0.85–1.4 step 0.05) -->
+      <div class="shell-settings-field" data-setting-key="ht.fontScale">
         <label class="shell-settings-label" for="ht-fontScale">Font scale</label>
         <div class="shell-settings-control">
-          <input id="ht-fontScale" type="range" min="80" max="120" step="5" value="100" disabled aria-describedby="ht-fontScale-hint">
-          <output aria-hidden="true">100%</output>
-          <small id="ht-fontScale-hint" class="shell-settings-hint">Coming soon</small>
+          <input id="ht-fontScale" type="range" name="ht.fontScale" min="0.85" max="1.4" step="0.05" value="1">
+          <output id="ht-fontScale-output" aria-hidden="true">100%</output>
         </div>
       </div>
 

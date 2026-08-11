@@ -939,7 +939,7 @@
 .shell-settings-modal__panel {
   position: relative;
   width: 100%;
-  max-width: 480px;
+  max-width: var(--modal-width, 560px);
   max-height: 80vh;
   overflow-y: auto;
   background-color: var(--color-surface, #ffffff);
@@ -948,6 +948,14 @@
   box-shadow: 0 12px 48px rgba(15, 17, 23, 0.25);
   display: flex;
   flex-direction: column;
+}
+
+/* Story 3.5 AC-4: responsive — full-width minus 16px gutter below 600px. */
+@media (max-width: 600px) {
+  .shell-settings-modal__panel {
+    width: calc(100vw - 16px);
+    max-width: none;
+  }
 }
 
 :root[data-theme="dark"] .shell-settings-modal {

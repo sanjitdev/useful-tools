@@ -224,6 +224,13 @@ window.HT.__apiContract = Object.freeze({
       notes: 'Story 2.1 / AD-5. Binds the slug urlState to the form inputs under rootEl: writes the initial decoded state into the inputs, attaches input listeners that debounce and call history.replaceState, and subscribes to cross-tool state via HT.urlState.subscribe. Returns {teardown} which removes the listeners and the subscription. The Shell boot() calls this for tool pages after the inline tools.json splice is loaded.',
     }),
     Object.freeze({
+      name: 'HT.settings',
+      signature: 'Object.freeze({keys: readonly string[], defaults: Readonly<Record<string,string>>, clearAll: () => void, open: () => void, close: () => void})',
+      stability: 'stable',
+      module: 'assets/js/shell.js',
+      notes: 'Story 1.8 (skeleton) + Story 3.5 (full control surface). The signature itself is unchanged since 1.8 (AD-14 freeze). Story 3.5 expanded the FIELD SHAPE inside assets/shell/settings.html from {theme, locale, reducedMotion, [3 DISABLED placeholders], clearAll} to seven live fields {theme <select auto|light|dark>, locale <select from navigator.languages>, reducedMotion <checkbox with OS-prefers-reduced-motion override>, units <select metric|imperial>, currency <select 8 ISO-4217>, fontScale <range 0.85–1.4 step 0.05>, clearAll <button>}. The SETTINGS_KEYS + SETTINGS_DEFAULTS frozen tables grew to cover the 3 newly-live fields. No new HT.* public methods were added — this entry documents the surface, not the field set. Version stays at 1.11.0 (no breaking change; field shape is internal UI).',
+    }),
+    Object.freeze({
       name: 'HT.urlState.bindDomTarget',
       signature: '(slug: string, target: HTMLElement) => {teardown: () => void}',
       stability: 'stable',
