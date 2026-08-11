@@ -977,7 +977,7 @@ So that I can read state, set inputs, and subscribe to result updates.
 **And** unknown types are no-ops and logged via `console.warn('[embed] unknown message type:', type)` in development mode only (detected via `location.hostname === 'localhost' || location.hostname === '127.0.0.1'`)
 **And** the embed validates the inbound message origin against an allowlist stored at `window.__HT_EMBED_ORIGINS__` (settable by the host via a config object passed in the URL: `?embed=<slug>&origins=https://example.com,https://other.com`); default for v1 is `['*']` (no origin check)
 **And** payload size is capped at 64 KiB (`JSON.stringify(data).length > 65536`); over-cap messages are rejected with a `console.warn` and a `postMessage` reply `{ type: 'error', id, payload: { code: 'PAYLOAD_TOO_LARGE' } }`
-**And** every envelope MUST contain `v: 1`; envelopes with `v !== 1` are rejected with `console.warn('[embed] unsupported protocol version:', v)`
+**And** every envelope MUST contain `v: 1` AND `id` (a non-empty string); envelopes missing either field are rejected with `console.warn('[embed] invalid envelope:', envelope)` and no response is sent. Envelopes with `v !== 1` are rejected with `console.warn('[embed] unsupported protocol version:', v)`. Response envelopes ALWAYS include the same `id` as the originating request, preserving the host's correlation map
 
 ### Story 4.4: postMessage `setInput` and Result Subscription
 
@@ -1173,7 +1173,7 @@ So that I can confirm zero by inspection.
 **And** the authoritative source is `performance.getEntriesByType('resource')` populated by a `PerformanceObserver` registered with `entryTypes: ['resource']`; the observer fires on every resource entry and appends a row in real time
 **And** only same-origin resources (`new URL(entry.name).origin === location.origin`) display all fields; cross-origin resources without `Timing-Allow-Origin: *` show `Status: (cross-origin, hidden)` and `URL: <origin only>` per AD-11
 **And** the table is empty by default (zero requests) when the page loads
-**And** if any request occurs, a red banner (`<div class="wire-alert" role="alert">`) appears reading `1 request observed this session — investigate`; the count updates live: `2 requests observed this session — investigate`, etc.
+**And** if any request occurs, a red banner (`<div class="wire-alert" role="alert">`) appears reading `1 request observed this session — investigate`; the count updates live as subsequent requests occur (`2 requests observed this session — investigate`, `3 requests observed this session — investigate`, ...) and the banner stays visible for the remainder of the session unless the user clicks the "Clear log" button
 **And** the user can clear the log via a "Clear log" button (`<button data-action="clear-wire-log">`) which calls `performance.clearResourceTimings()` and empties the table
 **And** as a secondary supplementary channel, `fetch`/`XMLHttpRequest`/`sendBeacon` interception (`window.fetch = ...`, `XMLHttpRequest.prototype.send = ...`, `navigator.sendBeacon = ...`) is used ONLY to capture POST bodies and request initiator data that `PerformanceObserver` cannot see; the secondary channel is never the source of truth and its entries are flagged with `[POST body captured]` in the row
 
@@ -1430,7 +1430,7 @@ So that I can pace my study.
 **Given** the user opens the Exam countdown (`tools/exam-countdown/index.html`)
 **When** they pick a future date and time via `<input type="datetime-local" name="target">`
 **Then** the tool shows a live countdown rendered as four `<span class="countdown-segment">` elements: `Xd`, `Xh`, `Xm`, `Xs`; updated every 1000ms via `setInterval`
-**And** the countdown target persists across sessions via `localStorage['handy-tools.exam-countdown.target'] = <ISO 8601 string>`; the field is restored on page load
+**And** the countdown target persists across sessions via `localStorage['handy-tools.exam-countdown.target'] = <ISO 8601 string>`; the field is restored on page load (read happens once at module init, BEFORE first paint of the countdown); if the stored value is unparseable, the field is cleared via `localStorage.removeItem(...)` and the tool renders the empty state `<p class="countdown-empty">Pick a date and time to start the countdown</p>`
 **And** the URL state encodes the target date/time (`?target=<ISO 8601>`)
 **And** if the target is in the past (`targetDate < new Date()`), the tool shows `<p class="countdown-past">Exam date has passed — pick a new date</p>` and the countdown renders as zeros (no negative numbers)
 
@@ -1444,9 +1444,9 @@ So that I can cook for a different group size or use a different unit system.
 
 **Given** the user opens the Recipe scaler (`tools/recipe-scaler/index.html`)
 **When** they paste a recipe into `<textarea name="recipe">` (free-text, one ingredient per line in the format `<quantity> <unit> <ingredient>`, e.g., `1/2 cup flour`) and set a multiplier `<input type="number" name="multiplier" min="0.1" max="100" step="0.1" value="2">`
-**Then** the tool parses each line via the regex `/^([0-9]+(?:\s+[0-9]+\/[0-9]+)?|[0-9]*\.[0-9]+|[0-9]+\/[0-9]+)\s*(\w+)?\s+(.+)$/`; this matches `1/2`, `1 1/2`, `0.5`, `2` followed by optional unit and required ingredient; fractions are parsed via a hand-rolled `parseFraction(s)` that returns a decimal number
+**Then** the tool parses each line via the regex `/^([0-9]+(?:\s+[0-9]+\/[0-9]+)?|[0-9]*\.[0-9]+|[0-9]+\/[0-9]+)\s+(\w+)?\s+(.+)$/` (note: the unit group requires at least one whitespace before it, so `2eggs` is parsed as `2` (quantity) + `eggs` (ingredient), not `2` + `eggs` as a unit); this matches `1/2`, `1 1/2`, `0.5`, `2` followed by an optional unit token (from the Story 6.12 unit allowlist) and a required ingredient string; fractions are parsed via a hand-rolled `parseFraction(s)` that returns a decimal number; lines that fail to match the regex (no quantity found) are rendered as `<li class="recipe-line-unparsed"><code>{line}</code> (could not parse — please check format)</li>` and skipped from the scaling calculation
 **And** scales each quantity by the multiplier using `scaledQty = originalQty * multiplier`
-**And** the unit toggle (`<select name="system">` with options `metric | imperial`) converts: cups <-> ml (1 cup = 236.588 ml), oz <-> g (1 oz = 28.3495 g), °F <-> °C (`C = (F - 32) * 5/9`); conversion factors live in `assets/data/unit-conversion.json`
+**And** the unit toggle (`<select name="system">` with options `metric | imperial`) converts the allowlisted units below; conversion factors live in `assets/data/unit-conversion.json` and each factor is exact to 6 decimals. Volume: `cup <-> ml` (1 cup = 236.588 ml), `tbsp <-> ml` (1 tbsp = 14.787 ml), `tsp <-> ml` (1 tsp = 4.929 ml), `floz <-> ml` (1 fl oz = 29.574 ml), `liter <-> ml` (1 L = 1000 ml), `pint <-> ml` (1 pint = 473.176 ml), `quart <-> ml` (1 qt = 946.353 ml), `gallon <-> ml` (1 gal = 3785.41 ml). Mass: `oz <-> g` (1 oz = 28.3495 g), `lb <-> g` (1 lb = 453.592 g), `kg <-> g` (1 kg = 1000 g). Temperature: `°F <-> °C` (`C = (F - 32) * 5/9`). Unknown units (any token not in the allowlist) are passed through verbatim with a warning chip `<span class="unit-warning" title="Unknown unit: <unit>">` appended next to the scaled line
 **And** the URL state encodes the recipe (base64), multiplier, and unit system (`?recipe=<base64>&multiplier=2&system=metric`)
 **And** fractions round to a readable format: `formatFraction(n)` returns `1/2` for 0.5, `1 1/4` for 1.25, `2` for 2.0 (uses continued-fraction approximation with a denominator cap of 16)
 
@@ -1509,10 +1509,10 @@ So that I can see where I stand.
 **Acceptance Criteria:**
 
 **Given** the user opens the Budget planner (`tools/budget-planner/index.html`)
-**When** they enter monthly income (`<input type="number" name="income" min="0" step="0.01">`) and categorized expenses (one row per category: `<input name="cat-housing">`, `<input name="cat-food">`, etc.)
-**Then** the tool computes `totalExpenses = sum(all category expenses)`, `savings = income - totalExpenses`, `savingsRate = income > 0 ? (savings / income * 100).toFixed(2) : 0`, and `discretionary = savings - (fixedExpenses like housing)` where fixedExpenses is `housing + transport`
+**When** they enter monthly income (`<input type="number" name="income" min="0" step="0.01">`) and one expense input per default category: `<input name="cat-housing" type="number" min="0" step="0.01" placeholder="0.00">`, `<input name="cat-food" ...>`, `<input name="cat-transport" ...>`, `<input name="cat-entertainment" ...>`, `<input name="cat-other" ...>`
+**Then** the tool computes `totalExpenses = cat-housing + cat-food + cat-transport + cat-entertainment + cat-other + sum(addCategory rows)`, `savings = income - totalExpenses`, `savingsRate = income > 0 ? Number((savings / income * 100).toFixed(2)) : 0`, and `discretionary = savings - (cat-housing + cat-transport)` (housing and transport are classified as `fixed` expenses; food, entertainment, and other are `discretionary`)
 **And** the categories are configurable via an "Add category" button (`<button data-action="add-category">`) which appends a new row; default categories are `Housing`, `Food`, `Transport`, `Entertainment`, `Other`
-**And** the URL state encodes all values as base64 JSON (`?budget=<base64>`); shape: `{ income, categories: [{name, amount}, ...] }`
+**And** the URL state encodes all values as base64-encoded JSON (`?budget=<base64>`); the exact JSON shape is `{ income: number, categories: [{ id: string, name: string, amount: number }, ...] }` where `id` is a UUIDv4 generated when the category is created (preserved across edits so URL state stays stable when categories are reordered)
 **And** the result table (`<table class="budget-results">`) is print-friendly: it has `class="no-print"` removed and uses Story 3.10 print stylesheet (chrome hidden, table borders forced to black, monospace font for numbers)
 
 ### Story 6.17: Savings Goal (target, months, monthly contribution)
@@ -1559,7 +1559,7 @@ So that I can find what I need without browsing the full grid.
 **Given** the user visits `/packs/travel`
 **When** the page renders
 **Then** it shows the Travel pack description `Split bills, convert currencies, scale recipes abroad, handle time zones` and a grid of travel-relevant tools rendered by filtering `tools.json` for `pack === 'travel' && ready === true`
-**And** the pack has at least 3 promoted tools (existing: `currency-converter`, `tip-calculator`, `unit-converter`) plus at least 2 new tools from Stories 6.10-6.18 (specifically: `recipe-scaler` and at least one of `time-zone-converter` if promoted); the CI test `scripts/check-pack-composition.py` asserts `tools.filter(t => t.pack === 'travel').length >= 5`
+**And** the pack has at least 3 promoted tools (existing: `currency-converter`, `tip-calculator`, `unit-converter`) plus at least 2 new tools from Stories 6.10-6.18 (specifically: `recipe-scaler` (Story 6.12) and `exam-countdown` (Story 6.11) — these are the two new travel-relevant tools whose description involves travel scenarios; `time-zone-converter` is NOT a Story 6.10-6.18 deliverable and is not required for this pack); the CI test `scripts/check-pack-composition.py` asserts exactly that the Travel pack contains the 5 specific tools listed above (`currency-converter`, `tip-calculator`, `unit-converter`, `recipe-scaler`, `exam-countdown`) and fails if any is missing or if any tool not in this list has `pack === 'travel'`
 
 ### Story 6.20: Finance, Study, Developer, Household Pack Composition
 
@@ -1642,7 +1642,7 @@ So that the navigation and tool surfaces feel natural.
 **Given** the locale is Arabic (`ar`) or any other RTL locale (Hebrew `he`, Urdu `ur`, Persian `fa` — all detected by `Intl.Locale(locale).getTextInfo?.() === 'rtl'` OR a hardcoded allowlist `[ar, he, ur, fa]`)
 **When** any page renders
 **Then** the `<html>` element receives `dir="rtl"` and `lang="<locale>"` via the inline `<head>` script (no FOUC)
-**And** all padding/margin/border usages in CSS use logical properties: `padding-inline-start` (replaces `padding-left` in LTR contexts), `padding-inline-end`, `margin-block-start`, `margin-block-end`, `border-inline-start`, `inset-inline-start`; physical properties (`padding-left`, `margin-right`, etc.) are forbidden in hand-written CSS
+**And** all padding/margin/border usages in CSS use logical properties only: the complete allowed list is `padding-inline-start`, `padding-inline-end`, `padding-block-start`, `padding-block-end`, `padding-inline`, `padding-block`, `margin-inline-start`, `margin-inline-end`, `margin-block-start`, `margin-block-end`, `margin-inline`, `margin-block`, `border-inline-start`, `border-inline-end`, `border-block-start`, `border-block-end`, `border-inline`, `border-block`, `inset-inline-start`, `inset-inline-end`, `inset-block-start`, `inset-block-end`, `inset-inline`, `inset-block`; physical properties (`padding-left`, `padding-right`, `padding-top`, `padding-bottom`, `margin-left`, `margin-right`, `margin-top`, `margin-bottom`, `border-left`, `border-right`, `border-top`, `border-bottom`, `left`, `right`, `top`, `bottom`) are forbidden in hand-written CSS
 **And** the cobalt palette and component library render correctly in RTL — verified by visual regression tests on three key screens (`/`, `/tools/qr-code-generator/`, `/settings`) using Playwright with `locale: 'ar'` and `direction: 'rtl'`
 **And** CI runs `scripts/check-rtl-purity.py` which greps for `padding-left|padding-right|margin-left|margin-right|left:|right:` (excluding vendor CSS under `assets/js/vendor/` and `node_modules/`) and fails the build if any match is found
 
