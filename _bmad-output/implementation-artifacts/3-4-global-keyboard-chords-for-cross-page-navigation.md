@@ -2,7 +2,7 @@
 title: 'Global Keyboard Chords for Cross-Page Navigation'
 type: 'feature'
 created: '2026-08-11'
-status: 'ready-for-dev'
+status: 'done'
 baseline_commit: '5ab32f9'  # Story 3.3 wrap-up (latest on origin/main as of this story)
 context:
   - '{project-root}/project-context.md'
@@ -108,7 +108,7 @@ context:
 
 - [x] 1. Create `assets/js/global-chords.js` — the document-level `g <key>` chord listener.
   - [x] 1.1 IIFE in strict mode; follows the same shape as `assets/js/help-overlay.js` and `assets/js/palette-actions.js`. **No `HT.*` public writes** — only the listener + an internal handle.
-  - [x] 1.2 Module exports `window.HT_GLOBAL_CHORDS_INIT = Object.freeze({ chords: <array>, cancel: <function>, version: '<story-internal>' })`. The `chords` array lists `{ keys: ['g','h'], label: 'Go to home', goto: '/index.html' }` etc. — same shape as the help-overlay's `GLOBAL_SHORTCUTS` plus the route. AD-14 internal-handle pattern (Story 3.3 mirror).
+  - [x] 1.2 Module exports `window.HT_GLOBAL_CHORDS_INIT = Object.freeze({ chords: <array>, cancel: <function>, version: '<story-internal>' })`. The `chords` array lists `{ keys: ['g','h'], label: 'Go to home', goto: function () { navigate('/index.html'); } }` etc. — same shape as the help-overlay's `GLOBAL_SHORTCUTS` plus a dispatch function. AD-14 internal-handle pattern (Story 3.3 mirror).
   - [x] 1.3 Load order — added by `scripts/shell-template.py` **after** `assets/js/help-overlay.js` (matches the existing chain: a11y.js → palette-actions.js → shell.js → search.js → help-overlay.js → global-chords.js). Boot runs after `HT.settings`, `HT.palette`, `HT.theme`, and the home grid are all ready.
   - [x] 1.4 Install a single document-level `keydown` **capture** listener (defense-in-depth so tool-page handlers can't `preventDefault`) that:
     - Detects `event.key === 'g' || event.key === 'G'` with **no** Ctrl/Meta/Alt modifiers (modifier guard).
@@ -278,7 +278,7 @@ Story 3.4 (Global Keyboard Chords for Cross-Page Navigation) is implementation-c
 
 **Created:**
 - `assets/js/global-chords.js` — document-level `g <key>` chord listener (220+ lines, IIFE strict, frozen `HT_GLOBAL_CHORDS_INIT` internal handle).
-- `scripts/_smoke_global_chords.js` — Node + vm smoke harness (380+ lines, 42 assertions, vacuous-pass guard).
+- `scripts/_smoke_global_chords.js` — Node + vm smoke harness (380+ lines, 43 assertions, vacuous-pass guard).
 
 **Modified:**
 - `scripts/shell-template.py` — added `global_chords_js_ok` / `global_chords_js_after_help_overlay_js` gate definitions, included both in `full_ok` aggregate, added the global-chords.js splice block to `ensure_tool_config_and_slug` (after help-overlay.js, idempotent), added 7 parallel `global_chords_js_ok` checks across the tool-config-and-slug path's missing-reporter branches and the chrome-byte-aligned non-byte path (splice + 2 missing reporters).
@@ -290,3 +290,39 @@ Story 3.4 (Global Keyboard Chords for Cross-Page Navigation) is implementation-c
 ### Change Log
 
 - 2026-08-11 — Story 3.4 implementation complete. Files added: `assets/js/global-chords.js`, `scripts/_smoke_global_chords.js`. Files modified: `scripts/shell-template.py`, `assets/js/api-contract.js`, `Makefile`, `index.html`, all 35 `tools/*/index.html`. Smoke: 42/42 passing. All `ci` gates pass. Spec premise of Task 3 (drift-check extension) found incorrect — drift-check doesn't track feature script tags (Story 3.3 didn't add help-overlay.js either); documented in Debug Log.
+- 2026-08-11 — Story 3.4 code-review patches applied (commit pending): (1) replaced vacuous localStorage smoke assertion with a real `localStorage` spy that records `getItem`/`setItem`/`removeItem`/`clear`/`key` calls; split into two assertions — load-time (checked immediately after IIFE load, before any resetSpies) and dispatch-time (checked across all 5 chord dispatches + unmapped-cancel). Verified vacuous-pass guard: injected `localStorage.setItem('VACUOUS_TEST', '1')` at module load and confirmed load-time assertion FAILs. (2) Added missing trailing newline to `assets/js/global-chords.js` and `assets/js/api-contract.js`. (3) Fixed spec narrative inconsistency in subtask 1.2 — the prose said `goto: '/index.html'` (string) but subtask 1.6 code sample + impl use `goto: function () { navigate(...) }`; updated subtask 1.2 narrative to match. Smoke: 43/43 passing (was 42).
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-08-11
+**Reviewer:** code-review skill (two-axis: Standards + Spec)
+**Outcome:** Approve (with 5 patches applied — see Change Log)
+**Fixed point:** 5ab32f9 (Story 3.3 wrap-up)
+**Diff SHA:** 7db81be (commit under review)
+
+### Standards axis findings
+
+- **S1 [HARD] — chord `goto` shape divergence.** Spec subtask 1.2 narrative said `goto: '/index.html'` (string); subtask 1.6 code sample + impl used `goto: function () { navigate(...) }`. *Resolution:* spec inconsistency, not a code defect. Updated subtask 1.2 narrative to match the code sample (which matches the impl + api-contract.js entry). Patched.
+- **S2 [HARD] — vacuous localStorage smoke assertion.** `assert('No localStorage interactions …', true /* placeholder */)` passed trivially. *Resolution:* installed a `fakeLocalStorage` spy recording all storage ops; replaced placeholder with two real assertions (load-time + dispatch-time). Vacuous-pass guard verified by injecting a regression. Patched.
+- **S3 [JUDGE] — `isEmbedMode()` duplicated in 3 files** (global-chords.js, help-overlay.js, shell.js). *Resolution:* not patched (out-of-scope for Story 3.4; belongs to a future Shell-API consolidation story).
+- **S4 [JUDGE] — chord map duplicated** (`CHORDS` in global-chords.js, `GLOBAL_SHORTCUTS` in help-overlay.js). *Resolution:* not patched (out-of-scope; same rationale as S3).
+- **S5 [NIT] — trailing newlines missing** on global-chords.js and api-contract.js. Patched.
+- **S6 [NIT] — Speculative Generality / Mysterious Name / Middle Man** smells in global-chords.js. *Resolution:* not patched (judgment-call smells, no impact on ACs).
+
+### Spec axis findings
+
+- **V1 — spec subtask 1.2 vs impl** (covered as S1 above). Patched.
+- **V2 — NIT — assertion count** in Dev Agent Record said "42 assertions" but with the load-time check split out the new count is 43. Updated.
+
+### Verdicts
+
+- **Standards:** PASS (after patches)
+- **Spec:** PASS (after patches)
+
+### Action items (all applied)
+
+1. Replace vacuous localStorage assertion with real spy → **DONE**
+2. Add trailing newline to global-chords.js → **DONE**
+3. Add trailing newline to api-contract.js → **DONE**
+4. Reconcile spec subtask 1.2 narrative with subtask 1.6 code sample → **DONE**
+5. Update story status `ready-for-dev` → `done` (and sprint-status to match) → **DONE in this story file; sprint-status pending next step**

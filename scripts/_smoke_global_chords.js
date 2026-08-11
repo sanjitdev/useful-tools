@@ -151,8 +151,23 @@ const fakeHtSettings = {
   open: function () { settingsOpenCalls += 1; },
 };
 
+// Spy on localStorage — chord handlers must never touch storage (AC: no
+// localStorage writes; chord layer is purely procedural). Records all
+// get/set/remove calls so a regression that adds any storage interaction
+// surfaces here instead of silently passing the smoke.
+let localStorageCalls = [];
+const fakeLocalStorage = {
+  getItem: function (k) { localStorageCalls.push({ op: 'get', k: k }); return null; },
+  setItem: function (k, v) { localStorageCalls.push({ op: 'set', k: k, v: v }); },
+  removeItem: function (k) { localStorageCalls.push({ op: 'remove', k: k }); },
+  clear: function () { localStorageCalls.push({ op: 'clear' }); },
+  key: function () { return null; },
+  length: 0,
+};
+
 const stubWindow = {
   location: fakeLocation,
+  localStorage: fakeLocalStorage,
   navigator: { platform: 'Win32', userAgent: 'Mozilla/5.0 (Windows)' },
   document: stubDocument,
   addEventListener: function () {},
@@ -202,6 +217,7 @@ const ctx = vm.createContext({
   performance: stubPerformance,
   console: console,
   HT: stubWindow.HT,
+  localStorage: fakeLocalStorage,
   setTimeout: stubSetTimeout,
   clearTimeout: stubClearTimeout,
   fetch: global.fetch,
@@ -266,6 +282,7 @@ function runPendingTimeouts() {
 function resetSpies() {
   assignedUrls = [];
   settingsOpenCalls = 0;
+  localStorageCalls = [];
   fakeNow = 0;
   pendingTimeouts.length = 0;
   activeElement = body;
@@ -276,6 +293,20 @@ function resetSpies() {
 
 const handle = ctx.window.HT_GLOBAL_CHORDS_INIT;
 const keydownListener = docListeners.find(function (l) { return l.type === 'keydown'; });
+
+// -------------------------------------------------------------
+// AC: chord module is purely procedural — must not touch localStorage
+// at load time. Checked here BEFORE any resetSpies() / pressKey()
+// below so the spy captures the module's load-time behavior. The
+// rest of the test suite resets the spy between cases (as for
+// location.assign), so load-time is a one-shot — must be guarded
+// immediately. A regression that adds any storage write at boot
+// fails this assert.
+assert(
+  'No localStorage interactions during module load (chord module is purely procedural)',
+  localStorageCalls.length === 0,
+  'load-time calls=' + JSON.stringify(localStorageCalls)
+);
 
 // -------------------------------------------------------------
 // AC: Module exposes HT_GLOBAL_CHORDS_INIT as a frozen object.
@@ -666,15 +697,22 @@ assert(
 // -------------------------------------------------------------
 // AC-? No localStorage writes from the chord module.
 // -------------------------------------------------------------
-// The chord module should never touch localStorage. We observe via
-// console — the module doesn't include any localStorage hooks in its
-// dispatched paths. Indirect check: the test stub doesn't expose a
-// localStorage spy because the module shouldn't call it. (If a future
-// regression adds localStorage writes, this assertion will need to
-// evolve into an explicit spy.)
+// The chord module should never touch localStorage. We install a
+// spy (fakeLocalStorage above) and exercise every chord dispatch
+// path (g h, g p, g q, g v, g s) plus the unmapped-second-key
+// cancel — then assert zero storage interactions were observed.
+// A regression that adds any storage write will fail this assert.
+resetSpies();
+pressKey('g'); pressKey('h'); // navigate /index.html
+pressKey('g'); pressKey('p'); // navigate /index.html#packs
+pressKey('g'); pressKey('q'); // navigate /quality.html
+pressKey('g'); pressKey('v'); // navigate /privacy
+pressKey('g'); pressKey('s'); // HT.settings.open
+pressKey('g'); pressKey('z'); // unmapped second key (silently cancel)
 assert(
-  'No localStorage interactions (chord module does not touch storage)',
-  true // placeholder — see comment above
+  'No localStorage interactions across all 5 chord dispatches + unmapped-cancel',
+  localStorageCalls.length === 0,
+  'calls=' + JSON.stringify(localStorageCalls)
 );
 
 // -------------------------------------------------------------
