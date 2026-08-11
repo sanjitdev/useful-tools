@@ -633,6 +633,25 @@ def transform(
                         "<script src=\"../../assets/js/search.js\" defer></script> "
                         "anchor not found in legacy page\n"
                     )
+            # Story 3.4: global-chords.js (idempotent — already-present
+            # pages keep the existing tag). Anchored after help-overlay.js
+            # so the boot order is deterministic: a11y.js → palette-actions.js
+            # → shell.js → search.js → help-overlay.js → global-chords.js.
+            if 'src="../../assets/js/global-chords.js"' not in new_source:
+                help_anchor = '<script src="../../assets/js/help-overlay.js" defer></script>'
+                if help_anchor in new_source:
+                    new_source = new_source.replace(
+                        help_anchor,
+                        help_anchor
+                        + '\n  <script src="../../assets/js/global-chords.js" defer></script>',
+                        1,
+                    )
+                else:
+                    sys.stderr.write(
+                        "shell-template: global-chords.js splice skipped — "
+                        "<script src=\"../../assets/js/help-overlay.js\" defer></script> "
+                        "anchor not found in legacy page\n"
+                    )
             return new_source
         sys.stderr.write(
             "shell-template: <div id=\"site-header\"></div> marker not found\n"
@@ -862,6 +881,28 @@ def ensure_tool_config_and_slug(source: str, slug: str) -> str:
                 "<script src=\"../../assets/js/search.js\" defer></script> "
                 "anchor not found\n"
             )
+    # Story 3.4: global-chords.js loads AFTER help-overlay.js so the
+    # `g <key>` chord listener is installed once the help overlay (which
+    # already advertises the chords in GLOBAL_SHORTCUTS) has booted.
+    # Idempotent — already-present pages keep the existing tag. Anchored
+    # after help-overlay.js so the boot order is deterministic: a11y.js
+    # → palette-actions.js → shell.js → search.js → help-overlay.js →
+    # global-chords.js.
+    if 'src="../../assets/js/global-chords.js"' not in new_source:
+        help_anchor = '<script src="../../assets/js/help-overlay.js" defer></script>'
+        if help_anchor in new_source:
+            new_source = new_source.replace(
+                help_anchor,
+                help_anchor
+                + '\n  <script src="../../assets/js/global-chords.js" defer></script>',
+                1,
+            )
+        else:
+            sys.stderr.write(
+                "shell-template: global-chords.js splice skipped — "
+                "<script src=\"../../assets/js/help-overlay.js\" defer></script> "
+                "anchor not found\n"
+            )
     return new_source
 
 
@@ -1064,6 +1105,19 @@ def process_file(
         or source.index('src="../../assets/js/help-overlay.js"')
             > source.index('src="../../assets/js/search.js"')
     )
+    # Story 3.4: global-chords.js must be loaded on every page so the
+    # `g <key>` chord listener is installed. Anchored after help-overlay.js
+    # so the boot order is deterministic: a11y.js → palette-actions.js →
+    # shell.js → search.js → help-overlay.js → global-chords.js.
+    global_chords_js_ok = (
+        'src="../../assets/js/global-chords.js"' in source
+    )
+    global_chords_js_after_help_overlay_js = (
+        not global_chords_js_ok
+        or 'src="../../assets/js/help-overlay.js"' not in source
+        or source.index('src="../../assets/js/global-chords.js"')
+            > source.index('src="../../assets/js/help-overlay.js"')
+    )
     # Story 1.12 (review patch — Decision #1): the inline tools.json
     # block (file:// fallback for home-grid.js) must also live on tool
     # pages so `wireViewSourceLink()` can resolve the slug's entry
@@ -1090,6 +1144,8 @@ def process_file(
         and palette_actions_js_before_shell_js
         and help_overlay_js_ok
         and help_overlay_js_after_search_js
+        and global_chords_js_ok
+        and global_chords_js_after_help_overlay_js
         and tools_json_inline_ok
     )
     # Find the IIFE block on the FIRST `<script>` opener in <head>. The IIFE
@@ -1179,6 +1235,7 @@ def process_file(
             or not tools_json_inline_ok
             or not palette_actions_js_ok
             or not help_overlay_js_ok
+            or not global_chords_js_ok
         )
     ):
         new_source = ensure_tool_config_and_slug(source, slug)
@@ -1200,6 +1257,8 @@ def process_file(
                 missing.append("palette-actions.js")
             if not help_overlay_js_ok:
                 missing.append("help-overlay.js")
+            if not global_chords_js_ok:
+                missing.append("global-chords.js")
             print(
                 f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})"
             )
@@ -1222,6 +1281,8 @@ def process_file(
             missing.append("palette-actions.js")
         if not help_overlay_js_ok:
             missing.append("help-overlay.js")
+        if not global_chords_js_ok:
+            missing.append("global-chords.js")
         print(
             f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})"
         )
@@ -1237,7 +1298,7 @@ def process_file(
     # rather than group(2) — a latent Story 1.6 bug) and would short-circuit
     # on a correct IIFE, preventing the palette splice from ever firing.
     if chrome_ok and not (
-        palette_ok and settings_ok and help_ok and site_config_js_ok and storage_registry_js_ok and search_js_ok and palette_actions_js_ok and help_overlay_js_ok and tools_json_inline_ok
+        palette_ok and settings_ok and help_ok and site_config_js_ok and storage_registry_js_ok and search_js_ok and palette_actions_js_ok and help_overlay_js_ok and global_chords_js_ok and tools_json_inline_ok
     ):
         footer_end = source.find('</footer>')
         if footer_end == -1:
@@ -1350,6 +1411,28 @@ def process_file(
                     "<script src=\"../../assets/js/search.js\" defer></script> "
                     "anchor not found\n"
                 )
+        # Story 3.4: global-chords.js loads AFTER help-overlay.js so the
+        # `g <key>` chord listener is installed once the help overlay
+        # (which already advertises the chords in GLOBAL_SHORTCUTS) has
+        # booted. Idempotent — already-present pages keep the existing
+        # tag. Anchored after help-overlay.js so the boot order is
+        # deterministic: a11y.js → palette-actions.js → shell.js →
+        # search.js → help-overlay.js → global-chords.js.
+        if not global_chords_js_ok:
+            help_anchor = '<script src="../../assets/js/help-overlay.js" defer></script>'
+            if help_anchor in new_source:
+                new_source = new_source.replace(
+                    help_anchor,
+                    help_anchor
+                    + '\n  <script src="../../assets/js/global-chords.js" defer></script>',
+                    1,
+                )
+            else:
+                sys.stderr.write(
+                    "shell-template: global-chords.js splice skipped — "
+                    "<script src=\"../../assets/js/help-overlay.js\" defer></script> "
+                    "anchor not found\n"
+                )
         # Story 1.12 (review — Decision #1): splice the inline
         # tools.json block so wireViewSourceLink() can resolve the slug
         # synchronously on tool pages (no home-grid.js there). Idempotent
@@ -1387,6 +1470,7 @@ def process_file(
             if not search_js_ok: missing.append("search.js")
             if not palette_actions_js_ok: missing.append("palette-actions.js")
             if not help_overlay_js_ok: missing.append("help-overlay.js")
+            if not global_chords_js_ok: missing.append("global-chords.js")
             if not tools_json_inline_ok: missing.append("tools.json-inline")
             if not f'data-slug="{slug}"' in source: missing.append("data-slug")
             print(f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})")
@@ -1405,6 +1489,7 @@ def process_file(
         if not search_js_ok: missing.append("search.js")
         if not palette_actions_js_ok: missing.append("palette-actions.js")
         if not help_overlay_js_ok: missing.append("help-overlay.js")
+        if not global_chords_js_ok: missing.append("global-chords.js")
         if not tools_json_inline_ok: missing.append("tools.json-inline")
         if not f'data-slug="{slug}"' in source: missing.append("data-slug")
         print(f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})")

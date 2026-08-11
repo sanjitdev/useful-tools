@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -64,7 +64,8 @@ help: ## Show available targets
 	@echo "  make palette-search-smoke-html  Structural check for the browser harness at scripts/palette-search-smoke.html (13 contract assertions + JS-driven render)"
 	@echo "  make palette-actions-smoke  Run the Story 3.2 palette actions smoke (Node headless driver for the 7 declared actions, registry, matcher, and HT.theme.cycle / HT.viewSource.open)"
 	@echo "  make help-overlay-smoke  Run the Story 3.3 help overlay smoke (Node headless driver for the keyboard-shortcuts overlay: HT_HELP_OVERLAY_INIT surface, search filter, open/close/toggle, focus restoration, embed-mode guard)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke"
+	@echo "  make global-chords-smoke  Run the Story 3.4 global chords smoke (Node headless driver for the g <key> arm-then-fire chord listener: 5 chords, 1-second timeout, all 4 guards, Esc-cancel, case-insensitivity, same-URL early-return, idempotent arm)"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke"
 
 validate: validate-tools-json
 
@@ -108,7 +109,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -501,3 +502,14 @@ palette-actions-smoke:
 # hollow runs.
 help-overlay-smoke:
 	@node scripts/_smoke_help_overlay.js
+
+# Story 3.4: global keyboard chords for cross-page navigation. Validates
+# the g <key> arm-then-fire chord listener (assets/js/global-chords.js)
+# end-to-end via a Node + vm driver — covers the 5 mapped chords (g h /
+# g p / g q / g v / g s), the 1-second timeout, all four guards (text-
+# input / embed / dialog / modifier), Esc-cancel, case-insensitivity,
+# same-URL early-return, idempotent arm, and the frozen
+# HT_GLOBAL_CHORDS_INIT internal handle. 42 assertions; vacuous-pass
+# guard catches hollow runs.
+global-chords-smoke:
+	@node scripts/_smoke_global_chords.js

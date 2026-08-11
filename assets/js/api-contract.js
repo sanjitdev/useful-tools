@@ -510,5 +510,12 @@ window.HT.__apiContract = Object.freeze({
       module: 'assets/js/help-overlay.js',
       notes: 'Story 3.3 keyboard-shortcuts overlay bootstrap handle. Frozen at module init. The only contract surface for the smoke harness (scripts/_smoke_help_overlay.js). Per AD-14 the help overlay deliberately does NOT add HT.helpOverlay.* — the shell public API is frozen. Documented here so the contract gate can warn if a future refactor accidentally re-exposes the help module through the public API (which would freeze a new contract surface by accident). Consumer pages should rely on the keyboard chord (`?` or palette "Show shortcuts" action) to open the overlay, not on direct calls to .open()/.close()/.toggle().',
     }),
+    Object.freeze({
+      name: 'window.HT_GLOBAL_CHORDS_INIT',
+      signature: 'Object.freeze({chords: readonly array, cancel: function, version: string})',
+      stability: 'internal',
+      module: 'assets/js/global-chords.js',
+      notes: 'Story 3.4 cross-page keyboard chord listener bootstrap handle. Frozen at module init. The only contract surface for the smoke harness (scripts/_smoke_global_chords.js). Per AD-14 the chord listener deliberately does NOT add HT.globalChords.* — the shell public API is frozen. The chords array is shape-compatible with help-overlay.js GLOBAL_SHORTCUTS (keys: [first, second], label: string, route: string|null, goto: function) plus the resolved route. Consumer pages should rely on the g <key> chord (or the palette / help overlay) to navigate, not on direct chords array inspection. cancel() clears the armed state and is exposed primarily for tests.',
+    }),
   ]),
 });
