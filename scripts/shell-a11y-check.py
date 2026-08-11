@@ -351,6 +351,37 @@ PALETTE_HIDDEN_RE = re.compile(
     r'<div\s+class="shell-palette"\s+id="palette"[^>]*\bhidden\b',
     re.IGNORECASE,
 )
+# Story 3.1: the palette carries a live region inside the panel for
+# result-count announcements (UX-DR-18). The region must be present in
+# the static markup so SR users hear announcements as soon as the
+# palette opens. Must have `aria-live="polite"` so non-modal changes
+# don't interrupt the user's current speech.
+PALETTE_LIVE_REGION_RE = re.compile(
+    r'<div\s+id="palette-live"\s+class="[^"]*\bshell-sr-only\b[^"]*"'
+    r'\s+aria-live="polite"\s+aria-atomic="true"',
+    re.IGNORECASE,
+)
+# Story 3.1 AC-9: the forced-colors 2px cursor border is keyed off
+# `[aria-selected="true"]`. The rule must land in components.css so the
+# stroke applies to the JS-rendered option `<li>`s the moment JS sets
+# the attribute. Verify the CSS rule exists rather than the runtime
+# state (the options are JS-rendered, not in static markup). The
+# actual selector in components.css is
+# `.shell-palette-list [role="option"][aria-selected="true"]` (the
+# `<li role="option">` elements live inside `.shell-palette-list`).
+# Both the selector and the declaration must be present in components.css.
+# A naive greedy-once-only check suffices because the CSS file only
+# contains ONE palette forced-colors block (the tool-card and settings
+# blocks have different selectors); a regression that splits or moves
+# the rule between blocks would still surface here.
+PALETTE_SELECTOR_FORCED = re.compile(
+    r"\[aria-selected\s*=\s*[\"']true[\"']\]",
+    re.IGNORECASE,
+)
+PALETTE_BORDER_FORCED = re.compile(
+    r"\bborder\s*:\s*[^;}]*solid\s+CanvasText",
+    re.IGNORECASE,
+)
 
 
 def check_palette_aria(path: Path, root: Path) -> list[str]:
@@ -363,6 +394,17 @@ def check_palette_aria(path: Path, root: Path) -> list[str]:
     Without this check, a regression that drops `aria-haspopup="listbox"`
     or the `controls`/`owns` circuit silently ships a screen-reader-invisible
     palette that passes drift but is non-functional for assistive tech.
+
+    Story 3.1 additions:
+    - The live-region element (`#palette-live`) must be present in the
+      static palette markup with `aria-live="polite"` + `aria-atomic="true"`
+      so SR users hear result-count announcements as soon as the palette
+      opens.
+    - The `[aria-selected="true"]` forced-colors 2px cursor border rule
+      (AI-17) must live in components.css — the JS-rendered options are
+      not in static markup, so we can't byte-match the runtime state
+      here; instead we verify the CSS rule exists so the moment JS sets
+      `aria-selected="true"`, the rule fires.
     """
     try:
         text = path.read_text(encoding="utf-8")
@@ -397,6 +439,35 @@ def check_palette_aria(path: Path, root: Path) -> list[str]:
             "palette overlay is missing the `hidden` attribute in static markup "
             "(must be closed by default; JS opens via removeAttribute)"
         )
+    # Story 3.1 AC-7: live region for result-count announcements. Must
+    # be present in the static markup (not JS-injected) so SR picks it
+    # up immediately on palette open. Without this region, the search
+    # result changes silently for SR users.
+    if combos and not PALETTE_LIVE_REGION_RE.search(text):
+        violations.append(
+            "palette is missing #palette-live live region with aria-live=\"polite\" "
+            "(UX-DR-18 / Story 3.1 AC-7: SR users must hear result counts)"
+        )
+    # Story 3.1 AC-9: forced-colors 2px cursor border. The rule lives
+    # in components.css; verify it's present so the JS-set
+    # `aria-selected="true"` triggers the border under Windows
+    # High-Contrast / forced-colors mode.
+    components_css = root / "assets" / "css" / "components.css"
+    try:
+        css_text = components_css.read_text(encoding="utf-8")
+    except OSError:
+        css_text = ""
+    if combos and css_text:
+        if not (
+            PALETTE_SELECTOR_FORCED.search(css_text)
+            and PALETTE_BORDER_FORCED.search(css_text)
+        ):
+            violations.append(
+                "components.css is missing the forced-colors 2px cursor border "
+                "on .shell-palette-list [role=\"option\"][aria-selected=\"true\"] "
+                "(AI-17 / Story 3.1 AC-9: non-cursor rows must remain "
+                "distinguishable from the Highlight+HighlightText cursor row)"
+            )
     return violations
 
 

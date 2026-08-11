@@ -417,5 +417,21 @@
   search._normalize = normalize;
   search._isEmbedMode = isEmbedMode;
 
+  // Palette bold-match hook. Returns the [start, end] of the first matching
+  // tier of `query` inside `fieldValue` (indices into the normalized form).
+  // Mirrors the tier dispatch in `searchIndex` so the bold span matches the
+  // result the engine would have reported.
+  search._matchRange = function (query, fieldValue) {
+    if (typeof query !== 'string' || typeof fieldValue !== 'string') return null;
+    if (query.length === 0 || fieldValue.length === 0) return null;
+    var q = normalize(query);
+    var f = normalize(fieldValue);
+    if (!q || !f) return null;
+    var hit = scoreExact(q, f) || scorePrefix(q, f) || scoreWordBoundary(q, f) || scoreSubstring(q, f);
+    if (!hit && q.length >= MIN_FUZZY_QUERY_LENGTH) hit = scoreFuzzy(q, f);
+    if (!hit) return null;
+    return { start: hit.start, end: hit.end };
+  };
+
   window.HT.search = Object.freeze(search);
 })();

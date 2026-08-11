@@ -10,8 +10,8 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.8.0',
-  generated: '2026-08-10',
+  version: '1.9.0',
+  generated: '2026-08-11',
   entries: Object.freeze([
     Object.freeze({
       name: 'HT.boot',
@@ -460,6 +460,34 @@ window.HT.__apiContract = Object.freeze({
       stability: 'internal',
       module: 'assets/js/share.js',
       notes: 'Story 2.5. Internal: reads the embed-snippet block from HT.homeGrid.entries (or the inline tools.json splice). Returns null when the slug has no embed-snippet block. The width/height are clamped to a minimum of 240 per the B3 a11y floor in tools.schema.json. Tools calling this is undefined behavior — use HT.share.hasShare for the boolean predicate.',
+    }),
+    Object.freeze({
+      name: 'HT.palette.matchActions',
+      signature: '(query: string) => readonly Array<{id: string, label: string, icon: string}>',
+      stability: 'stable',
+      module: 'assets/js/shell.js',
+      notes: 'Story 3.1 stub; Story 3.2 replaces the body with the real action matcher against the static action list. Returns [] in 3.1 — the action group slot is rendered but always empty. The shape is frozen: id is the dispatch key for HT.palette.runAction, label is the visible option text, icon is the action-icon class name (not a tool-icon class).',
+    }),
+    Object.freeze({
+      name: 'HT.palette.runAction',
+      signature: '(actionId: string) => unknown',
+      stability: 'stable',
+      module: 'assets/js/shell.js',
+      notes: 'Story 3.1 stub; Story 3.2 populates HT.palette._actions. Dispatches to _actions[actionId]?.() and returns its return value. Returns null + console.warn on unknown id; returns null + console.warn if the handler throws (defensive — UI never crashes on a bad action).',
+    }),
+    Object.freeze({
+      name: 'HT.palette.openHelp',
+      signature: '() => void',
+      stability: 'stable',
+      module: 'assets/js/shell.js',
+      notes: 'Emits window CustomEvent("ht:palette-help"). Story 3.3 owns the listener that renders the keyboard-shortcuts overlay. The emitter is the only contract surface Story 3.1 exposes for help; Story 3.3 wires the overlay without further edits to this file.',
+    }),
+    Object.freeze({
+      name: 'HT.search._matchRange',
+      signature: '(query: string, fieldValue: string) => {start: number, end: number} | null',
+      stability: 'internal',
+      module: 'assets/js/search.js',
+      notes: 'Story 3.1 palette bold-match hook. Returns the [start, end] of the first matching tier of query inside fieldValue, in the *normalized* form. Mirrors the tier ranking in HT.search (exact > prefix > word-boundary > substring > fuzzy). Returns null on no match. Underscore-prefixed; not a stable surface. If HT.search gains [start, end] in the result shape (Story 1.11 deferred), this becomes a thin alias.',
     }),
   ]),
 });

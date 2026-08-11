@@ -723,6 +723,19 @@
   line-height: 1.4;
 }
 
+/* Cursor row. WAI-ARIA 1.1: aria-selected marks the active option; the
+   input's aria-activedescendant stays the source of truth for "focused"
+   (Story 1.7). Both attributes are set together by moveActive(). */
+.shell-palette-list [role="option"][aria-selected="true"] {
+  background-color: var(--color-primary-soft, #E5ECFF);
+  color: var(--color-on-primary, #1a1d29);
+}
+
+:root[data-theme="dark"] .shell-palette-list [role="option"][aria-selected="true"] {
+  background-color: var(--color-primary-soft, #E5ECFF);
+  color: var(--color-on-primary, #1a1d29);
+}
+
 .shell-palette-list [role="option"]:hover {
   background-color: var(--color-primary-soft, #E5ECFF);
 }
@@ -734,6 +747,50 @@
 :root[data-theme="dark"] .shell-palette-list [role="option"]:hover {
   background-color: var(--color-primary-soft, #E5ECFF);
   color: var(--color-on-primary, #1a1d29);
+}
+
+/* Group header (e.g., "Actions" sub-list separator). The header is a
+   presentation li — no ARIA option role — so the SR announces the next
+   option's label without a header artifact. */
+.shell-palette-group-header {
+  padding: 0.5rem 1rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
+  list-style: none;
+}
+
+:root[data-theme="dark"] .shell-palette-group-header {
+  color: var(--color-text-muted, rgba(232, 234, 240, 0.55));
+}
+
+/* Right-aligned match indicator for non-title matches (matched in
+   description, keywords, slug, category). Visually muted so the title
+   stays the primary scan target. */
+.shell-palette-match {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
+  margin-top: 0.125rem;
+}
+
+:root[data-theme="dark"] .shell-palette-match {
+  color: var(--color-text-muted, rgba(232, 234, 240, 0.55));
+}
+
+/* Visually-hidden but AT-available — used by the live region. */
+.shell-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .shell-palette-empty {
@@ -785,6 +842,16 @@
   .shell-palette-list [role="option"]:hover {
     background-color: Highlight;
     color: HighlightText;
+    forced-color-adjust: none;
+  }
+  /* AI-17: the cursor row is the only one mapped to Highlight+HighlightText.
+     A 2px CanvasText border keeps the cursor row visually distinct from
+     non-cursor rows in forced-colors mode (where shape alone is the cue). */
+  .shell-palette-list [role="option"][aria-selected="true"] {
+    background-color: Highlight;
+    color: HighlightText;
+    border: 2px solid CanvasText;
+    box-sizing: border-box;
     forced-color-adjust: none;
   }
   .shell-palette-empty {

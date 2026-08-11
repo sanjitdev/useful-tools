@@ -648,43 +648,18 @@
     paletteState = {
       callingElement: document.activeElement,
       activeIndex: -1,
+      activeKind: null, // 'tool' | 'action' | null — used by the Enter handler
       clickOutsideInstalled: false,
+      inputInstalled: false,
     };
 
-    // Read recent tools. JSON.parse with try/catch fallback to [].
-    // The data shape is an array of slug strings (Story 3.12 owns the
-    // write side; this story is read-only).
-    let recent = [];
-    try {
-      const raw = localStorage.getItem('handy-tools.recent');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) recent = parsed.filter((s) => typeof s === 'string' && s.length > 0);
-      }
-    } catch (_) {
-      console.warn('palette.recent: malformed JSON, treating as empty');
-      recent = [];
-    }
+    // Wire the input listener once per open (removed on close). 50ms debounce
+    // matches the human typing rhythm; HT.search itself is ≤10ms warm.
+    input.addEventListener('input', onPaletteInput);
+    paletteState.inputInstalled = true;
 
-    // Populate listbox. Empty list shows the placeholder li (wired in
-    // wirePalette); non-empty clears it and renders one li per slug.
-    while (listbox.firstChild) listbox.removeChild(listbox.firstChild);
-    if (recent.length === 0) {
-      const empty = document.createElement('li');
-      empty.className = 'shell-palette-empty';
-      empty.setAttribute('role', 'presentation');
-      empty.textContent = 'No recent tools yet';
-      listbox.appendChild(empty);
-    } else {
-      recent.forEach((slug, idx) => {
-        const li = document.createElement('li');
-        li.id = 'palette-opt-' + idx;
-        li.setAttribute('role', 'option');
-        li.setAttribute('data-slug', slug);
-        li.textContent = slugToTitle(slug);
-        listbox.appendChild(li);
-      });
-    }
+    // Initial render: recent tools (empty query → no search).
+    renderPaletteList('');
 
     // Show the overlay. Use [hidden] attribute + aria-hidden for the
     // a11y + visibility pair; aria-expanded reflects open state.
@@ -714,6 +689,9 @@
     if (input) {
       input.setAttribute('aria-activedescendant', '');
       input.value = '';
+      if (paletteState.inputInstalled) {
+        input.removeEventListener('input', onPaletteInput);
+      }
     }
     // Restore focus to the calling element. If it has been removed from
     // the DOM while the palette was open, fall back to <main>.
@@ -733,6 +711,10 @@
     if (paletteState.clickOutsideInstalled) {
       document.removeEventListener('click', onPaletteClickOutside, { capture: true });
     }
+    // Clear the live region on close so a stale announcement doesn't carry
+    // over to the next open.
+    const live = document.getElementById('palette-live');
+    if (live) live.textContent = '';
     paletteState = null;
   }
 
@@ -756,27 +738,63 @@
       moveActive(event.key === 'ArrowDown' ? 1 : -1);
       return;
     }
+    if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault();
+      const opts = getNavigableOptions();
+      if (opts.length === 0) return;
+      setActiveIndex(event.key === 'Home' ? 0 : opts.length - 1);
+      return;
+    }
+    // ? (Shift+/) chord. Story 3.3 owns the overlay; this story emits the
+    // event so the overlay can wire up without an edit here.
+    if (event.key === '?' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      HT.palette.openHelp();
+      return;
+    }
+    // Tab / Shift+Tab are no-ops per the WAI-ARIA 1.1 combobox/listbox
+    // pattern (UX-DR-3 overlay + AI-8). Moving within the listbox is
+    // arrow keys only; Tab moves focus *out of* the palette.
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      return;
+    }
     if (event.key === 'Enter') {
       const idx = paletteState.activeIndex;
       if (idx < 0) return; // no active option → no-op
       const listbox = document.getElementById('palette-listbox');
       if (!listbox) return;
-      const opt = listbox.querySelector('[data-slug]');
-      const opts = Array.from(listbox.querySelectorAll('[data-slug]'));
+      const opts = listbox.querySelectorAll('[role="option"]');
       const target = opts[idx];
       if (!target) return;
+      const kind = target.getAttribute('data-kind');
+      if (kind === 'action') {
+        const actionId = target.getAttribute('data-action-id');
+        if (actionId) {
+          closePalette();
+          HT.palette.runAction(actionId);
+        }
+        return;
+      }
       const slug = target.getAttribute('data-slug');
       if (!slug) return;
-      // Navigate. The listbox only carries options when recent is non-empty,
-      // so reaching this branch implies a valid slug.
       window.location.assign('/tools/' + slug);
     }
   }
 
   function onPaletteListClick(event) {
     if (!paletteState) return;
-    const li = event.target.closest('[data-slug]');
+    const li = event.target.closest('[role="option"]');
     if (!li) return;
+    const kind = li.getAttribute('data-kind');
+    if (kind === 'action') {
+      const actionId = li.getAttribute('data-action-id');
+      if (actionId) {
+        closePalette();
+        HT.palette.runAction(actionId);
+      }
+      return;
+    }
     const slug = li.getAttribute('data-slug');
     if (!slug) return;
     // Close then navigate. The close path restores focus but the navigation
@@ -785,30 +803,272 @@
     window.location.assign('/tools/' + slug);
   }
 
-  function moveActive(delta) {
-    if (!paletteState) return;
+  function getNavigableOptions() {
     const listbox = document.getElementById('palette-listbox');
-    if (!listbox) return;
-    const opts = Array.from(listbox.querySelectorAll('[data-slug]'));
-    if (opts.length === 0) return; // empty list — nothing to navigate
-    let next = paletteState.activeIndex + delta;
-    if (next < 0) next = 0; // no upward wrap; stays on input
-    if (next >= opts.length) next = opts.length - 1; // no downward wrap
-    paletteState.activeIndex = next;
-    const opt = opts[next];
-    if (!opt) return;
+    if (!listbox) return [];
+    return Array.from(listbox.querySelectorAll('[role="option"]'));
+  }
+
+  function setActiveIndex(idx) {
+    if (!paletteState) return;
+    const opts = getNavigableOptions();
+    if (opts.length === 0) {
+      paletteState.activeIndex = -1;
+      paletteState.activeKind = null;
+      const input = document.getElementById('palette-input');
+      if (input) input.setAttribute('aria-activedescendant', '');
+      return;
+    }
+    const clamped = idx < 0 ? 0 : idx >= opts.length ? opts.length - 1 : idx;
+    paletteState.activeIndex = clamped;
+    const opt = opts[clamped];
+    paletteState.activeKind = opt.getAttribute('data-kind') || null;
+    // Clear all selected, set the new one. The input's aria-activedescendant
+    // stays the source of truth for "focused" (Story 1.7) but we also set
+    // aria-selected on the option per WAI-ARIA 1.1 — both attributes serve
+    // the same cursor-row role and the forced-colors border uses
+    // [aria-selected="true"] as its selector.
+    opts.forEach((o, i) => o.setAttribute('aria-selected', i === clamped ? 'true' : 'false'));
     const input = document.getElementById('palette-input');
     if (input) input.setAttribute('aria-activedescendant', opt.id);
   }
 
-  // Slug → title-case label. Strips dashes and capitalizes each word.
-  // Used by openPalette() for the recent-tools list labels. Story 3.1 will
-  // replace this with the real tool title from tools.json.
+  function moveActive(delta) {
+    if (!paletteState) return;
+    const opts = getNavigableOptions();
+    if (opts.length === 0) return; // empty list — nothing to navigate
+    // No wrap per UX-DR-3 / WAI-ARIA 1.1: clamp at the ends.
+    setActiveIndex(paletteState.activeIndex < 0
+      ? (delta > 0 ? 0 : opts.length - 1)
+      : paletteState.activeIndex + delta);
+  }
+
+  // Slug → title-case label. Used as a fallback when search results aren't
+  // available (recent-tools render path on first open). Story 3.12 owns the
+  // recent-tools write side and may carry title metadata in storage; this
+  // helper stays for the bare-slug case.
   function slugToTitle(slug) {
     return slug
       .split('-')
       .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
       .join(' ');
+  }
+
+  // Read recent tools. Shared by openPalette() and renderRecentTools().
+  function readRecentTools() {
+    let recent = [];
+    try {
+      const raw = localStorage.getItem('handy-tools.recent');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) recent = parsed.filter((s) => typeof s === 'string' && s.length > 0);
+      }
+    } catch (_) {
+      console.warn('palette.recent: malformed JSON, treating as empty');
+      recent = [];
+    }
+    return recent;
+  }
+
+  // Build a single <li role="option"> for a tool match. Sets data-slug,
+  // data-kind="tool", aria-selected="false", and an aria-label that includes
+  // the matched field + substring (UX-DR-19 / AC-4).
+  function buildToolOption(match, idx) {
+    const li = document.createElement('li');
+    li.id = 'palette-opt-' + idx;
+    li.className = 'shell-palette-option';
+    li.setAttribute('role', 'option');
+    li.setAttribute('data-kind', 'tool');
+    li.setAttribute('data-slug', match.slug);
+    li.setAttribute('aria-selected', 'false');
+
+    const titleEl = document.createElement('span');
+    titleEl.className = 'shell-palette-title';
+    titleEl.appendChild(buildMatchFragment(match.title, match.matchedField, match._query || ''));
+    li.appendChild(titleEl);
+
+    if (match.matchedField && match.matchedField !== 'title') {
+      const meta = document.createElement('span');
+      meta.className = 'shell-palette-match';
+      meta.textContent = 'matched in ' + match.matchedField;
+      li.appendChild(meta);
+    }
+
+    const labelSuffix = match.matchedField === 'title'
+      ? ' — match in title'
+      : (match.matchedField ? ' — match in ' + match.matchedField : '');
+    li.setAttribute('aria-label', match.title + labelSuffix);
+    return li;
+  }
+
+  // Build the title fragment with a <strong> wrap around the matched range.
+  // matchedField === 'title' → bold the matched substring inside `title`.
+  // Other fields → bold nothing in the title (the match indicator span
+  // carries the "matched in X" cue). For non-title matches, returns a
+  // plain text node.
+  function buildMatchFragment(title, matchedField, query) {
+    const frag = document.createDocumentFragment();
+    if (matchedField !== 'title') {
+      frag.appendChild(document.createTextNode(title));
+      return frag;
+    }
+    if (typeof HT !== 'undefined' && HT.search && typeof HT.search._matchRange === 'function') {
+      const range = HT.search._matchRange(query, title);
+      if (range && range.end > range.start && range.end <= title.length) {
+        if (range.start > 0) frag.appendChild(document.createTextNode(title.slice(0, range.start)));
+        const strong = document.createElement('strong');
+        strong.textContent = title.slice(range.start, range.end);
+        frag.appendChild(strong);
+        if (range.end < title.length) frag.appendChild(document.createTextNode(title.slice(range.end)));
+        return frag;
+      }
+    }
+    frag.appendChild(document.createTextNode(title));
+    return frag;
+  }
+
+  function buildActionOption(action, idx) {
+    const li = document.createElement('li');
+    li.id = 'palette-opt-action-' + idx;
+    li.className = 'shell-palette-option shell-palette-action';
+    li.setAttribute('role', 'option');
+    li.setAttribute('data-kind', 'action');
+    li.setAttribute('data-action-id', action.id);
+    li.setAttribute('aria-selected', 'false');
+    li.textContent = action.label;
+    li.setAttribute('aria-label', 'Action: ' + action.label);
+    return li;
+  }
+
+  function buildGroupHeader(label) {
+    const li = document.createElement('li');
+    li.className = 'shell-palette-group-header';
+    li.setAttribute('role', 'presentation');
+    li.textContent = label;
+    return li;
+  }
+
+  function buildEmptyRow(text) {
+    const li = document.createElement('li');
+    li.className = 'shell-palette-empty';
+    li.setAttribute('role', 'presentation');
+    li.textContent = text;
+    return li;
+  }
+
+  // Render the recent-tools list. Empty list shows the placeholder li;
+  // non-empty renders one li per slug using slugToTitle as the label.
+  function renderRecentTools() {
+    const listbox = document.getElementById('palette-listbox');
+    if (!listbox) return [];
+    while (listbox.firstChild) listbox.removeChild(listbox.firstChild);
+    const recent = readRecentTools();
+    if (recent.length === 0) {
+      listbox.appendChild(buildEmptyRow('No recent tools yet'));
+      return [];
+    }
+    recent.forEach((slug, idx) => {
+      const li = document.createElement('li');
+      li.id = 'palette-opt-' + idx;
+      li.className = 'shell-palette-option';
+      li.setAttribute('role', 'option');
+      li.setAttribute('data-kind', 'tool');
+      li.setAttribute('data-slug', slug);
+      li.setAttribute('aria-selected', 'false');
+      const title = slugToTitle(slug);
+      const titleEl = document.createElement('span');
+      titleEl.className = 'shell-palette-title';
+      titleEl.textContent = title;
+      li.appendChild(titleEl);
+      li.setAttribute('aria-label', title);
+      listbox.appendChild(li);
+    });
+    return recent.length;
+  }
+
+  // Render search results + actions group. Top-5 cap for tools (HT.search
+  // returns up to 10); action group slot below, separate presentation header.
+  function renderSearchResults(query, results) {
+    const listbox = document.getElementById('palette-listbox');
+    if (!listbox) return;
+    while (listbox.firstChild) listbox.removeChild(listbox.firstChild);
+    const toolRows = (results || []).slice(0, 5);
+    toolRows.forEach((match, idx) => {
+      // Stash the query on the match so buildMatchFragment can read it
+      // without a separate parameter list. The match object is a fresh
+      // frozen result from HT.search; we don't mutate the engine's output.
+      const localMatch = Object.assign({}, match, { _query: query });
+      listbox.appendChild(buildToolOption(localMatch, idx));
+    });
+    // Actions slot — only renders the group header when the matcher
+    // returns at least one action. Story 3.2 replaces the stub body.
+    const actions = HT.palette.matchActions(query);
+    if (actions && actions.length > 0) {
+      listbox.appendChild(buildGroupHeader('Actions'));
+      actions.forEach((a, i) => listbox.appendChild(buildActionOption(a, toolRows.length + 1 + i)));
+    }
+    const totalOptions = listbox.querySelectorAll('[role="option"]').length;
+    if (totalOptions === 0) {
+      listbox.appendChild(buildEmptyRow('No tools match "' + query + '"'));
+    }
+  }
+
+  // Dispatch: empty query → recent tools; non-empty → search results.
+  // Also announces the result count on the live region.
+  function renderPaletteList(query) {
+    const q = (typeof query === 'string' ? query : '').trim();
+    if (q === '') {
+      renderRecentTools();
+      announceResultCount('', 0, 0);
+      setActiveIndex(-1);
+      return;
+    }
+    Promise.resolve(HT.search(q)).then((results) => {
+      // Guard: the palette may have closed (or input cleared) while the
+      // async fetch was in flight. Re-check before touching the DOM.
+      if (!paletteState) return;
+      renderSearchResults(q, results || []);
+      const toolCount = (results || []).slice(0, 5).length;
+      const actionCount = (HT.palette.matchActions(q) || []).length;
+      announceResultCount(q, toolCount, actionCount);
+      setActiveIndex(-1);
+    });
+  }
+
+  // Live-region announcer. Empty query → no announcement (the recent-
+  // tools render is the palette's default state and shouldn't be
+  // announced on every open). Non-empty → count + empty-state copy.
+  function announceResultCount(query, toolCount, actionCount) {
+    const live = document.getElementById('palette-live');
+    if (!live) return;
+    if (!query) {
+      live.textContent = '';
+      return;
+    }
+    if (toolCount === 0 && actionCount === 0) {
+      live.textContent = 'No tools match "' + query + '". Try a shorter query, or press ? for shortcuts.';
+      return;
+    }
+    const parts = [];
+    if (toolCount > 0) parts.push(toolCount + ' tool' + (toolCount === 1 ? '' : 's'));
+    if (actionCount > 0) parts.push(actionCount + ' action' + (actionCount === 1 ? '' : 's'));
+    live.textContent = parts.join(', ');
+  }
+
+  // Input listener (installed per-open by openPalette, removed per-close).
+  // 50ms debounce matches the human typing rhythm; HT.search itself is
+  // ≤10ms warm so the bottleneck is typing, not computation.
+  let inputDebounceTimer = null;
+  function onPaletteInput() {
+    if (!paletteState) return;
+    const input = document.getElementById('palette-input');
+    if (!input) return;
+    const value = input.value;
+    if (inputDebounceTimer) clearTimeout(inputDebounceTimer);
+    inputDebounceTimer = setTimeout(() => {
+      inputDebounceTimer = null;
+      renderPaletteList(value);
+    }, 50);
   }
 
 
@@ -1063,12 +1323,55 @@
     close: closeSettings,
   });
 
+  // Action registry. Story 3.4 populates this with the global actions
+  // (toggle theme, open settings, open privacy, open quality, clear data,
+  // view source for current tool). Story 3.2 wires the static declaration
+  // file. An entry is a function that returns void | Promise<void>.
+  const _actions = Object.create(null);
+
+  // Stub matcher. Story 3.2 replaces the body with a real filter against
+  // the static action list. Kept here so the render slot in
+  // renderSearchResults() has a deterministic no-op fallback.
+  function matchActions(_query) {
+    return [];
+  }
+
+  // Dispatch a registered action by id. Unknown ids warn-once and return
+  // null so the caller can decide whether to surface a toast.
+  function runAction(actionId) {
+    if (typeof actionId !== 'string' || !actionId) return null;
+    const fn = _actions[actionId];
+    if (typeof fn !== 'function') {
+      console.warn('palette.runAction: unknown actionId', actionId);
+      return null;
+    }
+    try {
+      return fn();
+    } catch (e) {
+      console.warn('palette.runAction: handler threw', e);
+      return null;
+    }
+  }
+
+  // Emit the help-overlay event. Story 3.3 owns the listener that renders
+  // the overlay; this emitter is the only contract surface this story
+  // needs to expose.
+  function openHelp() {
+    try {
+      window.dispatchEvent(new CustomEvent('ht:palette-help'));
+    } catch (_) { /* no-op */ }
+  }
+
   // Public palette API (AD-14): exposed via HT.palette.*
   HT.palette = Object.freeze({
     open: openPalette,
     close: closePalette,
     toggle: () => (paletteState ? closePalette() : openPalette()),
     isOpen: () => Boolean(paletteState),
+    matchActions,
+    runAction,
+    openHelp,
+    _actions,
   });
 
   if (document.readyState === 'loading') {

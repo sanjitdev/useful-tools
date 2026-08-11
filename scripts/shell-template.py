@@ -129,6 +129,89 @@ PALETTE_REGION_RE = re.compile(
 SETTINGS_REGION_RE = re.compile(
     r"<!-- shell:settings -->\s*(.*?)\s*<!-- /shell:settings -->", re.DOTALL
 )
+# Strip ALL palette/settings includes from the source, whether or not
+# they carry the `<!-- shell:palette -->` / `<!-- /shell:palette -->`
+# marker comments. The byte-aligned chrome rewrite
+# (process_file byte_aligned path, regenerate_home byte_aligned path)
+# re-emits the canonical palette + settings blocks after </footer>. A
+# page that already contains a duplicate include from an earlier
+# broken regeneration would have BOTH the just-rewritten canonical
+# include AND the leftover old include, producing two `<div
+# class="shell-palette" id="palette">` elements on every page — 36
+# a11y violations per shell-a11y-check.py run. Stripping every
+# palette/settings div first guarantees the rewrite produces exactly
+# one canonical include. The drift check
+# (scripts/shell-drift-check.py) only byte-matches the FIRST
+# occurrence, so the duplicate slipped past drift validation. The
+# `<div class="shell-palette" id="palette" ...>` opening tag is the
+# unique anchor (the same id appears only inside that single include
+# div); the closing `</div>` matches the nearest one. We use a
+# non-greedy match bounded by the next `<div class="shell-palette"`,
+# `<div class="shell-settings"`, or end-of-file so the regex doesn't
+# consume unrelated content between two same-type includes. A
+# preceding comment-block of ~6 lines (3 lines above + 3 lines below
+# the marker, when present) is consumed too. Idempotent.
+_PALETTE_OPEN = r'<div\s+class="shell-palette"\s+id="palette"'
+# Note: the settings include div is `<div id="shell-settings-modal"
+# class="shell-settings-modal" ...>`. The unique anchor is the
+# `id="shell-settings-modal"` attribute — `class="shell-settings"`
+# (which the inner fieldset classes contain) is too generic.
+_SETTINGS_OPEN = r'<div\s+id="shell-settings-modal"\s+class="shell-settings-modal"'
+# Comment-block optionally surrounding the include: up to 8 lines of
+# `<!-- ... -->` comments, each preceded by optional whitespace, with
+# a trailing newline. This catches the 3-line comment block above and
+# below the marker comments that `palette.html` / `settings.html`
+# ship with, even when the marker comments themselves are absent
+# (older regenerated pages have the markers stripped).
+_OPTIONAL_COMMENT_BLOCK = r"(?:[ \t]*<!--[^\n]*-->\s*)*"
+# Stop boundary: anything that is clearly NOT part of the include
+# tail. Used to bound the non-greedy `.*?` match so it can't run to
+# EOF when the page has exactly ONE palette include followed by
+# exactly ONE settings include followed by the script-tag block.
+# Includes: another palette/settings opening tag, a top-level
+# `<script` tag (the trailing tool-script block), `</body>` close,
+# or the `<!-- ht:` marker that introduces the tools.json-inline
+# script tag.
+_STOP_BOUNDARY = (
+    r"(?:"
+    + _OPTIONAL_COMMENT_BLOCK + _PALETTE_OPEN
+    + r"|"
+    + _OPTIONAL_COMMENT_BLOCK + _SETTINGS_OPEN
+    + r"|<script[\s>]"
+    + r"|</body>"
+    + r"|<!--\s*ht:"
+    + r")"
+)
+ALL_PALETTE_INCLUDES_RE = re.compile(
+    _OPTIONAL_COMMENT_BLOCK
+    + _PALETTE_OPEN
+    + r".*?(?=" + _STOP_BOUNDARY + r")",
+    re.DOTALL,
+)
+ALL_SETTINGS_INCLUDES_RE = re.compile(
+    _OPTIONAL_COMMENT_BLOCK
+    + _SETTINGS_OPEN
+    + r".*?(?=" + _STOP_BOUNDARY + r")",
+    re.DOTALL,
+)
+
+
+def strip_duplicate_includes(source: str) -> str:
+    """Remove every palette/settings include div (plus any surrounding
+    comment block) from `source`. Returns the source with ALL such
+    blocks stripped (the caller is responsible for re-appending the
+    canonical blocks via the byte-aligned rewrite path).
+
+    The non-greedy `.*?` match is bounded by `_STOP_BOUNDARY` (next
+    palette/settings opening tag, `<script>` tag, `</body>`, or
+    `<!-- ht:` marker). Without this explicit boundary the regex
+    would happily run all the way to EOF when the page has exactly
+    one palette + one settings + a trailing script block — consuming
+    the script tags and the `</body></html>` close in the process.
+    """
+    new_source = ALL_PALETTE_INCLUDES_RE.sub("", source)
+    new_source = ALL_SETTINGS_INCLUDES_RE.sub("", new_source)
+    return new_source
 
 
 def read_chrome(root: Path) -> tuple[str, str, str, str, str]:
@@ -365,11 +448,26 @@ def transform(
         skip_html + "\n  " + header_html + "\n  ", new_source, count=1
     )
     if n == 0:
+        # Bug fix: a previous broken regeneration can leave a SECOND
+        # palette/settings include stranded below </footer> in the
+        # preserved tail. Detect that via the count check and trigger
+        # the byte-aligned rewrite even when chrome bytes look current.
+        palette_dup = new_source.count('class="shell-palette" id="palette"') > 1
+        settings_dup = new_source.count('id="shell-settings-modal"') > 1
         if (
             '<a class="shell-skip"' in new_source
             and '</footer>' in new_source
-            and (header_html not in new_source or footer_html not in new_source)
+            and (
+                header_html not in new_source
+                or footer_html not in new_source
+                or palette_dup
+                or settings_dup
+            )
         ):
+            # Strip every marker-delimited palette/settings block before
+            # the byte-aligned rewrite — the canonical blocks are
+            # re-appended by the rewrite itself.
+            new_source = strip_duplicate_includes(new_source)
             anchor_start = new_source.find('<a class="shell-skip"')
             anchor_end = new_source.find('</footer>', anchor_start)
             if anchor_start == -1 or anchor_end == -1:
@@ -727,6 +825,18 @@ def process_file(
     )
     palette_ok = palette_html in source
     settings_ok = settings_html in source
+    # Bug fix: a previous broken regeneration can leave a SECOND
+    # palette/settings include stranded in the page (the byte-aligned
+    # check above only requires "at least one" include, not "exactly
+    # one"). Count occurrences of the unique include id and require
+    # exactly one — the canonical rewrite will replace it. Two palette
+    # nodes would silently produce 2 listboxes + 2 comboboxes and
+    # double every shell-a11y-check.py palette assertion. Same
+    # pattern as `regenerate_home` above.
+    palette_count_in_source = source.count('class="shell-palette" id="palette"')
+    settings_count_in_source = source.count('id="shell-settings-modal"')
+    palette_count_ok = palette_count_in_source == 1
+    settings_count_ok = settings_count_in_source == 1
     # Story 1.12: site-config.js must load BEFORE storage-registry.js so
     # HT.siteConfig is defined before any module consults it. Missing the
     # tag would leave HT.siteConfig undefined and the footer link wiring
@@ -773,6 +883,8 @@ def process_file(
         chrome_ok
         and palette_ok
         and settings_ok
+        and palette_count_ok
+        and settings_count_ok
         and site_config_js_ok
         and site_config_first_ok
         and storage_registry_js_ok
@@ -996,14 +1108,23 @@ def process_file(
         # via splice_inline_tools_json's marker check.
         if not tools_json_inline_ok:
             new_source = splice_inline_tools_json(new_source, tools_json_inline)
-        # Build the trailing splice: palette first (if missing), then
-        # settings (if missing). Pages that need both get one rewrite;
-        # pages that need only settings get a smaller delta.
-        trailing = ""
-        if not palette_ok:
-            trailing += "\n\n  " + palette_html
-        if not settings_ok:
-            trailing += "\n\n  " + settings_html
+        # Always strip any existing palette/settings includes from the
+        # chrome tail before splicing in the canonical blocks. Without
+        # this strip, a stale palette (e.g. from before Story 3.1 added
+        # the live region + chord hints) stays in the file alongside
+        # the new canonical include — producing two `<div
+        # class="shell-palette" id="palette">` elements and 2 listboxes
+        # + 2 comboboxes (UX-DR-19 violation). The strip is bounded
+        # by `_STOP_BOUNDARY` so it cannot consume the trailing script
+        # tag block or the `</body></html>` close. Idempotent: if
+        # palette + settings are already canonical, the strip yields
+        # empty and the splice yields the same content back.
+        new_source = strip_duplicate_includes(new_source)
+        # Build the trailing splice: palette + settings in canonical
+        # order. Always emit both — the strip above has already
+        # removed any stale versions, so emitting the canonical pair
+        # produces exactly one of each.
+        trailing = "\n\n  " + palette_html + "\n\n  " + settings_html
         new_source = new_source[:insert_at] + trailing + new_source[insert_at:]
         if new_source == source:
             print(f"  no-change {path.relative_to(root)}")
@@ -1033,6 +1154,53 @@ def process_file(
         if not tools_json_inline_ok: missing.append("tools.json-inline")
         if not f'data-slug="{slug}"' in source: missing.append("data-slug")
         print(f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})")
+        return True
+
+    # Bug fix: chrome is byte-aligned and the IIFE is canonical, but the
+    # page has DUPLICATE palette/settings include blocks left over from
+    # an earlier broken regeneration. Strip every marker-delimited
+    # palette/settings block and re-append the canonical ones after
+    # </footer>. This must run BEFORE the IIFE-only branch (which would
+    # otherwise be a no-op on these pages, leaving the duplicates in
+    # place). The drift check only byte-matches the FIRST occurrence
+    # and so cannot detect this; shell-a11y-check.py flags it as 2
+    # listboxes + 2 comboboxes (UX-DR-19 violation).
+    if chrome_ok and (not palette_count_ok or not settings_count_ok):
+        footer_end = source.find('</footer>')
+        if footer_end == -1:
+            sys.stderr.write(
+                f"shell-template: chrome byte-aligned but </footer> not found in {path}\n"
+            )
+            return False
+        insert_at = footer_end + len('</footer>')
+        new_source = strip_duplicate_includes(source)
+        # Re-append the canonical palette + settings includes. Order
+        # matches the byte-aligned contract: palette first, then
+        # settings. Both blocks are full marker-delimited regions.
+        trailing = "\n\n  " + palette_html + "\n\n  " + settings_html
+        new_source = new_source[:insert_at] + trailing + new_source[insert_at:]
+        if new_source == source:
+            print(f"  no-change {path.relative_to(root)}")
+            return True
+        if dry_run:
+            print(
+                f"  would-write {path.relative_to(root)}  "
+                f"(dedupe palette={palette_count_in_source}→1, "
+                f"settings={settings_count_in_source}→1)"
+            )
+            return True
+        try:
+            path.write_text(new_source, encoding="utf-8")
+        except OSError as exc:
+            sys.stderr.write(
+                f"shell-template: write failed for {path}: {exc}\n"
+            )
+            sys.exit(3)
+        print(
+            f"  wrote {path.relative_to(root)}  "
+            f"(dedupe palette={palette_count_in_source}→1, "
+            f"settings={settings_count_in_source}→1)"
+        )
         return True
 
     # Chrome is byte-aligned but the inline FOUC IIFE in <head> is stale
@@ -1185,12 +1353,25 @@ def regenerate_home(
         or source.find('src="assets/js/site-config.js"')
         < source.find('src="assets/js/storage-registry.js"')
     )
+    # Bug fix: a previous broken regeneration can leave a SECOND
+    # palette/settings include stranded in the page (the byte-aligned
+    # check above only requires "at least one" include, not "exactly
+    # one"). Count occurrences of the unique include id and require
+    # exactly one — the canonical rewrite will replace it. Two palette
+    # nodes would silently produce 2 listboxes + 2 comboboxes and
+    # double every shell-a11y-check.py palette assertion.
+    palette_count_in_source = source.count('class="shell-palette" id="palette"')
+    settings_count_in_source = source.count('id="shell-settings-modal"')
+    palette_count_ok = palette_count_in_source == 1
+    settings_count_ok = settings_count_in_source == 1
     byte_aligned = (
         has_new_chrome
         and home_header in source
         and footer_html in source
         and palette_html_in_source
         and settings_html_in_source
+        and palette_count_ok
+        and settings_count_ok
         and home_grid_js_in_source
         and tools_json_inline_in_source
         and storage_registry_manifest_in_source
@@ -1228,6 +1409,53 @@ def regenerate_home(
         )
     if byte_aligned and iife_ok and nested_count <= 1:
         print(f"  no-change {path.relative_to(root)}  (already has new chrome)")
+        return True
+
+    # Bug fix: chrome is byte-aligned and the IIFE is canonical, but the
+    # home page has DUPLICATE palette/settings include blocks left over
+    # from an earlier broken regeneration. Strip every marker-delimited
+    # palette/settings block and re-append the canonical ones after
+    # </footer>. The home page's chrome grid is left untouched. This
+    # must run BEFORE the IIFE-only branch (which would otherwise be a
+    # no-op on these pages, leaving the duplicates in place).
+    if (
+        has_new_chrome
+        and home_header in source
+        and footer_html in source
+        and (not palette_count_ok or not settings_count_ok)
+    ):
+        footer_end = source.find('</footer>')
+        if footer_end == -1:
+            sys.stderr.write(
+                f"shell-template: home page chrome byte-aligned but </footer> not found\n"
+            )
+            return False
+        insert_at = footer_end + len('</footer>')
+        new_source = strip_duplicate_includes(source)
+        trailing = "\n\n  " + palette_html + "\n\n  " + settings_html
+        new_source = new_source[:insert_at] + trailing + new_source[insert_at:]
+        if new_source == source:
+            print(f"  no-change {path.relative_to(root)}")
+            return True
+        if dry_run:
+            print(
+                f"  would-write {path.relative_to(root)}  "
+                f"(dedupe palette={palette_count_in_source}→1, "
+                f"settings={settings_count_in_source}→1)"
+            )
+            return True
+        try:
+            path.write_text(new_source, encoding="utf-8")
+        except OSError as exc:
+            sys.stderr.write(
+                f"shell-template: write failed for {path}: {exc}\n"
+            )
+            sys.exit(3)
+        print(
+            f"  wrote {path.relative_to(root)}  "
+            f"(dedupe palette={palette_count_in_source}→1, "
+            f"settings={settings_count_in_source}→1)"
+        )
         return True
 
     # Chrome is byte-aligned but the inline FOUC IIFE in <head> is stale
@@ -1296,12 +1524,19 @@ def regenerate_home(
             )
             return False
         insert_at = footer_end + len('</footer>')
-        trailing = ""
-        if not palette_html_in_source:
-            trailing += "\n\n  " + palette_html
-        if not settings_html_in_source:
-            trailing += "\n\n  " + settings_html
-        new_source = source[:insert_at] + trailing + source[insert_at:]
+        # Always strip existing palette/settings includes from the chrome
+        # tail before splicing in the canonical blocks. Without this
+        # strip, a stale palette (e.g. from before Story 3.1 added the
+        # live region + chord hints) stays in the file alongside the new
+        # canonical include — producing two `<div class="shell-palette"
+        # id="palette">` elements and 2 listboxes + 2 comboboxes (UX-DR-19
+        # violation). The strip is bounded by `_STOP_BOUNDARY` so it
+        # cannot consume the trailing script tag block. Idempotent: if
+        # palette + settings are already canonical, the strip yields
+        # empty and the splice yields the same content back.
+        new_source = strip_duplicate_includes(source)
+        trailing = "\n\n  " + palette_html + "\n\n  " + settings_html
+        new_source = new_source[:insert_at] + trailing + new_source[insert_at:]
 
         # Story 1.9: same short-circuit pattern as the chrome_only_aligned
         # branch above. If the inline tools.json block (file:// fallback)
@@ -1552,13 +1787,18 @@ def regenerate_home(
         # and the `</footer>` close, then append the palette include
         # after the footer so the palette overlay is mounted on every
         # page.
+        # Bug fix: a previous broken regeneration can leave a SECOND
+        # palette include block stranded below </footer> in the preserved
+        # tail. Strip every marker-delimited palette/settings block first
+        # so the rewrite produces exactly one canonical include.
+        new_source = strip_duplicate_includes(source)
         new_chrome = (
             skip_html + "\n  " + home_header + "\n  "
             + footer_html + "\n\n  " + palette_html + "\n\n  "
             + settings_html + "\n\n  "
         )
-        anchor_start = source.find('<a class="shell-skip"')
-        anchor_end = source.find('</footer>', anchor_start)
+        anchor_start = new_source.find('<a class="shell-skip"')
+        anchor_end = new_source.find('</footer>', anchor_start)
         if anchor_start == -1 or anchor_end == -1:
             sys.stderr.write(
                 "shell-template: home page chrome markers found but cannot anchor "
@@ -1566,7 +1806,7 @@ def regenerate_home(
             )
             return False
         anchor_end += len('</footer>')
-        new_source = source[:anchor_start] + new_chrome + source[anchor_end:]
+        new_source = new_source[:anchor_start] + new_chrome + new_source[anchor_end:]
     else:
         # Legacy path: replace <div id="site-header"></div> with skip+header.
         new_header_block = skip_html + "\n  " + home_header + "\n  "
