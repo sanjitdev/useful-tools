@@ -40,6 +40,7 @@ on:
       - "scripts/_es5_grep.py"
       - "scripts/_smoke_quality.js"
       - "scripts/_smoke_regression_sweep.js"
+      - "scripts/_smoke_regression_sweep_negative.js"
       - "scripts/_regression_sweep.py"
       - "assets/js/quality.js"
       - "assets/js/utils.js"
@@ -94,6 +95,7 @@ on:
       - "scripts/_es5_grep.py"
       - "scripts/_smoke_quality.js"
       - "scripts/_smoke_regression_sweep.js"
+      - "scripts/_smoke_regression_sweep_negative.js"
       - "scripts/_regression_sweep.py"
       - "assets/js/quality.js"
       - "assets/js/utils.js"
@@ -322,8 +324,18 @@ jobs:
         # `.regression-sweep-output.txt` so the Markdown report is
         # uploadable as a build artifact. The path filter covers
         # tools/**, assets/js/**, scripts/_smoke_regression_sweep.js,
+        # scripts/_smoke_regression_sweep_negative.js,
         # scripts/_regression_sweep.py, and the workflow file itself.
         run: make regression-sweep
+
+      - name: Regression-sweep negative-test battery (Story 2.12)
+        # Proves each of the 6 regression-sweep checks is meaningful,
+        # not vacuous. For each check, inject a known-broken fixture,
+        # run the sweep, and assert the expected check flips to false.
+        # 6 PASS expected. If any check stays true under its broken
+        # fixture, the sweep has a vacuous pass and 210/210 is
+        # meaningless — exit 1 fails the gate.
+        run: make regression-sweep-negative
 
       - name: Upload regression sweep report
         # Story 2.12 AC-7: when the sweep fails (or passes) the

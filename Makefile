@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -59,7 +59,8 @@ help: ## Show available targets
 	@echo "  make es5-grep            Scan assets/js/** for ES5 anti-patterns (`var` declarations + `.concat(` calls). Story 2.10 gate."
 	@echo "  make quality-smoke       Run the Node smoke harness for quality.html + assets/js/quality.js (Story 2.11 /quality inventory view)"
 	@echo "  make regression-sweep    Run the cross-cutting tool-JS regression sweep (Story 2.12 — vm-context Node harness + Python wrapper; emits .regression-sweep-output.txt)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + quality-smoke + regression-sweep"
+	@echo "  make regression-sweep-negative  Run the 6 negative-test battery for the regression sweep (proves each check is meaningful, not vacuous)"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + quality-smoke + regression-sweep + regression-sweep-negative"
 
 validate: validate-tools-json
 
@@ -103,7 +104,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -446,3 +447,12 @@ quality-smoke:
 regression-sweep:
 	@$(PYTHON) scripts/_regression_sweep.py
 	@echo "report: $$(pwd)/.regression-sweep-output.txt"
+
+# `regression-sweep-negative` runs the negative-test battery against the
+# regression sweep. For each of the 6 checks (schema, html, jsLoad,
+# history, consoleError, fetch), inject a known-broken fixture, run the
+# sweep, and assert the expected check flips to false. 6 PASS expected
+# (one per check). If any check stays true under its broken fixture, the
+# sweep has a vacuous pass and 210/210 is meaningless — exit 1.
+regression-sweep-negative:
+	@node scripts/_smoke_regression_sweep_negative.js

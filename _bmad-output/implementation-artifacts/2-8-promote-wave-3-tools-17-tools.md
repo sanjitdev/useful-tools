@@ -108,7 +108,7 @@ mechanically, the `<slug>.css` has `@media print`, and the tool's
 
 | File | Change |
 |---|---|
-| `_bmad-output/implementation-artifacts/2-8-promote-wave-3-tools-16-tools.md` | NEW (this file) |
+| `_bmad-output/implementation-artifacts/2-8-promote-wave-3-tools-17-tools.md` | NEW (this file) |
 | `tools.json` | +17 entries (Wave-3) |
 | `tools/<slug>/<slug>.css` × 17 | +`@media print` block |
 | `scripts/_promote_wave_3.py` | NEW — idempotent validator + entry emitter |
@@ -227,7 +227,7 @@ No `index.html` head changes required (Story 2.5 already wired Shell script tags
 
 ## File List
 
-- `_bmad-output/implementation-artifacts/2-8-promote-wave-3-tools-16-tools.md` (this file)
+- `_bmad-output/implementation-artifacts/2-8-promote-wave-3-tools-17-tools.md` (this file)
 - `tools.json` (modified — +17 entries)
 - `tools/<slug>/<slug>.css` × 17 (modified — @media print block)
 - `scripts/_promote_wave_3.py` (NEW)
