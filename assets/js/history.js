@@ -203,7 +203,7 @@
     const current = _readRaw(slug);
     // FIFO cap of 10 per FR-12. _writeRaw writes a fresh plain
     // array so the caller's frozen view isn't reflected back.
-    const next = current.concat([historyEntry]);
+    const next = [...current, historyEntry];
     if (next.length > 10) next.splice(0, next.length - 10);
     _writeRaw(slug, next);
 

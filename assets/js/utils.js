@@ -5,23 +5,16 @@
 
 window.HT = window.HT || {};
 
-HT.qs = function (sel, root) {
-  return (root || document).querySelector(sel);
-};
+HT.qs = (sel, root) => (root || document).querySelector(sel);
 
-HT.qsa = function (sel, root) {
-  return Array.from((root || document).querySelectorAll(sel));
-};
+HT.qsa = (sel, root) => Array.from((root || document).querySelectorAll(sel));
 
 HT.$ = HT.qs;
 HT.$$ = HT.qsa;
 
-HT.formatNumber = function (n, opts) {
-  opts = opts || {};
-  var min = opts.minFractionDigits;
-  var max = opts.maxFractionDigits;
-  if (typeof min !== 'number') min = 0;
-  if (typeof max !== 'number') max = 4;
+HT.formatNumber = (n, opts) => {
+  const min = (opts && typeof opts.minFractionDigits === 'number') ? opts.minFractionDigits : 0;
+  const max = (opts && typeof opts.maxFractionDigits === 'number') ? opts.maxFractionDigits : 4;
   if (!isFinite(n)) return '—';
   return n.toLocaleString(undefined, {
     minimumFractionDigits: min,
@@ -29,67 +22,68 @@ HT.formatNumber = function (n, opts) {
   });
 };
 
-HT.formatDuration = function (ms) {
-  var sign = ms < 0 ? '-' : '';
-  var abs = Math.abs(Math.round(ms / 1000));
-  var days = Math.floor(abs / 86400);
-  var hours = Math.floor((abs % 86400) / 3600);
-  var minutes = Math.floor((abs % 3600) / 60);
-  var seconds = abs % 60;
-  var parts = [];
-  if (days) parts.push(days + 'd');
-  if (hours || days) parts.push(hours + 'h');
-  if (minutes || hours || days) parts.push(minutes + 'm');
-  parts.push(seconds + 's');
+HT.formatDuration = (ms) => {
+  const sign = ms < 0 ? '-' : '';
+  const abs = Math.abs(Math.round(ms / 1000));
+  const days = Math.floor(abs / 86400);
+  const hours = Math.floor((abs % 86400) / 3600);
+  const minutes = Math.floor((abs % 3600) / 60);
+  const seconds = abs % 60;
+  const parts = [];
+  if (days) parts.push(`${days}d`);
+  if (hours || days) parts.push(`${hours}h`);
+  if (minutes || hours || days) parts.push(`${minutes}m`);
+  parts.push(`${seconds}s`);
   return sign + parts.join(' ');
 };
 
-HT.formatDurationHMS = function (ms) {
-  var abs = Math.abs(Math.round(ms / 1000));
-  var h = Math.floor(abs / 3600);
-  var m = Math.floor((abs % 3600) / 60);
-  var s = abs % 60;
-  var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
-  return pad(h) + ':' + pad(m) + ':' + pad(s);
+HT.formatDurationHMS = (ms) => {
+  const abs = Math.abs(Math.round(ms / 1000));
+  const h = Math.floor(abs / 3600);
+  const m = Math.floor((abs % 3600) / 60);
+  const s = abs % 60;
+  const pad = (n) => (n < 10 ? `0${n}` : `${n}`);
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
 };
 
-HT.debounce = function (fn, ms) {
-  var t;
+HT.debounce = (fn, ms) => {
+  let t;
   return function () {
-    var args = arguments, ctx = this;
+    const args = arguments;
+    const ctx = this;
     clearTimeout(t);
-    t = setTimeout(function () { fn.apply(ctx, args); }, ms);
+    t = setTimeout(() => fn.apply(ctx, args), ms);
   };
 };
 
 /* ---------- Toast ---------- */
 
-HT.toast = function (msg, ms) {
-  ms = ms || 1800;
-  var container = document.querySelector('.toast-container');
+HT.toast = (msg, ms) => {
+  const lifetime = ms || 1800;
+  let container = document.querySelector('.toast-container');
   if (!container) {
     container = document.createElement('div');
     container.className = 'toast-container';
     document.body.appendChild(container);
   }
-  var el = document.createElement('div');
+  const el = document.createElement('div');
   el.className = 'toast';
   el.textContent = msg;
   container.appendChild(el);
-  setTimeout(function () {
+  setTimeout(() => {
     el.style.opacity = '0';
     el.style.transition = 'opacity 0.2s';
-    setTimeout(function () { el.remove(); }, 200);
-  }, ms);
+    setTimeout(() => { el.remove(); }, 200);
+  }, lifetime);
 };
 
 /* ---------- Clipboard ---------- */
 
-HT.copyToClipboard = function (text) {
+HT.copyToClipboard = (text) => {
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    return navigator.clipboard.writeText(text).then(function () {
+    return navigator.clipboard.writeText(text).then(() => {
       HT.toast('Copied to clipboard');
-    }).catch(function () {
+    }).catch(() => {
       HT.fallbackCopy(text);
     });
   }
@@ -97,8 +91,8 @@ HT.copyToClipboard = function (text) {
   return Promise.resolve();
 };
 
-HT.fallbackCopy = function (text) {
-  var ta = document.createElement('textarea');
+HT.fallbackCopy = (text) => {
+  const ta = document.createElement('textarea');
   ta.value = text;
   ta.style.position = 'fixed';
   ta.style.opacity = '0';
@@ -128,38 +122,38 @@ HT.storage = {
   // — shell-template.py enforces this; this fallback just makes the
   // failure mode debuggable instead of catastrophic.
   _warned: false,
-  _guard: function (op) {
+  _guard: (op) => {
     if (window.HT && window.HT.storageRegistry) return false;
     if (!HT.storage._warned) {
       HT.storage._warned = true;
       console.error(
-        'HT.storage.' + op + ': registry not loaded — storage-registry.js must precede utils.js. ' +
+        `HT.storage.${op}: registry not loaded — storage-registry.js must precede utils.js. ` +
         'Subsequent calls will silently noop until the registry boots.'
       );
     }
     return true;
   },
-  get: function (key, fallback) {
+  get: (key, fallback) => {
     if (HT.storage._guard('get')) return fallback;
     return window.HT.storageRegistry.get(key, fallback);
   },
-  set: function (key, value) {
+  set: (key, value) => {
     if (HT.storage._guard('set')) return false;
     return window.HT.storageRegistry.set(key, value);
   },
-  remove: function (key) {
+  remove: (key) => {
     if (HT.storage._guard('remove')) return false;
     return window.HT.storageRegistry.remove(key);
   },
-  list: function () {
+  list: () => {
     if (HT.storage._guard('list')) return [];
     return window.HT.storageRegistry.list();
   },
-  keys: function () {
+  keys: () => {
     if (HT.storage._guard('keys')) return [];
     return window.HT.storageRegistry.keys();
   },
-  clear: function () {
+  clear: () => {
     if (HT.storage._guard('clear')) return;
     return window.HT.storageRegistry.clear();
   }
@@ -167,62 +161,54 @@ HT.storage = {
 
 /* ---------- Audio beep helper (used by timer/pomodoro) ---------- */
 
-HT.beep = function (duration, freq) {
-  duration = duration || 0.25;
-  freq = freq || 880;
+HT.beep = (duration, freq) => {
+  const dur = duration || 0.25;
+  const f = freq || 880;
   try {
-    var AC = window.AudioContext || window.webkitAudioContext;
+    const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
-    var ctx = new AC();
-    var o = ctx.createOscillator();
-    var g = ctx.createGain();
+    const ctx = new AC();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
     o.type = 'sine';
-    o.frequency.value = freq;
+    o.frequency.value = f;
     g.gain.value = 0.0001;
     o.connect(g);
     g.connect(ctx.destination);
     o.start();
     g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
-    o.stop(ctx.currentTime + duration + 0.02);
-    setTimeout(function () { ctx.close().catch(function () {}); }, (duration + 0.1) * 1000);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+    o.stop(ctx.currentTime + dur + 0.02);
+    setTimeout(() => { ctx.close().catch(() => {}); }, (dur + 0.1) * 1000);
   } catch (e) { /* ignore */ }
 };
 
-HT.chime = function () {
+HT.chime = () => {
   HT.beep(0.18, 880);
-  setTimeout(function () { HT.beep(0.18, 1175); }, 200);
-  setTimeout(function () { HT.beep(0.3, 1568); }, 400);
+  setTimeout(() => { HT.beep(0.18, 1175); }, 200);
+  setTimeout(() => { HT.beep(0.3, 1568); }, 400);
 };
 
 /* ---------- Random helpers ---------- */
 
-HT.randomInt = function (min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-};
+HT.randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-HT.uid = function () {
-  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-};
+HT.uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
 /* ---------- Date helpers ---------- */
 
-HT.isLeapYear = function (year) {
-  return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
-};
+HT.isLeapYear = (year) => (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
 
-HT.daysInMonth = function (year, month) {
-  return new Date(year, month + 1, 0).getDate();
-};
+HT.daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
 
-HT.formatDate = function (d) {
+HT.formatDate = (d) => {
   if (!(d instanceof Date) || isNaN(d)) return '—';
   return d.toLocaleDateString(undefined, {
     year: 'numeric', month: 'long', day: 'numeric'
   });
 };
 
-HT.formatDateShort = function (d) {
+HT.formatDateShort = (d) => {
   if (!(d instanceof Date) || isNaN(d)) return '—';
   return d.toLocaleDateString(undefined, {
     year: 'numeric', month: 'short', day: 'numeric'
@@ -231,15 +217,15 @@ HT.formatDateShort = function (d) {
 
 /* ---------- Tabs helper ---------- */
 
-HT.makeTabs = function (container, onChange) {
-  HT.qsa('.tab', container).forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      HT.qsa('.tab', container).forEach(function (t) { t.classList.remove('is-active'); });
+HT.makeTabs = (container, onChange) => {
+  HT.qsa('.tab', container).forEach((tab) => {
+    tab.addEventListener('click', () => {
+      HT.qsa('.tab', container).forEach((t) => { t.classList.remove('is-active'); });
       tab.classList.add('is-active');
-      var target = tab.getAttribute('data-tab');
+      const target = tab.getAttribute('data-tab');
       // Panels are typically siblings of the tabs container, not descendants,
       // so search document-wide. (Both selectors are still respected.)
-      HT.qsa('[data-tab-panel]').forEach(function (p) {
+      HT.qsa('[data-tab-panel]').forEach((p) => {
         p.style.display = p.getAttribute('data-tab-panel') === target ? '' : 'none';
       });
       if (onChange) onChange(target);
