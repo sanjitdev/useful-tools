@@ -921,14 +921,21 @@ def process_file(
     search_js_ok = (
         'src="../../assets/js/search.js"' in source
     )
-    # Story 3.2: palette-actions.js MUST load BEFORE shell.js so
-    # `HT_PALETTE_ACTIONS` is defined when shell.js boots and consumes
-    # the array into the `_actions` registry. Without it the palette's
-    # action matcher has nothing to filter against and the 6 global
-    # actions never appear in the listbox. The byte-aligned gate
-    # enforces presence; the splice below handles injection.
+    # Story 3.2 + 3.2-review patch #10: palette-actions.js MUST load
+    # BEFORE shell.js so `HT_PALETTE_ACTIONS` is defined when shell.js
+    # boots and consumes the array into the `_actions` registry.
+    # Without it the palette's action matcher has nothing to filter
+    # against and the 6 global actions never appear in the listbox.
+    # The byte-aligned gate detects presence; the boot-order check
+    # below pins relative position (palette-actions.js must precede
+    # shell.js). The splice below handles injection.
     palette_actions_js_ok = (
         'src="../../assets/js/palette-actions.js"' in source
+    )
+    palette_actions_js_before_shell_js = (
+        not palette_actions_js_ok
+        or source.index('src="../../assets/js/palette-actions.js"')
+            < source.index('src="../../assets/js/shell.js" defer')
     )
     # Story 1.12 (review patch — Decision #1): the inline tools.json
     # block (file:// fallback for home-grid.js) must also live on tool
@@ -951,6 +958,7 @@ def process_file(
         and storage_registry_js_ok
         and search_js_ok
         and palette_actions_js_ok
+        and palette_actions_js_before_shell_js
         and tools_json_inline_ok
     )
     # Find the IIFE block on the FIRST `<script>` opener in <head>. The IIFE

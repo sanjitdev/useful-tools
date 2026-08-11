@@ -45,6 +45,7 @@
   <script src="../assets/js/sample-data.js"></script>
   <script src="../assets/js/share.js"></script>
   <script src="../assets/js/a11y.js"></script>
+  <script src="../assets/js/palette-actions.js"></script>
   <script src="../assets/js/search.js"></script>
   <script type="application/json" id="ht-tools-json-inline">
 {"$schema":"tools.schema.json","schemaVersion":"1","releaseVersion":"0.0.0","generated":"2026-08-11T00:00:00Z","tools":[{"id":"qr-code-generator","slug":"qr-code-generator","title":"QR Code Generator","description":"Generate QR codes from text.","category":"Converters & Calculators","keywords":["qr","barcode","code"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"qr-reader","slug":"qr-reader","title":"QR Reader","description":"Scan a QR code from an image.","category":"Converters & Calculators","keywords":["qr","scan","read"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"qr-batch","slug":"qr-batch","title":"QR Batch","description":"Bulk QR generation.","category":"Converters & Calculators","keywords":["qr","bulk","batch"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"qr-styler","slug":"qr-styler","title":"QR Styler","description":"Style QR codes with colors and logos.","category":"Converters & Calculators","keywords":["qr","style","logo"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"qr-tracker","slug":"qr-tracker","title":"QR Tracker","description":"Track QR scans over time.","category":"Converters & Calculators","keywords":["qr","track","analytics"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"inflation-calculator","slug":"inflation-calculator","title":"Inflation Calculator","description":"CPI-adjusted value.","category":"Converters & Calculators","keywords":["inflation","cpi"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"compound-interest","slug":"compound-interest","title":"Compound Interest","description":"Future value with periodic compounding.","category":"Finance","keywords":["compound","interest","fv"],"last-updated":"2026-08-11T00:00:00Z","ready":true},{"id":"tip-calculator","slug":"tip-calculator","title":"Tip Calculator","description":"Tip amount and total per person.","category":"Converters & Calculators","keywords":["tip","gratuity","split"],"last-updated":"2026-08-11T00:00:00Z","ready":true}]}
@@ -295,6 +296,126 @@
               if (typeof window.HT.palette.close === 'function') window.HT.palette.close();
             }
           } catch (err) { fail('JS-driven render', err.message); }
+
+          // ---- Test 14 (Story 3.2 AC-1/AC-6/AC-7): action row rendered ----
+          // Story 3.2-review patch #1 / Task 8.2: typing 'theme' must
+          // surface the theme.toggle action row (data-kind="action",
+          // data-action-id="theme.toggle") with an icon span. Also
+          // verifies the top-5 cap on tools does NOT count toward the
+          // action group (AC-7).
+          try {
+            const palette = document.getElementById('palette');
+            const input = document.getElementById('palette-input');
+            const listbox = document.getElementById('palette-listbox');
+            if (!palette || !input || !listbox) {
+              fail('action row: palette DOM', 'palette/input/listbox missing');
+            } else if (typeof window.HT.palette.open !== 'function') {
+              fail('action row: HT.palette.open', 'not a function');
+            } else {
+              window.HT.palette.open();
+              input.value = 'theme';
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+              await new Promise((res) => setTimeout(res, 120)); // > 50ms debounce
+              const actionRows = listbox.querySelectorAll('[role="option"][data-kind="action"]');
+              if (actionRows.length >= 1) {
+                pass('action row: at least 1 [data-kind="action"] row after typing "theme"');
+              } else {
+                fail('action row: data-kind="action" present', 'got ' + actionRows.length + ' action rows');
+              }
+              const themeRow = listbox.querySelector('[data-action-id="theme.toggle"]');
+              if (themeRow) {
+                pass('action row: theme.toggle action row present (data-action-id)');
+              } else {
+                fail('action row: theme.toggle data-action-id', 'row not found');
+              }
+              // Patch #11: icon span renders inside the action row.
+              if (themeRow && themeRow.querySelector('.shell-palette-icon[data-icon="theme"]')) {
+                pass('action row: theme.icon span rendered');
+              } else {
+                fail('action row: theme.icon span', 'span missing or data-icon wrong');
+              }
+              // Patch #12: aria-hidden="true" on the icon span.
+              const iconSpan = themeRow && themeRow.querySelector('.shell-palette-icon');
+              if (iconSpan && iconSpan.getAttribute('aria-hidden') === 'true') {
+                pass('action row: icon span carries aria-hidden="true"');
+              } else {
+                fail('action row: icon aria-hidden', 'missing or wrong value');
+              }
+              // The matchActions result is frozen + has no run on the wire.
+              const actionRowsTest = window.HT.palette.matchActions('theme');
+              if (Array.isArray(actionRowsTest) && Object.isFrozen(actionRowsTest)) {
+                pass('matchActions result array frozen (DOM harness)');
+              } else {
+                fail('matchActions result array frozen', 'isFrozen=' + Object.isFrozen(actionRowsTest));
+              }
+              if (actionRowsTest.length > 0 && Object.isFrozen(actionRowsTest[0]) && !('run' in actionRowsTest[0])) {
+                pass('matchActions row: frozen + no run');
+              } else {
+                fail('matchActions row frozen + no run', 'row=' + JSON.stringify(actionRowsTest[0]));
+              }
+              if (typeof window.HT.palette.close === 'function') window.HT.palette.close();
+            }
+          } catch (err) { fail('action row', err.message); }
+
+          // ---- Test 15 (Story 3.2 AC-3): no-match query, no actions ----
+          // Typing 'xyzzy' must produce 0 action rows; the empty-state
+          // row remains visible.
+          try {
+            const palette = document.getElementById('palette');
+            const input = document.getElementById('palette-input');
+            const listbox = document.getElementById('palette-listbox');
+            if (palette && input && listbox && typeof window.HT.palette.open === 'function') {
+              window.HT.palette.open();
+              input.value = 'xyzzy';
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+              await new Promise((res) => setTimeout(res, 120));
+              const actionRows = listbox.querySelectorAll('[role="option"][data-kind="action"]');
+              if (actionRows.length === 0) {
+                pass('no-match query: 0 action rows after typing "xyzzy"');
+              } else {
+                fail('no-match query: 0 action rows', 'got ' + actionRows.length);
+              }
+              const empty = listbox.querySelector('.shell-palette-empty');
+              if (empty && empty.textContent && empty.textContent.indexOf('xyzzy') !== -1) {
+                pass('no-match query: empty-state row visible with "xyzzy"');
+              } else {
+                fail('no-match query: empty-state', 'textContent="' + (empty && empty.textContent) + '"');
+              }
+              if (typeof window.HT.palette.close === 'function') window.HT.palette.close();
+            }
+          } catch (err) { fail('no-match query', err.message); }
+
+          // ---- Test 16 (Story 3.2 AC-2): action row click closes palette ----
+          // Clicking an action row should close the palette (the
+          // palette's own dispatcher closes before invoking runAction).
+          try {
+            const palette = document.getElementById('palette');
+            const input = document.getElementById('palette-input');
+            const listbox = document.getElementById('palette-listbox');
+            if (palette && input && listbox && typeof window.HT.palette.open === 'function') {
+              window.HT.palette.open();
+              input.value = 'theme';
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+              await new Promise((res) => setTimeout(res, 120));
+              const themeRow = listbox.querySelector('[data-action-id="theme.toggle"]');
+              // Stub HT.theme.cycle so the action no-ops instead of
+              // mutating the document (the harness has no FOUC IIFE).
+              if (window.HT && window.HT.theme) {
+                window.HT.theme = Object.freeze({ cycle: () => 'no-op' });
+              }
+              if (themeRow) {
+                themeRow.click();
+                await new Promise((res) => setTimeout(res, 50));
+                if (!window.HT.palette.isOpen()) {
+                  pass('action row click closes the palette');
+                } else {
+                  fail('action row click closes palette', 'still open after click');
+                }
+              } else {
+                fail('action row click: theme row not found', 'listbox query returned null');
+              }
+            }
+          } catch (err) { fail('action row click closes palette', err.message); }
 
         } catch (err) {
           fail('harness setup', err.message);

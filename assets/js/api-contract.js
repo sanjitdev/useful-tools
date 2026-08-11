@@ -46,21 +46,14 @@ window.HT.__apiContract = Object.freeze({
       signature: '() => void',
       stability: 'stable',
       module: 'assets/js/shell.js',
-      notes: 'Story 3.2. AD-14 public wrapper over the internal `toggleTheme()` function. Cycles auto → light → dark → auto and updates data-theme. No-op in embed mode. Delegated to by the static `theme.toggle` action in palette-actions.js.',
-    }),
-    Object.freeze({
-      name: 'HT.theme.current',
-      signature: '() => string | null',
-      stability: 'stable',
-      module: 'assets/js/shell.js',
-      notes: 'Story 3.2. Returns the live resolved theme value (light/dark). Equivalent to HT.shell.theme() but provided on the HT.theme namespace for symmetry with the cycle action.',
+      notes: 'Story 3.2. AD-14 public wrapper over the internal `toggleTheme()` function. Cycles auto → light → dark → auto and updates data-theme. No-op in embed mode. Delegated to by the static `theme.toggle` action in palette-actions.js. Read-only (Object.defineProperties, writable:false).',
     }),
     Object.freeze({
       name: 'HT.viewSource.open',
       signature: '(slug?: string) => Promise<boolean>',
       stability: 'stable',
       module: 'assets/js/shell.js',
-      notes: 'Story 3.2. AD-14 surface for the `source.view` palette action. Resolves the current tool slug from data-slug / URL when slug is omitted, then navigates to `${HT.siteConfig.blobBase}/tools/<slug>/index.html` via window.location.assign. Resolves false on the home page or when blobBase is missing (no throw). The Promise is fire-and-forget on the navigation side.',
+      notes: 'Story 3.2 (revised 3.2-review). AD-14 surface for the `source.view` palette action. Resolves the current tool slug from data-slug / URL when slug is omitted, then navigates to `${HT.siteConfig.blobBase}/tools/<slug>/index.html` via window.location.assign. Slugs are validated against /^[a-z0-9-]+$/ — any other shape (including `../` traversal) resolves false without navigating. Resolves false on the home page or when blobBase is missing (no throw). The Promise is fire-and-forget on the navigation side. Read-only (Object.defineProperties, writable:false).',
     }),
     Object.freeze({
       name: 'HT.palette.open',

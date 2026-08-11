@@ -78,6 +78,9 @@
   }
 
   function runOpenPrivacy() {
+    // Matches the chrome.html footer link ("/privacy"). Both routes
+    // resolve through the static server (no .html suffix) — see
+    // assets/shell/chrome.html:41.
     navigate('/privacy');
   }
 
@@ -200,7 +203,13 @@
     Object.freeze({
       id: 'help.open',
       label: 'Show keyboard shortcuts',
-      keywords: buildKeywords('help', 'shortcuts', '?'),
+      // Story 3.2-review patch #20: '?' removed from keywords. The
+      // palette help chord (line 803-806 in shell.js) fires when the
+      // user types '?' into the input; adding '?' here caused a
+      // double-fire (palette filter matched AND the chord emitted).
+      // The chord remains the canonical entry-point for the help
+      // overlay; the keyword list still matches 'help' / 'shortcuts'.
+      keywords: buildKeywords('help', 'shortcuts'),
       icon: 'help',
       run: runOpenHelp,
     }),

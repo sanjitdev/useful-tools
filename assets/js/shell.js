@@ -260,56 +260,79 @@
       theme: () => document.documentElement.getAttribute('data-theme'),
     });
 
-    // Story 3.2: HT.theme.cycle — public wrapper over the private
-    // `toggleTheme()` function above. AD-14 surface that the static
-    // `theme.toggle` action in palette-actions.js delegates to. The
-    // toggle button click path still works; this is the keyboard-
-    // driven equivalent (palette Enter dispatch).
-    HT.theme = Object.freeze({
-      cycle: () => { try { toggleTheme(); } catch (e) { console.warn('theme.cycle threw', e); } },
-      current: () => document.documentElement.getAttribute('data-theme'),
+    // Story 3.2 + 3.2-review: HT.theme.cycle — public wrapper over the
+    // private `toggleTheme()` function above. AD-14 surface that the
+    // static `theme.toggle` action in palette-actions.js delegates to.
+    // The toggle button click path still works; this is the keyboard-
+    // driven equivalent (palette Enter dispatch). Use
+    // Object.defineProperties (writable: false, configurable: false) so
+    // a `HT.theme = {...}` overwrite attempt throws in strict mode,
+    // matching the provide/use/net pattern at lines 145-160.
+    Object.defineProperties(HT, {
+      theme: {
+        value: Object.freeze({
+          cycle: () => { try { toggleTheme(); } catch (e) { console.warn('theme.cycle threw', e); } },
+        }),
+        writable: false,
+        configurable: false,
+        enumerable: true,
+      },
     });
 
-    // Story 3.2: HT.viewSource.open(slug?) — public wrapper over the
-    // private `resolveCurrentSlug()` + the existing view-source URL
-    // resolution. Returns a Promise that resolves when navigation
+    // Story 3.2 + 3.2-review: HT.viewSource.open(slug?) — public wrapper
+    // over the private `resolveCurrentSlug()` + the existing view-source
+    // URL resolution. Returns a Promise that resolves when navigation
     // starts (window.location.assign is fire-and-forget). When no slug
     // is passed and the page is the home page (or any non-tool URL),
     // the promise resolves to false (no-op) so callers can branch
-    // without throwing.
-    HT.viewSource = Object.freeze({
-      open: (slug) => {
-        return new Promise((resolve) => {
-          try {
-            const target = (typeof slug === 'string' && slug.length > 0)
-              ? slug
-              : resolveCurrentSlug();
-            if (!target) {
-              console.warn('viewSource.open: no slug available on this page');
-              resolve(false);
-              return;
-            }
-            if (!HT.siteConfig || !HT.siteConfig.blobBase) {
-              console.warn('viewSource.open: HT.siteConfig.blobBase missing');
-              resolve(false);
-              return;
-            }
-            const blobBase = String(HT.siteConfig.blobBase).replace(/\/+$/, '');
-            const pathSegment = 'tools/' + target + '/index.html';
-            const href = blobBase + '/' + pathSegment;
-            try {
-              window.location.assign(href);
-            } catch (e) {
-              console.warn('viewSource.open: location.assign threw', e);
-              resolve(false);
-              return;
-            }
-            resolve(true);
-          } catch (e) {
-            console.warn('viewSource.open: unexpected throw', e);
-            resolve(false);
-          }
-        });
+    // without throwing. Defensive: rejects slugs containing `..` to
+    // prevent path traversal (e.g. viewSource.open('../etc/passwd')
+    // must not navigate outside `tools/`).
+    Object.defineProperties(HT, {
+      viewSource: {
+        value: Object.freeze({
+          open: (slug) => {
+            return new Promise((resolve) => {
+              try {
+                const raw = (typeof slug === 'string' && slug.length > 0)
+                  ? slug
+                  : resolveCurrentSlug();
+                // Reject empty, dot-prefixed (..), slash-bearing, or
+                // any slug that doesn't match a strict slug-shape
+                // ([a-z0-9-]+). Prevents path traversal.
+                const target = (typeof raw === 'string' && /^[a-z0-9-]+$/.test(raw))
+                  ? raw
+                  : null;
+                if (!target) {
+                  console.warn('viewSource.open: no usable slug on this page (got ' + JSON.stringify(raw) + ')');
+                  resolve(false);
+                  return;
+                }
+                if (!HT.siteConfig || !HT.siteConfig.blobBase) {
+                  console.warn('viewSource.open: HT.siteConfig.blobBase missing');
+                  resolve(false);
+                  return;
+                }
+                const blobBase = String(HT.siteConfig.blobBase).replace(/\/+$/, '');
+                const href = blobBase + '/tools/' + target + '/index.html';
+                try {
+                  window.location.assign(href);
+                } catch (e) {
+                  console.warn('viewSource.open: location.assign threw', e);
+                  resolve(false);
+                  return;
+                }
+                resolve(true);
+              } catch (e) {
+                console.warn('viewSource.open: unexpected throw', e);
+                resolve(false);
+              }
+            });
+          },
+        }),
+        writable: false,
+        configurable: false,
+        enumerable: true,
       },
     });
 
@@ -1473,7 +1496,7 @@
   let _actionsListMissingWarned = false;
   function matchActions(query) {
     const norm = _paletteNorm(query);
-    if (!norm || !norm.trim()) return [];
+    if (!norm || !norm.trim()) return Object.freeze([]);
     const list = (typeof window !== 'undefined')
       ? window.HT_PALETTE_ACTIONS : undefined;
     if (!Array.isArray(list)) {
@@ -1481,7 +1504,7 @@
         _actionsListMissingWarned = true;
         console.warn('palette.matchActions: HT_PALETTE_ACTIONS missing — returning []');
       }
-      return [];
+      return Object.freeze([]);
     }
     const out = [];
     for (let i = 0; i < list.length; i += 1) {
@@ -1504,16 +1527,23 @@
         }));
       }
     }
-    return out;
+    return Object.freeze(out);
   }
 
-  // Dispatch a registered action by id. Unknown ids warn-once and return
-  // null so the caller can decide whether to surface a toast.
+  // Dispatch a registered action by id. Unknown ids warn-once (Story
+  // 3.2-review patch #16) and return null so the caller can decide
+  // whether to surface a toast. Re-entrant calls with the same
+  // unknown id log at most one warning per page-load — same pattern
+  // as the matchActions `_actionsListMissingWarned` guard.
+  let _runActionUnknownWarned = false;
   function runAction(actionId) {
     if (typeof actionId !== 'string' || !actionId) return null;
     const fn = _actions[actionId];
     if (typeof fn !== 'function') {
-      console.warn('palette.runAction: unknown actionId', actionId);
+      if (!_runActionUnknownWarned) {
+        _runActionUnknownWarned = true;
+        console.warn('palette.runAction: unknown actionId', actionId);
+      }
       return null;
     }
     try {
@@ -1542,7 +1572,13 @@
     matchActions,
     runAction,
     openHelp,
-    _actions,
+    // Story 3.2-review patch #15: `_actions` removed from the public
+    // surface. Story 3.1 originally exposed it for the smoke harness;
+    // the leak let Tools monkey-patch handlers. The smoke now exercises
+    // dispatch via `runAction('__smoke_id')` and validates handlers by
+    // stubbing `HT.theme.cycle` / `HT.settings.clearAll` (the public
+    // surface the actions delegate to). If a future Story needs a
+    // read-only view of the registry, expose `Object.freeze({..._actions})`.
   });
 
   if (document.readyState === 'loading') {
