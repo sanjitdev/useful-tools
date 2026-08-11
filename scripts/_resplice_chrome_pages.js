@@ -38,6 +38,31 @@ function extractRegion(source, marker) {
   return source.slice(startMatch.index, endMatch.index + endMatch[0].length);
 }
 
+// The canonical header in assets/shell/chrome.html uses relative paths
+// suited for tools/<slug>/index.html (two levels deep). For non-tool pages
+// (index.html, quality.html, packs/*.html) the header hrefs need rewriting
+// so the brand link points at the actual root index.html, not up-and-out.
+// This per-page rewrite runs on the HEADER region before it lands in each
+// non-tool page.
+function rewriteHeaderHrefs(header, pageDepth) {
+  // pageDepth: 0 = root (index.html, quality.html), 1 = packs/*.html,
+  //             2 = tools/<slug>/index.html (canonical, no rewrite).
+  if (pageDepth === 2) return header;
+  // chrome.html's href="../../index.html" must resolve relative to the
+  // consuming page. At depth 1 (packs/) it should be "../index.html"; at
+  // depth 0 (root) it should be "./index.html" (or "#top" — the root pages
+  // historically use "#top" for the brand link to keep focus on the page
+  // top after click). We rewrite to a depth-appropriate prefix.
+  let prefix;
+  if (pageDepth === 1) prefix = '../';
+  else if (pageDepth === 0) prefix = '';
+  else throw new Error('unknown pageDepth: ' + pageDepth);
+  // Replace "../../index.html" and "../../<path>" with `${prefix}<path>`.
+  // Also handles "tools/<slug>/..." etc. — we just collapse the leading
+  // "../../" since all canonical chrome hrefs are repo-root-relative.
+  return header.replace(/href="\.\.\/\.\.\//g, 'href="' + prefix);
+}
+
 function spliceRegion(pageText, marker, region) {
   const startRegex = startRe(marker);
   const startMatch = startRegex.exec(pageText);
@@ -68,14 +93,21 @@ const HELP = extractRegion(read('assets/shell/help.html'), 'help');
 // in which case we fall back to substring replacement of the canonical
 // region content directly). Files where every replacement hit is a no-op
 // are reported as "already aligned".
+//
+// Each entry is [relativePath, pageDepth] where pageDepth is consumed by
+// rewriteHeaderHrefs() to fix up the canonical header's relative paths
+// for the page's location in the repo tree:
+//   - 0 = repo root (index.html, quality.html)
+//   - 1 = packs/*.html (one level deep)
+//   - 2 = tools/<slug>/index.html (canonical, no rewrite)
 const TARGETS = [
-  'index.html',
-  'packs/developer.html',
-  'packs/finance.html',
-  'packs/household.html',
-  'packs/study.html',
-  'packs/travel.html',
-  'quality.html',
+  ['index.html', 0],
+  ['packs/developer.html', 1],
+  ['packs/finance.html', 1],
+  ['packs/household.html', 1],
+  ['packs/study.html', 1],
+  ['packs/travel.html', 1],
+  ['quality.html', 0],
 ];
 
 const REGIONS = [
@@ -87,7 +119,7 @@ const REGIONS = [
 ];
 
 let updated = 0;
-for (const target of TARGETS) {
+for (const [target, depth] of TARGETS) {
   const fullPath = path.join(REPO, target);
   if (!fs.existsSync(fullPath)) {
     console.error('[skip] ' + target + ' does not exist');
@@ -96,7 +128,11 @@ for (const target of TARGETS) {
   let text = fs.readFileSync(fullPath, 'utf8');
   const before = text;
   for (const [marker, region] of REGIONS) {
-    const out = spliceRegion(text, marker, region);
+    // The header region from chrome.html is canonical for tools/*/index.html
+    // (depth 2). For root pages (depth 0) and packs/* pages (depth 1) we
+    // rewrite the header hrefs to be page-relative before splicing.
+    const regionForPage = (marker === 'header') ? rewriteHeaderHrefs(region, depth) : region;
+    const out = spliceRegion(text, marker, regionForPage);
     if (out.hit) {
       text = out.text;
       continue;

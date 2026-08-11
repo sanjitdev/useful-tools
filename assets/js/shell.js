@@ -1294,7 +1294,7 @@
     // 2. Language — dynamic populate from navigator.languages
     // (clipped to first 2 chars, lowercased, deduplicated, with 'en'
     // always appended if missing). Stored value wins; otherwise default
-    // to navigator.language.slice(0,2).toLowerCase() or 'en'.
+    // to navigator.language.slice(0,2).toLowerCase() or 'en' (per AC-1).
     const locale = document.querySelector('select[name="ht.locale"]');
     if (locale) {
       const navList = (Array.isArray(navigator.languages) && navigator.languages.length > 0)
@@ -1315,9 +1315,21 @@
         locale.appendChild(option);
       });
       const storedLocale = readSetting('ht.locale', SETTINGS_DEFAULTS['ht.locale']);
-      locale.value = Array.from(locale.options).some(function (option) { return option.value === storedLocale; })
-        ? storedLocale
-        : (codes.length > 0 ? codes[0] : SETTINGS_DEFAULTS['ht.locale']);
+      const storedValid = Array.from(locale.options).some(function (option) { return option.value === storedLocale; });
+      if (storedValid) {
+        locale.value = storedLocale;
+      } else {
+        // Default per AC-1: navigator.language.slice(0,2).toLowerCase(),
+        // or 'en' if empty. Fall back to the populated `codes[0]` only
+        // when navigator.language is unavailable — keeps the spec's
+        // expression literal even if navigator.language === ''.
+        const navDefault = (typeof navigator.language === 'string' && navigator.language.length >= 2)
+          ? navigator.language.slice(0, 2).toLowerCase()
+          : '';
+        locale.value = navDefault && Array.from(locale.options).some(function (option) { return option.value === navDefault; })
+          ? navDefault
+          : SETTINGS_DEFAULTS['ht.locale'];
+      }
     }
 
     // 3. Reduced motion — OS-override (prefers-reduced-motion: reduce).

@@ -572,6 +572,8 @@ const ctx = vm.createContext({
   MutationObserver: stubMutationObserver,
   setTimeout: function () { return 0; },
   clearTimeout: function () {},
+  requestAnimationFrame: function (fn) { return setTimeout(fn, 0); },
+  cancelAnimationFrame: function (id) { clearTimeout(id); },
   CustomEvent: stubWindow.CustomEvent,
   Event: stubWindow.Event,
   URLSearchParams: URLSearchParams,
@@ -610,6 +612,15 @@ try {
 // surfaces here.
 // -------------------------------------------------------------
 const loadTimeLocalStorageCallCount = localStorageCalls.length;
+const loadTimeReducedMotionWrite = localStorageCalls.filter(function (c) { return c.k === 'ht.reducedMotion' && c.op === 'set'; }).length;
+// shell.js:1271-1273 setSettingsReducedMotion() is called at boot
+// (wireSettings end-of-fn), so 1 localStorage WRITE is expected for
+// ht.reducedMotion. Two boot GETs (ht.theme from the theme-cycle
+// button wiring at line 186, and ht.reducedMotion from the boot
+// path at line 1450) are also expected. A regression that adds
+// extra boot-time WRITES (e.g. theme writes before user input)
+// surfaces here. The assertions run after the test framework is
+// initialized below.
 
 // -------------------------------------------------------------
 // Test framework.
@@ -625,6 +636,10 @@ function assert(name, cond, info) {
     console.log('  FAIL    ' + name + (info ? ' — ' + info : ''));
   }
 }
+
+assert('Boot: storage calls at load time === 3 (2 reads + 1 write)', loadTimeLocalStorageCallCount === 3, 'expected 3 calls (ht.theme get, ht.reducedMotion get, ht.reducedMotion set), got ' + loadTimeLocalStorageCallCount + ' calls: ' + JSON.stringify(localStorageCalls.map(function (c) { return c.op + ':' + c.k; })));
+assert('Boot: the single boot WRITE is ht.reducedMotion', loadTimeReducedMotionWrite === 1, 'expected 1 ht.reducedMotion write, got ' + loadTimeReducedMotionWrite);
+resetSpies();
 
 function resetSpies() {
   localStorageCalls = [];
