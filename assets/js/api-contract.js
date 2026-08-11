@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.9.1',
+  version: '1.10.0',
   generated: '2026-08-11',
   entries: Object.freeze([
     Object.freeze({
@@ -40,6 +40,27 @@ window.HT.__apiContract = Object.freeze({
       stability: 'stable',
       module: 'assets/js/shell.js',
       notes: 'Returns the live data-theme attribute value. Mutated externally by Story 1.6.',
+    }),
+    Object.freeze({
+      name: 'HT.theme.cycle',
+      signature: '() => void',
+      stability: 'stable',
+      module: 'assets/js/shell.js',
+      notes: 'Story 3.2. AD-14 public wrapper over the internal `toggleTheme()` function. Cycles auto → light → dark → auto and updates data-theme. No-op in embed mode. Delegated to by the static `theme.toggle` action in palette-actions.js.',
+    }),
+    Object.freeze({
+      name: 'HT.theme.current',
+      signature: '() => string | null',
+      stability: 'stable',
+      module: 'assets/js/shell.js',
+      notes: 'Story 3.2. Returns the live resolved theme value (light/dark). Equivalent to HT.shell.theme() but provided on the HT.theme namespace for symmetry with the cycle action.',
+    }),
+    Object.freeze({
+      name: 'HT.viewSource.open',
+      signature: '(slug?: string) => Promise<boolean>',
+      stability: 'stable',
+      module: 'assets/js/shell.js',
+      notes: 'Story 3.2. AD-14 surface for the `source.view` palette action. Resolves the current tool slug from data-slug / URL when slug is omitted, then navigates to `${HT.siteConfig.blobBase}/tools/<slug>/index.html` via window.location.assign. Resolves false on the home page or when blobBase is missing (no throw). The Promise is fire-and-forget on the navigation side.',
     }),
     Object.freeze({
       name: 'HT.palette.open',
@@ -466,14 +487,14 @@ window.HT.__apiContract = Object.freeze({
       signature: '(query: string) => readonly Array<{id: string, label: string, icon: string}>',
       stability: 'stable',
       module: 'assets/js/shell.js',
-      notes: 'Story 3.1 stub; Story 3.2 replaces the body with the real action matcher against the static action list. Returns [] in 3.1 — the action group slot is rendered but always empty. The shape is frozen: id is the dispatch key for HT.palette.runAction, label is the visible option text, icon is the action-icon class name (not a tool-icon class).',
+      notes: 'Story 3.2. Substring filter on the 7 declared action keywords (case-insensitive, NFKD-normalized). Empty/whitespace query → []. Returns plain objects (no `run` function on the wire). Action list is statically declared in assets/js/palette-actions.js (Shell-owned per AD-14 — Tools cannot add).',
     }),
     Object.freeze({
       name: 'HT.palette.runAction',
       signature: '(actionId: string) => unknown',
       stability: 'stable',
       module: 'assets/js/shell.js',
-      notes: 'Story 3.1 stub; Story 3.2 populates HT.palette._actions. Dispatches to _actions[actionId]?.() and returns its return value. Returns null + console.warn on unknown id; returns null + console.warn if the handler throws (defensive — UI never crashes on a bad action).',
+      notes: 'Story 3.2. Dispatches to _actions[actionId]?.() and returns its return value. The _actions registry is populated at boot from window.HT_PALETTE_ACTIONS. Returns null + console.warn on unknown id; returns null + console.warn if the handler throws (defensive — UI never crashes on a bad action).',
     }),
     Object.freeze({
       name: 'HT.palette.openHelp',

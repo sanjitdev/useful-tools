@@ -723,6 +723,33 @@
   line-height: 1.4;
 }
 
+/* Story 3.2: action row layout. The icon is a 16×16 inline SVG that
+   sits in a flex-row before the action label; muted by default and
+   flips to the on-primary token when the row is the cursor row.
+   flex-shrink:0 keeps the label from squeezing the icon. */
+.shell-palette-action {
+  display: flex;
+  align-items: center;
+}
+.shell-palette-action .shell-palette-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+  color: var(--color-text-muted, #6b7280);
+}
+.shell-palette-action .shell-palette-icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+.shell-palette-action[aria-selected="true"] .shell-palette-icon {
+  color: var(--color-on-primary, #1a1d29);
+}
+
 /* Cursor row. WAI-ARIA 1.1: aria-selected marks the active option; the
    input's aria-activedescendant stays the source of truth for "focused"
    (Story 1.7). Both attributes are set together by moveActive(). */
@@ -859,6 +886,16 @@
   }
   .shell-palette-footer {
     border-top-color: CanvasText;
+    color: CanvasText;
+  }
+  /* Story 3.2: in forced-colors mode the action-icon SVG needs an
+     explicit CanvasText stroke override so the glyph stays visible
+     inside the Highlight+HighlightText cursor row (where the parent
+     color is already HighlightText — without this override the
+     currentColor resolution would paint the strokes as HighlightText
+     over a Highlight background, producing invisible glyphs). */
+  .shell-palette-action .shell-palette-icon svg {
+    stroke: CanvasText;
     color: CanvasText;
   }
 }

@@ -260,6 +260,59 @@
       theme: () => document.documentElement.getAttribute('data-theme'),
     });
 
+    // Story 3.2: HT.theme.cycle — public wrapper over the private
+    // `toggleTheme()` function above. AD-14 surface that the static
+    // `theme.toggle` action in palette-actions.js delegates to. The
+    // toggle button click path still works; this is the keyboard-
+    // driven equivalent (palette Enter dispatch).
+    HT.theme = Object.freeze({
+      cycle: () => { try { toggleTheme(); } catch (e) { console.warn('theme.cycle threw', e); } },
+      current: () => document.documentElement.getAttribute('data-theme'),
+    });
+
+    // Story 3.2: HT.viewSource.open(slug?) — public wrapper over the
+    // private `resolveCurrentSlug()` + the existing view-source URL
+    // resolution. Returns a Promise that resolves when navigation
+    // starts (window.location.assign is fire-and-forget). When no slug
+    // is passed and the page is the home page (or any non-tool URL),
+    // the promise resolves to false (no-op) so callers can branch
+    // without throwing.
+    HT.viewSource = Object.freeze({
+      open: (slug) => {
+        return new Promise((resolve) => {
+          try {
+            const target = (typeof slug === 'string' && slug.length > 0)
+              ? slug
+              : resolveCurrentSlug();
+            if (!target) {
+              console.warn('viewSource.open: no slug available on this page');
+              resolve(false);
+              return;
+            }
+            if (!HT.siteConfig || !HT.siteConfig.blobBase) {
+              console.warn('viewSource.open: HT.siteConfig.blobBase missing');
+              resolve(false);
+              return;
+            }
+            const blobBase = String(HT.siteConfig.blobBase).replace(/\/+$/, '');
+            const pathSegment = 'tools/' + target + '/index.html';
+            const href = blobBase + '/' + pathSegment;
+            try {
+              window.location.assign(href);
+            } catch (e) {
+              console.warn('viewSource.open: location.assign threw', e);
+              resolve(false);
+              return;
+            }
+            resolve(true);
+          } catch (e) {
+            console.warn('viewSource.open: unexpected throw', e);
+            resolve(false);
+          }
+        });
+      },
+    });
+
     document.addEventListener('click', onClick);
     document.documentElement.addEventListener('ht:fouc-resolved', onFoucResolved);
     observeTheme();
@@ -946,6 +999,23 @@
     return frag;
   }
 
+  // Story 3.2: inline SVG glyphs for the 7 declared action icons. Zero
+  // dep — no icon font, no external sprite. Each glyph is a single-line
+  // 16×16 path with `stroke="currentColor"` so token colors apply, and
+  // `fill="none"` so the strokes paint correctly in high-contrast mode
+  // (where the CSS forces `stroke: CanvasText`). Unknown icon → falls
+  // back to the neutral command glyph.
+  const ACTION_ICONS = Object.freeze({
+    theme: '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8h1.5M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>',
+    settings: '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5l.8 1.6 1.8-.3.4 1.7 1.7.6-.6 1.7.8 1.6-1.5 1.1-.2 1.8-1.8.2-1 1.5-1.5-1-1.8-.2-.2-1.8-1.5-1.1.8-1.6-.6-1.7 1.7-.6.4-1.7 1.8.3z"/></svg>',
+    privacy: '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5l-5 2v4.5c0 3 2 5.3 5 6.5 3-1.2 5-3.5 5-6.5V3.5z"/><path d="M5.5 8l1.8 1.8L10.5 6.5"/></svg>',
+    quality: '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5L2 4v4.5c0 3 2 5.3 6 6.5 4-1.2 6-3.5 6-6.5V4z"/><path d="M5.5 8.2l1.8 1.8L11 6"/></svg>',
+    clear: '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5h10M5 4.5V3a1 1 0 011-1h4a1 1 0 011 1v1.5M4 4.5l.7 9a1 1 0 001 .9h4.6a1 1 0 001-.9l.7-9"/><path d="M6.5 7v5M9.5 7v5"/></svg>',
+    source: '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5M9 3l-2 10"/></svg>',
+    help: '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.5"/><path d="M6.2 6.2a2 2 0 013.6 1.3c0 1.5-1.8 1.5-1.8 2.8"/><circle cx="8" cy="12" r=".5" fill="currentColor"/></svg>',
+    command: '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2.5 5h11M2.5 11h11"/></svg>',
+  });
+
   function buildActionOption(action, idx) {
     const li = document.createElement('li');
     li.id = 'palette-opt-action-' + idx;
@@ -954,7 +1024,21 @@
     li.setAttribute('data-kind', 'action');
     li.setAttribute('data-action-id', action.id);
     li.setAttribute('aria-selected', 'false');
-    li.textContent = action.label;
+    // Icon span (decorative; aria-hidden because the row's aria-label
+    // already says "Action: <label>"). Unknown icon key → fall back to
+    // the neutral command glyph with no console.warn (icons are pure
+    // UI; don't pollute dev tools).
+    const iconKey = (action && typeof action.icon === 'string' && ACTION_ICONS[action.icon])
+      ? action.icon
+      : 'command';
+    const iconSvg = ACTION_ICONS[iconKey];
+    const span = document.createElement('span');
+    span.className = 'shell-palette-icon';
+    span.setAttribute('data-icon', action && action.icon ? action.icon : 'command');
+    span.setAttribute('aria-hidden', 'true');
+    span.innerHTML = iconSvg;
+    li.appendChild(span);
+    li.appendChild(document.createTextNode(action.label));
     li.setAttribute('aria-label', 'Action: ' + action.label);
     return li;
   }
@@ -1342,17 +1426,85 @@
     close: closeSettings,
   });
 
-  // Action registry. Story 3.4 populates this with the global actions
-  // (toggle theme, open settings, open privacy, open quality, clear data,
-  // view source for current tool). Story 3.2 wires the static declaration
-  // file. An entry is a function that returns void | Promise<void>.
+  // Action registry. Populated at boot from `window.HT_PALETTE_ACTIONS`
+  // (defined by assets/js/palette-actions.js, which is loaded via a
+  // script tag BEFORE shell.js). Each value is the action's `run`
+  // function. The static declaration file is Shell-owned per AD-14
+  // bypass-prohibition — Tools cannot add global actions. An entry is
+  // a function that returns void | Promise<void>.
   const _actions = Object.create(null);
 
-  // Stub matcher. Story 3.2 replaces the body with a real filter against
-  // the static action list. Kept here so the render slot in
-  // renderSearchResults() has a deterministic no-op fallback.
-  function matchActions(_query) {
-    return [];
+  // Story 3.2: normalize a query the same way search.js does, so the
+  // matcher and the search engine stay byte-equivalent on diacritics
+  // (NFKD + strip combining marks + lowercase). Mirrors the inline
+  // `norm()` in palette-actions.js — duplicated here to avoid coupling
+  // to the static-declaration IIFE internals.
+  function _paletteNorm(s) {
+    if (s === null || s === undefined) return '';
+    try {
+      return String(s).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    } catch (_) {
+      return String(s).toLowerCase();
+    }
+  }
+
+  // Populate `_actions` from the static declaration file. Defensive:
+  // missing or non-array `HT_PALETTE_ACTIONS` → silent no-op (the file
+  // is optional at boot; old shell bundles without palette-actions.js
+  // degrade to "no global actions" instead of crashing). The caller
+  // still gets a frozen empty registry.
+  function _populateActions() {
+    const list = (typeof window !== 'undefined')
+      ? window.HT_PALETTE_ACTIONS : undefined;
+    if (!Array.isArray(list)) return;
+    list.forEach((a) => {
+      if (!a || typeof a.id !== 'string' || !a.id) return;
+      if (typeof a.run !== 'function') return;
+      _actions[a.id] = a.run;
+    });
+  }
+  _populateActions();
+
+  // Story 3.2: real matcher — substring filter on the static action
+  // list. Returns plain `{id, label, icon}` objects (no `run` on the
+  // wire so callers can't invoke it directly). Empty / whitespace
+  // queries return `[]` so the recent-tools empty-state isn't polluted
+  // by all 6 actions every time the palette opens.
+  let _actionsListMissingWarned = false;
+  function matchActions(query) {
+    const norm = _paletteNorm(query);
+    if (!norm || !norm.trim()) return [];
+    const list = (typeof window !== 'undefined')
+      ? window.HT_PALETTE_ACTIONS : undefined;
+    if (!Array.isArray(list)) {
+      if (!_actionsListMissingWarned) {
+        _actionsListMissingWarned = true;
+        console.warn('palette.matchActions: HT_PALETTE_ACTIONS missing — returning []');
+      }
+      return [];
+    }
+    const out = [];
+    for (let i = 0; i < list.length; i += 1) {
+      const a = list[i];
+      if (!a || typeof a.id !== 'string' || typeof a.label !== 'string') continue;
+      const kws = Array.isArray(a.keywords) ? a.keywords : [];
+      let hit = false;
+      for (let j = 0; j < kws.length; j += 1) {
+        const k = kws[j];
+        if (typeof k === 'string' && k.length > 0 && k.indexOf(norm) !== -1) {
+          hit = true;
+          break;
+        }
+      }
+      if (hit) {
+        out.push(Object.freeze({
+          id: a.id,
+          label: a.label,
+          icon: (typeof a.icon === 'string') ? a.icon : '',
+        }));
+      }
+    }
+    return out;
   }
 
   // Dispatch a registered action by id. Unknown ids warn-once and return

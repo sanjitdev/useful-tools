@@ -494,6 +494,25 @@ def transform(
                     '<script src="../../assets/js/utils.js"></script>\n  '
                     '<script src="../../assets/js/shell.js" defer></script>',
                 )
+            # Story 3.2: palette-actions.js MUST load before shell.js
+            # so HT_PALETTE_ACTIONS is defined when shell.js boots and
+            # consumes it into the _actions registry. Idempotent —
+            # already-present pages keep the existing tag.
+            if 'src="../../assets/js/palette-actions.js"' not in new_source:
+                shell_anchor_pa = '<script src="../../assets/js/shell.js" defer></script>'
+                if shell_anchor_pa in new_source:
+                    new_source = new_source.replace(
+                        shell_anchor_pa,
+                        '<script src="../../assets/js/palette-actions.js"></script>\n  '
+                        + shell_anchor_pa,
+                        1,
+                    )
+                else:
+                    sys.stderr.write(
+                        "shell-template: palette-actions.js splice skipped — "
+                        "<script src=\"../../assets/js/shell.js\" defer></script> "
+                        "anchor not found in legacy page\n"
+                    )
             # Story 1.10: storage-registry.js (idempotent — already-present
             # pages keep the existing tag).
             if 'src="../../assets/js/storage-registry.js"' not in new_source:
@@ -670,6 +689,19 @@ def transform(
                 "<script src=\"../../assets/js/shell.js\" defer></script> "
                 "anchor not found\n"
             )
+    # Story 3.2: palette-actions.js MUST load BEFORE shell.js so
+    # HT_PALETTE_ACTIONS is defined when shell.js boots and consumes
+    # the array into the `_actions` registry. Idempotent — anchored
+    # immediately before shell.js.
+    if 'src="../../assets/js/palette-actions.js"' not in new_source:
+        shell_anchor = '<script src="../../assets/js/shell.js" defer></script>'
+        if shell_anchor in new_source:
+            new_source = new_source.replace(
+                shell_anchor,
+                '<script src="../../assets/js/palette-actions.js"></script>\n  '
+                + shell_anchor,
+                1,
+            )
 
     return new_source
 
@@ -713,6 +745,26 @@ def ensure_tool_config_and_slug(source: str, slug: str) -> str:
         elif utils_tag in new_source:
             new_source = new_source.replace(
                 utils_tag, site_tag + "\n  " + utils_tag, 1
+            )
+    # Story 3.2: palette-actions.js MUST load BEFORE shell.js so
+    # HT_PALETTE_ACTIONS is defined when shell.js boots and consumes
+    # the array into the `_actions` registry. Idempotent — already-
+    # present pages keep the existing tag. Anchored immediately before
+    # shell.js so the boot order is deterministic.
+    if 'src="../../assets/js/palette-actions.js"' not in new_source:
+        shell_anchor = '<script src="../../assets/js/shell.js" defer></script>'
+        if shell_anchor in new_source:
+            new_source = new_source.replace(
+                shell_anchor,
+                '<script src="../../assets/js/palette-actions.js"></script>\n  '
+                + shell_anchor,
+                1,
+            )
+        else:
+            sys.stderr.write(
+                "shell-template: palette-actions.js splice skipped — "
+                "<script src=\"../../assets/js/shell.js\" defer></script> "
+                "anchor not found\n"
             )
     return new_source
 
@@ -869,6 +921,15 @@ def process_file(
     search_js_ok = (
         'src="../../assets/js/search.js"' in source
     )
+    # Story 3.2: palette-actions.js MUST load BEFORE shell.js so
+    # `HT_PALETTE_ACTIONS` is defined when shell.js boots and consumes
+    # the array into the `_actions` registry. Without it the palette's
+    # action matcher has nothing to filter against and the 6 global
+    # actions never appear in the listbox. The byte-aligned gate
+    # enforces presence; the splice below handles injection.
+    palette_actions_js_ok = (
+        'src="../../assets/js/palette-actions.js"' in source
+    )
     # Story 1.12 (review patch — Decision #1): the inline tools.json
     # block (file:// fallback for home-grid.js) must also live on tool
     # pages so `wireViewSourceLink()` can resolve the slug's entry
@@ -889,6 +950,7 @@ def process_file(
         and site_config_first_ok
         and storage_registry_js_ok
         and search_js_ok
+        and palette_actions_js_ok
         and tools_json_inline_ok
     )
     # Find the IIFE block on the FIRST `<script>` opener in <head>. The IIFE
@@ -975,6 +1037,7 @@ def process_file(
             or not site_config_first_ok
             or f'data-slug="{slug}"' not in source
             or not tools_json_inline_ok
+            or not palette_actions_js_ok
         )
     ):
         new_source = ensure_tool_config_and_slug(source, slug)
@@ -992,6 +1055,8 @@ def process_file(
                 missing.append("data-slug")
             if not tools_json_inline_ok:
                 missing.append("tools.json-inline")
+            if not palette_actions_js_ok:
+                missing.append("palette-actions.js")
             print(
                 f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})"
             )
@@ -1010,6 +1075,8 @@ def process_file(
             missing.append("data-slug")
         if not tools_json_inline_ok:
             missing.append("tools.json-inline")
+        if 'src="../../assets/js/palette-actions.js"' not in source:
+            missing.append("palette-actions.js")
         print(
             f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})"
         )
@@ -1025,7 +1092,7 @@ def process_file(
     # rather than group(2) — a latent Story 1.6 bug) and would short-circuit
     # on a correct IIFE, preventing the palette splice from ever firing.
     if chrome_ok and not (
-        palette_ok and settings_ok and site_config_js_ok and storage_registry_js_ok and search_js_ok and tools_json_inline_ok
+        palette_ok and settings_ok and site_config_js_ok and storage_registry_js_ok and search_js_ok and palette_actions_js_ok and tools_json_inline_ok
     ):
         footer_end = source.find('</footer>')
         if footer_end == -1:
@@ -1102,6 +1169,26 @@ def process_file(
                     "<script src=\"../../assets/js/shell.js\" defer></script> "
                     "anchor not found\n"
                 )
+        # Story 3.2: palette-actions.js MUST load BEFORE shell.js so
+        # HT_PALETTE_ACTIONS is defined when shell.js boots and consumes
+        # the array into the `_actions` registry. Idempotent — already-
+        # present pages keep the existing tag. Anchored immediately
+        # before shell.js so the boot order is deterministic.
+        if not palette_actions_js_ok:
+            shell_anchor = '<script src="../../assets/js/shell.js" defer></script>'
+            if shell_anchor in new_source:
+                new_source = new_source.replace(
+                    shell_anchor,
+                    '<script src="../../assets/js/palette-actions.js"></script>\n  '
+                    + shell_anchor,
+                    1,
+                )
+            else:
+                sys.stderr.write(
+                    "shell-template: palette-actions.js splice skipped — "
+                    "<script src=\"../../assets/js/shell.js\" defer></script> "
+                    "anchor not found\n"
+                )
         # Story 1.12 (review — Decision #1): splice the inline
         # tools.json block so wireViewSourceLink() can resolve the slug
         # synchronously on tool pages (no home-grid.js there). Idempotent
@@ -1136,6 +1223,7 @@ def process_file(
             if not site_config_js_ok: missing.append("site-config.js")
             if not storage_registry_js_ok: missing.append("storage-registry.js")
             if not search_js_ok: missing.append("search.js")
+            if not palette_actions_js_ok: missing.append("palette-actions.js")
             if not tools_json_inline_ok: missing.append("tools.json-inline")
             if not f'data-slug="{slug}"' in source: missing.append("data-slug")
             print(f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})")
@@ -1151,6 +1239,7 @@ def process_file(
         if not site_config_js_ok: missing.append("site-config.js")
         if not storage_registry_js_ok: missing.append("storage-registry.js")
         if not search_js_ok: missing.append("search.js")
+        if not palette_actions_js_ok: missing.append("palette-actions.js")
         if not tools_json_inline_ok: missing.append("tools.json-inline")
         if not f'data-slug="{slug}"' in source: missing.append("data-slug")
         print(f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})")
@@ -1340,6 +1429,13 @@ def regenerate_home(
     search_js_in_source = (
         'src="assets/js/search.js"' in source
     )
+    # Story 3.2: palette-actions.js MUST load BEFORE shell.js so
+    # HT_PALETTE_ACTIONS is defined when shell.js boots and consumes
+    # the array into the `_actions` registry. The home page uses the
+    # root-relative path (no `../../`) because it lives at the repo root.
+    palette_actions_js_in_source = (
+        'src="assets/js/palette-actions.js"' in source
+    )
     # Story 1.12: site-config.js must load BEFORE storage-registry.js so
     # HT.siteConfig is defined before any module consults it. The home
     # page uses the root-relative path (no `../../`) because it lives at
@@ -1377,6 +1473,7 @@ def regenerate_home(
         and storage_registry_manifest_in_source
         and storage_registry_js_in_source
         and search_js_in_source
+        and palette_actions_js_in_source
         and site_config_js_in_source
         and site_config_first_in_source
     )
@@ -1514,6 +1611,7 @@ def regenerate_home(
         and storage_registry_manifest_in_source
         and storage_registry_js_in_source
         and search_js_in_source
+        and palette_actions_js_in_source
         and site_config_js_in_source
         and site_config_first_in_source
     ):
@@ -1685,6 +1783,20 @@ def regenerate_home(
                     1,
                 )
 
+        # Story 3.2: palette-actions.js MUST load BEFORE shell.js on
+        # the home page too so HT_PALETTE_ACTIONS is defined when
+        # shell.js boots and consumes the array into `_actions`.
+        # Idempotent — anchored immediately before shell.js.
+        if 'src="assets/js/palette-actions.js"' not in new_source:
+            shell_anchor = '<script src="assets/js/shell.js" defer></script>'
+            if shell_anchor in new_source:
+                new_source = new_source.replace(
+                    shell_anchor,
+                    '<script src="assets/js/palette-actions.js"></script>\n  '
+                    + shell_anchor,
+                    1,
+                )
+
         # Story 1.10: ensure storage-registry.js is loaded BEFORE utils.js
         # so the wrapper can delegate. The registry IIFE runs synchronously
         # at script-load (no defer) and registers ht.theme before theme.js
@@ -1737,6 +1849,8 @@ def regenerate_home(
                 missing.append("storage-registry.js")
             if 'src="assets/js/search.js"' not in new_source:
                 missing.append("search.js")
+            if 'src="assets/js/palette-actions.js"' not in new_source:
+                missing.append("palette-actions.js")
             if 'src="assets/js/site-config.js"' not in new_source:
                 missing.append("site-config.js")
             print(
@@ -1768,6 +1882,8 @@ def regenerate_home(
             missing.append("storage-registry.js")
         if 'src="assets/js/search.js"' not in source:
             missing.append("search.js")
+        if 'src="assets/js/palette-actions.js"' not in source:
+            missing.append("palette-actions.js")
         if 'src="assets/js/site-config.js"' not in source:
             missing.append("site-config.js")
         print(f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})")
@@ -1860,6 +1976,19 @@ def regenerate_home(
             '<script src="assets/js/utils.js"></script>\n  '
             '<script src="assets/js/shell.js" defer></script>',
         )
+    # Story 3.2: palette-actions.js MUST load BEFORE shell.js so
+    # HT_PALETTE_ACTIONS is defined when shell.js boots and consumes
+    # the array into the `_actions` registry. Idempotent — anchored
+    # immediately before shell.js.
+    if 'src="assets/js/palette-actions.js"' not in new_source:
+        shell_anchor = '<script src="assets/js/shell.js" defer></script>'
+        if shell_anchor in new_source:
+            new_source = new_source.replace(
+                shell_anchor,
+                '<script src="assets/js/palette-actions.js"></script>\n  '
+                + shell_anchor,
+                1,
+            )
     # Story 1.10: storage-registry.js must load BEFORE utils.js so the
     # storage wrapper can delegate. Idempotent — only added on first
     # regeneration when the script tag is absent.

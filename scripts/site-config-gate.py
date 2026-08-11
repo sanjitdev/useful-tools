@@ -70,7 +70,7 @@ EXPECTED_FIELDS_INTERNAL = (
 EXPECTED_FIELDS_PUBLIC = (
     "repoUrl", "blobBase", "defaultBranch", "brand", "defaultLocale",
 )
-EXPECTED_VERSION = "1.8.0"
+EXPECTED_VERSION = "1.10.0"
 
 TOOL_SCRIPT_RE = re.compile(
     r'<script\s+src="\.\./\.\./assets/js/site-config\.js"></script>'
