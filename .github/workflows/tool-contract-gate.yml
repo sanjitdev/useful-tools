@@ -28,6 +28,10 @@ on:
       - "scripts/_promote_wave_1.py"
       - "scripts/_audit_wave_1.py"
       - "scripts/_smoke_wave_1_pages.js"
+      - "scripts/_promote_wave_2.py"
+      - "scripts/_audit_wave_2.py"
+      - "scripts/_print_css_bootstrap.py"
+      - "scripts/_smoke_wave_2_pages.js"
       - "docs/tool-inventory.md"
       - "docs/quality-audit.md"
       - "assets/shell/**"
@@ -64,6 +68,10 @@ on:
       - "scripts/_promote_wave_1.py"
       - "scripts/_audit_wave_1.py"
       - "scripts/_smoke_wave_1_pages.js"
+      - "scripts/_promote_wave_2.py"
+      - "scripts/_audit_wave_2.py"
+      - "scripts/_print_css_bootstrap.py"
+      - "scripts/_smoke_wave_2_pages.js"
       - "docs/tool-inventory.md"
       - "docs/quality-audit.md"
       - "assets/shell/**"
@@ -221,3 +229,16 @@ jobs:
         # (pass===0 && fail===0 → exit 1) means a hollow run fails
         # the gate.
         run: make wave-1-smoke
+
+      - name: Smoke wave-2 page wiring (Story 2.7)
+        # Story 2.7: static Node smoke verifying each of the 15
+        # Wave-2 tools (bd-tax-calculator, animal-race, …,
+        # compound-interest) is in tools.json with ready:true,
+        # score>=8, the per-tool contract fields (urlState.encode/
+        # decode + history-keys + view-source + embed-snippet +
+        # keywords + pack + icon), every encode/decode selector
+        # resolves to an HTML id, and the tool's <slug>.css
+        # contains @media print (rubric #5 Printable). 346 PASS
+        # expected. Vacuous-pass guard (pass===0 && fail===0 →
+        # exit 1) catches hollow runs.
+        run: make wave-2-smoke

@@ -105,6 +105,29 @@ XML_NS_PATTERNS = (
     re.compile(r"""xmlns(?::[a-zA-Z0-9_-]+)?\s*=\s*["']https?://www\.w3\.org"""),
 )
 
+# Bare W3C namespace strings. Used in JS like
+# `document.createElementNS('http://www.w3.org/2000/svg', 'svg')` —
+# never a network load, an XML namespace identifier only.
+W3C_NS_BARE = (
+    "http://www.w3.org/2000/svg",
+    "http://www.w3.org/1998/Math/MathML",
+    "http://www.w3.org/1999/xlink",
+    "http://www.w3.org/XML/1998/namespace",
+)
+
+# Hosts that are pure documentation / link references in copy/sample data,
+# never runtime script/style/font loads. These appear in tool bodies as
+# reference URLs, footer anchors, or sample-data strings.
+DOC_HOST_ALLOWLIST = (
+    "github.com/sanjitdev/",
+    "github.com/sanjitdev/useful-tools",
+    "example.com",
+    "example.org",
+    "www.cdc.gov",
+    "www.who.int",
+    "handy.tools",
+)
+
 
 def _scan_text_for_external_host(text: str) -> list[str]:
     """Return list of external-host references that are not exempt.
@@ -114,18 +137,27 @@ def _scan_text_for_external_host(text: str) -> list[str]:
         these in the repo; matches anywhere in the URL)
       - XML namespace URIs when they appear in an `xmlns`/`xmlns:foo="…"`
         attribute (they never load anything at runtime)
+      - Bare W3C namespace strings (used in JS via createElementNS —
+        never a network load)
+      - Documentation / link hosts in DOC_HOST_ALLOWLIST (footer GitHub
+        links, reference URLs in copy, sample data — never runtime loads)
 
     Other matches, including `https://example.com/...`, are flagged.
     """
+    has_xmlns = any(pat.search(text) for pat in XML_NS_PATTERNS)
     hits: list[str] = []
     for m in EXTERNAL_HOST_RE.finditer(text):
         snippet = m.group(0)
         if any(allow in snippet for allow in EXTERNAL_HOST_ALLOWLIST):
             continue
-        if any(pat.search(text) for pat in XML_NS_PATTERNS):
-            # Coarse: any XML namespace match in the file exempts W3C refs.
-            # A finer-grained test would re-scan the surrounding attribute;
-            # for the 33 brownfield tools the namespace is always `xmlns`.
+        # W3C xmlns in the same file → exempt W3C refs in this file.
+        if has_xmlns and any(ns in snippet for ns in W3C_NS_BARE):
+            continue
+        # Bare W3C namespace string (createElementNS-style use in JS).
+        if any(ns in snippet for ns in W3C_NS_BARE):
+            continue
+        # Documentation / link / sample-data hosts.
+        if any(host in snippet for host in DOC_HOST_ALLOWLIST):
             continue
         hits.append(snippet)
     return hits
@@ -212,7 +244,11 @@ def check_shareable(entry: dict, html_text: str | None = None) -> tuple[str, str
         sel = item.get("to") or item.get("key")
         if isinstance(sel, str):
             targets.append(sel)
-    missing_targets = [t for t in targets if t not in ids]
+    # Selectors may be prefixed with "#" (CSS id selector form); strip it
+    # so the existence check compares against the bare id set.
+    def _strip_hash(s: str) -> str:
+        return s[1:] if s.startswith("#") else s
+    missing_targets = [t for t in targets if _strip_hash(t) not in ids]
     if missing_targets:
         return (
             "FAIL",

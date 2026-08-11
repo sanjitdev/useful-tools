@@ -164,9 +164,9 @@ def emit_inventory(repo_root: Path, tools_doc: dict, today: str) -> None:
     lines.append("Wave assignment per Story 1.4 / Story 2.6:")
     lines.append("")
     lines.append("- **Wave-1** — already in `tools.json` with `ready: true` "
-                 "(promoted under the per-tool contract in earlier stories).")
-    lines.append("- **Wave-2** — in `tools.json` with `ready: false` (will receive "
-                 "full per-tool migration in Story 2.7).")
+                 "(promoted under the per-tool contract in Story 2.6 and Story 2.7).")
+    lines.append("- **Wave-2** — in `tools.json` but `ready: false` (no entries "
+                 "remain after Story 2.7).")
     lines.append("- **Wave-3** — not in `tools.json` (will be added in Story 2.8).")
     lines.append("")
     lines.append("| Slug | Wave | Sample data | Source path |")

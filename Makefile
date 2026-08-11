@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -47,7 +47,11 @@ help: ## Show available targets
 	@echo "  make promote-wave-1      Validate the three Wave-1 tools are at the 8/10 bar and refresh the inventory (Story 2.6)"
 	@echo "  make audit-wave-1        Run docs/quality-rubric.md against each Wave-1 tool and emit docs/quality-audit.md (Story 2.6)"
 	@echo "  make wave-1-smoke        Run the static smoke harness verifying the three Wave-1 pages are wired to the Shell (Story 2.6)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke"
+	@echo "  make promote-wave-2      Promote the 15 Wave-2 tools into tools.json (Story 2.7) — generates per-tool contract entries"
+	@echo "  make print-css-bootstrap Add the standard @media print block to each Wave-2 tool's <slug>.css (Story 2.7 / rubric #5)"
+	@echo "  make audit-wave-2        Run docs/quality-rubric.md against each Wave-2 tool and append docs/quality-audit.md (Story 2.7)"
+	@echo "  make wave-2-smoke        Run the static smoke harness verifying the 15 Wave-2 pages + their @media print CSS (Story 2.7)"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke"
 
 validate: validate-tools-json
 
@@ -91,7 +95,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke wave-1-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke wave-1-smoke wave-2-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -310,3 +314,42 @@ audit-wave-1:
 # expected. Vacuous-pass guard catches hollow runs.
 wave-1-smoke:
 	@node scripts/_smoke_wave_1_pages.js
+
+# Story 2.7 — Wave-2 promotion + print CSS bootstrap + audit + page smoke.
+# `print-css-bootstrap` appends the standard @media print block to each
+# Wave-2 tool's <slug>.css (idempotent — checks for existing block).
+# The block hides Shell chrome and forces black-on-white text per
+# rubric #5 (Printable). Exit 0 = all targets processed.
+print-css-bootstrap:
+	@$(PYTHON) scripts/_print_css_bootstrap.py
+
+# `promote-wave-2` is idempotent: for each of the 15 Wave-2 tools,
+# introspects the tool's index.html for input IDs + the tool's
+# <title> for the title, and adds a tools.json entry with the
+# per-tool contract fields (urlState + history-keys + view-source +
+# embed-snippet + shortcuts + keywords + pack + icon). Re-running
+# leaves existing Wave-2 entries byte-equivalent if they already
+# meet the bar (ready:true, score>=8, contract fields present).
+# Exits 1 if any tool fails to validate.
+promote-wave-2:
+	@$(PYTHON) scripts/_promote_wave_2.py
+
+# `audit-wave-2` runs scripts/rubric-lint.py against each Wave-2
+# tool, captures the per-criterion table, and APPENDS a Wave-2
+# section to docs/quality-audit.md (preserving the Wave-1 section
+# above byte-for-byte). Exits 1 if any tool scores below 8.
+audit-wave-2:
+	@$(PYTHON) scripts/_audit_wave_2.py
+
+# `wave-2-smoke` runs the static Node smoke harness verifying each
+# of the 15 Wave-2 pages (i) is in tools.json with ready:true,
+# score>=8, urlState.encode/decode + history-keys + view-source +
+# embed-snippet + keywords + pack + icon; (ii) has the Shell script
+# tags (share.js, a11y.js, shell.js, sample-data.js, history.js);
+# (iii) every urlState encode/decode selector resolves to an id in
+# the tool HTML; (iv) ships a non-empty <slug>.js; and (v) the
+# tool's <slug>.css contains @media print (rubric #5). 346 PASS
+# expected. Vacuous-pass guard (pass===0 && fail===0 → exit 1)
+# catches hollow runs.
+wave-2-smoke:
+	@node scripts/_smoke_wave_2_pages.js

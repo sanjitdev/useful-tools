@@ -2,7 +2,7 @@
   "$schema": "tools.schema.json",
   "schemaVersion": "1",
   "releaseVersion": "0.0.0",
-  "generated": "2026-08-06T00:00:00Z",
+  "generated": "2026-08-11T00:00:00Z",
   "tools": [
     {
       "id": "lifespan-simulator",
@@ -10,23 +10,53 @@
       "title": "Lifespan Simulator",
       "description": "Statistical lifespan estimate from lifestyle, health, and habits, with WHO-cited Plan Your Changes tab (cancel-out rule). Not a medical prediction.",
       "category": "Health & Lifestyle",
-      "pack": ["household", "study"],
+      "pack": [
+        "household",
+        "study"
+      ],
       "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5 3 .8-1.3-4.3-2.6z' fill='%234f46e5'/%3E%3C/svg%3E",
-      "keywords": ["lifespan", "life expectancy", "longevity", "health", "habits", "smoking", "alcohol", "exercise", "sleep", "BMI", "diet", "who", "plan", "cancel-out"],
+      "keywords": [
+        "lifespan",
+        "life expectancy",
+        "longevity",
+        "health",
+        "habits",
+        "smoking",
+        "alcohol",
+        "exercise",
+        "sleep",
+        "BMI",
+        "diet",
+        "who",
+        "plan",
+        "cancel-out"
+      ],
       "last-updated": "2026-08-08T00:00:00Z",
       "ready": true,
       "score": 8,
       "urlState": {
         "default": {},
         "encode": [
-          { "key": "tab", "type": "string", "from": "ls-mode-tabs .tab.is-active[data-tab]" }
+          {
+            "key": "tab",
+            "type": "string",
+            "from": "ls-mode-tabs .tab.is-active[data-tab]"
+          }
         ],
         "decode": [
-          { "key": "tab", "type": "string", "to": "ls-mode-tabs .tab[data-tab]" }
+          {
+            "key": "tab",
+            "type": "string",
+            "to": "ls-mode-tabs .tab[data-tab]"
+          }
         ]
       },
       "shortcuts": [
-        { "key": "r", "label": "Reset plan targets to WHO optimal", "action": "reset" }
+        {
+          "key": "r",
+          "label": "Reset plan targets to WHO optimal",
+          "action": "reset"
+        }
       ],
       "history-keys": [
         "plan-smoking-target",
@@ -58,9 +88,27 @@
       "title": "Inflation Calculator",
       "description": "CPI-adjusted value, purchasing power, real vs nominal wage growth, salary to keep up, and period comparison. BLS data 1913–2024, bundled offline.",
       "category": "Converters & Calculators",
-      "pack": ["finance", "household"],
+      "pack": [
+        "finance",
+        "household"
+      ],
       "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 17l5-5 4 4 8-8' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M14 8h6v6' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
-      "keywords": ["inflation", "cpi", "cpi-u", "purchasing-power", "wage", "salary", "real", "nominal", "bls", "us", "1913", "1920", "1970s", "2024"],
+      "keywords": [
+        "inflation",
+        "cpi",
+        "cpi-u",
+        "purchasing-power",
+        "wage",
+        "salary",
+        "real",
+        "nominal",
+        "bls",
+        "us",
+        "1913",
+        "1920",
+        "1970s",
+        "2024"
+      ],
       "last-updated": "2026-08-06T00:00:00Z",
       "ready": true,
       "score": 9,
@@ -72,16 +120,40 @@
           "ic-forward-rate": "3"
         },
         "encode": [
-          { "key": "ic-amount", "type": "number" },
-          { "key": "ic-from", "type": "number" },
-          { "key": "ic-to", "type": "number" },
-          { "key": "ic-forward-rate", "type": "number" }
+          {
+            "key": "ic-amount",
+            "type": "number"
+          },
+          {
+            "key": "ic-from",
+            "type": "number"
+          },
+          {
+            "key": "ic-to",
+            "type": "number"
+          },
+          {
+            "key": "ic-forward-rate",
+            "type": "number"
+          }
         ],
         "decode": [
-          { "key": "ic-amount", "type": "number" },
-          { "key": "ic-from", "type": "number" },
-          { "key": "ic-to", "type": "number" },
-          { "key": "ic-forward-rate", "type": "number" }
+          {
+            "key": "ic-amount",
+            "type": "number"
+          },
+          {
+            "key": "ic-from",
+            "type": "number"
+          },
+          {
+            "key": "ic-to",
+            "type": "number"
+          },
+          {
+            "key": "ic-forward-rate",
+            "type": "number"
+          }
         ],
         "sample": {
           "ic-amount": 100,
@@ -90,8 +162,16 @@
         }
       },
       "shortcuts": [
-        { "key": "r", "label": "Reset to defaults", "action": "reset" },
-        { "key": "s", "label": "Load sample ($100 in 2000)", "action": "sample" }
+        {
+          "key": "r",
+          "label": "Reset to defaults",
+          "action": "reset"
+        },
+        {
+          "key": "s",
+          "label": "Load sample ($100 in 2000)",
+          "action": "sample"
+        }
       ],
       "history-keys": [
         "ic-amount",
@@ -123,9 +203,22 @@
       "title": "QR Code Generator",
       "description": "Generate a QR code from any text or URL. Pick an error-correction level and download as SVG or PNG.",
       "category": "Developer",
-      "pack": ["developer"],
+      "pack": [
+        "developer"
+      ],
       "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='7' height='7' fill='%234f46e5'/%3E%3Crect x='14' y='3' width='7' height='7' fill='%234f46e5'/%3E%3Crect x='3' y='14' width='7' height='7' fill='%234f46e5'/%3E%3Crect x='14' y='14' width='3' height='3' fill='%234f46e5'/%3E%3Crect x='18' y='14' width='3' height='3' fill='%234f46e5'/%3E%3Crect x='14' y='18' width='3' height='3' fill='%234f46e5'/%3E%3Crect x='18' y='18' width='3' height='3' fill='%234f46e5'/%3E%3C/svg%3E",
-      "keywords": ["qr", "qr code", "qrcode", "barcode", "scan", "url", "text", "developer", "embed", "share"],
+      "keywords": [
+        "qr",
+        "qr code",
+        "qrcode",
+        "barcode",
+        "scan",
+        "url",
+        "text",
+        "developer",
+        "embed",
+        "share"
+      ],
       "last-updated": "2026-08-08T00:00:00Z",
       "ready": true,
       "score": 8,
@@ -135,7 +228,11 @@
         "reviewer": "sanjit",
         "expires-after-releases": 2
       },
-      "history-keys": ["qr-text", "qr-ecc", "qr-margin"],
+      "history-keys": [
+        "qr-text",
+        "qr-ecc",
+        "qr-margin"
+      ],
       "urlState": {
         "default": {
           "qr-text": "https://example.com",
@@ -143,14 +240,38 @@
           "qr-margin": "4"
         },
         "encode": [
-          { "key": "qr-text", "type": "string", "from": "#qr-text" },
-          { "key": "qr-ecc", "type": "string", "from": "#qr-ecc" },
-          { "key": "qr-margin", "type": "number", "from": "#qr-margin" }
+          {
+            "key": "qr-text",
+            "type": "string",
+            "from": "#qr-text"
+          },
+          {
+            "key": "qr-ecc",
+            "type": "string",
+            "from": "#qr-ecc"
+          },
+          {
+            "key": "qr-margin",
+            "type": "number",
+            "from": "#qr-margin"
+          }
         ],
         "decode": [
-          { "key": "qr-text", "type": "string", "to": "#qr-text" },
-          { "key": "qr-ecc", "type": "string", "to": "#qr-ecc" },
-          { "key": "qr-margin", "type": "number", "to": "#qr-margin" }
+          {
+            "key": "qr-text",
+            "type": "string",
+            "to": "#qr-text"
+          },
+          {
+            "key": "qr-ecc",
+            "type": "string",
+            "to": "#qr-ecc"
+          },
+          {
+            "key": "qr-margin",
+            "type": "number",
+            "to": "#qr-margin"
+          }
         ],
         "sample": {
           "qr-text": "https://handy.tools/?qr=demo",
@@ -170,6 +291,2395 @@
         "min-height": 480
       },
       "search-priority": 7
+    },
+    {
+      "id": "bd-tax-calculator",
+      "slug": "bd-tax-calculator",
+      "title": "Bangladesh Income Tax Calculator",
+      "description": "Estimate personal income tax for Bangladesh Assessment Year 2026-27 (FY 2025-26). Bilingual English/Bangla, printable report, all rules editable.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "finance"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "bangladesh",
+        "tax",
+        "salary",
+        "finance",
+        "bd",
+        "income",
+        "tds"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "age": "",
+          "agriculture": "",
+          "area": "",
+          "category": "",
+          "copy-summary-btn": "",
+          "dividend": "",
+          "gauge-applied": "",
+          "gauge-cap": "",
+          "gauge-fill": "",
+          "gauge-raw": ""
+        },
+        "encode": [
+          {
+            "key": "age",
+            "type": "string",
+            "from": "#age"
+          },
+          {
+            "key": "agriculture",
+            "type": "string",
+            "from": "#agriculture"
+          },
+          {
+            "key": "area",
+            "type": "string",
+            "from": "#area"
+          },
+          {
+            "key": "category",
+            "type": "string",
+            "from": "#category"
+          },
+          {
+            "key": "copy-summary-btn",
+            "type": "string",
+            "from": "#copy-summary-btn"
+          },
+          {
+            "key": "dividend",
+            "type": "string",
+            "from": "#dividend"
+          },
+          {
+            "key": "gauge-applied",
+            "type": "string",
+            "from": "#gauge-applied"
+          },
+          {
+            "key": "gauge-cap",
+            "type": "string",
+            "from": "#gauge-cap"
+          },
+          {
+            "key": "gauge-fill",
+            "type": "string",
+            "from": "#gauge-fill"
+          },
+          {
+            "key": "gauge-raw",
+            "type": "string",
+            "from": "#gauge-raw"
+          }
+        ],
+        "decode": [
+          {
+            "key": "age",
+            "type": "string",
+            "to": "#age"
+          },
+          {
+            "key": "agriculture",
+            "type": "string",
+            "to": "#agriculture"
+          },
+          {
+            "key": "area",
+            "type": "string",
+            "to": "#area"
+          },
+          {
+            "key": "category",
+            "type": "string",
+            "to": "#category"
+          },
+          {
+            "key": "copy-summary-btn",
+            "type": "string",
+            "to": "#copy-summary-btn"
+          },
+          {
+            "key": "dividend",
+            "type": "string",
+            "to": "#dividend"
+          },
+          {
+            "key": "gauge-applied",
+            "type": "string",
+            "to": "#gauge-applied"
+          },
+          {
+            "key": "gauge-cap",
+            "type": "string",
+            "to": "#gauge-cap"
+          },
+          {
+            "key": "gauge-fill",
+            "type": "string",
+            "to": "#gauge-fill"
+          },
+          {
+            "key": "gauge-raw",
+            "type": "string",
+            "to": "#gauge-raw"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "age",
+        "agriculture",
+        "area",
+        "category",
+        "copy-summary-btn",
+        "dividend",
+        "gauge-applied",
+        "gauge-cap",
+        "gauge-fill",
+        "gauge-raw"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/bd-tax-calculator/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "animal-race",
+      "slug": "animal-race",
+      "title": "Animal Race",
+      "description": "Pick racers and watch a frame-perfect animated race: cheetah, sloth, snail, lion, rabbit, and more — plus a customisable human runner.",
+      "category": "Fun",
+      "pack": [
+        "household"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "race",
+        "animal",
+        "fun",
+        "game",
+        "random",
+        "simulator"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "animal-grid": "",
+          "comparison": "",
+          "human-custom": "",
+          "human-preset": "",
+          "human-toggle": "",
+          "lanes": "",
+          "main": "",
+          "race-clock": "",
+          "race-duration": "",
+          "race-target-label": ""
+        },
+        "encode": [
+          {
+            "key": "animal-grid",
+            "type": "string",
+            "from": "#animal-grid"
+          },
+          {
+            "key": "comparison",
+            "type": "string",
+            "from": "#comparison"
+          },
+          {
+            "key": "human-custom",
+            "type": "string",
+            "from": "#human-custom"
+          },
+          {
+            "key": "human-preset",
+            "type": "string",
+            "from": "#human-preset"
+          },
+          {
+            "key": "human-toggle",
+            "type": "string",
+            "from": "#human-toggle"
+          },
+          {
+            "key": "lanes",
+            "type": "string",
+            "from": "#lanes"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "race-clock",
+            "type": "string",
+            "from": "#race-clock"
+          },
+          {
+            "key": "race-duration",
+            "type": "string",
+            "from": "#race-duration"
+          },
+          {
+            "key": "race-target-label",
+            "type": "string",
+            "from": "#race-target-label"
+          }
+        ],
+        "decode": [
+          {
+            "key": "animal-grid",
+            "type": "string",
+            "to": "#animal-grid"
+          },
+          {
+            "key": "comparison",
+            "type": "string",
+            "to": "#comparison"
+          },
+          {
+            "key": "human-custom",
+            "type": "string",
+            "to": "#human-custom"
+          },
+          {
+            "key": "human-preset",
+            "type": "string",
+            "to": "#human-preset"
+          },
+          {
+            "key": "human-toggle",
+            "type": "string",
+            "to": "#human-toggle"
+          },
+          {
+            "key": "lanes",
+            "type": "string",
+            "to": "#lanes"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "race-clock",
+            "type": "string",
+            "to": "#race-clock"
+          },
+          {
+            "key": "race-duration",
+            "type": "string",
+            "to": "#race-duration"
+          },
+          {
+            "key": "race-target-label",
+            "type": "string",
+            "to": "#race-target-label"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "animal-grid",
+        "comparison",
+        "human-custom",
+        "human-preset",
+        "human-toggle",
+        "lanes",
+        "main",
+        "race-clock",
+        "race-duration",
+        "race-target-label"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/animal-race/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "space-calculator",
+      "slug": "space-calculator",
+      "title": "Space Calculator",
+      "description": "See your age, weight, jump height, and free-fall on every planet, Pluto, and the Moon. Fun, instantly updated, fully offline.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "household"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "space",
+        "area",
+        "square",
+        "room",
+        "house",
+        "household"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "age-dob": "",
+          "age-grid": "",
+          "age-summary": "",
+          "age-years": "",
+          "fall-dist": "",
+          "fall-grid": "",
+          "fall-summary": "",
+          "fall-time": "",
+          "jump-grid": "",
+          "jump-m": ""
+        },
+        "encode": [
+          {
+            "key": "age-dob",
+            "type": "string",
+            "from": "#age-dob"
+          },
+          {
+            "key": "age-grid",
+            "type": "string",
+            "from": "#age-grid"
+          },
+          {
+            "key": "age-summary",
+            "type": "string",
+            "from": "#age-summary"
+          },
+          {
+            "key": "age-years",
+            "type": "string",
+            "from": "#age-years"
+          },
+          {
+            "key": "fall-dist",
+            "type": "string",
+            "from": "#fall-dist"
+          },
+          {
+            "key": "fall-grid",
+            "type": "string",
+            "from": "#fall-grid"
+          },
+          {
+            "key": "fall-summary",
+            "type": "string",
+            "from": "#fall-summary"
+          },
+          {
+            "key": "fall-time",
+            "type": "string",
+            "from": "#fall-time"
+          },
+          {
+            "key": "jump-grid",
+            "type": "string",
+            "from": "#jump-grid"
+          },
+          {
+            "key": "jump-m",
+            "type": "string",
+            "from": "#jump-m"
+          }
+        ],
+        "decode": [
+          {
+            "key": "age-dob",
+            "type": "string",
+            "to": "#age-dob"
+          },
+          {
+            "key": "age-grid",
+            "type": "string",
+            "to": "#age-grid"
+          },
+          {
+            "key": "age-summary",
+            "type": "string",
+            "to": "#age-summary"
+          },
+          {
+            "key": "age-years",
+            "type": "string",
+            "to": "#age-years"
+          },
+          {
+            "key": "fall-dist",
+            "type": "string",
+            "to": "#fall-dist"
+          },
+          {
+            "key": "fall-grid",
+            "type": "string",
+            "to": "#fall-grid"
+          },
+          {
+            "key": "fall-summary",
+            "type": "string",
+            "to": "#fall-summary"
+          },
+          {
+            "key": "fall-time",
+            "type": "string",
+            "to": "#fall-time"
+          },
+          {
+            "key": "jump-grid",
+            "type": "string",
+            "to": "#jump-grid"
+          },
+          {
+            "key": "jump-m",
+            "type": "string",
+            "to": "#jump-m"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "age-dob",
+        "age-grid",
+        "age-summary",
+        "age-years",
+        "fall-dist",
+        "fall-grid",
+        "fall-summary",
+        "fall-time",
+        "jump-grid",
+        "jump-m"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/space-calculator/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "age-calculator",
+      "slug": "age-calculator",
+      "title": "Age Calculator",
+      "description": "Calculate your exact age in years, months, weeks, days, hours, minutes, and seconds. Or find the date you'll reach a target age.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "household"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "age",
+        "birthday",
+        "date",
+        "years",
+        "household"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "age-primary": "",
+          "age-sub": "",
+          "born-dow": "",
+          "dob": "",
+          "dob-time": "",
+          "dob-warning": "",
+          "main": "",
+          "mode-tabs": "",
+          "next-bday": "",
+          "t-days": ""
+        },
+        "encode": [
+          {
+            "key": "age-primary",
+            "type": "string",
+            "from": "#age-primary"
+          },
+          {
+            "key": "age-sub",
+            "type": "string",
+            "from": "#age-sub"
+          },
+          {
+            "key": "born-dow",
+            "type": "string",
+            "from": "#born-dow"
+          },
+          {
+            "key": "dob",
+            "type": "string",
+            "from": "#dob"
+          },
+          {
+            "key": "dob-time",
+            "type": "string",
+            "from": "#dob-time"
+          },
+          {
+            "key": "dob-warning",
+            "type": "string",
+            "from": "#dob-warning"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "mode-tabs",
+            "type": "string",
+            "from": "#mode-tabs"
+          },
+          {
+            "key": "next-bday",
+            "type": "string",
+            "from": "#next-bday"
+          },
+          {
+            "key": "t-days",
+            "type": "string",
+            "from": "#t-days"
+          }
+        ],
+        "decode": [
+          {
+            "key": "age-primary",
+            "type": "string",
+            "to": "#age-primary"
+          },
+          {
+            "key": "age-sub",
+            "type": "string",
+            "to": "#age-sub"
+          },
+          {
+            "key": "born-dow",
+            "type": "string",
+            "to": "#born-dow"
+          },
+          {
+            "key": "dob",
+            "type": "string",
+            "to": "#dob"
+          },
+          {
+            "key": "dob-time",
+            "type": "string",
+            "to": "#dob-time"
+          },
+          {
+            "key": "dob-warning",
+            "type": "string",
+            "to": "#dob-warning"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "mode-tabs",
+            "type": "string",
+            "to": "#mode-tabs"
+          },
+          {
+            "key": "next-bday",
+            "type": "string",
+            "to": "#next-bday"
+          },
+          {
+            "key": "t-days",
+            "type": "string",
+            "to": "#t-days"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "age-primary",
+        "age-sub",
+        "born-dow",
+        "dob",
+        "dob-time",
+        "dob-warning",
+        "main",
+        "mode-tabs",
+        "next-bday",
+        "t-days"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/age-calculator/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "random-tools",
+      "slug": "random-tools",
+      "title": "Random Tools",
+      "description": "Generate random numbers, secure passwords, dice rolls, and coin flips — all in one tool.",
+      "category": "Developer",
+      "pack": [
+        "developer"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "random",
+        "picker",
+        "number",
+        "list",
+        "shuffle",
+        "developer"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "c-bar-heads": "",
+          "c-bar-tails": "",
+          "c-chart": "",
+          "c-count": "",
+          "c-flip": "",
+          "c-heads": "",
+          "c-pct-heads": "",
+          "c-pct-tails": "",
+          "c-tails": "",
+          "c-total": ""
+        },
+        "encode": [
+          {
+            "key": "c-bar-heads",
+            "type": "string",
+            "from": "#c-bar-heads"
+          },
+          {
+            "key": "c-bar-tails",
+            "type": "string",
+            "from": "#c-bar-tails"
+          },
+          {
+            "key": "c-chart",
+            "type": "string",
+            "from": "#c-chart"
+          },
+          {
+            "key": "c-count",
+            "type": "string",
+            "from": "#c-count"
+          },
+          {
+            "key": "c-flip",
+            "type": "string",
+            "from": "#c-flip"
+          },
+          {
+            "key": "c-heads",
+            "type": "string",
+            "from": "#c-heads"
+          },
+          {
+            "key": "c-pct-heads",
+            "type": "string",
+            "from": "#c-pct-heads"
+          },
+          {
+            "key": "c-pct-tails",
+            "type": "string",
+            "from": "#c-pct-tails"
+          },
+          {
+            "key": "c-tails",
+            "type": "string",
+            "from": "#c-tails"
+          },
+          {
+            "key": "c-total",
+            "type": "string",
+            "from": "#c-total"
+          }
+        ],
+        "decode": [
+          {
+            "key": "c-bar-heads",
+            "type": "string",
+            "to": "#c-bar-heads"
+          },
+          {
+            "key": "c-bar-tails",
+            "type": "string",
+            "to": "#c-bar-tails"
+          },
+          {
+            "key": "c-chart",
+            "type": "string",
+            "to": "#c-chart"
+          },
+          {
+            "key": "c-count",
+            "type": "string",
+            "to": "#c-count"
+          },
+          {
+            "key": "c-flip",
+            "type": "string",
+            "to": "#c-flip"
+          },
+          {
+            "key": "c-heads",
+            "type": "string",
+            "to": "#c-heads"
+          },
+          {
+            "key": "c-pct-heads",
+            "type": "string",
+            "to": "#c-pct-heads"
+          },
+          {
+            "key": "c-pct-tails",
+            "type": "string",
+            "to": "#c-pct-tails"
+          },
+          {
+            "key": "c-tails",
+            "type": "string",
+            "to": "#c-tails"
+          },
+          {
+            "key": "c-total",
+            "type": "string",
+            "to": "#c-total"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "c-bar-heads",
+        "c-bar-tails",
+        "c-chart",
+        "c-count",
+        "c-flip",
+        "c-heads",
+        "c-pct-heads",
+        "c-pct-tails",
+        "c-tails",
+        "c-total"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/random-tools/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "world-clock",
+      "slug": "world-clock",
+      "title": "World Clock",
+      "description": "Track the current time across multiple cities, plus a meeting-time finder to see what time it is everywhere at once.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "travel"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "clock",
+        "time",
+        "world",
+        "timezone",
+        "travel",
+        "gmt",
+        "utc"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "main": "",
+          "top": "",
+          "wc-add": "",
+          "wc-list": "",
+          "wc-mtg-date": "",
+          "wc-mtg-list": "",
+          "wc-mtg-now": "",
+          "wc-mtg-time": "",
+          "wc-name": "",
+          "wc-tz": ""
+        },
+        "encode": [
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "from": "#top"
+          },
+          {
+            "key": "wc-add",
+            "type": "string",
+            "from": "#wc-add"
+          },
+          {
+            "key": "wc-list",
+            "type": "string",
+            "from": "#wc-list"
+          },
+          {
+            "key": "wc-mtg-date",
+            "type": "string",
+            "from": "#wc-mtg-date"
+          },
+          {
+            "key": "wc-mtg-list",
+            "type": "string",
+            "from": "#wc-mtg-list"
+          },
+          {
+            "key": "wc-mtg-now",
+            "type": "string",
+            "from": "#wc-mtg-now"
+          },
+          {
+            "key": "wc-mtg-time",
+            "type": "string",
+            "from": "#wc-mtg-time"
+          },
+          {
+            "key": "wc-name",
+            "type": "string",
+            "from": "#wc-name"
+          },
+          {
+            "key": "wc-tz",
+            "type": "string",
+            "from": "#wc-tz"
+          }
+        ],
+        "decode": [
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "to": "#top"
+          },
+          {
+            "key": "wc-add",
+            "type": "string",
+            "to": "#wc-add"
+          },
+          {
+            "key": "wc-list",
+            "type": "string",
+            "to": "#wc-list"
+          },
+          {
+            "key": "wc-mtg-date",
+            "type": "string",
+            "to": "#wc-mtg-date"
+          },
+          {
+            "key": "wc-mtg-list",
+            "type": "string",
+            "to": "#wc-mtg-list"
+          },
+          {
+            "key": "wc-mtg-now",
+            "type": "string",
+            "to": "#wc-mtg-now"
+          },
+          {
+            "key": "wc-mtg-time",
+            "type": "string",
+            "to": "#wc-mtg-time"
+          },
+          {
+            "key": "wc-name",
+            "type": "string",
+            "to": "#wc-name"
+          },
+          {
+            "key": "wc-tz",
+            "type": "string",
+            "to": "#wc-tz"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "main",
+        "top",
+        "wc-add",
+        "wc-list",
+        "wc-mtg-date",
+        "wc-mtg-list",
+        "wc-mtg-now",
+        "wc-mtg-time",
+        "wc-name",
+        "wc-tz"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/world-clock/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "grade-calculator",
+      "slug": "grade-calculator",
+      "title": "Grade Calculator",
+      "description": "Compute weighted course grades, letter grade with plus/minus, and what you need on a final to hit a target.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "study"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "grade",
+        "score",
+        "marks",
+        "gpa",
+        "study",
+        "school"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "add-row": "",
+          "clear-all": "",
+          "compute-needed": "",
+          "final-grade": "",
+          "final-weight": "",
+          "letter-grade": "",
+          "main": "",
+          "needed-result": "",
+          "rows": "",
+          "target": ""
+        },
+        "encode": [
+          {
+            "key": "add-row",
+            "type": "string",
+            "from": "#add-row"
+          },
+          {
+            "key": "clear-all",
+            "type": "string",
+            "from": "#clear-all"
+          },
+          {
+            "key": "compute-needed",
+            "type": "string",
+            "from": "#compute-needed"
+          },
+          {
+            "key": "final-grade",
+            "type": "string",
+            "from": "#final-grade"
+          },
+          {
+            "key": "final-weight",
+            "type": "string",
+            "from": "#final-weight"
+          },
+          {
+            "key": "letter-grade",
+            "type": "string",
+            "from": "#letter-grade"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "needed-result",
+            "type": "string",
+            "from": "#needed-result"
+          },
+          {
+            "key": "rows",
+            "type": "string",
+            "from": "#rows"
+          },
+          {
+            "key": "target",
+            "type": "string",
+            "from": "#target"
+          }
+        ],
+        "decode": [
+          {
+            "key": "add-row",
+            "type": "string",
+            "to": "#add-row"
+          },
+          {
+            "key": "clear-all",
+            "type": "string",
+            "to": "#clear-all"
+          },
+          {
+            "key": "compute-needed",
+            "type": "string",
+            "to": "#compute-needed"
+          },
+          {
+            "key": "final-grade",
+            "type": "string",
+            "to": "#final-grade"
+          },
+          {
+            "key": "final-weight",
+            "type": "string",
+            "to": "#final-weight"
+          },
+          {
+            "key": "letter-grade",
+            "type": "string",
+            "to": "#letter-grade"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "needed-result",
+            "type": "string",
+            "to": "#needed-result"
+          },
+          {
+            "key": "rows",
+            "type": "string",
+            "to": "#rows"
+          },
+          {
+            "key": "target",
+            "type": "string",
+            "to": "#target"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "add-row",
+        "clear-all",
+        "compute-needed",
+        "final-grade",
+        "final-weight",
+        "letter-grade",
+        "main",
+        "needed-result",
+        "rows",
+        "target"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/grade-calculator/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "decision-wheel",
+      "slug": "decision-wheel",
+      "title": "Decision Wheel",
+      "description": "Spin a colorful wheel to make a choice. Add options, one per line, and let the wheel decide.",
+      "category": "Fun",
+      "pack": [
+        "household"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "decision",
+        "wheel",
+        "spinner",
+        "random",
+        "picker",
+        "fun"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "dw-add": "",
+          "dw-clear": "",
+          "dw-input": "",
+          "dw-list": "",
+          "dw-new": "",
+          "dw-reset": "",
+          "dw-result": "",
+          "dw-result-card": "",
+          "dw-result-sub": "",
+          "dw-spin": ""
+        },
+        "encode": [
+          {
+            "key": "dw-add",
+            "type": "string",
+            "from": "#dw-add"
+          },
+          {
+            "key": "dw-clear",
+            "type": "string",
+            "from": "#dw-clear"
+          },
+          {
+            "key": "dw-input",
+            "type": "string",
+            "from": "#dw-input"
+          },
+          {
+            "key": "dw-list",
+            "type": "string",
+            "from": "#dw-list"
+          },
+          {
+            "key": "dw-new",
+            "type": "string",
+            "from": "#dw-new"
+          },
+          {
+            "key": "dw-reset",
+            "type": "string",
+            "from": "#dw-reset"
+          },
+          {
+            "key": "dw-result",
+            "type": "string",
+            "from": "#dw-result"
+          },
+          {
+            "key": "dw-result-card",
+            "type": "string",
+            "from": "#dw-result-card"
+          },
+          {
+            "key": "dw-result-sub",
+            "type": "string",
+            "from": "#dw-result-sub"
+          },
+          {
+            "key": "dw-spin",
+            "type": "string",
+            "from": "#dw-spin"
+          }
+        ],
+        "decode": [
+          {
+            "key": "dw-add",
+            "type": "string",
+            "to": "#dw-add"
+          },
+          {
+            "key": "dw-clear",
+            "type": "string",
+            "to": "#dw-clear"
+          },
+          {
+            "key": "dw-input",
+            "type": "string",
+            "to": "#dw-input"
+          },
+          {
+            "key": "dw-list",
+            "type": "string",
+            "to": "#dw-list"
+          },
+          {
+            "key": "dw-new",
+            "type": "string",
+            "to": "#dw-new"
+          },
+          {
+            "key": "dw-reset",
+            "type": "string",
+            "to": "#dw-reset"
+          },
+          {
+            "key": "dw-result",
+            "type": "string",
+            "to": "#dw-result"
+          },
+          {
+            "key": "dw-result-card",
+            "type": "string",
+            "to": "#dw-result-card"
+          },
+          {
+            "key": "dw-result-sub",
+            "type": "string",
+            "to": "#dw-result-sub"
+          },
+          {
+            "key": "dw-spin",
+            "type": "string",
+            "to": "#dw-spin"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "dw-add",
+        "dw-clear",
+        "dw-input",
+        "dw-list",
+        "dw-new",
+        "dw-reset",
+        "dw-result",
+        "dw-result-card",
+        "dw-result-sub",
+        "dw-spin"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/decision-wheel/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "gpa-calculator",
+      "slug": "gpa-calculator",
+      "title": "GPA Calculator",
+      "description": "Calculate semester GPA weighted by credits and combine it with a previous cumulative GPA.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "study"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "gpa",
+        "grade",
+        "points",
+        "average",
+        "study",
+        "college"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "add-row": "",
+          "clear-all": "",
+          "course-count": "",
+          "cum-gpa": "",
+          "cum-gpa-sub": "",
+          "gpa": "",
+          "gpa-sub": "",
+          "grade-points": "",
+          "main": "",
+          "prev-credits": ""
+        },
+        "encode": [
+          {
+            "key": "add-row",
+            "type": "string",
+            "from": "#add-row"
+          },
+          {
+            "key": "clear-all",
+            "type": "string",
+            "from": "#clear-all"
+          },
+          {
+            "key": "course-count",
+            "type": "string",
+            "from": "#course-count"
+          },
+          {
+            "key": "cum-gpa",
+            "type": "string",
+            "from": "#cum-gpa"
+          },
+          {
+            "key": "cum-gpa-sub",
+            "type": "string",
+            "from": "#cum-gpa-sub"
+          },
+          {
+            "key": "gpa",
+            "type": "string",
+            "from": "#gpa"
+          },
+          {
+            "key": "gpa-sub",
+            "type": "string",
+            "from": "#gpa-sub"
+          },
+          {
+            "key": "grade-points",
+            "type": "string",
+            "from": "#grade-points"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "prev-credits",
+            "type": "string",
+            "from": "#prev-credits"
+          }
+        ],
+        "decode": [
+          {
+            "key": "add-row",
+            "type": "string",
+            "to": "#add-row"
+          },
+          {
+            "key": "clear-all",
+            "type": "string",
+            "to": "#clear-all"
+          },
+          {
+            "key": "course-count",
+            "type": "string",
+            "to": "#course-count"
+          },
+          {
+            "key": "cum-gpa",
+            "type": "string",
+            "to": "#cum-gpa"
+          },
+          {
+            "key": "cum-gpa-sub",
+            "type": "string",
+            "to": "#cum-gpa-sub"
+          },
+          {
+            "key": "gpa",
+            "type": "string",
+            "to": "#gpa"
+          },
+          {
+            "key": "gpa-sub",
+            "type": "string",
+            "to": "#gpa-sub"
+          },
+          {
+            "key": "grade-points",
+            "type": "string",
+            "to": "#grade-points"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "prev-credits",
+            "type": "string",
+            "to": "#prev-credits"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "add-row",
+        "clear-all",
+        "course-count",
+        "cum-gpa",
+        "cum-gpa-sub",
+        "gpa",
+        "gpa-sub",
+        "grade-points",
+        "main",
+        "prev-credits"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/gpa-calculator/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "loan-calculator",
+      "slug": "loan-calculator",
+      "title": "Loan Calculator",
+      "description": "Calculate loan payments, total interest, payoff date, and see the first and last 12 payments of the amortization schedule.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "finance"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "loan",
+        "emi",
+        "interest",
+        "mortgage",
+        "finance",
+        "borrow"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "amount": "",
+          "frequency": "",
+          "main": "",
+          "months": "",
+          "num-payments": "",
+          "payment": "",
+          "payment-sub": "",
+          "payoff-date": "",
+          "rate": "",
+          "schedule-wrap": ""
+        },
+        "encode": [
+          {
+            "key": "amount",
+            "type": "string",
+            "from": "#amount"
+          },
+          {
+            "key": "frequency",
+            "type": "string",
+            "from": "#frequency"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "months",
+            "type": "string",
+            "from": "#months"
+          },
+          {
+            "key": "num-payments",
+            "type": "string",
+            "from": "#num-payments"
+          },
+          {
+            "key": "payment",
+            "type": "string",
+            "from": "#payment"
+          },
+          {
+            "key": "payment-sub",
+            "type": "string",
+            "from": "#payment-sub"
+          },
+          {
+            "key": "payoff-date",
+            "type": "string",
+            "from": "#payoff-date"
+          },
+          {
+            "key": "rate",
+            "type": "string",
+            "from": "#rate"
+          },
+          {
+            "key": "schedule-wrap",
+            "type": "string",
+            "from": "#schedule-wrap"
+          }
+        ],
+        "decode": [
+          {
+            "key": "amount",
+            "type": "string",
+            "to": "#amount"
+          },
+          {
+            "key": "frequency",
+            "type": "string",
+            "to": "#frequency"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "months",
+            "type": "string",
+            "to": "#months"
+          },
+          {
+            "key": "num-payments",
+            "type": "string",
+            "to": "#num-payments"
+          },
+          {
+            "key": "payment",
+            "type": "string",
+            "to": "#payment"
+          },
+          {
+            "key": "payment-sub",
+            "type": "string",
+            "to": "#payment-sub"
+          },
+          {
+            "key": "payoff-date",
+            "type": "string",
+            "to": "#payoff-date"
+          },
+          {
+            "key": "rate",
+            "type": "string",
+            "to": "#rate"
+          },
+          {
+            "key": "schedule-wrap",
+            "type": "string",
+            "to": "#schedule-wrap"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "amount",
+        "frequency",
+        "main",
+        "months",
+        "num-payments",
+        "payment",
+        "payment-sub",
+        "payoff-date",
+        "rate",
+        "schedule-wrap"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/loan-calculator/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "countdown-to-date",
+      "slug": "countdown-to-date",
+      "title": "Countdown to Date",
+      "description": "Count down to a future date and time with a live days/hours/minutes/seconds display and progress bar.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "travel"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "countdown",
+        "date",
+        "timer",
+        "days",
+        "travel",
+        "event"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "cd-date": "",
+          "cd-days": "",
+          "cd-fill": "",
+          "cd-hours": "",
+          "cd-label": "",
+          "cd-minutes": "",
+          "cd-primary": "",
+          "cd-progress-pct": "",
+          "cd-progress-window": "",
+          "cd-seconds": ""
+        },
+        "encode": [
+          {
+            "key": "cd-date",
+            "type": "string",
+            "from": "#cd-date"
+          },
+          {
+            "key": "cd-days",
+            "type": "string",
+            "from": "#cd-days"
+          },
+          {
+            "key": "cd-fill",
+            "type": "string",
+            "from": "#cd-fill"
+          },
+          {
+            "key": "cd-hours",
+            "type": "string",
+            "from": "#cd-hours"
+          },
+          {
+            "key": "cd-label",
+            "type": "string",
+            "from": "#cd-label"
+          },
+          {
+            "key": "cd-minutes",
+            "type": "string",
+            "from": "#cd-minutes"
+          },
+          {
+            "key": "cd-primary",
+            "type": "string",
+            "from": "#cd-primary"
+          },
+          {
+            "key": "cd-progress-pct",
+            "type": "string",
+            "from": "#cd-progress-pct"
+          },
+          {
+            "key": "cd-progress-window",
+            "type": "string",
+            "from": "#cd-progress-window"
+          },
+          {
+            "key": "cd-seconds",
+            "type": "string",
+            "from": "#cd-seconds"
+          }
+        ],
+        "decode": [
+          {
+            "key": "cd-date",
+            "type": "string",
+            "to": "#cd-date"
+          },
+          {
+            "key": "cd-days",
+            "type": "string",
+            "to": "#cd-days"
+          },
+          {
+            "key": "cd-fill",
+            "type": "string",
+            "to": "#cd-fill"
+          },
+          {
+            "key": "cd-hours",
+            "type": "string",
+            "to": "#cd-hours"
+          },
+          {
+            "key": "cd-label",
+            "type": "string",
+            "to": "#cd-label"
+          },
+          {
+            "key": "cd-minutes",
+            "type": "string",
+            "to": "#cd-minutes"
+          },
+          {
+            "key": "cd-primary",
+            "type": "string",
+            "to": "#cd-primary"
+          },
+          {
+            "key": "cd-progress-pct",
+            "type": "string",
+            "to": "#cd-progress-pct"
+          },
+          {
+            "key": "cd-progress-window",
+            "type": "string",
+            "to": "#cd-progress-window"
+          },
+          {
+            "key": "cd-seconds",
+            "type": "string",
+            "to": "#cd-seconds"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "cd-date",
+        "cd-days",
+        "cd-fill",
+        "cd-hours",
+        "cd-label",
+        "cd-minutes",
+        "cd-primary",
+        "cd-progress-pct",
+        "cd-progress-window",
+        "cd-seconds"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/countdown-to-date/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "markdown-previewer",
+      "slug": "markdown-previewer",
+      "title": "Markdown Previewer",
+      "description": "A live Markdown previewer. Write on the left, see rendered HTML on the right.",
+      "category": "Developer",
+      "pack": [
+        "developer"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "markdown",
+        "md",
+        "preview",
+        "render",
+        "developer",
+        "html"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "main": "",
+          "md-input": "",
+          "md-preview": "",
+          "top": ""
+        },
+        "encode": [
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "md-input",
+            "type": "string",
+            "from": "#md-input"
+          },
+          {
+            "key": "md-preview",
+            "type": "string",
+            "from": "#md-preview"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "from": "#top"
+          }
+        ],
+        "decode": [
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "md-input",
+            "type": "string",
+            "to": "#md-input"
+          },
+          {
+            "key": "md-preview",
+            "type": "string",
+            "to": "#md-preview"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "to": "#top"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "main",
+        "md-input",
+        "md-preview",
+        "top"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/markdown-previewer/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "calorie-estimator",
+      "slug": "calorie-estimator",
+      "title": "Calorie Estimator",
+      "description": "Estimate daily calorie needs with BMR and TDEE using the Mifflin-St Jeor equation, plus macro split suggestions.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "household"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "calorie",
+        "tdee",
+        "bmr",
+        "diet",
+        "weight",
+        "household"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "activity-i": "",
+          "activity-m": "",
+          "age-i": "",
+          "age-m": "",
+          "bmi": "",
+          "bmr": "",
+          "gain-fast": "",
+          "gain-half": "",
+          "h-cm": "",
+          "h-ft": ""
+        },
+        "encode": [
+          {
+            "key": "activity-i",
+            "type": "string",
+            "from": "#activity-i"
+          },
+          {
+            "key": "activity-m",
+            "type": "string",
+            "from": "#activity-m"
+          },
+          {
+            "key": "age-i",
+            "type": "string",
+            "from": "#age-i"
+          },
+          {
+            "key": "age-m",
+            "type": "string",
+            "from": "#age-m"
+          },
+          {
+            "key": "bmi",
+            "type": "string",
+            "from": "#bmi"
+          },
+          {
+            "key": "bmr",
+            "type": "string",
+            "from": "#bmr"
+          },
+          {
+            "key": "gain-fast",
+            "type": "string",
+            "from": "#gain-fast"
+          },
+          {
+            "key": "gain-half",
+            "type": "string",
+            "from": "#gain-half"
+          },
+          {
+            "key": "h-cm",
+            "type": "string",
+            "from": "#h-cm"
+          },
+          {
+            "key": "h-ft",
+            "type": "string",
+            "from": "#h-ft"
+          }
+        ],
+        "decode": [
+          {
+            "key": "activity-i",
+            "type": "string",
+            "to": "#activity-i"
+          },
+          {
+            "key": "activity-m",
+            "type": "string",
+            "to": "#activity-m"
+          },
+          {
+            "key": "age-i",
+            "type": "string",
+            "to": "#age-i"
+          },
+          {
+            "key": "age-m",
+            "type": "string",
+            "to": "#age-m"
+          },
+          {
+            "key": "bmi",
+            "type": "string",
+            "to": "#bmi"
+          },
+          {
+            "key": "bmr",
+            "type": "string",
+            "to": "#bmr"
+          },
+          {
+            "key": "gain-fast",
+            "type": "string",
+            "to": "#gain-fast"
+          },
+          {
+            "key": "gain-half",
+            "type": "string",
+            "to": "#gain-half"
+          },
+          {
+            "key": "h-cm",
+            "type": "string",
+            "to": "#h-cm"
+          },
+          {
+            "key": "h-ft",
+            "type": "string",
+            "to": "#h-ft"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "activity-i",
+        "activity-m",
+        "age-i",
+        "age-m",
+        "bmi",
+        "bmr",
+        "gain-fast",
+        "gain-half",
+        "h-cm",
+        "h-ft"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/calorie-estimator/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "stopwatch",
+      "slug": "stopwatch",
+      "title": "Stopwatch &amp; Timer",
+      "description": "Precision stopwatch with laps and a countdown timer with a chime when it hits zero.",
+      "category": "Time",
+      "pack": [
+        "study"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "stopwatch",
+        "timer",
+        "lap",
+        "study",
+        "time",
+        "seconds"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "main": "",
+          "mode-tabs": "",
+          "sw-display": "",
+          "sw-lap": "",
+          "sw-lap-count": "",
+          "sw-laps": "",
+          "sw-reset": "",
+          "sw-start": "",
+          "sw-stats": "",
+          "t-display": ""
+        },
+        "encode": [
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "mode-tabs",
+            "type": "string",
+            "from": "#mode-tabs"
+          },
+          {
+            "key": "sw-display",
+            "type": "string",
+            "from": "#sw-display"
+          },
+          {
+            "key": "sw-lap",
+            "type": "string",
+            "from": "#sw-lap"
+          },
+          {
+            "key": "sw-lap-count",
+            "type": "string",
+            "from": "#sw-lap-count"
+          },
+          {
+            "key": "sw-laps",
+            "type": "string",
+            "from": "#sw-laps"
+          },
+          {
+            "key": "sw-reset",
+            "type": "string",
+            "from": "#sw-reset"
+          },
+          {
+            "key": "sw-start",
+            "type": "string",
+            "from": "#sw-start"
+          },
+          {
+            "key": "sw-stats",
+            "type": "string",
+            "from": "#sw-stats"
+          },
+          {
+            "key": "t-display",
+            "type": "string",
+            "from": "#t-display"
+          }
+        ],
+        "decode": [
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "mode-tabs",
+            "type": "string",
+            "to": "#mode-tabs"
+          },
+          {
+            "key": "sw-display",
+            "type": "string",
+            "to": "#sw-display"
+          },
+          {
+            "key": "sw-lap",
+            "type": "string",
+            "to": "#sw-lap"
+          },
+          {
+            "key": "sw-lap-count",
+            "type": "string",
+            "to": "#sw-lap-count"
+          },
+          {
+            "key": "sw-laps",
+            "type": "string",
+            "to": "#sw-laps"
+          },
+          {
+            "key": "sw-reset",
+            "type": "string",
+            "to": "#sw-reset"
+          },
+          {
+            "key": "sw-start",
+            "type": "string",
+            "to": "#sw-start"
+          },
+          {
+            "key": "sw-stats",
+            "type": "string",
+            "to": "#sw-stats"
+          },
+          {
+            "key": "t-display",
+            "type": "string",
+            "to": "#t-display"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "main",
+        "mode-tabs",
+        "sw-display",
+        "sw-lap",
+        "sw-lap-count",
+        "sw-laps",
+        "sw-reset",
+        "sw-start",
+        "sw-stats",
+        "t-display"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/stopwatch/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "compound-interest",
+      "slug": "compound-interest",
+      "title": "Compound Interest Calculator",
+      "description": "Calculate compound interest growth with optional monthly contributions, year-by-year table, and effective annual rate.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "finance"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "compound",
+        "interest",
+        "investment",
+        "finance",
+        "savings",
+        "apy"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "contrib-when": "",
+          "effective-rate": "",
+          "final-balance": "",
+          "final-summary": "",
+          "frequency": "",
+          "growth-multiple": "",
+          "main": "",
+          "monthly": "",
+          "principal": "",
+          "rate": ""
+        },
+        "encode": [
+          {
+            "key": "contrib-when",
+            "type": "string",
+            "from": "#contrib-when"
+          },
+          {
+            "key": "effective-rate",
+            "type": "string",
+            "from": "#effective-rate"
+          },
+          {
+            "key": "final-balance",
+            "type": "string",
+            "from": "#final-balance"
+          },
+          {
+            "key": "final-summary",
+            "type": "string",
+            "from": "#final-summary"
+          },
+          {
+            "key": "frequency",
+            "type": "string",
+            "from": "#frequency"
+          },
+          {
+            "key": "growth-multiple",
+            "type": "string",
+            "from": "#growth-multiple"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "monthly",
+            "type": "string",
+            "from": "#monthly"
+          },
+          {
+            "key": "principal",
+            "type": "string",
+            "from": "#principal"
+          },
+          {
+            "key": "rate",
+            "type": "string",
+            "from": "#rate"
+          }
+        ],
+        "decode": [
+          {
+            "key": "contrib-when",
+            "type": "string",
+            "to": "#contrib-when"
+          },
+          {
+            "key": "effective-rate",
+            "type": "string",
+            "to": "#effective-rate"
+          },
+          {
+            "key": "final-balance",
+            "type": "string",
+            "to": "#final-balance"
+          },
+          {
+            "key": "final-summary",
+            "type": "string",
+            "to": "#final-summary"
+          },
+          {
+            "key": "frequency",
+            "type": "string",
+            "to": "#frequency"
+          },
+          {
+            "key": "growth-multiple",
+            "type": "string",
+            "to": "#growth-multiple"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "monthly",
+            "type": "string",
+            "to": "#monthly"
+          },
+          {
+            "key": "principal",
+            "type": "string",
+            "to": "#principal"
+          },
+          {
+            "key": "rate",
+            "type": "string",
+            "to": "#rate"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "contrib-when",
+        "effective-rate",
+        "final-balance",
+        "final-summary",
+        "frequency",
+        "growth-multiple",
+        "main",
+        "monthly",
+        "principal",
+        "rate"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/compound-interest/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
     }
   ]
 }

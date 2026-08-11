@@ -50,3 +50,38 @@
   text-align: center;
   padding: var(--space-4);
 }
+
+/* ============================================
+   Story 2.7 — @media print block (rubric #5 Printable).
+   Idempotent — added by scripts/_print_css_bootstrap.py.
+   Hides Shell chrome (header, footer, dialogs) and forces
+   black-on-white text on the tool's main content area.
+   ============================================ */
+@media print {
+  .site-header,
+  .site-footer,
+  .shell-palette,
+  .shell-settings-modal,
+  dialog[open] {
+    display: none !important;
+  }
+  html,
+  body,
+  .shell-main {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  a {
+    color: #000 !important;
+    text-decoration: underline;
+  }
+  .panel,
+  .field,
+  .result-tile,
+  .qr-output {
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    border-color: #000 !important;
+  }
+}
