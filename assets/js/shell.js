@@ -244,6 +244,13 @@
     // via CSS, the cycle is a no-op, and `data-theme` follows the OS via
     // the media-query listener below (Story 1.6 spec; AD-7 line 115).
     if (isEmbedMode()) {
+      // AD-7: signal the rest of the page (CSS hiding the help overlay +
+      // palette/settings triggers; the keyboard chord guards in
+      // help-overlay.js / palette-actions.js) that this is an embed.
+      // The CSS rules use :root[data-embed="1"] as a parallel hard
+      // signal — the JS path is the primary guard, but the CSS hides
+      // before JS boots (FOUC defense).
+      document.documentElement.setAttribute('data-embed', '1');
       writeStoredMode('auto');
       // The FOUC IIFE may have resolved a stale 'light' / 'dark' value
       // from a prior session before we overwrote it to 'auto' above.

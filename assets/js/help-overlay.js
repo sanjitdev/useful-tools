@@ -43,7 +43,7 @@
 
   /* ---- helpers: defensive lookups ---- */
 
-  function isMac() {
+  function detectMac() {
     try {
       return /Mac/i.test(
         (window.navigator && window.navigator.platform) ||
@@ -54,6 +54,10 @@
       return false;
     }
   }
+
+  // Platform-detected once at boot per AC-8. Module-level constant;
+  // never re-read navigator on each render row.
+  var IS_MAC = false;
 
   function isEmbedMode() {
     try {
@@ -169,7 +173,7 @@
   /* ---- key glyph helpers ---- */
 
   function modKey() {
-    return isMac() ? '⌘' : 'Ctrl';
+    return IS_MAC ? '⌘' : 'Ctrl';
   }
 
   function kbdGlyphs(keys) {
@@ -413,7 +417,11 @@
     try {
       var h = root.querySelector('#help-title');
       if (h && typeof h.focus === 'function') {
-        h.focus({ preventScroll: false });
+        // prefer-reduced-motion and the spec's "focus the heading on
+        // overlay open" both imply that a scroll-jump on focus is
+        // undesirable. preventScroll is widely supported (Chromium,
+        // Firefox, Safari 14.1+).
+        h.focus({ preventScroll: true });
       }
     } catch (_) {
       /* defensive: preventScroll is not supported everywhere */
@@ -448,6 +456,12 @@
     }
     document.removeEventListener('keydown', onOverlayKeydown, true);
     document.removeEventListener('mousedown', onOverlayClickOutside, true);
+    // Cancel any pending debounced filter apply — typing then closing
+    // within 50ms used to leak a timer that fired on hidden DOM.
+    if (debounceTimer) {
+      try { clearTimeout(debounceTimer); } catch (_) { /* no-op */ }
+      debounceTimer = 0;
+    }
     // Clear filter state so a future open starts unfiltered.
     var searchInput = getSearchInput();
     if (searchInput) searchInput.value = '';
@@ -508,9 +522,14 @@
       return;
     }
     if (key === '?' && !event.ctrlKey && !event.metaKey && !event.altKey) {
-      // `?` toggles close per spec.
+      // Modifier guard matches the document-level chord — Ctrl/Cmd/Alt+?
+      // is a no-op even while the overlay is open, for consistency.
       if (typeof event.preventDefault === 'function') event.preventDefault();
       closeHelp();
+    } else if (key === '?') {
+      // Modifier held: prevent default so the chord doesn't insert a
+      // literal '?' into the search input while overlay is open.
+      if (typeof event.preventDefault === 'function') event.preventDefault();
     }
     // No focus trap: Tab is intentionally NOT handled here. UX-DR-3
     // requires Tab to leave the overlay and continue into the page
@@ -544,6 +563,10 @@
   }
 
   /* ---- boot ---- */
+
+  // AC-8 contract: platform detection happens once at module-init, not on
+  // every render. Renderer reads the IS_MAC constant (modKey -> kbdGlyphs).
+  IS_MAC = detectMac();
 
   function attachCloseButton() {
     var btn = getCloseButton();

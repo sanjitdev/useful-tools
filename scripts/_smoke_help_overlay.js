@@ -139,6 +139,18 @@ function makeEl(tag, attrs) {
     textContent: '',
     innerHTML: '',
   };
+  // className setter: real DOM assigns to .className populate the
+  // CSS class list. Our renderer (`renderRow`) uses `txt.className =
+  // 'shell-help-label'` — without this setter the class would be
+  // invisible to findAll(r, '.shell-help-label'). Patch 7 needs this.
+  Object.defineProperty(el, 'className', {
+    configurable: true,
+    enumerable: true,
+    get: function () { return Array.from(this._classes).join(' '); },
+    set: function (value) {
+      this._classes = new Set(String(value || '').split(/\s+/).filter(Boolean));
+    },
+  });
   el.firstChild = null;
   el.lastChild = null;
   Object.defineProperty(el, 'firstChild', {
@@ -298,6 +310,9 @@ const elementRegistry = {
   main: main,
 };
 
+const docListeners = [];
+const winListeners = [];
+
 const stubDocument = {
   documentElement: makeEl('html'),
   body: body,
@@ -322,9 +337,35 @@ const stubDocument = {
     if (sel.indexOf('main[tabindex="-1"]') === 0) return [main];
     return [];
   },
-  addEventListener: function () {},
-  removeEventListener: function () {},
-  dispatchEvent: function () { return true; },
+  // addEventListener is upgraded to a spy (Patches 4 + 6 + 9 — Story 3.3
+  // review). The previous no-op stub meant the document-level `?` chord
+  // and the `ht:palette-help` CustomEvent listener were unobservable —
+  // any regression to a no-op would not be caught.
+  addEventListener: function (type, fn, capture) {
+    docListeners.push({ type: type, fn: fn, capture: !!capture });
+  },
+  removeEventListener: function (type, fn) {
+    for (let i = docListeners.length - 1; i >= 0; i -= 1) {
+      if (docListeners[i].type === type && docListeners[i].fn === fn) {
+        docListeners.splice(i, 1);
+      }
+    }
+  },
+  dispatchEvent: function (event) {
+    // Run registered listeners in registration order. help-overlay.js
+    // attaches the keydown listener with capture=true, so capture
+    // listeners run first — match that ordering here so the chord
+    // test mirrors real-browser semantics.
+    const cap = docListeners.filter(function (l) { return l.type === event.type && l.capture; });
+    const bub = docListeners.filter(function (l) { return l.type === event.type && !l.capture; });
+    for (let i = 0; i < cap.length; i += 1) {
+      try { cap[i].fn(event); } catch (_) { /* defensive */ }
+    }
+    for (let i = 0; i < bub.length; i += 1) {
+      try { bub[i].fn(event); } catch (_) { /* defensive */ }
+    }
+    return true;
+  },
   createElement: function (tag) { return makeEl(tag); },
   createTextNode: function (text) { return { nodeType: 3, textContent: text }; },
   contains: function (node) {
@@ -359,9 +400,28 @@ const stubWindow = {
   },
   navigator: { platform: platform, userAgent: userAgent },
   document: stubDocument,
-  addEventListener: function () {},
-  removeEventListener: function () {},
-  dispatchEvent: function () { return true; },
+  // Patches 4 + 9 (Story 3.3 review): window-level `ht:palette-help`
+  // CustomEvent listener is now observable. dispatchEvent synthesizes
+  // the CustomEvent and runs registered listeners — so the Story 3.2
+  // → 3.3 contract (palette-emitter → help-overlay-listener) is
+  // exercised end-to-end.
+  addEventListener: function (type, fn) {
+    winListeners.push({ type: type, fn: fn });
+  },
+  removeEventListener: function (type, fn) {
+    for (let i = winListeners.length - 1; i >= 0; i -= 1) {
+      if (winListeners[i].type === type && winListeners[i].fn === fn) {
+        winListeners.splice(i, 1);
+      }
+    }
+  },
+  dispatchEvent: function (event) {
+    const arr = winListeners.filter(function (l) { return l.type === event.type; });
+    for (let i = 0; i < arr.length; i += 1) {
+      try { arr[i].fn(event); } catch (_) { /* defensive */ }
+    }
+    return true;
+  },
   CustomEvent: function (type, init) {
     this.type = type;
     this.detail = (init && init.detail) || null;
@@ -883,12 +943,468 @@ assert(
   'writes=' + localStorageWrites.length
 );
 
-console.log('');
-console.log('passed: ' + pass + ', failed: ' + fail);
+// -------------------------------------------------------------
+// Story 3.3 review additions — Patches 4 / 5 / 6 / 7 / 8 / 9.
+// docListeners / winListeners are spy arrays populated by the
+// upgraded addEventListener stubs (Patches 4 + 9). They let us
+// (a) confirm listeners were installed on boot, and (b) drive
+// those listeners with synthetic events — proving the chord /
+// CustomEvent paths actually wire up the renderer.
+// -------------------------------------------------------------
 
-// Vacuous-pass guard
-if (pass === 0 && fail === 0) {
-  console.error('VACUOUS: no assertions ran');
-  process.exit(1);
+// Helper: locate the document-level keydown capture listener installed
+// by boot(). The overlay registers exactly one (onDocumentKeydown).
+function findKeydownCapture() {
+  return docListeners.find(function (l) { return l.type === 'keydown' && l.capture; }) || null;
 }
-process.exit(fail === 0 ? 0 : 1);
+function findPaletteHelpListener() {
+  return winListeners.find(function (l) { return l.type === 'ht:palette-help'; }) || null;
+}
+
+// Close everything so subsequent tests start from a known state.
+// Reset focus to body so the chord's text-input-focus guard does
+// not fire (the previous focus-restore test left activeElement on
+// a synthesized <input> element).
+handle.close();
+activeElement = body;
+assert(
+  'doc-level keydown capture listener installed by boot() (Patch 4 prerequisite)',
+  findKeydownCapture() !== null,
+  'keydown-capture-listener-count=' + docListeners.filter(function (l) { return l.type === 'keydown' && l.capture; }).length
+);
+assert(
+  'window-level ht:palette-help listener installed by boot() (Patch 9 prerequisite)',
+  findPaletteHelpListener() !== null,
+  'palette-help-listener-count=' + winListeners.filter(function (l) { return l.type === 'ht:palette-help'; }).length
+);
+
+// -------------------------------------------------------------
+// Patch 4: document-level `?` chord — end-to-end. The harness
+// dispatches a synthetic keydown event to the registered capture
+// listener. This is the same code path the browser exercises when
+// the user presses Shift+/ on the page.
+// -------------------------------------------------------------
+assert(
+  '`?` chord opens overlay when closed (Patch 4: end-to-end)',
+  (function () {
+    if (handle.isOpen()) return 'already-open';
+    const kd = findKeydownCapture();
+    if (!kd) return 'no-listener';
+    let prevented = false;
+    kd.fn({ key: '?', ctrlKey: false, metaKey: false, altKey: false,
+      preventDefault: function () { prevented = true; } });
+    return handle.isOpen() && prevented;
+  })()
+);
+assert(
+  '`?` chord closes overlay when open (toggle, Patch 4)',
+  (function () {
+    if (!handle.isOpen()) return 'not-open';
+    const kd = findKeydownCapture();
+    kd.fn({ key: '?', ctrlKey: false, metaKey: false, altKey: false,
+      preventDefault: function () {} });
+    return !handle.isOpen();
+  })()
+);
+handle.close();
+activeElement = body;
+
+// -------------------------------------------------------------
+// Patch 6: negative tests (Epic 2 retro AI-E2-1 lesson — never
+// ship a smoke harness without negative fixtures). Each fixture
+// reproduces a state where the chord MUST be a no-op.
+// -------------------------------------------------------------
+// (a) Text-input focus — typing ? in a tool input goes to the input.
+assert(
+  '`?` chord is no-op when focus is in a text input (Patch 6 negative)',
+  (function () {
+    handle.close();
+    activeElement = body;  // reset from prior tests
+    const textbox = makeInput('text', { type: 'text' });
+    body.appendChild(textbox);
+    textbox.focus();  // activeElement = textbox
+    const kd = findKeydownCapture();
+    kd.fn({ key: '?', ctrlKey: false, metaKey: false, altKey: false,
+      preventDefault: function () {} });
+    const opened = handle.isOpen();
+    if (opened) handle.close();
+    return !opened;
+  })()
+);
+// (b) Ctrl+? — modifier guard
+assert(
+  'Ctrl+? chord is no-op (Patch 6 negative: modifier guard)',
+  (function () {
+    handle.close();
+    activeElement = body;
+    const kd = findKeydownCapture();
+    kd.fn({ key: '?', ctrlKey: true, metaKey: false, altKey: false,
+      preventDefault: function () {} });
+    const opened = handle.isOpen();
+    if (opened) handle.close();
+    return !opened;
+  })()
+);
+// (c) Cmd+? — modifier guard
+assert(
+  'Cmd+? chord is no-op (Patch 6 negative: modifier guard)',
+  (function () {
+    handle.close();
+    activeElement = body;
+    const kd = findKeydownCapture();
+    kd.fn({ key: '?', ctrlKey: false, metaKey: true, altKey: false,
+      preventDefault: function () {} });
+    const opened = handle.isOpen();
+    if (opened) handle.close();
+    return !opened;
+  })()
+);
+// (d) Alt+? — modifier guard
+assert(
+  'Alt+? chord is no-op (Patch 6 negative: modifier guard)',
+  (function () {
+    handle.close();
+    activeElement = body;
+    const kd = findKeydownCapture();
+    kd.fn({ key: '?', ctrlKey: false, metaKey: false, altKey: true,
+      preventDefault: function () {} });
+    const opened = handle.isOpen();
+    if (opened) handle.close();
+    return !opened;
+  })()
+);
+// (e) Non-? key — must not toggle
+assert(
+  'non-? key (e.g. "a") is no-op for the chord (Patch 6 negative: key guard)',
+  (function () {
+    handle.close();
+    activeElement = body;
+    const kd = findKeydownCapture();
+    kd.fn({ key: 'a', ctrlKey: false, metaKey: false, altKey: false,
+      preventDefault: function () {} });
+    return !handle.isOpen();
+  })()
+);
+
+// -------------------------------------------------------------
+// Patch 9: ht:palette-help CustomEvent — Story 3.2 → 3.3 contract.
+// The palette emits this event; the overlay listens. We dispatch
+// a synthetic event and assert the overlay toggles.
+// -------------------------------------------------------------
+assert(
+  'ht:palette-help CustomEvent opens overlay (Patch 9: contract end-to-end)',
+  (function () {
+    handle.close();
+    const fn = findPaletteHelpListener();
+    if (!fn) return 'no-listener';
+    fn.fn({ type: 'ht:palette-help' });
+    return handle.isOpen();
+  })()
+);
+assert(
+  'ht:palette-help CustomEvent closes overlay (toggle, Patch 9)',
+  (function () {
+    if (!handle.isOpen()) return 'not-open';
+    const fn = findPaletteHelpListener();
+    fn.fn({ type: 'ht:palette-help' });
+    return !handle.isOpen();
+  })()
+);
+handle.close();
+
+// -------------------------------------------------------------
+// Patch 5: DOM-level filter behavior. The filter is debounced 50ms
+// in debounceApplyFilter; the harness uses a real timer so we can
+// flush the debounce by awaiting 60ms.
+// -------------------------------------------------------------
+// Re-open, then drive the search input directly. We bypass the
+// 'input' event because our stub for `<input>.focus()` doesn't model
+// user typing — instead we set search.value and dispatch a synthetic
+// 'input' event to the registered handler.
+handle.open();
+const searchListeners = dom.search._listeners['input'] || [];
+assert(
+  'search input has at least one input listener (Patch 5 setup)',
+  searchListeners.length >= 1,
+  'listener-count=' + searchListeners.length
+);
+// Initial state: every row visible, empty-state hidden.
+const allRowsBefore = findAll(dom.globalList, 'li');
+assert(
+  'all global rows visible before filter (Patch 5)',
+  allRowsBefore.every(function (r) { return !('hidden' in r._attrs); }),
+  'a-row-hidden-initially'
+);
+assert(
+  'empty-state hidden before any filter (Patch 5)',
+  'hidden' in dom.empty._attrs
+);
+// -------------------------------------------------------------
+// Patch 5: DOM-level filter behavior. The filter is debounced 50ms
+// in debounceApplyFilter; the harness drives the input event and
+// waits for the timer to fire via chained setTimeouts.
+//
+// visibleRowCount(): anchor for the Phase 1 assertion — drops from
+// 10 → 1 when the debounced filter applies the "theme" query.
+//
+// inputListenerFired: confirms the search input listener is invoked
+// on every input dispatch. Without the wrapper below, a regression
+// that detaches the listener (e.g., boot() early-returning) would
+// pass silently because the filter wouldn't run.
+// -------------------------------------------------------------
+function visibleRowCount() {
+  return findAll(dom.globalList, 'li').filter(function (r) {
+    return !('hidden' in r._attrs);
+  }).length;
+}
+let inputListenerFired = 0;
+searchListeners.forEach(function (_fn, i) {
+  const orig = searchListeners[i];
+  searchListeners[i] = function (e) {
+    inputListenerFired += 1;
+    return orig(e);
+  };
+});
+
+// Phase 1 dispatch: type "theme" (matches 'Cycle theme' row).
+// Each subsequent phase dispatches its input INSIDE the deferred
+// callbacks so each debounce timer fires independently — without
+// that, all three input events dispatch synchronously, the debounce
+// coalesces them, and only the LAST timer fires (with the LAST
+// query value).
+dom.search.value = 'theme';
+searchListeners.forEach(function (fn) { fn({ target: dom.search }); });
+// DEFERRED FILTER ASSERTIONS — each one waits for the 50ms debounce
+// to flush by sleeping via setTimeout(... 100). We chain the phases
+// so each input dispatch is followed by a 100ms wait before the
+// assertions run. Without this, all three input events dispatch
+// synchronously, the debounce coalesces them, and only the LAST
+// timer fires (with the LAST query value), masking the per-state
+// filter behavior.
+setTimeout(function () {
+  // ── Phase 1: "theme" → 1 row visible.
+  const fr = {
+    visible: visibleRowCount(),
+    listenerFired: inputListenerFired,
+    hiddenCount: findAll(dom.globalList, 'li').filter(function (r) { return 'hidden' in r._attrs; }).length,
+    liveText: dom.live.textContent,
+  };
+  assert(
+    'debounced filter flushes within 100ms (Patch 5: timer runs)',
+    fr.visible === 1,
+    'fr=' + JSON.stringify(fr)
+  );
+  assert(
+    'filter "theme" leaves exactly one global row visible (Patch 5)',
+    (function () {
+      const rows = findAll(dom.globalList, 'li');
+      const visible = rows.filter(function (r) { return !('hidden' in r._attrs); });
+      return visible.length === 1 && /cycle theme/.test((visible[0].dataset && visible[0].dataset.search) || '');
+    })()
+  );
+  assert(
+    'non-matching rows are [hidden] after filter (Patch 5)',
+    fr.hiddenCount === 9
+  );
+  assert(
+    'live region announces "1 shortcut shown" after filter (Patch 5)',
+    /^1 shortcuts? shown$/.test((fr.liveText || '').trim()),
+    'live-text=' + JSON.stringify(fr.liveText)
+  );
+
+  // ── Phase 2: no-match query → empty state.
+  setTimeout(function () {
+    dom.search.value = 'xyzzy_no_such_string';
+    searchListeners.forEach(function (fn) { fn({ target: dom.search }); });
+    setTimeout(function () {
+      const er = {
+        emptyHidden: 'hidden' in dom.empty._attrs,
+        emptyText: dom.empty.textContent,
+        hiddenCount: findAll(dom.globalList, 'li').filter(function (r) { return 'hidden' in r._attrs; }).length,
+      };
+      assert(
+        'empty-state visible when no rows match (Patch 5: AC-5)',
+        !er.emptyHidden,
+        'er=' + JSON.stringify(er)
+      );
+      assert(
+        'empty-state text quotes the query (Patch 5: AC-5 verbatim)',
+        /xyzzy_no_such_string/.test(er.emptyText || ''),
+        'empty-text=' + JSON.stringify(er.emptyText)
+      );
+      assert(
+        'all rows [hidden] when filter has no matches (Patch 5)',
+        er.hiddenCount === 10
+      );
+
+      // ── Phase 3: clear filter → all rows visible.
+      setTimeout(function () {
+        dom.search.value = '';
+        searchListeners.forEach(function (fn) { fn({ target: dom.search }); });
+        setTimeout(function () {
+          assert(
+            'clearing filter restores all rows visible (Patch 5)',
+            visibleRowCount() === 10,
+            'visible=' + visibleRowCount()
+          );
+          handle.close();
+          runAC7Assertions();
+          runNoSlugAndContractAssertions();
+          console.log('');
+          console.log('passed: ' + pass + ', failed: ' + fail);
+          if (pass === 0 && fail === 0) {
+            console.error('VACUOUS: no assertions ran');
+            process.exit(1);
+          }
+          process.exit(fail === 0 ? 0 : 1);
+        }, 100);
+      }, 50);
+    }, 100);
+  }, 50);
+}, 50);
+
+function runAC7Assertions() {
+  handle.open();
+  assert(
+    'AC-7: each global row contains at least one <kbd> element (Patch 7)',
+    (function () {
+      const rows = findAll(dom.globalList, 'li');
+      if (rows.length === 0) return 'no-rows';
+      return rows.every(function (r) { return findAll(r, 'kbd').length >= 1; });
+    })(),
+    'rows-without-kbd=' + findAll(dom.globalList, 'li').filter(function (r) { return findAll(r, 'kbd').length === 0; }).length
+  );
+  assert(
+    'AC-7: each global row has a .shell-help-label span (Patch 7)',
+    (function () {
+      const rows = findAll(dom.globalList, 'li');
+      if (rows.length === 0) return 'no-rows';
+      return rows.every(function (r) { return findAll(r, '.shell-help-label').length === 1; });
+    })()
+  );
+  assert(
+    'AC-7: each global row is wrapped in <li> with role=listitem (Patch 7)',
+    (function () {
+      const rows = findAll(dom.globalList, 'li');
+      return rows.every(function (r) { return r.getAttribute && r.getAttribute('role') === 'listitem'; });
+    })(),
+    'role=' + (function () {
+      const rows = findAll(dom.globalList, 'li');
+      return rows.length ? rows[0].getAttribute('role') : 'no-rows';
+    })()
+  );
+  assert(
+    'AC-7: global section has an <h3> with id=help-global-heading (Patch 7)',
+    dom.globalSection.querySelectorAll('h3').length === 1 &&
+      dom.globalSection.querySelectorAll('h3')[0].getAttribute('id') === 'help-global-heading'
+  );
+  assert(
+    'AC-7: per-tool rows also have kbd + label + role=listitem (Patch 7)',
+    (function () {
+      const rows = findAll(dom.toolList, 'li');
+      if (rows.length === 0) return 'no-tool-rows';
+      return rows.every(function (r) {
+        return findAll(r, 'kbd').length >= 1 &&
+          findAll(r, '.shell-help-label').length === 1 &&
+          r.getAttribute('role') === 'listitem';
+      });
+    })()
+  );
+  handle.close();
+}
+
+function runNoSlugAndContractAssertions() {
+  // AC-2: no-slug fresh context.
+  const noSlugMain = makeEl('main', { tabindex: '-1' });
+  const noSlugBody = makeEl('body');
+  const noSlugDoc = Object.assign({}, stubDocument, {
+    body: noSlugBody,
+    activeElement: null,
+    getElementById: function (id) { return id === 'help' ? dom.root :
+      id === 'help-search' ? dom.search :
+      id === 'help-live' ? dom.live :
+      id === 'help-tool' ? dom.toolSection :
+      id === 'help-tool-list' ? dom.toolList :
+      id === 'help-global' ? dom.globalSection :
+      id === 'help-global-list' ? dom.globalList :
+      id === 'help-empty' ? dom.empty :
+      id === 'main' ? noSlugMain : null; },
+    querySelector: function (sel) {
+      if (sel.indexOf('main[data-slug]') === 0) return null;
+      if (sel.indexOf('main[tabindex="-1"]') === 0) return noSlugMain;
+      if (sel.indexOf('.help-close') === 0) return dom.closeBtn;
+      return null;
+    },
+    contains: function () { return true; },
+  });
+  const noSlugWin = Object.assign({}, stubWindow, {
+    document: noSlugDoc,
+    location: { search: '', href: 'http://localhost/' },
+    HT: { homeGrid: { entries: [] } },
+  });
+  const noSlugCtx = vm.createContext({
+    window: noSlugWin,
+    document: noSlugDoc,
+    navigator: stubWindow.navigator,
+    console: console,
+    HT: undefined,
+    fetch: global.fetch,
+    Promise: Promise,
+    MutationObserver: stubWindow.MutationObserver,
+    matchMedia: stubWindow.matchMedia,
+    localStorage: stubWindow.localStorage,
+    setTimeout: setTimeout,
+    clearTimeout: clearTimeout,
+    setInterval: setInterval,
+    clearInterval: clearInterval,
+  });
+  try {
+    vm.runInContext(
+      fs.readFileSync(HELP_OVERLAY_JS, 'utf8'),
+      noSlugCtx,
+      { filename: 'help-overlay.js (no-slug)', timeout: 5000 }
+    );
+  } catch (err) {
+    console.error('CRASH evaluating help-overlay.js (no-slug):', err);
+  }
+  const noSlugHandle = noSlugCtx.window.HT_HELP_OVERLAY_INIT;
+  noSlugHandle.open();
+  assert(
+    'AC-2: per-tool section hidden when no slug present (Patch 7)',
+    'hidden' in dom.toolSection._attrs,
+    'hidden-attr=' + ('hidden' in dom.toolSection._attrs) +
+      ' toolRows=' + findAll(dom.toolList, 'li').length
+  );
+  assert(
+    'AC-2: global section still visible when no slug present (Patch 7)',
+    !('hidden' in dom.globalSection._attrs),
+    'hidden-attr=' + ('hidden' in dom.globalSection._attrs)
+  );
+  noSlugHandle.close();
+
+  // Patch 8: api-contract entry pin.
+  const API_CONTRACT = path.join(REPO_ROOT, 'assets/js/api-contract.js');
+  let apiContractSrc = '';
+  try { apiContractSrc = fs.readFileSync(API_CONTRACT, 'utf8'); }
+  catch (err) { console.error('CRASH reading api-contract.js:', err); process.exit(1); }
+  assert(
+    'api-contract.js contains HT_HELP_OVERLAY_INIT entry (Patch 8)',
+    /HT_HELP_OVERLAY_INIT/.test(apiContractSrc),
+    'entry-missing'
+  );
+  assert(
+    'api-contract.js HT_HELP_OVERLAY_INIT entry uses stability level (Patch 8)',
+    (function () {
+      const block = apiContractSrc.match(/HT_HELP_OVERLAY_INIT[\s\S]{0,400}/);
+      if (!block) return false;
+      return /stability\s*[:=]\s*['"]/.test(block[0]);
+    })()
+  );
+}
+
+// DEFERRED FILTER ASSERTIONS are scheduled above — see the
+// setTimeout(... 50 → 100 → 50 → 100) chain. AC-7 / AC-2 /
+// Patch 8 assertions are queued inside that callback chain
+// (runAC7Assertions + runNoSlugAndContractAssertions) so they
+// execute AFTER the 50ms debounce timer has fired. Final
+// summary is logged inside the deepest setTimeout.

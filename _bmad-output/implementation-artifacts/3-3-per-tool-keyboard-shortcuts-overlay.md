@@ -2,7 +2,7 @@
 title: 'Per-Tool Keyboard Shortcuts Overlay'
 type: 'feature'
 created: '2026-08-11'
-status: 'review'
+status: 'done'
 baseline_commit: '8afcaec'  # Story 3.2 review-fix commit (latest on origin/main)
 context:
   - '{project-root}/project-context.md'
@@ -253,6 +253,39 @@ context:
 - [Source: assets/js/shell.js:1788-1811 — `findToolEntry(slug)` helper (re-use for tool-section resolution)]
 - [Source: tools.json — existing `shortcuts: [{ key, label, action }]` per-tool entries]
 
+## Review Findings (AI)
+
+Commit base: `8afcaec` (Story 3.2 review hardening). Diff: commits `4786dc1` (implementation) + `5ab32f9` (story wrap-up). Reviewed by bmad-code-review layers: blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor.
+
+### decision_needed
+*(none)*
+
+### patch
+- [x] [Review][Patch] `#help-title` lacks `tabindex="-1"` — UX-DR-6 focus-heading contract violated in real browsers [assets/shell/help.html:26; smoke harness masks by stubbing the h2 with tabindex]
+- [x] [Review][Patch] `closeHelp()` does not `clearTimeout(debounceTimer)` — post-close timer fires stale filter on hidden DOM [assets/js/help-overlay.js:441-471]
+- [x] [Review][Patch] `isMac()` re-detects per render — violates AC-8 "once at boot" contract; spec contradicts implementation [assets/js/help-overlay.js:46-52, 172]
+- [x] [Review][Patch] Document-level `?` chord handler not end-to-end tested — the harness only exercises the programmatic handle, the keydown dispatch path is uncovered [scripts/_smoke_help_overlay.js]
+- [x] [Review][Patch] DOM-level filter behavior (50ms debounce + live-region update + empty-state text) is not exercised — only the exported `search()` function is tested [scripts/_smoke_help_overlay.js]
+- [x] [Review][Patch] No negative tests — vacuous-pass can mask regressions (per Epic 2 retro AI-E2-1) [scripts/_smoke_help_overlay.js]
+- [x] [Review][Patch] AC-2 (non-tool page → per-tool section hidden) and AC-7 (per-row `<kbd>`+label+`<h3>` grouping) lack direct DOM-level assertions [scripts/_smoke_help_overlay.js]
+- [x] [Review][Patch] `HT_HELP_OVERLAY_INIT` contract entry not pinned by any test — a regression that deletes the entry while keeping `version: '1.11.0'` would pass all gates [assets/js/api-contract.js]
+- [x] [Review][Patch] `ht:palette-help` CustomEvent dispatch (Story 3.2 → 3.3 contract) not tested end-to-end [scripts/_smoke_help_overlay.js]
+- [x] [Review][Patch] `.shell-help-header h2:focus { outline: none; }` is dead CSS without tabindex — will be cleaned up automatically when the first patch lands
+- [x] [Review][Patch] `focusHeading()` `preventScroll: false` is the default and is misleading — likely the developer meant `true` to suppress viewport jump on focus restore [assets/js/help-overlay.js:412-421]
+- [x] [Review][Patch] `onOverlayKeydown` `?`-toggle missing modifier guard — only the document-level guard has it; inconsistency [assets/js/help-overlay.js:510]
+- [x] [Review][Patch] Embed-mode CSS rule `:root[data-embed="1"]` never matches because `shell.js` does not set `<html data-embed="1">` (it only sets `window.HT_SHELL_EMBED = 1`) [assets/css/components.css + assets/js/shell.js]
+
+### defer
+- [x] [Review][Defer] `closeHelp()` does not reset `callingElement` when called with `openState === false` early-return — next open captures a fresh `document.activeElement`, masking the stale reference
+- [x] [Review][Defer] `isMac()` does not consult `navigator.userAgentData` — UA Client Hints aspirational per spec; current browsers work without it
+- [x] [Review][Defer] Help block markup still emitted on embed pages even when JS is a no-op (~1.5KB inert payload) — consistent with Story 1.7 palette pattern
+
+### dismissed (noise)
+- z-index 1050 help overlay below settings modal (1100) — intentional layering per UX-DR-3 (overlays below modals)
+- Help block ordering in `index.html` and pack pages — verified palette → settings → help order is correct in actual file
+- `HT_HELP_OVERLAY_INIT` listed in api-contract.js with `stability: 'internal'` — intentional tripwire per Story 3.2 patch conventions
+- Brittle regex `HELP_REGION_RE` in shell-a11y-check.py requiring attribute order — fixed in same commit for `HELP_SEARCH_RE` via lookaheads; outer region regex matches the canonical order (Story 1.7's `PALETTE_REGION_RE` uses the same pattern)
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -265,15 +298,15 @@ Opus 4.8 (puku-ai-2.7)
 
 ### Completion Notes List
 
-- All 11 tasks complete; 1,556+ assertions across 22+ gates pass with 0 failures.
-- Story ready for code review.
+- All 11 tasks complete; 13/13 review patches applied; all gates green (shell-drift-check 42/42, shell-a11y-check all structural invariants, help-overlay-smoke 84/0, shell-public-api-smoke 23/0, palette-actions-smoke 52/0, shell-bounds-check all pages).
+- Story ready for completion — moved to `done`.
 
 ### File List
 
 **Created:**
 - `assets/shell/help.html` — canonical help overlay markup (Task 1)
 - `assets/js/help-overlay.js` — listener + renderer + filter module (Task 5)
-- `scripts/_smoke_help_overlay.js` — Node + vm smoke harness, 53 assertions (Task 8)
+- `scripts/_smoke_help_overlay.js` — Node + vm smoke harness, 84 assertions after review patches (Task 8)
 
 **Modified:**
 - `scripts/shell-template.py` — help.html splice + byte-aligned gate (Task 2)
@@ -284,12 +317,13 @@ Opus 4.8 (puku-ai-2.7)
 - `Makefile` — `help-overlay-smoke` target (Task 9)
 - `scripts/site-config-gate.py` — `EXPECTED_VERSION` 1.10.0 → 1.11.0 (Task 10)
 - `scripts/generate-pack-pages.py` — help block splice + script tag (Task 11)
-- `quality.html` — hand-patched help block + script tag (Task 11)
+- `quality.html` — hand-patched help block + script tag (Task 11); tabindex="-1" added on review-patch-1
 - `scripts/_smoke_a11y.js` — version pin 1.8.0 → 1.11.0 (Task 11)
 - `scripts/_smoke_sample_data.js` — version pin 1.8.0 → 1.11.0 (Task 11)
 - `scripts/_smoke_url_state_codec.js` — version pin 1.8.0 → 1.11.0 (Task 11)
 - `scripts/_smoke_history_panel.js` — version pin 1.8.0 → 1.11.0 (Task 11)
 - `scripts/_smoke_share_dialog.js` — version pin 1.8.0 → 1.11.0 (Task 11)
+- `assets/js/shell.js` — review-patch-13: set `<html data-embed="1">` for embed mode (parallel to `HT_SHELL_EMBED`)
 
 **Regenerated:**
 - 35 tool pages (splice help.html + help-overlay.js script tag)
@@ -299,4 +333,4 @@ Opus 4.8 (puku-ai-2.7)
 
 ## Status
 
-review
+done
