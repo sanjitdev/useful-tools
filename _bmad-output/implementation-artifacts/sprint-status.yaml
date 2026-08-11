@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-31
-last_updated: 2026-08-11T21:30:00Z
+last_updated: 2026-08-11T22:30:00Z
 project: useful-tools
 project_key: NOKEY
 tracking_system: file-system
@@ -66,8 +66,7 @@ development_status:
   1-9-home-grid-rendering-from-tools-json: done
   1-10-storage-registry-with-namespaced-keys: done
   1-11-search-engine-backend-with-ranking-and-normalization: done
-  1-12-view-source-route-for-every-tool: backlog  # superseded; see 1-12-view-source-link-target-with-site-config
-  1-12-view-source-link-target-with-site-config: done
+  1-12-view-source-link-target-with-site-config: done  # the original epics-file 1-12 (local /view-source?tool= route) was rejected per FR-16/AD-11/EXPERIENCE.md; the GH-blob link target + site-config replace it
   1-13-audit-scaffold-and-initial-tool-audit-results: done
   1-14-shell-public-api-and-bypass-prohibition: done
   1-15-first-promoted-tool-lands-on-home-grid: done
@@ -79,7 +78,7 @@ development_status:
   # FRs: FR-3 (audit completion), FR-4 (34 entries), FR-5 (real data), FR-20
   # ADs: AD-2, AD-3, AD-15 (staged rollout)
   # =========================================================================
-  epic-2: in-progress
+  epic-2: done
   epic-6: in-progress
   2-1-per-tool-url-state-codec-wiring: done
   2-2-per-tool-sample-data-and-reset-button: done
@@ -93,7 +92,7 @@ development_status:
   2-10-shared-layout-theme-utils-migration-to-modern-js: done
   2-11-brownfield-tool-inventory-view-in-quality: done
   2-12-cross-cutting-regression-sweep: done
-  epic-2-retrospective: optional
+  epic-2-retrospective: done
 
   # =========================================================================
   # Epic 3: Keyboard-First UX — Command Palette, Settings, History, Share
@@ -507,6 +506,82 @@ action_items:
     epic: 1
     story: 1-14
     revisit_condition: "When Story 1.14 smoke harness is next touched"
+
+  # === Epic 2 Retrospective (2026-08-11) ===
+  # Story 2.12 surfaced a vacuous-pass gap in the regression sweep itself
+  # (only HT.fetch calls were captured, not global fetch); negative tests
+  # for all 6 checks were added before the gate was considered complete.
+  # The 7 MUST-FIX findings from the post-epic code review (16-vs-17
+  # wave count, etc.) all landed in commit e24cf90 before the epic closed.
+  - id: AI-E2-1
+    title: "Add negative-test battery for every inventory-style sweep / smoke harness"
+    description: "Story 2.12 review MUST-FIX #2. The 35/35 × 6-check regression sweep was vacuous-pass safe only by inspection; any future sweep that asserts a count or runs an assertion block needs an equivalent negative test that proves the check fires when its fixture is broken. Pattern: scripts/_smoke_*_negative.js for each sweep harness."
+    severity: medium
+    status: open
+    owner: future dev (epic authors)
+    epic: 2
+    story: null
+    revisit_condition: "Next inventory-style sweep or count-asserting harness (e.g., a future shell-public-api extension, embed-bounds check, accessibility audit)"
+
+  - id: AI-E2-2
+    title: "Hoist HISTORY_CAP = 10 to a single constant"
+    description: "Story 2.12 review SHOULD-FIX. The 10-entry cap is documented in 3+ places (contract, doc, history.js splice) but lives as a literal `10` in `assets/js/history.js`. Hoist to `const HISTORY_CAP = 10;` and reference everywhere so the cap is single-sourced."
+    severity: low
+    status: open
+    owner: future dev
+    epic: 2
+    story: 2-3
+    revisit_condition: "When assets/js/history.js is next touched, or in Epic 3 first sprint"
+
+  - id: AI-E2-3
+    title: "Factor _promote_wave_{1,2,3}.py + _audit_wave_{1,2,3}.py into _wave_lib.py"
+    description: "Story 2.12 review SHOULD-FIX. Six near-duplicate Python files share ~50 LOC copy-pasted scaffolding (find_repo_root, load_json, run_rubric_lint, exit-code mapping). Replace with a single `promote_wave(wave_id, slug_list, packs_dict)` + `audit_wave(wave_id, slug_list)` library; wave-N.py files become thin wrappers. The wave-3 spec already calls for `--wave2/--wave3` flags on a unified helper."
+    severity: medium
+    status: open
+    owner: future dev
+    epic: 2
+    story: null
+    revisit_condition: "Before adding a Wave-4 cohort (e.g., Epic 6's 12-15 new tools)"
+
+  - id: AI-E2-4
+    title: "Generate docs/shell-public-api.md §5 from api-contract.js"
+    description: "Story 2.12 review SHOULD-FIX. The public API doc's stable-surface table is hand-maintained against api-contract.js; the two drift (HT.copyToClipboard was missing from §5 even though it's referenced elsewhere). Generate §5 from api-contract.js so doc and manifest cannot drift."
+    severity: medium
+    status: open
+    owner: future dev
+    epic: 2
+    story: null
+    revisit_condition: "When api-contract.js gains a new entry or §5 is next touched"
+
+  - id: AI-E2-5
+    title: "Lazy-stub synthetic DOM helpers in regression sweep"
+    description: "Story 2.12 review SHOULD-FIX. The sweep's buildHtFacade eagerly wires 22 helpers even though only some tools need some of them. Lazy-stub underused helpers via Object.defineProperty so tools pay only for what they probe."
+    severity: low
+    status: open
+    owner: future dev
+    epic: 2
+    story: 2-12
+    revisit_condition: "When scripts/_smoke_regression_sweep.js is next touched"
+
+  - id: AI-E2-6
+    title: "Document migration-wave as orthogonal to ready/score in tool-inventory.md"
+    description: "Done in commit e24cf90 (review fix #3). The legacy Wave-1/Wave-2/Wave-3 labels in docs/tool-inventory.md described a partition that no longer exists (every tool is now Wave-1 ready:true). Replaced with `ready` (visibility), `score` (quality), `migration-wave` (historical cohort). Maintain the new convention going forward."
+    severity: informational
+    status: done
+    owner: Sanjit (executed during review)
+    epic: 2
+    story: null
+    revisit_condition: "Resolving — done in commit e24cf90"
+
+  - id: AI-E2-7
+    title: "Reconcile Wave-3 tool count (16 vs 17) in spec, commit, smoke, and sprint-status"
+    description: "Done in commit e24cf90 (review fix #1). The story file was titled 2-8-promote-wave-3-tools-16-tools.md but the actual implementation promotes 17 tools. Renamed via git mv, updated self-references and sprint-status key. Maintain agreement between story-file slug and actual wave count going forward."
+    severity: informational
+    status: done
+    owner: Sanjit (executed during review)
+    epic: 2
+    story: null
+    revisit_condition: "Resolving — done in commit e24cf90"
 
 # -----------------------------------------------------------------------------
 # Suggested Sprint Sequencing (Reference)
