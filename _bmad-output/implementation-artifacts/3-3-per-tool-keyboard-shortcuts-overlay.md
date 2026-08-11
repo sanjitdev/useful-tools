@@ -2,7 +2,7 @@
 title: 'Per-Tool Keyboard Shortcuts Overlay'
 type: 'feature'
 created: '2026-08-11'
-status: 'ready-for-dev'
+status: 'review'
 baseline_commit: '8afcaec'  # Story 3.2 review-fix commit (latest on origin/main)
 context:
   - '{project-root}/project-context.md'
@@ -88,59 +88,59 @@ context:
 
 ## Tasks / Subtasks
 
-- [ ] 1. Create `assets/shell/help.html` — the canonical HTML source for the help overlay markup.
-  - [ ] 1.1 Wrap in `<!-- shell:help -->` / `<!-- /shell:help -->` markers (mirrors Story 1.7's palette.html convention).
-  - [ ] 1.2 Markup: a `<div id="help" role="region" aria-label="Keyboard shortcuts" hidden>` containing:
+- [x] 1. Create `assets/shell/help.html` — the canonical HTML source for the help overlay markup.
+  - [x] 1.1 Wrap in `<!-- shell:help -->` / `<!-- /shell:help -->` markers (mirrors Story 1.7's palette.html convention).
+  - [x] 1.2 Markup: a `<div id="help" role="region" aria-label="Keyboard shortcuts" hidden>` containing:
     - `<header>` with `<h2 id="help-title">Keyboard shortcuts</h2>` and a close button `<button type="button" class="help-close" aria-label="Close keyboard shortcuts">×</button>`.
     - `<input type="search" id="help-search" aria-label="Filter shortcuts" placeholder="Type to filter">`.
     - A live region `<div id="help-live" role="status" aria-live="polite">` (empty in static state; populated on filter changes).
     - Two `<section>` groups: `<section id="help-tool" aria-labelledby="help-tool-heading" hidden>` and `<section id="help-global" aria-labelledby="help-global-heading">` (the global section is always visible; the tool section is hidden on non-tool pages).
-  - [ ] 1.3 Initially hidden via `[hidden]` attribute + `aria-hidden="true"`; `aria-expanded` is NOT applicable (overlay, not a disclosure).
-  - [ ] 1.4 NO `aria-modal="true"` (overlay per UX-DR-3 — Tab must move focus out of the overlay).
-  - [ ] 1.5 Use semantic `<kbd>` for key glyphs in the static markup where useful; the runtime renderer fills in the actual rows.
-- [ ] 2. Wire `assets/shell/help.html` into the Shell template (`scripts/shell-template.py`).
-  - [ ] 2.1 Splice the `<!-- shell:help -->` block after the `<!-- shell:palette -->` block, before `<!-- /shell:chrome -->` (matches the chrome/footer/palette ordering convention).
-  - [ ] 2.2 Update the `byte_aligned` `full_ok` gate to include `help_html_ok` substring check AND `help_html_before_shell_chrome_end` index check (the help block must be inside the chrome region).
-  - [ ] 2.3 Re-run `python scripts/shell-template.py --all` to splice onto every page; idempotent on re-run.
-- [ ] 3. Extend `scripts/shell-drift-check.py` to include the `<!-- shell:help -->` region in the per-page grep. The drift check must confirm the help markup is byte-equivalent across all 35 tool pages + home + 5 pack pages + `/quality` + `/privacy`.
-- [ ] 4. Extend `scripts/shell-a11y-check.py` with `check_help_aria`:
+  - [x] 1.3 Initially hidden via `[hidden]` attribute + `aria-hidden="true"`; `aria-expanded` is NOT applicable (overlay, not a disclosure).
+  - [x] 1.4 NO `aria-modal="true"` (overlay per UX-DR-3 — Tab must move focus out of the overlay).
+  - [x] 1.5 Use semantic `<kbd>` for key glyphs in the static markup where useful; the runtime renderer fills in the actual rows.
+- [x] 2. Wire `assets/shell/help.html` into the Shell template (`scripts/shell-template.py`).
+  - [x] 2.1 Splice the `<!-- shell:help -->` block after the `<!-- shell:palette -->` block, before `<!-- /shell:chrome -->` (matches the chrome/footer/palette ordering convention).
+  - [x] 2.2 Update the `byte_aligned` `full_ok` gate to include `help_html_ok` substring check AND `help_html_before_shell_chrome_end` index check (the help block must be inside the chrome region).
+  - [x] 2.3 Re-run `python scripts/shell-template.py --all` to splice onto every page; idempotent on re-run.
+- [x] 3. Extend `scripts/shell-drift-check.py` to include the `<!-- shell:help -->` region in the per-page grep. The drift check must confirm the help markup is byte-equivalent across all 35 tool pages + home + 5 pack pages + `/quality` + `/privacy`.
+- [x] 4. Extend `scripts/shell-a11y-check.py` with `check_help_aria`:
   - Exactly one `<div id="help" role="region" aria-label="Keyboard shortcuts">` on every page.
   - Exactly one `<input type="search" id="help-search">` on every page.
   - The help node carries `hidden` attribute in the static markup.
   - No `aria-modal="true"` on the help node (UX-DR-3 overlay).
-- [ ] 5. Create `assets/js/help-overlay.js` — the module that listens, renders, and dismisses the overlay.
-  - [ ] 5.1 IIFE in strict mode; follows the same shape as `palette-actions.js` (no `HT.*` writes to the public surface — only the listener + renderer).
-  - [ ] 5.2 Module exports: `window.HT_HELP_OVERLAY_INIT` = `{ shortcuts: <global>, search: <filter fn> }` so the smoke harness can exercise the filter without DOM.
-  - [ ] 5.3 Module is loaded by `scripts/shell-template.py` AFTER `assets/js/palette-actions.js` (so its boot runs after palette boot, matching the existing load-order chain: a11y.js → palette-actions.js → shell.js → search.js → help-overlay.js).
-  - [ ] 5.4 Install a single document-level `keydown` **capture** listener (defense-in-depth so tool-page handlers can't `preventDefault`) that:
+- [x] 5. Create `assets/js/help-overlay.js` — the module that listens, renders, and dismisses the overlay.
+  - [x] 5.1 IIFE in strict mode; follows the same shape as `palette-actions.js` (no `HT.*` writes to the public surface — only the listener + renderer).
+  - [x] 5.2 Module exports: `window.HT_HELP_OVERLAY_INIT` = `{ shortcuts: <global>, search: <filter fn> }` so the smoke harness can exercise the filter without DOM.
+  - [x] 5.3 Module is loaded by `scripts/shell-template.py` AFTER `assets/js/palette-actions.js` (so its boot runs after palette boot, matching the existing load-order chain: a11y.js → palette-actions.js → shell.js → search.js → help-overlay.js).
+  - [x] 5.4 Install a single document-level `keydown` **capture** listener (defense-in-depth so tool-page handlers can't `preventDefault`) that:
     - Detects `event.key === '?'` with no Ctrl/Meta/Alt modifiers.
     - Early-returns if focus is in a text input / textarea / select / contenteditable (so typing `?` in a tool input goes to the input).
     - Early-returns if `isEmbedMode()` (re-use Story 1.7's pattern; `window.HT_SHELL_EMBED` flag).
     - Calls `event.preventDefault()` + `toggleHelp()` (the same entry point the CustomEvent handler dispatches to).
-  - [ ] 5.5 Install a `window.addEventListener('ht:palette-help', toggleHelp)` listener (the existing palette-emitter contract from Story 3.2).
-  - [ ] 5.6 `toggleHelp()` — idempotent: second call while open closes the overlay; first call opens.
-  - [ ] 5.7 `openHelp()` — set `[hidden]` attribute off, `aria-hidden="false"`, capture `document.activeElement` as `callingElement`, move focus to the overlay's `<h2>` (UX-DR-6: focus the heading on overlay open, not the search input — let the user read first), install click-outside listener (capture phase), install Escape/click/outside dismissal. Populate the per-tool section by reading `HT.homeGrid.entries` (preferred) or the inline `<script id="ht-tools-json-inline">` (fallback), filtered by `document.querySelector('main').getAttribute('data-slug')`. If no slug → hide the per-tool section.
-  - [ ] 5.8 `closeHelp()` — set `hidden` attribute, `aria-hidden="true"`, restore focus to `callingElement` (or `<main>` fallback), remove the click-outside listener. Idempotent.
-  - [ ] 5.9 Global shortcut list — **hardcoded** as the single source of truth for "discoverable" shortcuts per UX-DR-6.5. Format: `{ keys: ['?'], label: 'Toggle this help overlay' }` etc. Modifiers are platform-detected once at boot (`isMac = /Mac/i.test(navigator.platform || navigator.userAgent)`) and the `keys` array holds the canonical glyph (`['⌘', 'K']` on macOS; `['Ctrl', 'K']` elsewhere). The renderer joins the array with `+` and wraps in `<kbd>`.
-  - [ ] 5.10 Per-tool shortcuts — read `tools.json` entry at the current slug; if `entry.shortcuts && entry.shortcuts.length > 0` render the tool section; otherwise hide it. The current slug is read from `<main data-slug="...">` (set by `shell-template.py` on every tool page).
-  - [ ] 5.11 Filter input — debounced 50ms (matches Story 3.1's palette debounce). On input: case-insensitive substring match against each row's `label` + `keys`. Hide non-matching rows via `[hidden]` on the `<li>` (NOT removal — preserves DOM identity so `aria-activedescendant` is unaffected). Update the live region with `"N shortcuts shown"` on filter change.
-  - [ ] 5.12 `/` while overlay is open and focus is NOT in the search input — move focus to the search input. `Escape` while focus is in the search input — clear the filter (do NOT close). `Escape` while focus is elsewhere — close. `?` while overlay is open — close (toggle). All handlers check `event.key` and preventDefault where appropriate.
-  - [ ] 5.13 **No focus trap** — Tab moves focus out of the overlay into the page beneath. UX-DR-3 + EXPERIENCE.md:422. Do NOT install a Tab/Shift+Tab cycle inside the overlay.
-  - [ ] 5.14 **No localStorage writes** — the help overlay never persists user state. It is a pure renderer.
-- [ ] 6. CSS — append `.shell-help` + `.shell-help-*` rules to `assets/css/components.css`.
-  - [ ] 6.1 Fixed-position centered overlay, max-width 480px (narrower than the palette; help is a one-pane cheat sheet).
-  - [ ] 6.2 Use cobalt tokens for input border + search + section headings.
-  - [ ] 6.3 `[hidden]` + `aria-expanded`-style states (the help uses `[hidden]` only; no `aria-expanded` since it's not a disclosure).
-  - [ ] 6.4 Honor `forced-colors: active` — rows under system `Highlight` for the search input only; the rows themselves use system colors.
-  - [ ] 6.5 Honor `prefers-reduced-motion: reduce` — no open/close transition.
-  - [ ] 6.6 Add a `.help-close` button style (top-right × glyph).
-- [ ] 7. Update `assets/js/api-contract.js` — add a new entry for the help overlay module:
-  - [ ] 7.1 `HT.palette.openHelp` already exists (Story 3.2). Add a `notes` field clarifying it's an **emitter**; the listener is in `assets/js/help-overlay.js`.
-  - [ ] 7.2 Bump the manifest `generated` date. No new public `HT.*` surface this story adds (the help overlay is renderer-only, not API).
-- [ ] 8. Smoke harness — `scripts/_smoke_help_overlay.js` (Node + vm, parallel to `_smoke_palette_actions.js`).
-  - [ ] 8.1 Use `vm.createContext` with the same DOM stub pattern as the palette-actions smoke.
-  - [ ] 8.2 Load `assets/js/help-overlay.js` + `assets/js/shell.js` + `assets/js/home-grid.js` (the latter populates `HT.homeGrid.entries` from a fixture). The shell loads first so `HT` is defined.
-  - [ ] 8.3 Assertions (target ≥ 30):
+  - [x] 5.5 Install a `window.addEventListener('ht:palette-help', toggleHelp)` listener (the existing palette-emitter contract from Story 3.2).
+  - [x] 5.6 `toggleHelp()` — idempotent: second call while open closes the overlay; first call opens.
+  - [x] 5.7 `openHelp()` — set `[hidden]` attribute off, `aria-hidden="false"`, capture `document.activeElement` as `callingElement`, move focus to the overlay's `<h2>` (UX-DR-6: focus the heading on overlay open, not the search input — let the user read first), install click-outside listener (capture phase), install Escape/click/outside dismissal. Populate the per-tool section by reading `HT.homeGrid.entries` (preferred) or the inline `<script id="ht-tools-json-inline">` (fallback), filtered by `document.querySelector('main').getAttribute('data-slug')`. If no slug → hide the per-tool section.
+  - [x] 5.8 `closeHelp()` — set `hidden` attribute, `aria-hidden="true"`, restore focus to `callingElement` (or `<main>` fallback), remove the click-outside listener. Idempotent.
+  - [x] 5.9 Global shortcut list — **hardcoded** as the single source of truth for "discoverable" shortcuts per UX-DR-6.5. Format: `{ keys: ['?'], label: 'Toggle this help overlay' }` etc. Modifiers are platform-detected once at boot (`isMac = /Mac/i.test(navigator.platform || navigator.userAgent)`) and the `keys` array holds the canonical glyph (`['⌘', 'K']` on macOS; `['Ctrl', 'K']` elsewhere). The renderer joins the array with `+` and wraps in `<kbd>`.
+  - [x] 5.10 Per-tool shortcuts — read `tools.json` entry at the current slug; if `entry.shortcuts && entry.shortcuts.length > 0` render the tool section; otherwise hide it. The current slug is read from `<main data-slug="...">` (set by `shell-template.py` on every tool page).
+  - [x] 5.11 Filter input — debounced 50ms (matches Story 3.1's palette debounce). On input: case-insensitive substring match against each row's `label` + `keys`. Hide non-matching rows via `[hidden]` on the `<li>` (NOT removal — preserves DOM identity so `aria-activedescendant` is unaffected). Update the live region with `"N shortcuts shown"` on filter change.
+  - [x] 5.12 `/` while overlay is open and focus is NOT in the search input — move focus to the search input. `Escape` while focus is in the search input — clear the filter (do NOT close). `Escape` while focus is elsewhere — close. `?` while overlay is open — close (toggle). All handlers check `event.key` and preventDefault where appropriate.
+  - [x] 5.13 **No focus trap** — Tab moves focus out of the overlay into the page beneath. UX-DR-3 + EXPERIENCE.md:422. Do NOT install a Tab/Shift+Tab cycle inside the overlay.
+  - [x] 5.14 **No localStorage writes** — the help overlay never persists user state. It is a pure renderer.
+- [x] 6. CSS — append `.shell-help` + `.shell-help-*` rules to `assets/css/components.css`.
+  - [x] 6.1 Fixed-position centered overlay, max-width 480px (narrower than the palette; help is a one-pane cheat sheet).
+  - [x] 6.2 Use cobalt tokens for input border + search + section headings.
+  - [x] 6.3 `[hidden]` + `aria-expanded`-style states (the help uses `[hidden]` only; no `aria-expanded` since it's not a disclosure).
+  - [x] 6.4 Honor `forced-colors: active` — rows under system `Highlight` for the search input only; the rows themselves use system colors.
+  - [x] 6.5 Honor `prefers-reduced-motion: reduce` — no open/close transition.
+  - [x] 6.6 Add a `.help-close` button style (top-right × glyph).
+- [x] 7. Update `assets/js/api-contract.js` — add a new entry for the help overlay module:
+  - [x] 7.1 `HT.palette.openHelp` already exists (Story 3.2). Add a `notes` field clarifying it's an **emitter**; the listener is in `assets/js/help-overlay.js`.
+  - [x] 7.2 Bump the manifest `generated` date. No new public `HT.*` surface this story adds (the help overlay is renderer-only, not API).
+- [x] 8. Smoke harness — `scripts/_smoke_help_overlay.js` (Node + vm, parallel to `_smoke_palette_actions.js`).
+  - [x] 8.1 Use `vm.createContext` with the same DOM stub pattern as the palette-actions smoke.
+  - [x] 8.2 Load `assets/js/help-overlay.js` + `assets/js/shell.js` + `assets/js/home-grid.js` (the latter populates `HT.homeGrid.entries` from a fixture). The shell loads first so `HT` is defined.
+  - [x] 8.3 Assertions (target ≥ 30):
     - Module exposes `HT_HELP_OVERLAY_INIT` as a frozen object.
     - `HT_HELP_OVERLAY_INIT.shortcuts` is an array of `{ keys: string[], label: string }` (length ≥ 8 — covers Esc, ?, ⌘K/Ctrl K, t, g h, g p, g q, g v, g s).
     - `HT_HELP_OVERLAY_INIT.search(rows, query)` is a function: returns rows whose `label + keys.join(' ')` contains the (lowercased) query substring. Empty/whitespace query → returns the input array. Empty match → returns `[]`.
@@ -151,18 +151,38 @@ context:
     - **Filter logic**: pass 5 fixture rows through `HT_HELP_OVERLAY_INIT.search(rows, 'substr')` and assert the returned subset matches case-insensitively (assert 'Aa' substring matches 'aa' row).
     - **No focus trap**: after opening, dispatch `keydown` with `key='Tab'` and assert focus did NOT cycle inside the overlay (assert focus left the overlay).
     - **No aria-modal**: assert the help node has NO `aria-modal="true"` attribute in the static markup (parse `assets/shell/help.html` as a string and grep).
-  - [ ] 8.4 `timeout: 5000` on `vm.runInContext` (fail-fast per Story 3.2 patch #19).
-  - [ ] 8.5 Vacuous-pass guard (`pass === 0 && fail === 0` → exit 1).
-- [ ] 9. Update `Makefile` — wire `help-overlay-smoke` target into `.PHONY`, `help`, `ci`.
-- [ ] 10. Update `scripts/site-config-gate.py` if api-contract version bumps (matches Story 3.2's `EXPECTED_VERSION` pattern).
+  - [x] 8.4 `timeout: 5000` on `vm.runInContext` (fail-fast per Story 3.2 patch #19).
+  - [x] 8.5 Vacuous-pass guard (`pass === 0 && fail === 0` → exit 1).
+- [x] 9. Update `Makefile` — wire `help-overlay-smoke` target into `.PHONY`, `help`, `ci`.
+- [x] 10. Update `scripts/site-config-gate.py` if api-contract version bumps (matches Story 3.2's `EXPECTED_VERSION` pattern).
+- [x] 11. Run all gates and patch any drift/version-pin failures.
+  - [x] 11.1 Wire help block into `scripts/generate-pack-pages.py` and `quality.html`.
+  - [x] 11.2 Fix the `shell-a11y-check.py` `HELP_SEARCH_RE` to use lookaheads so attribute order is flexible.
+  - [x] 11.3 Bump version-pin 1.8.0 → 1.11.0 in `_smoke_a11y.js`, `_smoke_sample_data.js`, `_smoke_url_state_codec.js`, `_smoke_history_panel.js`, `_smoke_share_dialog.js`.
+  - [x] 11.4 Confirm `make ci` passes end-to-end (all gates, 1,556+ assertions, 0 failures).
 
 ### Debug Log
 
-(empty — to be filled during implementation)
+- **Story 3.3 baseline**: Story 3.1 review fixes (commit `9db0fa2`) → Story 3.2 (commit `e393132`) → Story 3.2 review hardening (commit `8afcaec`). All 11 tasks executed in this session.
+- **Task 1**: Built `assets/shell/help.html` — static markup for the help overlay (header, title, close button, search input, live region, two sections). Wrapped in `<!-- shell:help -->` markers. Hidden via `[hidden]` + `aria-hidden="true"`. NO `aria-modal`.
+- **Task 2**: Wired help.html into `scripts/shell-template.py` (HELP marker constants, `read_part` extension, `help_block` splice after palette, `help-overlay.js` script tag after search.js). Updated `byte_aligned` `full_ok` gate. Re-ran `shell-template.py --all` to splice onto every page.
+- **Task 3**: Extended `scripts/shell-drift-check.py` to ALSO grep the `<!-- shell:help -->` region in addition to the existing chrome/palette/footer regions. Drift check now covers all 35 tool pages + home + 5 pack pages + `/quality` + `/privacy`.
+- **Task 4**: Extended `scripts/shell-a11y-check.py` with `check_help_aria` — 4 invariants. Initially the `HELP_SEARCH_RE` required ordered attributes (`<input type="search" id="help-search"`); later fixed in Task 11 to use lookaheads.
+- **Task 5**: Created `assets/js/help-overlay.js` — IIFE in strict mode. Exports `window.HT_HELP_OVERLAY_INIT` = `{ shortcuts: GLOBAL_SHORTCUTS, search: filterFn }`. Boot installs document-level keydown capture listener (`?` chord) + window-level `ht:palette-help` listener (Story 3.2 contract). Mac detection via `navigator.platform || navigator.userAgent` at boot, no re-detection on render. Embed mode guard via `HT_SHELL_EMBED` flag. `openHelp()` focuses `<h2>` (UX-DR-6), restores focus to `callingElement` on close. Per-tool section populated from `HT.homeGrid.entries` filtered by `<main data-slug>`. Filter is debounced 50ms, hides non-matching `<li>` via `[hidden]`. No focus trap. No localStorage.
+- **Task 6**: Appended ~349 lines of `.shell-help*` rules to `assets/css/components.css`. Section comment: "Keyboard Shortcuts Help Overlay (Story 3.3)". Fixed-position centered overlay, max-width 480px, cobalt tokens, `[hidden]` states, forced-colors + prefers-reduced-motion handling.
+- **Task 7**: Bumped `api-contract.js` version to `1.11.0`. Added `window.HT_HELP_OVERLAY_INIT` entry (stability: `internal`, AD-14 freeze notes). Strengthened `HT.palette.openHelp` notes to clarify "Emitter only".
+- **Task 8**: Built `scripts/_smoke_help_overlay.js` — 700+ lines, 53 assertions. DOM stub: `makeEl(tag, attrs)` factory; `findAll(root, selector)` supports `.class`, `#id`, `[role=...]`, `[hidden]`, tag selectors. Tests: frozen handle, shortcuts shape, search() filter, open/close/toggle, idempotency, listener attachment, document.addEventListener spy, embed-mode guard, no localStorage writes.
+- **Task 9**: Added `help-overlay-smoke` target to `Makefile` (`.PHONY`, help echo, `ci`).
+- **Task 10**: Bumped `scripts/site-config-gate.py` `EXPECTED_VERSION` to `1.11.0`.
+- **Task 11 (gate fixes)**: Initial `make ci` revealed 4 drift check failures (5 pack pages + quality.html missing help block). Fixed `scripts/generate-pack-pages.py` to splice help block (HELP markers + extended `read_part` + help_block after palette_block + script tag). Hand-patched `quality.html` (initially forgot the doc-comment block — caught and fixed). Then `shell-a11y-check.py` failed with 41 violations: `HELP_SEARCH_RE` required ordered attributes. Fixed using lookaheads for attribute-order flexibility. Then 5 version-pin smoke failures (4 stories still pinned to 1.8.0). Fixed all to 1.11.0. Final `make ci` passes: 1,556+ assertions, 0 failures.
 
 ### Completion Notes
 
-(empty — to be filled during implementation)
+- Story 3.3 ships the per-tool keyboard shortcuts overlay. `?` (Shift+/) opens a fixed-position overlay listing every per-tool shortcut from `tools.json` AND the global shortcuts (`⌘K`/`Ctrl K` palette, `g h`/`g p`/`g q`/`g v`/`g s` navigation, `t` theme, `?` toggle, `Esc` close). The overlay is a non-modal region with no focus trap (UX-DR-3) — Tab moves focus OUT of the overlay into the page beneath. `/` while overlay is open focuses the search input; typing filters rows by case-insensitive substring match on label + keys. `Escape` while focus is in search clears the filter (does NOT close); `Escape` outside search closes. Closing restores focus to the calling element (or `<main>` fallback). Embed mode (`?embed=1`) hides the overlay completely and makes the `?` chord a no-op.
+- Architecture pins honored: AD-14 (no new `HT.*` surface — the overlay is renderer-only and exposes `window.HT_HELP_OVERLAY_INIT` as an internal handle for tests, AD-14 freeze pattern). AD-7 (embed mode handled via `HT_SHELL_EMBED` flag).
+- Story 3.2 contract preserved: `HT.palette.openHelp()` still emits `ht:palette-help`; the new help-overlay.js module installs the listener.
+- Story 1.7 contract preserved: palette overlay unchanged; `.shell-search-trigger` still opens palette; chrome drift check still passes.
+- Drift + a11y + version-pin gates all pass.
 
 ## Dev Notes
 
@@ -237,20 +257,46 @@ context:
 
 ### Agent Model Used
 
-(To be filled by the dev agent)
+Opus 4.8 (puku-ai-2.7)
 
 ### Debug Log References
 
-(To be filled by the dev agent)
+- See "Debug Log" section above.
 
 ### Completion Notes List
 
-(To be filled by the dev agent)
+- All 11 tasks complete; 1,556+ assertions across 22+ gates pass with 0 failures.
+- Story ready for code review.
 
 ### File List
 
-(To be filled by the dev agent)
+**Created:**
+- `assets/shell/help.html` — canonical help overlay markup (Task 1)
+- `assets/js/help-overlay.js` — listener + renderer + filter module (Task 5)
+- `scripts/_smoke_help_overlay.js` — Node + vm smoke harness, 53 assertions (Task 8)
+
+**Modified:**
+- `scripts/shell-template.py` — help.html splice + byte-aligned gate (Task 2)
+- `scripts/shell-drift-check.py` — help region in per-page grep (Task 3)
+- `scripts/shell-a11y-check.py` — `check_help_aria` + lookahead `HELP_SEARCH_RE` (Task 4, 11)
+- `assets/css/components.css` — `.shell-help*` rules appended (Task 6)
+- `assets/js/api-contract.js` — version 1.10.0 → 1.11.0, `HT_HELP_OVERLAY_INIT` entry (Task 7)
+- `Makefile` — `help-overlay-smoke` target (Task 9)
+- `scripts/site-config-gate.py` — `EXPECTED_VERSION` 1.10.0 → 1.11.0 (Task 10)
+- `scripts/generate-pack-pages.py` — help block splice + script tag (Task 11)
+- `quality.html` — hand-patched help block + script tag (Task 11)
+- `scripts/_smoke_a11y.js` — version pin 1.8.0 → 1.11.0 (Task 11)
+- `scripts/_smoke_sample_data.js` — version pin 1.8.0 → 1.11.0 (Task 11)
+- `scripts/_smoke_url_state_codec.js` — version pin 1.8.0 → 1.11.0 (Task 11)
+- `scripts/_smoke_history_panel.js` — version pin 1.8.0 → 1.11.0 (Task 11)
+- `scripts/_smoke_share_dialog.js` — version pin 1.8.0 → 1.11.0 (Task 11)
+
+**Regenerated:**
+- 35 tool pages (splice help.html + help-overlay.js script tag)
+- `index.html` (home page)
+- 5 pack pages (auto-spliced via `generate-pack-pages.py`)
+- `privacy.html`, `settings.html`
 
 ## Status
 
-ready-for-dev
+review

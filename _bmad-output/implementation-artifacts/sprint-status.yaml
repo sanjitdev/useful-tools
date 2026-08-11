@@ -103,7 +103,7 @@ development_status:
   epic-3: in-progress
   3-1-full-command-palette-with-top-5-fuzzy-matches-and-footer-hints: done
   3-2-command-palette-global-actions: done
-  3-3-per-tool-keyboard-shortcuts-overlay: in-progress
+  3-3-per-tool-keyboard-shortcuts-overlay: review
   3-4-global-keyboard-chords-for-cross-page-navigation: backlog
   3-5-settings-modal-full-control-surface: backlog
   3-6-history-panel-with-timestamps-and-restore-confirmation: backlog
