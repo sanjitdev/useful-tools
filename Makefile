@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -54,7 +54,9 @@ help: ## Show available targets
 	@echo "  make promote-wave-3      Promote the 17 Wave-3 tools into tools.json (Story 2.8) — generates per-tool contract entries"
 	@echo "  make audit-wave-3        Run docs/quality-rubric.md against each Wave-3 tool and append docs/quality-audit.md (Story 2.8)"
 	@echo "  make wave-3-smoke        Run the static smoke harness verifying the 17 Wave-3 pages + their @media print CSS (Story 2.8)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke"
+	@echo "  make pack-tags           Audit every ready:true tool's pack tags and regenerate docs/pack-taxonomy.md (Story 2.9)"
+	@echo "  make pack-tags-smoke     Run the static Node smoke verifying every ready:true entry has a valid pack array (Story 2.9)"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke"
 
 validate: validate-tools-json
 
@@ -98,7 +100,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke wave-1-smoke wave-2-smoke wave-3-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -388,3 +390,22 @@ audit-wave-3:
 # catches hollow runs.
 wave-3-smoke:
 	@node scripts/_smoke_wave_3_pages.js
+
+# Story 2.9 — Pack tag audit + taxonomy doc + smoke.
+# `pack-tags` aggregates the canonical pack roster from the three
+# wave-promo scripts (_promote_wave_{1,2,3}.py), verifies every pack
+# has ≥ 3 tools, and regenerates docs/pack-taxonomy.md (one
+# paragraph per pack with one-line inclusion criterion + the current
+# tool list). Exits 1 if any tool's pack is invalid or any pack
+# drops below the 3-tool minimum.
+pack-tags:
+	@$(PYTHON) scripts/_pack_tags.py
+
+# `pack-tags-smoke` runs the static Node smoke verifying every
+# ready:true entry in tools.json declares a non-empty `pack` array
+# whose values are all in the curated taxonomy
+# {travel,finance,study,developer,household}. 111 PASS expected.
+# Vacuous-pass guard (pass===0 && fail===0 → exit 1) catches hollow
+# runs.
+pack-tags-smoke:
+	@node scripts/_smoke_pack_tags.js

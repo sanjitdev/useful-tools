@@ -35,8 +35,11 @@ on:
       - "scripts/_promote_wave_3.py"
       - "scripts/_audit_wave_3.py"
       - "scripts/_smoke_wave_3_pages.js"
+      - "scripts/_pack_tags.py"
+      - "scripts/_smoke_pack_tags.js"
       - "docs/tool-inventory.md"
       - "docs/quality-audit.md"
+      - "docs/pack-taxonomy.md"
       - "assets/shell/**"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
@@ -78,8 +81,11 @@ on:
       - "scripts/_promote_wave_3.py"
       - "scripts/_audit_wave_3.py"
       - "scripts/_smoke_wave_3_pages.js"
+      - "scripts/_pack_tags.py"
+      - "scripts/_smoke_pack_tags.js"
       - "docs/tool-inventory.md"
       - "docs/quality-audit.md"
+      - "docs/pack-taxonomy.md"
       - "assets/shell/**"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
@@ -259,3 +265,11 @@ jobs:
         # pass guard (pass===0 && fail===0 → exit 1) catches
         # hollow runs.
         run: make wave-3-smoke
+
+      - name: Audit pack tags (Story 2.9)
+        # Story 2.9: verifies every ready:true entry in tools.json
+        # declares a non-empty pack array with values from the
+        # curated taxonomy {travel,finance,study,developer,household}
+        # and that each pack has ≥ 3 tools. 111 PASS expected.
+        # Vacuous-pass guard catches hollow runs.
+        run: make pack-tags-smoke

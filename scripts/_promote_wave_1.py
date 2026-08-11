@@ -47,6 +47,15 @@ INVENTORY_FILENAME = "docs/tool-inventory.md"
 WAVE_1_SLUGS = ("qr-code-generator", "inflation-calculator", "lifespan-simulator")
 WAVE_1_MIN_SCORE = 8
 
+# Wave-1 packs (Story 2.9 — sourced from the tools.json entries that
+# Story 2.6 promoted). Multi-pack tools are kept; schema permits this
+# (the items are uniqueItems and the array is minItems: 1).
+WAVE_1_PACKS: dict[str, list[str]] = {
+    "qr-code-generator":   ["developer"],
+    "inflation-calculator": ["finance", "household"],
+    "lifespan-simulator":  ["household", "study"],
+}
+
 
 def find_repo_root(start: Path) -> Path:
     cur = start.resolve()
