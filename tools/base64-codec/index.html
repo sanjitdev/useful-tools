@@ -208,6 +208,48 @@
   </div>
 </div>
 
+  <!-- Canonical source for the keyboard shortcuts help overlay.
+     Mounted as a static include in every page by `scripts/shell-template.py`
+     (mirrors the chrome.html header/footer + palette.html convention). The
+     drift check (`scripts/shell-drift-check.py`) extracts the region between
+     the marker comments and byte-matches every page.
+
+     ARIA pattern: non-modal overlay (UX-DR-3 + EXPERIENCE.md:422). The
+     wrapper is role="region" with aria-label="Keyboard shortcuts" and is
+     NOT aria-modal — Tab must move focus out of the overlay into the page
+     beneath. The keyboard help overlay is reachable from any tool without
+     first opening the palette (epics.md:734-748 AC #4).
+
+     Hidden + aria-hidden="true" in the static state — `assets/js/help-overlay.js`
+     toggles [hidden] / aria-hidden when openHelp() / closeHelp() run. The
+     renderer populates the per-tool section on tool pages by reading
+     `tools.json` shortcuts (re-using shell.js's findToolEntry helper).
+
+     The search input is debounced 50ms; the live region announces the
+     visible-row count on every filter change so SR users hear "N shortcuts
+     shown" without the focus pulling them out of the search box. -->
+
+<div class="shell-help" id="help" role="region" aria-label="Keyboard shortcuts" hidden>
+  <div class="shell-help-panel">
+    <header class="shell-help-header">
+      <h2 id="help-title">Keyboard shortcuts</h2>
+      <button class="help-close" type="button" aria-label="Close keyboard shortcuts">×</button>
+    </header>
+    <input class="shell-help-search" id="help-search" type="search" aria-label="Filter shortcuts" placeholder="Type to filter…" autocomplete="off" spellcheck="false" />
+    <div id="help-live" class="shell-sr-only" aria-live="polite" aria-atomic="true"></div>
+    <section id="help-tool" class="shell-help-section" aria-labelledby="help-tool-heading" hidden>
+      <h3 id="help-tool-heading">Per-tool shortcuts</h3>
+      <ul class="shell-help-list" id="help-tool-list" role="list"></ul>
+    </section>
+    <section id="help-global" class="shell-help-section" aria-labelledby="help-global-heading">
+      <h3 id="help-global-heading">Global shortcuts</h3>
+      <ul class="shell-help-list" id="help-global-list" role="list"></ul>
+    </section>
+    <p class="shell-help-empty" id="help-empty" role="presentation" hidden>No shortcuts match.</p>
+    <p class="shell-help-foot">Press <kbd>?</kbd> to close · <kbd>/</kbd> to filter · <kbd>Esc</kbd> to leave the filter</p>
+  </div>
+</div>
+
   <!-- Canonical source for the command palette overlay.
      Mounted as a static include in every page by `scripts/shell-template.py`
      (mirrors the chrome.html header/footer convention). The drift check
@@ -239,6 +281,7 @@
   <script src="../../assets/js/palette-actions.js"></script>
   <script src="../../assets/js/shell.js" defer></script>
   <script src="../../assets/js/search.js" defer></script>
+  <script src="../../assets/js/help-overlay.js" defer></script>
   <script src="./base64-codec.js"></script>
 </body>
 </html>

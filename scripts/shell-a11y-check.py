@@ -558,6 +558,106 @@ def emit(violations: list[str], rel: Path, kind: str) -> int:
     return 0
 
 
+# Story 3.3 — Keyboard Help Overlay ARIA invariants (UX-DR-3).
+# The help overlay is a NON-MODAL region (overlay, not dialog). Unlike
+# the palette (combobox) and the settings modal (true modal dialog),
+# the help overlay is `role="region"` with `aria-label` and a hidden
+# attribute in static markup; it must NOT carry `aria-modal="true"`
+# (UX-DR-3: Tab moves focus OUT of the overlay into the page beneath
+# — a focus trap would violate this). The check pins the structural
+# shape across every page so a regression that drops one of these
+# ARIA attributes is caught at the same gate as the palette + settings.
+HELP_REGION_RE = re.compile(
+    r'<div\s+class="shell-help"\s+id="help"\s+role="region"\s+'
+    r'aria-label="Keyboard shortcuts"\s+hidden',
+    re.IGNORECASE,
+)
+HELP_NO_MODAL_RE = re.compile(
+    r'<div[^>]*\bid="help"[^>]*\baria-modal="true"',
+    re.IGNORECASE,
+)
+HELP_SEARCH_RE = re.compile(
+    r'<input\b(?=[^>]*\bid="help-search")(?=[^>]*\btype="search")(?=[^>]*\baria-label="Filter shortcuts")',
+    re.IGNORECASE,
+)
+HELP_LIVE_REGION_RE = re.compile(
+    r'<div\s+id="help-live"[^>]*\baria-live="polite"',
+    re.IGNORECASE,
+)
+HELP_TOOL_SECTION_RE = re.compile(
+    r'<section\s+id="help-tool"\s+class="shell-help-section"',
+    re.IGNORECASE,
+)
+HELP_GLOBAL_SECTION_RE = re.compile(
+    r'<section\s+id="help-global"\s+class="shell-help-section"',
+    re.IGNORECASE,
+)
+
+
+def check_help_aria(path: Path) -> list[str]:
+    """Verify every page has exactly one keyboard help overlay div with
+    the WAI-ARIA 1.1 region pattern (UX-DR-3 + EXPERIENCE.md:422). The
+    overlay must be hidden in the static markup, MUST NOT carry
+    `aria-modal="true"` (UX-DR-3 explicitly forbids it — Tab must
+    leave the overlay), and must include the search input + live
+    region + the two section groups.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [f"cannot read file: {exc}"]
+    violations: list[str] = []
+
+    regions = HELP_REGION_RE.findall(text)
+    if len(regions) == 0:
+        violations.append(
+            'missing <div id="help" role="region" aria-label="Keyboard shortcuts" hidden>'
+        )
+    elif len(regions) > 1:
+        violations.append(
+            f"found {len(regions)} help overlay regions; expected exactly 1"
+        )
+
+    # UX-DR-3 + EXPERIENCE.md:422: the help overlay is non-modal.
+    # A regression that adds `aria-modal="true"` would silently
+    # turn the overlay into a focus-trapping dialog — the search
+    # input would trap Tab inside it and the calling element would
+    # lose focus restoration on close.
+    if HELP_NO_MODAL_RE.search(text):
+        violations.append(
+            "help overlay carries aria-modal=\"true\" (UX-DR-3 / EXPERIENCE.md:422 "
+            "explicitly forbids it — Tab must move focus OUT of the overlay "
+            "into the page beneath; the help is a non-modal region)"
+        )
+
+    searches = HELP_SEARCH_RE.findall(text)
+    if len(searches) == 0:
+        violations.append(
+            'missing <input type="search" id="help-search" aria-label="Filter shortcuts">'
+        )
+    elif len(searches) > 1:
+        violations.append(
+            f"found {len(searches)} #help-search inputs; expected exactly 1"
+        )
+
+    if not HELP_LIVE_REGION_RE.search(text):
+        violations.append(
+            "help overlay is missing #help-live live region with aria-live=\"polite\" "
+            "(UX-DR-18 pattern: SR users must hear \"N shortcuts shown\" "
+            "as filter narrows)"
+        )
+
+    if not HELP_TOOL_SECTION_RE.search(text):
+        violations.append(
+            "help overlay is missing <section id=\"help-tool\"> per-tool section"
+        )
+    if not HELP_GLOBAL_SECTION_RE.search(text):
+        violations.append(
+            "help overlay is missing <section id=\"help-global\"> global section"
+        )
+    return violations
+
+
 def check_main_landmark(path: Path) -> list[str]:
     """Return a list of human-readable violations for the given page."""
     try:
@@ -651,6 +751,7 @@ def main(argv: list[str]) -> int:
         failures += emit(check_fouc_script(path, canonical_iife), rel, "inline FOUC IIFE")
         failures += emit(check_palette_aria(path, root), rel, "palette ARIA wiring")
         failures += emit(check_settings_modal_aria(path), rel, "settings modal ARIA wiring")
+        failures += emit(check_help_aria(path), rel, "help overlay ARIA wiring")
 
     base_css = root / "assets" / "css" / "base.css"
     if not base_css.is_file():

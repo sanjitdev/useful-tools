@@ -98,6 +98,8 @@ PALETTE_OPEN = "<!-- shell:palette -->"
 PALETTE_CLOSE = "<!-- /shell:palette -->"
 SETTINGS_OPEN = "<!-- shell:settings -->"
 SETTINGS_CLOSE = "<!-- /shell:settings -->"
+HELP_OPEN = "<!-- shell:help -->"
+HELP_CLOSE = "<!-- /shell:help -->"
 MANIFEST_OPEN = "<!-- ht:storage-registry-manifest-start -->"
 MANIFEST_CLOSE = "<!-- ht:storage-registry-manifest-end -->"
 INLINE_OPEN = "<!-- ht:tools-json-inline-start -->"
@@ -113,6 +115,8 @@ def read_part(root: Path, rel_path: str) -> str:
         open_marker, close_marker = PALETTE_OPEN, PALETTE_CLOSE
     elif rel_path.endswith("settings.html"):
         open_marker, close_marker = SETTINGS_OPEN, SETTINGS_CLOSE
+    elif rel_path.endswith("help.html"):
+        open_marker, close_marker = HELP_OPEN, HELP_CLOSE
     else:
         raise ValueError(f"unknown chrome sub-part: {rel_path}")
     start = text.find(open_marker)
@@ -196,6 +200,8 @@ def build_pack_page(root: Path, pack: dict) -> str:
     footer_block = extract_region(chrome_html, FOOTER_OPEN, FOOTER_CLOSE)
     palette_block = read_part(root, "assets/shell/palette.html")
     settings_block = read_part(root, "assets/shell/settings.html")
+    # Story 3.3: help overlay (non-modal, role=region, no aria-modal).
+    help_block = read_part(root, "assets/shell/help.html")
 
     # Pack pages are at depth 1 (packs/<slug>.html). chrome.html's brand link
     # uses `../../index.html` (depth 2, for tool pages). Rewrite to `../index.html`
@@ -250,6 +256,7 @@ def build_pack_page(root: Path, pack: dict) -> str:
         + header_block
         + settings_block
         + palette_block
+        + help_block
         + '  <main id="main" class="shell-main" aria-label="'
         + pack["title"]
         + '" tabindex="-1">\n'
@@ -269,6 +276,7 @@ def build_pack_page(root: Path, pack: dict) -> str:
         + "\n"
         + '  <script src="../assets/js/shell.js" defer></script>\n'
         + '  <script src="../assets/js/search.js" defer></script>\n'
+        + '  <script src="../assets/js/help-overlay.js" defer></script>\n'
         + '  <script src="../assets/js/pack-page.js" defer></script>\n'
         + "</body>\n"
         + "</html>\n"

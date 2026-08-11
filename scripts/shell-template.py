@@ -86,6 +86,10 @@ CHROME_REL = Path("assets/shell/chrome.html")
 HEAD_SNIPPET_REL = Path("assets/shell/head-snippet.html")
 PALETTE_REL = Path("assets/shell/palette.html")
 SETTINGS_REL = Path("assets/shell/settings.html")
+# Story 3.3: per-tool keyboard shortcuts overlay (UX-DR-6, FR-7). The
+# overlay is a single shared DOM node mounted on every page — the same
+# chrome-template convention as palette.html and settings.html.
+HELP_REL = Path("assets/shell/help.html")
 TOOLS_JSON_REL = Path("tools.json")
 
 TOOLS_JSON_INLINE_START = "<!-- ht:tools-json-inline-start -->"
@@ -129,6 +133,13 @@ PALETTE_REGION_RE = re.compile(
 SETTINGS_REGION_RE = re.compile(
     r"<!-- shell:settings -->\s*(.*?)\s*<!-- /shell:settings -->", re.DOTALL
 )
+# Story 3.3: the help overlay's region marker. The drift check
+# (scripts/shell-drift-check.py) byte-matches this region across every
+# page, so the markers must be present in both the canonical
+# assets/shell/help.html source AND every generated page.
+HELP_REGION_RE = re.compile(
+    r"<!-- shell:help -->\s*(.*?)\s*<!-- /shell:help -->", re.DOTALL
+)
 # Strip ALL palette/settings includes from the source, whether or not
 # they carry the `<!-- shell:palette -->` / `<!-- /shell:palette -->`
 # marker comments. The byte-aligned chrome rewrite
@@ -157,6 +168,10 @@ _PALETTE_OPEN = r'<div\s+class="shell-palette"\s+id="palette"'
 # `id="shell-settings-modal"` attribute — `class="shell-settings"`
 # (which the inner fieldset classes contain) is too generic.
 _SETTINGS_OPEN = r'<div\s+id="shell-settings-modal"\s+class="shell-settings-modal"'
+# Story 3.3: the help overlay include div is `<div class="shell-help"
+# id="help" ...>`. The unique anchor is the `id="help"` attribute.
+# Class "shell-help" is too generic (matches inner element classes).
+_HELP_OPEN = r'<div\s+class="shell-help"\s+id="help"'
 # Comment-block optionally surrounding the include: up to 8 lines of
 # `<!-- ... -->` comments, each preceded by optional whitespace, with
 # a trailing newline. This catches the 3-line comment block above and
@@ -168,7 +183,7 @@ _OPTIONAL_COMMENT_BLOCK = r"(?:[ \t]*<!--[^\n]*-->\s*)*"
 # tail. Used to bound the non-greedy `.*?` match so it can't run to
 # EOF when the page has exactly ONE palette include followed by
 # exactly ONE settings include followed by the script-tag block.
-# Includes: another palette/settings opening tag, a top-level
+# Includes: another palette/settings/help opening tag, a top-level
 # `<script` tag (the trailing tool-script block), `</body>` close,
 # or the `<!-- ht:` marker that introduces the tools.json-inline
 # script tag.
@@ -177,6 +192,8 @@ _STOP_BOUNDARY = (
     + _OPTIONAL_COMMENT_BLOCK + _PALETTE_OPEN
     + r"|"
     + _OPTIONAL_COMMENT_BLOCK + _SETTINGS_OPEN
+    + r"|"
+    + _OPTIONAL_COMMENT_BLOCK + _HELP_OPEN
     + r"|<script[\s>]"
     + r"|</body>"
     + r"|<!--\s*ht:"
@@ -194,35 +211,44 @@ ALL_SETTINGS_INCLUDES_RE = re.compile(
     + r".*?(?=" + _STOP_BOUNDARY + r")",
     re.DOTALL,
 )
+ALL_HELP_INCLUDES_RE = re.compile(
+    _OPTIONAL_COMMENT_BLOCK
+    + _HELP_OPEN
+    + r".*?(?=" + _STOP_BOUNDARY + r")",
+    re.DOTALL,
+)
 
 
 def strip_duplicate_includes(source: str) -> str:
-    """Remove every palette/settings include div (plus any surrounding
+    """Remove every palette/settings/help include div (plus any surrounding
     comment block) from `source`. Returns the source with ALL such
     blocks stripped (the caller is responsible for re-appending the
     canonical blocks via the byte-aligned rewrite path).
 
     The non-greedy `.*?` match is bounded by `_STOP_BOUNDARY` (next
-    palette/settings opening tag, `<script>` tag, `</body>`, or
+    palette/settings/help opening tag, `<script>` tag, `</body>`, or
     `<!-- ht:` marker). Without this explicit boundary the regex
     would happily run all the way to EOF when the page has exactly
-    one palette + one settings + a trailing script block — consuming
-    the script tags and the `</body></html>` close in the process.
+    one palette + one settings + one help + a trailing script block —
+    consuming the script tags and the `</body></html>` close in the
+    process.
     """
     new_source = ALL_PALETTE_INCLUDES_RE.sub("", source)
     new_source = ALL_SETTINGS_INCLUDES_RE.sub("", new_source)
+    new_source = ALL_HELP_INCLUDES_RE.sub("", new_source)
     return new_source
 
 
-def read_chrome(root: Path) -> tuple[str, str, str, str, str]:
-    """Return (skip_link_html, header_html, footer_html, palette_html, settings_html).
+def read_chrome(root: Path) -> tuple[str, str, str, str, str, str]:
+    """Return (skip_link_html, header_html, footer_html, palette_html, settings_html, help_html).
 
     The canonical chrome contains a <main ... aria-label="{page_label}"> with
     a `{body}` placeholder. We extract the regions surrounding that
     placeholder so each tool page gets a copy with its own label and body.
-    The palette region (Story 1.7) and settings region (Story 1.8) are
-    separate canonical sources that are injected after the footer on every
-    page so the overlays are single shared DOM nodes.
+    The palette region (Story 1.7), settings region (Story 1.8), and help
+    region (Story 3.3) are separate canonical sources that are injected
+    after the footer on every page so the overlays are single shared DOM
+    nodes.
     """
     path = root / CHROME_REL
     if not path.is_file():
@@ -277,7 +303,25 @@ def read_chrome(root: Path) -> tuple[str, str, str, str, str]:
         sys.exit(2)
     settings_html = settings_match.group(1)
 
-    return skip_html, header_html, footer_html, palette_html, settings_html
+    # Story 3.3: the help overlay's canonical source is a separate file
+    # so assets/shell/help.html can evolve independently of the chrome
+    # template (mirrors the palette.html / settings.html convention).
+    # The region must carry shell:help markers — the drift check uses
+    # them to byte-match every page.
+    help_path = root / HELP_REL
+    if not help_path.is_file():
+        sys.stderr.write(f"shell-template: missing help source at {help_path}\n")
+        sys.exit(2)
+    help_text = help_path.read_text(encoding="utf-8")
+    help_match = HELP_REGION_RE.search(help_text)
+    if not help_match:
+        sys.stderr.write(
+            "shell-template: help.html missing shell:help markers\n"
+        )
+        sys.exit(2)
+    help_html = help_match.group(1)
+
+    return skip_html, header_html, footer_html, palette_html, settings_html, help_html
 
 
 def read_head_snippet(root: Path) -> str:
@@ -426,6 +470,7 @@ def transform(
     footer_html: str,
     palette_html: str,
     settings_html: str,
+    help_html: str,
     head_script: str,
 ) -> str:
     """Apply the four swaps. Each step assumes the previous step's input.
@@ -480,7 +525,7 @@ def transform(
             replacement = (
                 skip_html + "\n  " + header_html + "\n  "
                 + footer_html + "\n\n  " + palette_html + "\n\n  "
-                + settings_html + "\n\n  "
+                + settings_html + "\n\n  " + help_html + "\n\n  "
             )
             new_source = new_source[:anchor_start] + replacement + new_source[anchor_end:]
             # Skip steps 3-4 below — the in-place rewrite replaced everything.
@@ -569,6 +614,25 @@ def transform(
                         "<script src=\"../../assets/js/shell.js\" defer></script> "
                         "anchor not found in legacy page\n"
                     )
+            # Story 3.3: help-overlay.js (idempotent — already-present pages
+            # keep the existing tag). Anchored after search.js so the boot
+            # order is deterministic: a11y.js → palette-actions.js → shell.js
+            # → search.js → help-overlay.js.
+            if 'src="../../assets/js/help-overlay.js"' not in new_source:
+                search_anchor = '<script src="../../assets/js/search.js" defer></script>'
+                if search_anchor in new_source:
+                    new_source = new_source.replace(
+                        search_anchor,
+                        search_anchor
+                        + '\n  <script src="../../assets/js/help-overlay.js" defer></script>',
+                        1,
+                    )
+                else:
+                    sys.stderr.write(
+                        "shell-template: help-overlay.js splice skipped — "
+                        "<script src=\"../../assets/js/search.js\" defer></script> "
+                        "anchor not found in legacy page\n"
+                    )
             return new_source
         sys.stderr.write(
             "shell-template: <div id=\"site-header\"></div> marker not found\n"
@@ -609,6 +673,8 @@ def transform(
         + palette_html
         + "\n\n  "
         + settings_html
+        + "\n\n  "
+        + help_html
         + "\n\n  ",
         new_source,
         count=1,
@@ -702,6 +768,20 @@ def transform(
                 + shell_anchor,
                 1,
             )
+    # Story 3.3: help-overlay.js loads AFTER search.js so the help
+    # overlay's `?` chord is installed after the palette and search
+    # modules have booted. The boot order is deterministic:
+    # a11y.js → palette-actions.js → shell.js → search.js → help-overlay.js.
+    # Idempotent — already-present pages keep the existing tag.
+    if 'src="../../assets/js/help-overlay.js"' not in new_source:
+        search_anchor = '<script src="../../assets/js/search.js" defer></script>'
+        if search_anchor in new_source:
+            new_source = new_source.replace(
+                search_anchor,
+                search_anchor
+                + '\n  <script src="../../assets/js/help-overlay.js" defer></script>',
+                1,
+            )
 
     return new_source
 
@@ -764,6 +844,22 @@ def ensure_tool_config_and_slug(source: str, slug: str) -> str:
             sys.stderr.write(
                 "shell-template: palette-actions.js splice skipped — "
                 "<script src=\"../../assets/js/shell.js\" defer></script> "
+                "anchor not found\n"
+            )
+    # Story 3.3: help-overlay.js loads AFTER search.js. Idempotent.
+    if 'src="../../assets/js/help-overlay.js"' not in new_source:
+        search_anchor = '<script src="../../assets/js/search.js" defer></script>'
+        if search_anchor in new_source:
+            new_source = new_source.replace(
+                search_anchor,
+                search_anchor
+                + '\n  <script src="../../assets/js/help-overlay.js" defer></script>',
+                1,
+            )
+        else:
+            sys.stderr.write(
+                "shell-template: help-overlay.js splice skipped — "
+                "<script src=\"../../assets/js/search.js\" defer></script> "
                 "anchor not found\n"
             )
     return new_source
@@ -831,6 +927,7 @@ def process_file(
     footer_html: str,
     palette_html: str,
     settings_html: str,
+    help_html: str,
     head_script: str,
     tools_json_inline: str,
     dry_run: bool,
@@ -877,6 +974,22 @@ def process_file(
     )
     palette_ok = palette_html in source
     settings_ok = settings_html in source
+    # Story 3.3: help overlay is a single shared DOM node mounted on every
+    # page (UX-DR-6, FR-7). The drift check byte-matches this block.
+    help_ok = help_html in source
+    # Position check: the help block must appear inside the chrome region
+    # (i.e., before `</body>`). A page that somehow placed the help block
+    # outside the chrome region (e.g., accidentally pasted at the end of
+    # the body) would pass `help_ok` but the overlay wouldn't be a sibling
+    # of palette + settings. The `</body>` anchor stands in for the
+    # implicit `<!-- /shell:chrome -->` end marker that this codebase does
+    # not actually emit (the chrome region is bounded by the footer close
+    # + trailing includes, not by a marker comment).
+    help_before_body = (
+        not help_ok
+        or help_html not in source
+        or source.index(help_html) < source.index("</body>")
+    )
     # Bug fix: a previous broken regeneration can leave a SECOND
     # palette/settings include stranded in the page (the byte-aligned
     # check above only requires "at least one" include, not "exactly
@@ -937,6 +1050,20 @@ def process_file(
         or source.index('src="../../assets/js/palette-actions.js"')
             < source.index('src="../../assets/js/shell.js" defer')
     )
+    # Story 3.3: help-overlay.js must be loaded on every page so the
+    # overlay's `?` chord is installed. Anchored after search.js so the
+    # boot order is deterministic: a11y.js → palette-actions.js → shell.js
+    # → search.js → help-overlay.js. The byte-aligned gate detects
+    # presence; the order check pins relative position.
+    help_overlay_js_ok = (
+        'src="../../assets/js/help-overlay.js"' in source
+    )
+    help_overlay_js_after_search_js = (
+        not help_overlay_js_ok
+        or 'src="../../assets/js/search.js"' not in source
+        or source.index('src="../../assets/js/help-overlay.js"')
+            > source.index('src="../../assets/js/search.js"')
+    )
     # Story 1.12 (review patch — Decision #1): the inline tools.json
     # block (file:// fallback for home-grid.js) must also live on tool
     # pages so `wireViewSourceLink()` can resolve the slug's entry
@@ -951,6 +1078,8 @@ def process_file(
         chrome_ok
         and palette_ok
         and settings_ok
+        and help_ok
+        and help_before_body
         and palette_count_ok
         and settings_count_ok
         and site_config_js_ok
@@ -959,6 +1088,8 @@ def process_file(
         and search_js_ok
         and palette_actions_js_ok
         and palette_actions_js_before_shell_js
+        and help_overlay_js_ok
+        and help_overlay_js_after_search_js
         and tools_json_inline_ok
     )
     # Find the IIFE block on the FIRST `<script>` opener in <head>. The IIFE
@@ -1038,6 +1169,7 @@ def process_file(
         chrome_basic_ok
         and palette_html in source
         and settings_html in source
+        and help_html in source
         and storage_registry_js_ok
         and search_js_ok
         and (
@@ -1046,6 +1178,7 @@ def process_file(
             or f'data-slug="{slug}"' not in source
             or not tools_json_inline_ok
             or not palette_actions_js_ok
+            or not help_overlay_js_ok
         )
     ):
         new_source = ensure_tool_config_and_slug(source, slug)
@@ -1065,6 +1198,8 @@ def process_file(
                 missing.append("tools.json-inline")
             if not palette_actions_js_ok:
                 missing.append("palette-actions.js")
+            if not help_overlay_js_ok:
+                missing.append("help-overlay.js")
             print(
                 f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})"
             )
@@ -1085,6 +1220,8 @@ def process_file(
             missing.append("tools.json-inline")
         if 'src="../../assets/js/palette-actions.js"' not in source:
             missing.append("palette-actions.js")
+        if not help_overlay_js_ok:
+            missing.append("help-overlay.js")
         print(
             f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})"
         )
@@ -1100,7 +1237,7 @@ def process_file(
     # rather than group(2) — a latent Story 1.6 bug) and would short-circuit
     # on a correct IIFE, preventing the palette splice from ever firing.
     if chrome_ok and not (
-        palette_ok and settings_ok and site_config_js_ok and storage_registry_js_ok and search_js_ok and palette_actions_js_ok and tools_json_inline_ok
+        palette_ok and settings_ok and help_ok and site_config_js_ok and storage_registry_js_ok and search_js_ok and palette_actions_js_ok and help_overlay_js_ok and tools_json_inline_ok
     ):
         footer_end = source.find('</footer>')
         if footer_end == -1:
@@ -1197,6 +1334,22 @@ def process_file(
                     "<script src=\"../../assets/js/shell.js\" defer></script> "
                     "anchor not found\n"
                 )
+        # Story 3.3: help-overlay.js loads AFTER search.js. Idempotent.
+        if not help_overlay_js_ok:
+            search_anchor = '<script src="../../assets/js/search.js" defer></script>'
+            if search_anchor in new_source:
+                new_source = new_source.replace(
+                    search_anchor,
+                    search_anchor
+                    + '\n  <script src="../../assets/js/help-overlay.js" defer></script>',
+                    1,
+                )
+            else:
+                sys.stderr.write(
+                    "shell-template: help-overlay.js splice skipped — "
+                    "<script src=\"../../assets/js/search.js\" defer></script> "
+                    "anchor not found\n"
+                )
         # Story 1.12 (review — Decision #1): splice the inline
         # tools.json block so wireViewSourceLink() can resolve the slug
         # synchronously on tool pages (no home-grid.js there). Idempotent
@@ -1215,11 +1368,11 @@ def process_file(
         # palette + settings are already canonical, the strip yields
         # empty and the splice yields the same content back.
         new_source = strip_duplicate_includes(new_source)
-        # Build the trailing splice: palette + settings in canonical
-        # order. Always emit both — the strip above has already
-        # removed any stale versions, so emitting the canonical pair
+        # Build the trailing splice: palette + settings + help in canonical
+        # order. Always emit all three — the strip above has already
+        # removed any stale versions, so emitting the canonical trio
         # produces exactly one of each.
-        trailing = "\n\n  " + palette_html + "\n\n  " + settings_html
+        trailing = "\n\n  " + palette_html + "\n\n  " + settings_html + "\n\n  " + help_html
         new_source = new_source[:insert_at] + trailing + new_source[insert_at:]
         if new_source == source:
             print(f"  no-change {path.relative_to(root)}")
@@ -1228,10 +1381,12 @@ def process_file(
             missing = []
             if not palette_ok: missing.append("palette")
             if not settings_ok: missing.append("settings")
+            if not help_ok: missing.append("help")
             if not site_config_js_ok: missing.append("site-config.js")
             if not storage_registry_js_ok: missing.append("storage-registry.js")
             if not search_js_ok: missing.append("search.js")
             if not palette_actions_js_ok: missing.append("palette-actions.js")
+            if not help_overlay_js_ok: missing.append("help-overlay.js")
             if not tools_json_inline_ok: missing.append("tools.json-inline")
             if not f'data-slug="{slug}"' in source: missing.append("data-slug")
             print(f"  would-write {path.relative_to(root)}  ({' + '.join(missing)})")
@@ -1244,10 +1399,12 @@ def process_file(
         missing = []
         if not palette_ok: missing.append("palette")
         if not settings_ok: missing.append("settings")
+        if not help_ok: missing.append("help")
         if not site_config_js_ok: missing.append("site-config.js")
         if not storage_registry_js_ok: missing.append("storage-registry.js")
         if not search_js_ok: missing.append("search.js")
         if not palette_actions_js_ok: missing.append("palette-actions.js")
+        if not help_overlay_js_ok: missing.append("help-overlay.js")
         if not tools_json_inline_ok: missing.append("tools.json-inline")
         if not f'data-slug="{slug}"' in source: missing.append("data-slug")
         print(f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})")
@@ -1271,10 +1428,11 @@ def process_file(
             return False
         insert_at = footer_end + len('</footer>')
         new_source = strip_duplicate_includes(source)
-        # Re-append the canonical palette + settings includes. Order
-        # matches the byte-aligned contract: palette first, then
-        # settings. Both blocks are full marker-delimited regions.
-        trailing = "\n\n  " + palette_html + "\n\n  " + settings_html
+        # Re-append the canonical palette + settings + help includes.
+        # Order matches the byte-aligned contract: palette first, then
+        # settings, then help. All three blocks are full marker-delimited
+        # regions.
+        trailing = "\n\n  " + palette_html + "\n\n  " + settings_html + "\n\n  " + help_html
         new_source = new_source[:insert_at] + trailing + new_source[insert_at:]
         if new_source == source:
             print(f"  no-change {path.relative_to(root)}")
@@ -1388,6 +1546,7 @@ def regenerate_home(
     footer_html: str,
     palette_html: str,
     settings_html: str,
+    help_html: str,
     head_script: str,
     tools_json_inline: str,
     storage_registry_manifest: str,
@@ -1417,6 +1576,8 @@ def regenerate_home(
     )
     palette_html_in_source = palette_html in source
     settings_html_in_source = settings_html in source
+    # Story 3.3: the help overlay (UX-DR-6, FR-7) is mounted on every page.
+    help_html_in_source = help_html in source
     # The home-grid.js include is part of the byte-aligned contract as of
     # Story 1.9 — without it the renderer never runs and the data-driven
     # section stays hidden forever.
@@ -1474,6 +1635,7 @@ def regenerate_home(
         and footer_html in source
         and palette_html_in_source
         and settings_html_in_source
+        and help_html_in_source
         and palette_count_ok
         and settings_count_ok
         and home_grid_js_in_source
@@ -1537,7 +1699,7 @@ def regenerate_home(
             return False
         insert_at = footer_end + len('</footer>')
         new_source = strip_duplicate_includes(source)
-        trailing = "\n\n  " + palette_html + "\n\n  " + settings_html
+        trailing = "\n\n  " + palette_html + "\n\n  " + settings_html + "\n\n  " + help_html
         new_source = new_source[:insert_at] + trailing + new_source[insert_at:]
         if new_source == source:
             print(f"  no-change {path.relative_to(root)}")
@@ -1614,6 +1776,7 @@ def regenerate_home(
     if chrome_only_aligned and not (
         palette_html_in_source
         and settings_html_in_source
+        and help_html_in_source
         and home_grid_js_in_source
         and tools_json_inline_in_source
         and storage_registry_manifest_in_source
@@ -1630,18 +1793,18 @@ def regenerate_home(
             )
             return False
         insert_at = footer_end + len('</footer>')
-        # Always strip existing palette/settings includes from the chrome
-        # tail before splicing in the canonical blocks. Without this
-        # strip, a stale palette (e.g. from before Story 3.1 added the
-        # live region + chord hints) stays in the file alongside the new
-        # canonical include — producing two `<div class="shell-palette"
+        # Always strip existing palette/settings/help includes from the
+        # chrome tail before splicing in the canonical blocks. Without
+        # this strip, a stale palette (e.g. from before Story 3.1 added
+        # the live region + chord hints) stays in the file alongside the
+        # new canonical include — producing two `<div class="shell-palette"
         # id="palette">` elements and 2 listboxes + 2 comboboxes (UX-DR-19
         # violation). The strip is bounded by `_STOP_BOUNDARY` so it
         # cannot consume the trailing script tag block. Idempotent: if
-        # palette + settings are already canonical, the strip yields
-        # empty and the splice yields the same content back.
+        # palette + settings + help are already canonical, the strip
+        # yields empty and the splice yields the same content back.
         new_source = strip_duplicate_includes(source)
-        trailing = "\n\n  " + palette_html + "\n\n  " + settings_html
+        trailing = "\n\n  " + palette_html + "\n\n  " + settings_html + "\n\n  " + help_html
         new_source = new_source[:insert_at] + trailing + new_source[insert_at:]
 
         # Story 1.9: same short-circuit pattern as the chrome_only_aligned
@@ -1805,6 +1968,19 @@ def regenerate_home(
                     1,
                 )
 
+        # Story 3.3: help-overlay.js on the home page too (root-relative
+        # path because the home page lives at the repo root). Anchored
+        # after search.js so the boot order is deterministic.
+        if 'src="assets/js/help-overlay.js"' not in new_source:
+            search_anchor = '<script src="assets/js/search.js" defer></script>'
+            if search_anchor in new_source:
+                new_source = new_source.replace(
+                    search_anchor,
+                    search_anchor
+                    + '\n  <script src="assets/js/help-overlay.js" defer></script>',
+                    1,
+                )
+
         # Story 1.10: ensure storage-registry.js is loaded BEFORE utils.js
         # so the wrapper can delegate. The registry IIFE runs synchronously
         # at script-load (no defer) and registers ht.theme before theme.js
@@ -1847,6 +2023,8 @@ def regenerate_home(
                 missing.append("palette")
             if not settings_html_in_source:
                 missing.append("settings")
+            if not help_html_in_source:
+                missing.append("help")
             if not home_grid_js_in_source:
                 missing.append("home-grid.js")
             if not tools_json_inline_in_source:
@@ -1859,6 +2037,8 @@ def regenerate_home(
                 missing.append("search.js")
             if 'src="assets/js/palette-actions.js"' not in new_source:
                 missing.append("palette-actions.js")
+            if 'src="assets/js/help-overlay.js"' not in new_source:
+                missing.append("help-overlay.js")
             if 'src="assets/js/site-config.js"' not in new_source:
                 missing.append("site-config.js")
             print(
@@ -1875,6 +2055,8 @@ def regenerate_home(
             missing.append("palette")
         if not settings_html_in_source:
             missing.append("settings")
+        if not help_html_in_source:
+            missing.append("help")
         # Review finding: the previous implementation had an `if ...
         # pass` dead-code branch here, plus a check that the home-grid
         # script tag appeared in the splice delta. The dead branch
@@ -1892,6 +2074,8 @@ def regenerate_home(
             missing.append("search.js")
         if 'src="assets/js/palette-actions.js"' not in source:
             missing.append("palette-actions.js")
+        if 'src="assets/js/help-overlay.js"' not in source:
+            missing.append("help-overlay.js")
         if 'src="assets/js/site-config.js"' not in source:
             missing.append("site-config.js")
         print(f"  wrote {path.relative_to(root)}  ({' + '.join(missing)})")
@@ -1919,7 +2103,7 @@ def regenerate_home(
         new_chrome = (
             skip_html + "\n  " + home_header + "\n  "
             + footer_html + "\n\n  " + palette_html + "\n\n  "
-            + settings_html + "\n\n  "
+            + settings_html + "\n\n  " + help_html + "\n\n  "
         )
         anchor_start = new_source.find('<a class="shell-skip"')
         anchor_end = new_source.find('</footer>', anchor_start)
@@ -1960,11 +2144,11 @@ def regenerate_home(
 
         # Replace <div id="site-footer"></div> with footer chrome and
         # append the palette and settings includes as sibling regions
-        # (Story 1.7 palette, Story 1.8 settings).
+        # (Story 1.7 palette, Story 1.8 settings, Story 3.3 help).
         new_source, _ = LEGACY_FOOTER_RE.subn(
             footer_html
             + "\n\n  " + palette_html + "\n\n  "
-            + settings_html + "\n\n  ",
+            + settings_html + "\n\n  " + help_html + "\n\n  ",
             new_source,
             count=1,
         )
@@ -2114,7 +2298,7 @@ def main(argv: list[str]) -> int:
         if args.root
         else find_repo_root(Path(__file__).parent)
     )
-    skip_html, header_html, footer_html, palette_html, settings_html = read_chrome(root)
+    skip_html, header_html, footer_html, palette_html, settings_html, help_html = read_chrome(root)
     head_script = read_head_snippet(root)
     tools_json_inline = read_tools_json_inline(root)
     storage_registry_manifest = read_storage_registry_manifest(root)
@@ -2130,6 +2314,7 @@ def main(argv: list[str]) -> int:
             footer_html=footer_html,
             palette_html=palette_html,
             settings_html=settings_html,
+            help_html=help_html,
             head_script=head_script,
             tools_json_inline=tools_json_inline,
             storage_registry_manifest=storage_registry_manifest,
@@ -2159,6 +2344,7 @@ def main(argv: list[str]) -> int:
             footer_html=footer_html,
             palette_html=palette_html,
             settings_html=settings_html,
+            help_html=help_html,
             head_script=head_script,
             tools_json_inline=tools_json_inline,
             dry_run=args.dry_run,

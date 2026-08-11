@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.10.0',
+  version: '1.11.0',
   generated: '2026-08-11',
   entries: Object.freeze([
     Object.freeze({
@@ -494,7 +494,7 @@ window.HT.__apiContract = Object.freeze({
       signature: '() => void',
       stability: 'stable',
       module: 'assets/js/shell.js',
-      notes: 'Emits window CustomEvent("ht:palette-help"). Story 3.3 owns the listener that renders the keyboard-shortcuts overlay. The emitter is the only contract surface Story 3.1 exposes for help; Story 3.3 wires the overlay without further edits to this file.',
+      notes: 'Emitter only — dispatches new CustomEvent("ht:palette-help") on window. Has no side effects of its own; does not open, close, or focus anything. This contract exists because Story 3.2 owned the palette chord (`?` typed inside the palette input) but did NOT own the help overlay — Story 3.3 owns the listener (assets/js/help-overlay.js) that toggles the overlay on receipt. The "Palette > Show shortcuts" action calls this emitter, which is the only public coupling between the two stories. Smoke harness: scripts/_smoke_palette_search.js verifies dispatch; scripts/_smoke_help_overlay.js verifies the listener toggles openHelp()/closeHelp() on receipt.',
     }),
     Object.freeze({
       name: 'HT.search._matchRange',
@@ -502,6 +502,13 @@ window.HT.__apiContract = Object.freeze({
       stability: 'internal',
       module: 'assets/js/search.js',
       notes: 'Story 3.1 palette bold-match hook. Returns the [start, end] of the first matching tier of query inside fieldValue, as indices into the *raw* (original) fieldValue — safe for buildMatchFragment to slice directly even when the title contains diacritics, ligatures, or case differences that normalize() strips. Tier dispatch runs on the normalized form (in sync with searchIndex) and is mapped back to raw boundaries. Returns null on no match. Underscore-prefixed; not a stable surface. If HT.search gains [start, end] in the result shape (Story 1.11 deferred), this becomes a thin alias.',
+    }),
+    Object.freeze({
+      name: 'window.HT_HELP_OVERLAY_INIT',
+      signature: 'Object.freeze({shortcuts: readonly array, search: function, open: function, close: function, toggle: function, isOpen: function, version: string})',
+      stability: 'internal',
+      module: 'assets/js/help-overlay.js',
+      notes: 'Story 3.3 keyboard-shortcuts overlay bootstrap handle. Frozen at module init. The only contract surface for the smoke harness (scripts/_smoke_help_overlay.js). Per AD-14 the help overlay deliberately does NOT add HT.helpOverlay.* — the shell public API is frozen. Documented here so the contract gate can warn if a future refactor accidentally re-exposes the help module through the public API (which would freeze a new contract surface by accident). Consumer pages should rely on the keyboard chord (`?` or palette "Show shortcuts" action) to open the overlay, not on direct calls to .open()/.close()/.toggle().',
     }),
   ]),
 });

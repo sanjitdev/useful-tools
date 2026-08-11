@@ -500,8 +500,8 @@ const contractSrc = fs.readFileSync(
   path.resolve(__dirname, '../assets/js/api-contract.js'),
   'utf8'
 );
-check('api-contract: version bumped to 1.8.0 (Story 2.2: 1.5.0; bundled 2.2+2.4: 1.6.0; bundled 2.2+2.3+2.4: 1.7.0; bundled 2.2+2.3+2.4+2.5: 1.8.0)',
-  /version:\s*['"]1\.8\.0['"]/.test(contractSrc));
+check('api-contract: version bumped to 1.11.0 (Story 3.3: 1.10.0 → 1.11.0 for HT_HELP_OVERLAY_INIT bootstrap handle)',
+  /version:\s*['"]1\.11\.0['"]/.test(contractSrc));
 check('api-contract: HT.sampleData.fill entry present',
   /HT\.sampleData\.fill/.test(contractSrc));
 check('api-contract: HT.sampleData.button entry present',
