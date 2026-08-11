@@ -2,7 +2,7 @@
 title: 'Settings Modal — Full Control Surface'
 type: 'feature'
 created: '2026-08-11'
-status: 'review'
+status: 'done'
 baseline_commit: '7b91946'  # Story 3.4 review wrap-up (latest on origin/main as of this story)
 context:
   - '{project-root}/project-context.md'
@@ -442,4 +442,39 @@ All 6 tasks checked. All 8 gates pass:
 ### Change Log
 
 - 2026-08-11 — Story 3.5 spec created (create-story workflow, ready-for-dev).
+- 2026-08-11 — Implementation complete (commit 01388e2; status → review).
+- 2026-08-11 — Code review complete (6 patches applied; commit 01103fe; status → done).
+
+## Senior Developer Review (AI)
+
+**Outcome:** Changes Requested → Resolved
+**Review date:** 2026-08-11
+**Reviewers:** blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor (4 parallel sub-agents)
+**Total action items:** 6 (all addressed)
+
+### Review Follow-ups (AI)
+
+| # | Severity | File | Description | Resolution |
+|---|----------|------|-------------|------------|
+| 1 | MUST-FIX | packs/*.html (×5) | Shell-brand href regressed from `../index.html` to `../../index.html` — packs are 1 level deep, not 2. | Reverted + added `rewriteHeaderHrefs()` to `_resplice_chrome_pages.js` with depth-aware rewriting to prevent future regression. |
+| 2 | MUST-FIX | assets/shell/settings.html + propagated to 42 pages | `<output aria-hidden="true">` hid fontScale value from screen readers — must use `aria-live="polite"`. | Replaced with `aria-live="polite"`; added `aria-describedby="ht-fontScale-output"` on the input. Propagated via `shell-template.py` to all tool pages + manual edit on quality.html. |
+| 3 | MUST-FIX | assets/js/shell.js:locale populate | Default did not use literal `navigator.language.slice(0,2).toLowerCase()` per AC-1 spec wording — fell back to populated `codes[0]`. | Rewrote populateSettings fallback to use the literal AC-1 expression first, fall back to `SETTINGS_DEFAULTS['ht.locale']` only when navigator.language is empty/invalid. |
+| 4 | SHOULD-FIX | scripts/_smoke_settings_modal.js:vm context | Node `vm.createContext` lacks `requestAnimationFrame` / `cancelAnimationFrame`, but the production modal code reads them. | Added `requestAnimationFrame: fn => setTimeout(fn, 0)` and `cancelAnimationFrame: id => clearTimeout(id)` to the vm context. |
+| 5 | SHOULD-FIX | scripts/_smoke_settings_modal.js | No assertion locked down the boot-time localStorage call count — verification-gap. | Added 2 boot assertions: (a) loadTimeLocalStorageCallCount === 3 (theme get, reducedMotion get, reducedMotion set); (b) the single boot WRITE is ht.reducedMotion. Settings smoke now 58/58. |
+| 6 | NIT | scripts/_resplice_chrome_pages.js:header region | Root cause for #1 — script blindly copied canonical chrome header hrefs (`../../index.html`) into pages at different depths. | Added `rewriteHeaderHrefs(header, pageDepth)` with depth-aware prefix logic (0 = root = `""`, 1 = packs = `"../"`, 2 = tools = no rewrite). Converted TARGETS to `[path, depth][]`. |
+
+### Resolution Strategy
+
+All 6 patches applied in single review commit `01103fe`. Pre-commit hooks (template + drift + a11y + bounds) all passed. Post-commit verification:
+
+- `node scripts/_smoke_settings_modal.js` → **58/58 PASS** (was 56/56 before review patches)
+- `node scripts/_smoke_help_overlay.js` → 84/84 PASS
+- `node scripts/_smoke_global_chords.js` → 43/43 PASS
+- `node scripts/_smoke_palette_actions.js` → 52/52 PASS
+- `node scripts/_smoke_quality.js` → 37/37 PASS
+- `python scripts/shell-drift-check.py` → all 42 pages in sync
+- `python scripts/shell-a11y-check.py` → no regression
+- `python scripts/shell-bounds-check.py` → AD-4 holds
+
+**AD-14 honored:** `api-contract.js` shows `HT.settings` entry already added in ship commit (01388e2); no changes needed in review commit. Surface stays at `1.11.0`.
 - 2026-08-11 — Story 3.5 implemented and verified (dev-story workflow, → review).
