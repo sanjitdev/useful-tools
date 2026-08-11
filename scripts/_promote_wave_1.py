@@ -161,13 +161,14 @@ def emit_inventory(repo_root: Path, tools_doc: dict, today: str) -> None:
     lines.append(f"_Total tools discovered: **{len(all_slugs)}** (Wave-1: {len(wave_1)}, "
                  f"Wave-2: {len(wave_2)}, Wave-3: {len(wave_3)})._")
     lines.append("")
-    lines.append("Wave assignment per Story 1.4 / Story 2.6:")
+    lines.append("Wave assignment per Story 1.4 / Story 2.6 / Story 2.7 / Story 2.8:")
     lines.append("")
     lines.append("- **Wave-1** — already in `tools.json` with `ready: true` "
-                 "(promoted under the per-tool contract in Story 2.6 and Story 2.7).")
+                 "(promoted under the per-tool contract in Stories 2.6, 2.7, 2.8).")
     lines.append("- **Wave-2** — in `tools.json` but `ready: false` (no entries "
                  "remain after Story 2.7).")
-    lines.append("- **Wave-3** — not in `tools.json` (will be added in Story 2.8).")
+    lines.append("- **Wave-3** — not in `tools.json` (no entries remain after "
+                 "Story 2.8; every on-disk tool is now Wave-1 ready:true).")
     lines.append("")
     lines.append("| Slug | Wave | Sample data | Source path |")
     lines.append("|---|---|---|---|")

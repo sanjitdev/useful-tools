@@ -32,6 +32,9 @@ on:
       - "scripts/_audit_wave_2.py"
       - "scripts/_print_css_bootstrap.py"
       - "scripts/_smoke_wave_2_pages.js"
+      - "scripts/_promote_wave_3.py"
+      - "scripts/_audit_wave_3.py"
+      - "scripts/_smoke_wave_3_pages.js"
       - "docs/tool-inventory.md"
       - "docs/quality-audit.md"
       - "assets/shell/**"
@@ -72,6 +75,9 @@ on:
       - "scripts/_audit_wave_2.py"
       - "scripts/_print_css_bootstrap.py"
       - "scripts/_smoke_wave_2_pages.js"
+      - "scripts/_promote_wave_3.py"
+      - "scripts/_audit_wave_3.py"
+      - "scripts/_smoke_wave_3_pages.js"
       - "docs/tool-inventory.md"
       - "docs/quality-audit.md"
       - "assets/shell/**"
@@ -242,3 +248,14 @@ jobs:
         # expected. Vacuous-pass guard (pass===0 && fail===0 →
         # exit 1) catches hollow runs.
         run: make wave-2-smoke
+
+      - name: Smoke wave-3 page wiring (Story 2.8)
+        # Story 2.8: static Node smoke verifying each of the 17
+        # Wave-3 tools (json-formatter, color-tools, …, url-codec)
+        # is in tools.json with ready:true, score>=8, the per-tool
+        # contract fields, every encode/decode selector resolves to
+        # an HTML id, and the tool's <slug>.css contains @media
+        # print (rubric #5 Printable). 392 PASS expected. Vacuous-
+        # pass guard (pass===0 && fail===0 → exit 1) catches
+        # hollow runs.
+        run: make wave-3-smoke

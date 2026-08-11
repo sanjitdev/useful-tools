@@ -2680,6 +2680,2719 @@
         "min-height": 480
       },
       "search-priority": 6
+    },
+    {
+      "id": "json-formatter",
+      "slug": "json-formatter",
+      "title": "JSON Formatter",
+      "description": "Format, minify, and validate JSON. Includes a collapsible tree view.",
+      "category": "Developer",
+      "pack": [
+        "developer"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "json",
+        "format",
+        "pretty",
+        "minify",
+        "validate",
+        "developer",
+        "lint"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "copy-out": "",
+          "format": "",
+          "json-input": "",
+          "main": "",
+          "minify": "",
+          "output": "",
+          "status": "",
+          "top": "",
+          "tree": "",
+          "validate": ""
+        },
+        "encode": [
+          {
+            "key": "copy-out",
+            "type": "string",
+            "from": "#copy-out"
+          },
+          {
+            "key": "format",
+            "type": "string",
+            "from": "#format"
+          },
+          {
+            "key": "json-input",
+            "type": "string",
+            "from": "#json-input"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "minify",
+            "type": "string",
+            "from": "#minify"
+          },
+          {
+            "key": "output",
+            "type": "string",
+            "from": "#output"
+          },
+          {
+            "key": "status",
+            "type": "string",
+            "from": "#status"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "from": "#top"
+          },
+          {
+            "key": "tree",
+            "type": "string",
+            "from": "#tree"
+          },
+          {
+            "key": "validate",
+            "type": "string",
+            "from": "#validate"
+          }
+        ],
+        "decode": [
+          {
+            "key": "copy-out",
+            "type": "string",
+            "to": "#copy-out"
+          },
+          {
+            "key": "format",
+            "type": "string",
+            "to": "#format"
+          },
+          {
+            "key": "json-input",
+            "type": "string",
+            "to": "#json-input"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "minify",
+            "type": "string",
+            "to": "#minify"
+          },
+          {
+            "key": "output",
+            "type": "string",
+            "to": "#output"
+          },
+          {
+            "key": "status",
+            "type": "string",
+            "to": "#status"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "to": "#top"
+          },
+          {
+            "key": "tree",
+            "type": "string",
+            "to": "#tree"
+          },
+          {
+            "key": "validate",
+            "type": "string",
+            "to": "#validate"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "copy-out",
+        "format",
+        "json-input",
+        "main",
+        "minify",
+        "output",
+        "status",
+        "top",
+        "tree",
+        "validate"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/json-formatter/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "color-tools",
+      "slug": "color-tools",
+      "title": "Color Tools",
+      "description": "Pick colors and convert between HEX, RGB, and HSL. Random color generator with copy-to-clipboard.",
+      "category": "Fun",
+      "pack": [
+        "household"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "color",
+        "picker",
+        "hex",
+        "rgb",
+        "hsl",
+        "household",
+        "palette"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "c-b": "",
+          "c-copy-hex": "",
+          "c-copy-hsl": "",
+          "c-copy-rgb": "",
+          "c-g": "",
+          "c-h": "",
+          "c-hex": "",
+          "c-hsl-str": "",
+          "c-l": "",
+          "c-picker": ""
+        },
+        "encode": [
+          {
+            "key": "c-b",
+            "type": "string",
+            "from": "#c-b"
+          },
+          {
+            "key": "c-copy-hex",
+            "type": "string",
+            "from": "#c-copy-hex"
+          },
+          {
+            "key": "c-copy-hsl",
+            "type": "string",
+            "from": "#c-copy-hsl"
+          },
+          {
+            "key": "c-copy-rgb",
+            "type": "string",
+            "from": "#c-copy-rgb"
+          },
+          {
+            "key": "c-g",
+            "type": "string",
+            "from": "#c-g"
+          },
+          {
+            "key": "c-h",
+            "type": "string",
+            "from": "#c-h"
+          },
+          {
+            "key": "c-hex",
+            "type": "string",
+            "from": "#c-hex"
+          },
+          {
+            "key": "c-hsl-str",
+            "type": "string",
+            "from": "#c-hsl-str"
+          },
+          {
+            "key": "c-l",
+            "type": "string",
+            "from": "#c-l"
+          },
+          {
+            "key": "c-picker",
+            "type": "string",
+            "from": "#c-picker"
+          }
+        ],
+        "decode": [
+          {
+            "key": "c-b",
+            "type": "string",
+            "to": "#c-b"
+          },
+          {
+            "key": "c-copy-hex",
+            "type": "string",
+            "to": "#c-copy-hex"
+          },
+          {
+            "key": "c-copy-hsl",
+            "type": "string",
+            "to": "#c-copy-hsl"
+          },
+          {
+            "key": "c-copy-rgb",
+            "type": "string",
+            "to": "#c-copy-rgb"
+          },
+          {
+            "key": "c-g",
+            "type": "string",
+            "to": "#c-g"
+          },
+          {
+            "key": "c-h",
+            "type": "string",
+            "to": "#c-h"
+          },
+          {
+            "key": "c-hex",
+            "type": "string",
+            "to": "#c-hex"
+          },
+          {
+            "key": "c-hsl-str",
+            "type": "string",
+            "to": "#c-hsl-str"
+          },
+          {
+            "key": "c-l",
+            "type": "string",
+            "to": "#c-l"
+          },
+          {
+            "key": "c-picker",
+            "type": "string",
+            "to": "#c-picker"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "c-b",
+        "c-copy-hex",
+        "c-copy-hsl",
+        "c-copy-rgb",
+        "c-g",
+        "c-h",
+        "c-hex",
+        "c-hsl-str",
+        "c-l",
+        "c-picker"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/color-tools/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "date-difference",
+      "slug": "date-difference",
+      "title": "Date Difference",
+      "description": "Calculate the exact difference between two dates in days, weeks, months, years, hours, or business days.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "travel"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "date",
+        "difference",
+        "between",
+        "days",
+        "duration",
+        "travel"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "end": "",
+          "include-end": "",
+          "main": "",
+          "primary": "",
+          "start": "",
+          "sub": "",
+          "t-bdays": "",
+          "t-days": "",
+          "t-hours": "",
+          "t-minutes": ""
+        },
+        "encode": [
+          {
+            "key": "end",
+            "type": "string",
+            "from": "#end"
+          },
+          {
+            "key": "include-end",
+            "type": "string",
+            "from": "#include-end"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "primary",
+            "type": "string",
+            "from": "#primary"
+          },
+          {
+            "key": "start",
+            "type": "string",
+            "from": "#start"
+          },
+          {
+            "key": "sub",
+            "type": "string",
+            "from": "#sub"
+          },
+          {
+            "key": "t-bdays",
+            "type": "string",
+            "from": "#t-bdays"
+          },
+          {
+            "key": "t-days",
+            "type": "string",
+            "from": "#t-days"
+          },
+          {
+            "key": "t-hours",
+            "type": "string",
+            "from": "#t-hours"
+          },
+          {
+            "key": "t-minutes",
+            "type": "string",
+            "from": "#t-minutes"
+          }
+        ],
+        "decode": [
+          {
+            "key": "end",
+            "type": "string",
+            "to": "#end"
+          },
+          {
+            "key": "include-end",
+            "type": "string",
+            "to": "#include-end"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "primary",
+            "type": "string",
+            "to": "#primary"
+          },
+          {
+            "key": "start",
+            "type": "string",
+            "to": "#start"
+          },
+          {
+            "key": "sub",
+            "type": "string",
+            "to": "#sub"
+          },
+          {
+            "key": "t-bdays",
+            "type": "string",
+            "to": "#t-bdays"
+          },
+          {
+            "key": "t-days",
+            "type": "string",
+            "to": "#t-days"
+          },
+          {
+            "key": "t-hours",
+            "type": "string",
+            "to": "#t-hours"
+          },
+          {
+            "key": "t-minutes",
+            "type": "string",
+            "to": "#t-minutes"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "end",
+        "include-end",
+        "main",
+        "primary",
+        "start",
+        "sub",
+        "t-bdays",
+        "t-days",
+        "t-hours",
+        "t-minutes"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/date-difference/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "lorem-ipsum",
+      "slug": "lorem-ipsum",
+      "title": "Lorem Ipsum",
+      "description": "Generate placeholder text in paragraphs, sentences, or words — optionally wrapped as HTML and starting with the classic Lorem ipsum.",
+      "category": "Fun",
+      "pack": [
+        "study"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "lorem",
+        "ipsum",
+        "placeholder",
+        "text",
+        "filler",
+        "study",
+        "generator"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "classic": "",
+          "copy": "",
+          "count": "",
+          "generate": "",
+          "html": "",
+          "main": "",
+          "output": "",
+          "output-sub": "",
+          "output-title": "",
+          "top": ""
+        },
+        "encode": [
+          {
+            "key": "classic",
+            "type": "string",
+            "from": "#classic"
+          },
+          {
+            "key": "copy",
+            "type": "string",
+            "from": "#copy"
+          },
+          {
+            "key": "count",
+            "type": "string",
+            "from": "#count"
+          },
+          {
+            "key": "generate",
+            "type": "string",
+            "from": "#generate"
+          },
+          {
+            "key": "html",
+            "type": "string",
+            "from": "#html"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "output",
+            "type": "string",
+            "from": "#output"
+          },
+          {
+            "key": "output-sub",
+            "type": "string",
+            "from": "#output-sub"
+          },
+          {
+            "key": "output-title",
+            "type": "string",
+            "from": "#output-title"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "from": "#top"
+          }
+        ],
+        "decode": [
+          {
+            "key": "classic",
+            "type": "string",
+            "to": "#classic"
+          },
+          {
+            "key": "copy",
+            "type": "string",
+            "to": "#copy"
+          },
+          {
+            "key": "count",
+            "type": "string",
+            "to": "#count"
+          },
+          {
+            "key": "generate",
+            "type": "string",
+            "to": "#generate"
+          },
+          {
+            "key": "html",
+            "type": "string",
+            "to": "#html"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "output",
+            "type": "string",
+            "to": "#output"
+          },
+          {
+            "key": "output-sub",
+            "type": "string",
+            "to": "#output-sub"
+          },
+          {
+            "key": "output-title",
+            "type": "string",
+            "to": "#output-title"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "to": "#top"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "classic",
+        "copy",
+        "count",
+        "generate",
+        "html",
+        "main",
+        "output",
+        "output-sub",
+        "output-title",
+        "top"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/lorem-ipsum/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "pros-cons",
+      "slug": "pros-cons",
+      "title": "Pros &amp; Cons",
+      "description": "Weigh the pros and cons of a decision with adjustable weights, a running score, and a verdict.",
+      "category": "Fun",
+      "pack": [
+        "household"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "pros",
+        "cons",
+        "decision",
+        "matrix",
+        "compare",
+        "household",
+        "list"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "main": "",
+          "pc-clear": "",
+          "pc-con-add": "",
+          "pc-con-input": "",
+          "pc-con-list": "",
+          "pc-cons-score": "",
+          "pc-net": "",
+          "pc-pro-add": "",
+          "pc-pro-input": "",
+          "pc-pro-list": ""
+        },
+        "encode": [
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "pc-clear",
+            "type": "string",
+            "from": "#pc-clear"
+          },
+          {
+            "key": "pc-con-add",
+            "type": "string",
+            "from": "#pc-con-add"
+          },
+          {
+            "key": "pc-con-input",
+            "type": "string",
+            "from": "#pc-con-input"
+          },
+          {
+            "key": "pc-con-list",
+            "type": "string",
+            "from": "#pc-con-list"
+          },
+          {
+            "key": "pc-cons-score",
+            "type": "string",
+            "from": "#pc-cons-score"
+          },
+          {
+            "key": "pc-net",
+            "type": "string",
+            "from": "#pc-net"
+          },
+          {
+            "key": "pc-pro-add",
+            "type": "string",
+            "from": "#pc-pro-add"
+          },
+          {
+            "key": "pc-pro-input",
+            "type": "string",
+            "from": "#pc-pro-input"
+          },
+          {
+            "key": "pc-pro-list",
+            "type": "string",
+            "from": "#pc-pro-list"
+          }
+        ],
+        "decode": [
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "pc-clear",
+            "type": "string",
+            "to": "#pc-clear"
+          },
+          {
+            "key": "pc-con-add",
+            "type": "string",
+            "to": "#pc-con-add"
+          },
+          {
+            "key": "pc-con-input",
+            "type": "string",
+            "to": "#pc-con-input"
+          },
+          {
+            "key": "pc-con-list",
+            "type": "string",
+            "to": "#pc-con-list"
+          },
+          {
+            "key": "pc-cons-score",
+            "type": "string",
+            "to": "#pc-cons-score"
+          },
+          {
+            "key": "pc-net",
+            "type": "string",
+            "to": "#pc-net"
+          },
+          {
+            "key": "pc-pro-add",
+            "type": "string",
+            "to": "#pc-pro-add"
+          },
+          {
+            "key": "pc-pro-input",
+            "type": "string",
+            "to": "#pc-pro-input"
+          },
+          {
+            "key": "pc-pro-list",
+            "type": "string",
+            "to": "#pc-pro-list"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "main",
+        "pc-clear",
+        "pc-con-add",
+        "pc-con-input",
+        "pc-con-list",
+        "pc-cons-score",
+        "pc-net",
+        "pc-pro-add",
+        "pc-pro-input",
+        "pc-pro-list"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/pros-cons/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "unit-converter",
+      "slug": "unit-converter",
+      "title": "Unit Converter",
+      "description": "Convert between units of length, mass, temperature, volume, time, and data. Live conversion as you type.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "developer"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "unit",
+        "converter",
+        "metric",
+        "imperial",
+        "convert",
+        "developer",
+        "length"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "cat-tabs": "",
+          "d-from": "",
+          "d-input": "",
+          "d-result": "",
+          "d-sub": "",
+          "d-to": "",
+          "l-from": "",
+          "l-input": "",
+          "l-result": "",
+          "l-sub": ""
+        },
+        "encode": [
+          {
+            "key": "cat-tabs",
+            "type": "string",
+            "from": "#cat-tabs"
+          },
+          {
+            "key": "d-from",
+            "type": "string",
+            "from": "#d-from"
+          },
+          {
+            "key": "d-input",
+            "type": "string",
+            "from": "#d-input"
+          },
+          {
+            "key": "d-result",
+            "type": "string",
+            "from": "#d-result"
+          },
+          {
+            "key": "d-sub",
+            "type": "string",
+            "from": "#d-sub"
+          },
+          {
+            "key": "d-to",
+            "type": "string",
+            "from": "#d-to"
+          },
+          {
+            "key": "l-from",
+            "type": "string",
+            "from": "#l-from"
+          },
+          {
+            "key": "l-input",
+            "type": "string",
+            "from": "#l-input"
+          },
+          {
+            "key": "l-result",
+            "type": "string",
+            "from": "#l-result"
+          },
+          {
+            "key": "l-sub",
+            "type": "string",
+            "from": "#l-sub"
+          }
+        ],
+        "decode": [
+          {
+            "key": "cat-tabs",
+            "type": "string",
+            "to": "#cat-tabs"
+          },
+          {
+            "key": "d-from",
+            "type": "string",
+            "to": "#d-from"
+          },
+          {
+            "key": "d-input",
+            "type": "string",
+            "to": "#d-input"
+          },
+          {
+            "key": "d-result",
+            "type": "string",
+            "to": "#d-result"
+          },
+          {
+            "key": "d-sub",
+            "type": "string",
+            "to": "#d-sub"
+          },
+          {
+            "key": "d-to",
+            "type": "string",
+            "to": "#d-to"
+          },
+          {
+            "key": "l-from",
+            "type": "string",
+            "to": "#l-from"
+          },
+          {
+            "key": "l-input",
+            "type": "string",
+            "to": "#l-input"
+          },
+          {
+            "key": "l-result",
+            "type": "string",
+            "to": "#l-result"
+          },
+          {
+            "key": "l-sub",
+            "type": "string",
+            "to": "#l-sub"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "cat-tabs",
+        "d-from",
+        "d-input",
+        "d-result",
+        "d-sub",
+        "d-to",
+        "l-from",
+        "l-input",
+        "l-result",
+        "l-sub"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/unit-converter/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "password-strength",
+      "slug": "password-strength",
+      "title": "Password Strength",
+      "description": "Locally analyze password strength, character classes used, estimated entropy, and crack-time estimates. Nothing leaves your browser.",
+      "category": "Developer",
+      "pack": [
+        "developer"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "password",
+        "strength",
+        "entropy",
+        "security",
+        "checker",
+        "developer"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "bar-fill": "",
+          "crack-offline": "",
+          "crack-online": "",
+          "m-charset": "",
+          "m-classes": "",
+          "m-entropy": "",
+          "m-length": "",
+          "main": "",
+          "pw": "",
+          "strength-label": ""
+        },
+        "encode": [
+          {
+            "key": "bar-fill",
+            "type": "string",
+            "from": "#bar-fill"
+          },
+          {
+            "key": "crack-offline",
+            "type": "string",
+            "from": "#crack-offline"
+          },
+          {
+            "key": "crack-online",
+            "type": "string",
+            "from": "#crack-online"
+          },
+          {
+            "key": "m-charset",
+            "type": "string",
+            "from": "#m-charset"
+          },
+          {
+            "key": "m-classes",
+            "type": "string",
+            "from": "#m-classes"
+          },
+          {
+            "key": "m-entropy",
+            "type": "string",
+            "from": "#m-entropy"
+          },
+          {
+            "key": "m-length",
+            "type": "string",
+            "from": "#m-length"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "pw",
+            "type": "string",
+            "from": "#pw"
+          },
+          {
+            "key": "strength-label",
+            "type": "string",
+            "from": "#strength-label"
+          }
+        ],
+        "decode": [
+          {
+            "key": "bar-fill",
+            "type": "string",
+            "to": "#bar-fill"
+          },
+          {
+            "key": "crack-offline",
+            "type": "string",
+            "to": "#crack-offline"
+          },
+          {
+            "key": "crack-online",
+            "type": "string",
+            "to": "#crack-online"
+          },
+          {
+            "key": "m-charset",
+            "type": "string",
+            "to": "#m-charset"
+          },
+          {
+            "key": "m-classes",
+            "type": "string",
+            "to": "#m-classes"
+          },
+          {
+            "key": "m-entropy",
+            "type": "string",
+            "to": "#m-entropy"
+          },
+          {
+            "key": "m-length",
+            "type": "string",
+            "to": "#m-length"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "pw",
+            "type": "string",
+            "to": "#pw"
+          },
+          {
+            "key": "strength-label",
+            "type": "string",
+            "to": "#strength-label"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "bar-fill",
+        "crack-offline",
+        "crack-online",
+        "m-charset",
+        "m-classes",
+        "m-entropy",
+        "m-length",
+        "main",
+        "pw",
+        "strength-label"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/password-strength/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "pomodoro-timer",
+      "slug": "pomodoro-timer",
+      "title": "Pomodoro Timer",
+      "description": "A Pomodoro timer with focus, short break, long break, and full state persistence across reloads.",
+      "category": "Time",
+      "pack": [
+        "study"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "pomodoro",
+        "timer",
+        "focus",
+        "study",
+        "session",
+        "break"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "apply-durations": "",
+          "cycles": "",
+          "d-cycles": "",
+          "d-focus": "",
+          "d-long": "",
+          "d-short": "",
+          "display": "",
+          "main": "",
+          "pause": "",
+          "phase-tag": ""
+        },
+        "encode": [
+          {
+            "key": "apply-durations",
+            "type": "string",
+            "from": "#apply-durations"
+          },
+          {
+            "key": "cycles",
+            "type": "string",
+            "from": "#cycles"
+          },
+          {
+            "key": "d-cycles",
+            "type": "string",
+            "from": "#d-cycles"
+          },
+          {
+            "key": "d-focus",
+            "type": "string",
+            "from": "#d-focus"
+          },
+          {
+            "key": "d-long",
+            "type": "string",
+            "from": "#d-long"
+          },
+          {
+            "key": "d-short",
+            "type": "string",
+            "from": "#d-short"
+          },
+          {
+            "key": "display",
+            "type": "string",
+            "from": "#display"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "pause",
+            "type": "string",
+            "from": "#pause"
+          },
+          {
+            "key": "phase-tag",
+            "type": "string",
+            "from": "#phase-tag"
+          }
+        ],
+        "decode": [
+          {
+            "key": "apply-durations",
+            "type": "string",
+            "to": "#apply-durations"
+          },
+          {
+            "key": "cycles",
+            "type": "string",
+            "to": "#cycles"
+          },
+          {
+            "key": "d-cycles",
+            "type": "string",
+            "to": "#d-cycles"
+          },
+          {
+            "key": "d-focus",
+            "type": "string",
+            "to": "#d-focus"
+          },
+          {
+            "key": "d-long",
+            "type": "string",
+            "to": "#d-long"
+          },
+          {
+            "key": "d-short",
+            "type": "string",
+            "to": "#d-short"
+          },
+          {
+            "key": "display",
+            "type": "string",
+            "to": "#display"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "pause",
+            "type": "string",
+            "to": "#pause"
+          },
+          {
+            "key": "phase-tag",
+            "type": "string",
+            "to": "#phase-tag"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "apply-durations",
+        "cycles",
+        "d-cycles",
+        "d-focus",
+        "d-long",
+        "d-short",
+        "display",
+        "main",
+        "pause",
+        "phase-tag"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/pomodoro-timer/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "habit-tracker",
+      "slug": "habit-tracker",
+      "title": "Habit Tracker",
+      "description": "Track daily habits with a 30-day heatmap, current streak, and per-habit completions stored locally.",
+      "category": "Fun",
+      "pack": [
+        "household"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "habit",
+        "tracker",
+        "daily",
+        "streak",
+        "household",
+        "log"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "add-habit": "",
+          "habit-emoji": "",
+          "habit-list": "",
+          "habit-name": "",
+          "main": "",
+          "top": ""
+        },
+        "encode": [
+          {
+            "key": "add-habit",
+            "type": "string",
+            "from": "#add-habit"
+          },
+          {
+            "key": "habit-emoji",
+            "type": "string",
+            "from": "#habit-emoji"
+          },
+          {
+            "key": "habit-list",
+            "type": "string",
+            "from": "#habit-list"
+          },
+          {
+            "key": "habit-name",
+            "type": "string",
+            "from": "#habit-name"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "from": "#top"
+          }
+        ],
+        "decode": [
+          {
+            "key": "add-habit",
+            "type": "string",
+            "to": "#add-habit"
+          },
+          {
+            "key": "habit-emoji",
+            "type": "string",
+            "to": "#habit-emoji"
+          },
+          {
+            "key": "habit-list",
+            "type": "string",
+            "to": "#habit-list"
+          },
+          {
+            "key": "habit-name",
+            "type": "string",
+            "to": "#habit-name"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "to": "#top"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "add-habit",
+        "habit-emoji",
+        "habit-list",
+        "habit-name",
+        "main",
+        "top"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/habit-tracker/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "regex-tester",
+      "slug": "regex-tester",
+      "title": "Regex Tester",
+      "description": "Test JavaScript regular expressions against a test string with live match highlighting and capture group details.",
+      "category": "Developer",
+      "pack": [
+        "developer"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "regex",
+        "regular",
+        "expression",
+        "test",
+        "match",
+        "developer",
+        "pattern"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "flags": "",
+          "highlighted": "",
+          "live": "",
+          "main": "",
+          "matches": "",
+          "pattern": "",
+          "run": "",
+          "status-wrap": "",
+          "test": "",
+          "top": ""
+        },
+        "encode": [
+          {
+            "key": "flags",
+            "type": "string",
+            "from": "#flags"
+          },
+          {
+            "key": "highlighted",
+            "type": "string",
+            "from": "#highlighted"
+          },
+          {
+            "key": "live",
+            "type": "string",
+            "from": "#live"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "matches",
+            "type": "string",
+            "from": "#matches"
+          },
+          {
+            "key": "pattern",
+            "type": "string",
+            "from": "#pattern"
+          },
+          {
+            "key": "run",
+            "type": "string",
+            "from": "#run"
+          },
+          {
+            "key": "status-wrap",
+            "type": "string",
+            "from": "#status-wrap"
+          },
+          {
+            "key": "test",
+            "type": "string",
+            "from": "#test"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "from": "#top"
+          }
+        ],
+        "decode": [
+          {
+            "key": "flags",
+            "type": "string",
+            "to": "#flags"
+          },
+          {
+            "key": "highlighted",
+            "type": "string",
+            "to": "#highlighted"
+          },
+          {
+            "key": "live",
+            "type": "string",
+            "to": "#live"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "matches",
+            "type": "string",
+            "to": "#matches"
+          },
+          {
+            "key": "pattern",
+            "type": "string",
+            "to": "#pattern"
+          },
+          {
+            "key": "run",
+            "type": "string",
+            "to": "#run"
+          },
+          {
+            "key": "status-wrap",
+            "type": "string",
+            "to": "#status-wrap"
+          },
+          {
+            "key": "test",
+            "type": "string",
+            "to": "#test"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "to": "#top"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "flags",
+        "highlighted",
+        "live",
+        "main",
+        "matches",
+        "pattern",
+        "run",
+        "status-wrap",
+        "test",
+        "top"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/regex-tester/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "eisenhower-matrix",
+      "slug": "eisenhower-matrix",
+      "title": "Eisenhower Matrix",
+      "description": "Sort tasks into a 2x2 Eisenhower matrix by urgency and importance, reorder, mark done, or delete them.",
+      "category": "Fun",
+      "pack": [
+        "household"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "eisenhower",
+        "matrix",
+        "urgent",
+        "important",
+        "todo",
+        "household"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "em-add": "",
+          "em-clear-all": "",
+          "em-clear-done": "",
+          "em-matrix": "",
+          "em-text": "",
+          "em-urgent": "",
+          "main": "",
+          "top": ""
+        },
+        "encode": [
+          {
+            "key": "em-add",
+            "type": "string",
+            "from": "#em-add"
+          },
+          {
+            "key": "em-clear-all",
+            "type": "string",
+            "from": "#em-clear-all"
+          },
+          {
+            "key": "em-clear-done",
+            "type": "string",
+            "from": "#em-clear-done"
+          },
+          {
+            "key": "em-matrix",
+            "type": "string",
+            "from": "#em-matrix"
+          },
+          {
+            "key": "em-text",
+            "type": "string",
+            "from": "#em-text"
+          },
+          {
+            "key": "em-urgent",
+            "type": "string",
+            "from": "#em-urgent"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "from": "#top"
+          }
+        ],
+        "decode": [
+          {
+            "key": "em-add",
+            "type": "string",
+            "to": "#em-add"
+          },
+          {
+            "key": "em-clear-all",
+            "type": "string",
+            "to": "#em-clear-all"
+          },
+          {
+            "key": "em-clear-done",
+            "type": "string",
+            "to": "#em-clear-done"
+          },
+          {
+            "key": "em-matrix",
+            "type": "string",
+            "to": "#em-matrix"
+          },
+          {
+            "key": "em-text",
+            "type": "string",
+            "to": "#em-text"
+          },
+          {
+            "key": "em-urgent",
+            "type": "string",
+            "to": "#em-urgent"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "to": "#top"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "em-add",
+        "em-clear-all",
+        "em-clear-done",
+        "em-matrix",
+        "em-text",
+        "em-urgent",
+        "main",
+        "top"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/eisenhower-matrix/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "bmi-calculator",
+      "slug": "bmi-calculator",
+      "title": "BMI Calculator",
+      "description": "Calculate your Body Mass Index (BMI) with metric or imperial units. See the BMI category and where you fall on the scale.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "household"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "bmi",
+        "body",
+        "mass",
+        "index",
+        "weight",
+        "height",
+        "household"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "bmi-badge": "",
+          "bmi-category": "",
+          "bmi-marker": "",
+          "bmi-range": "",
+          "bmi-scale": "",
+          "bmi-value": "",
+          "h-cm": "",
+          "h-ft": "",
+          "h-in": "",
+          "main": ""
+        },
+        "encode": [
+          {
+            "key": "bmi-badge",
+            "type": "string",
+            "from": "#bmi-badge"
+          },
+          {
+            "key": "bmi-category",
+            "type": "string",
+            "from": "#bmi-category"
+          },
+          {
+            "key": "bmi-marker",
+            "type": "string",
+            "from": "#bmi-marker"
+          },
+          {
+            "key": "bmi-range",
+            "type": "string",
+            "from": "#bmi-range"
+          },
+          {
+            "key": "bmi-scale",
+            "type": "string",
+            "from": "#bmi-scale"
+          },
+          {
+            "key": "bmi-value",
+            "type": "string",
+            "from": "#bmi-value"
+          },
+          {
+            "key": "h-cm",
+            "type": "string",
+            "from": "#h-cm"
+          },
+          {
+            "key": "h-ft",
+            "type": "string",
+            "from": "#h-ft"
+          },
+          {
+            "key": "h-in",
+            "type": "string",
+            "from": "#h-in"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          }
+        ],
+        "decode": [
+          {
+            "key": "bmi-badge",
+            "type": "string",
+            "to": "#bmi-badge"
+          },
+          {
+            "key": "bmi-category",
+            "type": "string",
+            "to": "#bmi-category"
+          },
+          {
+            "key": "bmi-marker",
+            "type": "string",
+            "to": "#bmi-marker"
+          },
+          {
+            "key": "bmi-range",
+            "type": "string",
+            "to": "#bmi-range"
+          },
+          {
+            "key": "bmi-scale",
+            "type": "string",
+            "to": "#bmi-scale"
+          },
+          {
+            "key": "bmi-value",
+            "type": "string",
+            "to": "#bmi-value"
+          },
+          {
+            "key": "h-cm",
+            "type": "string",
+            "to": "#h-cm"
+          },
+          {
+            "key": "h-ft",
+            "type": "string",
+            "to": "#h-ft"
+          },
+          {
+            "key": "h-in",
+            "type": "string",
+            "to": "#h-in"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "bmi-badge",
+        "bmi-category",
+        "bmi-marker",
+        "bmi-range",
+        "bmi-scale",
+        "bmi-value",
+        "h-cm",
+        "h-ft",
+        "h-in",
+        "main"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/bmi-calculator/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "word-counter",
+      "slug": "word-counter",
+      "title": "Word Counter",
+      "description": "Count characters, words, sentences, paragraphs, and reading time as you type.",
+      "category": "Developer",
+      "pack": [
+        "study"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "word",
+        "counter",
+        "count",
+        "characters",
+        "text",
+        "study",
+        "length"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "c-chars": "",
+          "c-chars-ns": "",
+          "c-paragraphs": "",
+          "c-reading": "",
+          "c-sentences": "",
+          "c-words": "",
+          "clear": "",
+          "highlight": "",
+          "longest": "",
+          "main": ""
+        },
+        "encode": [
+          {
+            "key": "c-chars",
+            "type": "string",
+            "from": "#c-chars"
+          },
+          {
+            "key": "c-chars-ns",
+            "type": "string",
+            "from": "#c-chars-ns"
+          },
+          {
+            "key": "c-paragraphs",
+            "type": "string",
+            "from": "#c-paragraphs"
+          },
+          {
+            "key": "c-reading",
+            "type": "string",
+            "from": "#c-reading"
+          },
+          {
+            "key": "c-sentences",
+            "type": "string",
+            "from": "#c-sentences"
+          },
+          {
+            "key": "c-words",
+            "type": "string",
+            "from": "#c-words"
+          },
+          {
+            "key": "clear",
+            "type": "string",
+            "from": "#clear"
+          },
+          {
+            "key": "highlight",
+            "type": "string",
+            "from": "#highlight"
+          },
+          {
+            "key": "longest",
+            "type": "string",
+            "from": "#longest"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          }
+        ],
+        "decode": [
+          {
+            "key": "c-chars",
+            "type": "string",
+            "to": "#c-chars"
+          },
+          {
+            "key": "c-chars-ns",
+            "type": "string",
+            "to": "#c-chars-ns"
+          },
+          {
+            "key": "c-paragraphs",
+            "type": "string",
+            "to": "#c-paragraphs"
+          },
+          {
+            "key": "c-reading",
+            "type": "string",
+            "to": "#c-reading"
+          },
+          {
+            "key": "c-sentences",
+            "type": "string",
+            "to": "#c-sentences"
+          },
+          {
+            "key": "c-words",
+            "type": "string",
+            "to": "#c-words"
+          },
+          {
+            "key": "clear",
+            "type": "string",
+            "to": "#clear"
+          },
+          {
+            "key": "highlight",
+            "type": "string",
+            "to": "#highlight"
+          },
+          {
+            "key": "longest",
+            "type": "string",
+            "to": "#longest"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "c-chars",
+        "c-chars-ns",
+        "c-paragraphs",
+        "c-reading",
+        "c-sentences",
+        "c-words",
+        "clear",
+        "highlight",
+        "longest",
+        "main"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/word-counter/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "percentage-calculator",
+      "slug": "percentage-calculator",
+      "title": "Percentage Calculator",
+      "description": "Calculate percentages three ways: X% of Y, X is what % of Y, and the percent change between two values.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "finance"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "percentage",
+        "percent",
+        "ratio",
+        "finance",
+        "calc",
+        "tip"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "ch-formula": "",
+          "ch-new": "",
+          "ch-old": "",
+          "ch-result": "",
+          "ch-sub": "",
+          "is-formula": "",
+          "is-result": "",
+          "is-sub": "",
+          "is-x": "",
+          "is-y": ""
+        },
+        "encode": [
+          {
+            "key": "ch-formula",
+            "type": "string",
+            "from": "#ch-formula"
+          },
+          {
+            "key": "ch-new",
+            "type": "string",
+            "from": "#ch-new"
+          },
+          {
+            "key": "ch-old",
+            "type": "string",
+            "from": "#ch-old"
+          },
+          {
+            "key": "ch-result",
+            "type": "string",
+            "from": "#ch-result"
+          },
+          {
+            "key": "ch-sub",
+            "type": "string",
+            "from": "#ch-sub"
+          },
+          {
+            "key": "is-formula",
+            "type": "string",
+            "from": "#is-formula"
+          },
+          {
+            "key": "is-result",
+            "type": "string",
+            "from": "#is-result"
+          },
+          {
+            "key": "is-sub",
+            "type": "string",
+            "from": "#is-sub"
+          },
+          {
+            "key": "is-x",
+            "type": "string",
+            "from": "#is-x"
+          },
+          {
+            "key": "is-y",
+            "type": "string",
+            "from": "#is-y"
+          }
+        ],
+        "decode": [
+          {
+            "key": "ch-formula",
+            "type": "string",
+            "to": "#ch-formula"
+          },
+          {
+            "key": "ch-new",
+            "type": "string",
+            "to": "#ch-new"
+          },
+          {
+            "key": "ch-old",
+            "type": "string",
+            "to": "#ch-old"
+          },
+          {
+            "key": "ch-result",
+            "type": "string",
+            "to": "#ch-result"
+          },
+          {
+            "key": "ch-sub",
+            "type": "string",
+            "to": "#ch-sub"
+          },
+          {
+            "key": "is-formula",
+            "type": "string",
+            "to": "#is-formula"
+          },
+          {
+            "key": "is-result",
+            "type": "string",
+            "to": "#is-result"
+          },
+          {
+            "key": "is-sub",
+            "type": "string",
+            "to": "#is-sub"
+          },
+          {
+            "key": "is-x",
+            "type": "string",
+            "to": "#is-x"
+          },
+          {
+            "key": "is-y",
+            "type": "string",
+            "to": "#is-y"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "ch-formula",
+        "ch-new",
+        "ch-old",
+        "ch-result",
+        "ch-sub",
+        "is-formula",
+        "is-result",
+        "is-sub",
+        "is-x",
+        "is-y"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/percentage-calculator/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "base64-codec",
+      "slug": "base64-codec",
+      "title": "Base64 Codec",
+      "description": "Encode and decode text using Base64 with full UTF-8 support.",
+      "category": "Developer",
+      "pack": [
+        "developer"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "base64",
+        "encode",
+        "decode",
+        "codec",
+        "developer",
+        "binary"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "b64-b64": "",
+          "b64-copy-b64": "",
+          "b64-copy-text": "",
+          "b64-decode": "",
+          "b64-encode": "",
+          "b64-status": "",
+          "b64-text": "",
+          "main": "",
+          "top": ""
+        },
+        "encode": [
+          {
+            "key": "b64-b64",
+            "type": "string",
+            "from": "#b64-b64"
+          },
+          {
+            "key": "b64-copy-b64",
+            "type": "string",
+            "from": "#b64-copy-b64"
+          },
+          {
+            "key": "b64-copy-text",
+            "type": "string",
+            "from": "#b64-copy-text"
+          },
+          {
+            "key": "b64-decode",
+            "type": "string",
+            "from": "#b64-decode"
+          },
+          {
+            "key": "b64-encode",
+            "type": "string",
+            "from": "#b64-encode"
+          },
+          {
+            "key": "b64-status",
+            "type": "string",
+            "from": "#b64-status"
+          },
+          {
+            "key": "b64-text",
+            "type": "string",
+            "from": "#b64-text"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "from": "#top"
+          }
+        ],
+        "decode": [
+          {
+            "key": "b64-b64",
+            "type": "string",
+            "to": "#b64-b64"
+          },
+          {
+            "key": "b64-copy-b64",
+            "type": "string",
+            "to": "#b64-copy-b64"
+          },
+          {
+            "key": "b64-copy-text",
+            "type": "string",
+            "to": "#b64-copy-text"
+          },
+          {
+            "key": "b64-decode",
+            "type": "string",
+            "to": "#b64-decode"
+          },
+          {
+            "key": "b64-encode",
+            "type": "string",
+            "to": "#b64-encode"
+          },
+          {
+            "key": "b64-status",
+            "type": "string",
+            "to": "#b64-status"
+          },
+          {
+            "key": "b64-text",
+            "type": "string",
+            "to": "#b64-text"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "to": "#top"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "b64-b64",
+        "b64-copy-b64",
+        "b64-copy-text",
+        "b64-decode",
+        "b64-encode",
+        "b64-status",
+        "b64-text",
+        "main",
+        "top"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/base64-codec/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "tip-calculator",
+      "slug": "tip-calculator",
+      "title": "Tip Calculator",
+      "description": "Calculate tip and split a bill across multiple people, with an optional round-up shortcut.",
+      "category": "Converters & Calculators",
+      "pack": [
+        "finance"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "tip",
+        "calculator",
+        "restaurant",
+        "gratuity",
+        "finance",
+        "percent"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "bill": "",
+          "main": "",
+          "people": "",
+          "per-person": "",
+          "per-person-exact": "",
+          "per-person-sub": "",
+          "per-person-tip": "",
+          "round": "",
+          "tip": "",
+          "tip-amount": ""
+        },
+        "encode": [
+          {
+            "key": "bill",
+            "type": "string",
+            "from": "#bill"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "people",
+            "type": "string",
+            "from": "#people"
+          },
+          {
+            "key": "per-person",
+            "type": "string",
+            "from": "#per-person"
+          },
+          {
+            "key": "per-person-exact",
+            "type": "string",
+            "from": "#per-person-exact"
+          },
+          {
+            "key": "per-person-sub",
+            "type": "string",
+            "from": "#per-person-sub"
+          },
+          {
+            "key": "per-person-tip",
+            "type": "string",
+            "from": "#per-person-tip"
+          },
+          {
+            "key": "round",
+            "type": "string",
+            "from": "#round"
+          },
+          {
+            "key": "tip",
+            "type": "string",
+            "from": "#tip"
+          },
+          {
+            "key": "tip-amount",
+            "type": "string",
+            "from": "#tip-amount"
+          }
+        ],
+        "decode": [
+          {
+            "key": "bill",
+            "type": "string",
+            "to": "#bill"
+          },
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "people",
+            "type": "string",
+            "to": "#people"
+          },
+          {
+            "key": "per-person",
+            "type": "string",
+            "to": "#per-person"
+          },
+          {
+            "key": "per-person-exact",
+            "type": "string",
+            "to": "#per-person-exact"
+          },
+          {
+            "key": "per-person-sub",
+            "type": "string",
+            "to": "#per-person-sub"
+          },
+          {
+            "key": "per-person-tip",
+            "type": "string",
+            "to": "#per-person-tip"
+          },
+          {
+            "key": "round",
+            "type": "string",
+            "to": "#round"
+          },
+          {
+            "key": "tip",
+            "type": "string",
+            "to": "#tip"
+          },
+          {
+            "key": "tip-amount",
+            "type": "string",
+            "to": "#tip-amount"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "bill",
+        "main",
+        "people",
+        "per-person",
+        "per-person-exact",
+        "per-person-sub",
+        "per-person-tip",
+        "round",
+        "tip",
+        "tip-amount"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/tip-calculator/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
+    },
+    {
+      "id": "url-codec",
+      "slug": "url-codec",
+      "title": "URL Codec",
+      "description": "Encode and decode URLs using encodeURI, encodeURIComponent, and decodeURIComponent.",
+      "category": "Developer",
+      "pack": [
+        "developer"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "url",
+        "encode",
+        "decode",
+        "percent",
+        "escape",
+        "developer",
+        "uri"
+      ],
+      "last-updated": "2026-08-11T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "main": "",
+          "top": "",
+          "url-copy-input": "",
+          "url-copy-output": "",
+          "url-decode": "",
+          "url-encode-comp": "",
+          "url-encode-uri": "",
+          "url-input": "",
+          "url-output": "",
+          "url-status": ""
+        },
+        "encode": [
+          {
+            "key": "main",
+            "type": "string",
+            "from": "#main"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "from": "#top"
+          },
+          {
+            "key": "url-copy-input",
+            "type": "string",
+            "from": "#url-copy-input"
+          },
+          {
+            "key": "url-copy-output",
+            "type": "string",
+            "from": "#url-copy-output"
+          },
+          {
+            "key": "url-decode",
+            "type": "string",
+            "from": "#url-decode"
+          },
+          {
+            "key": "url-encode-comp",
+            "type": "string",
+            "from": "#url-encode-comp"
+          },
+          {
+            "key": "url-encode-uri",
+            "type": "string",
+            "from": "#url-encode-uri"
+          },
+          {
+            "key": "url-input",
+            "type": "string",
+            "from": "#url-input"
+          },
+          {
+            "key": "url-output",
+            "type": "string",
+            "from": "#url-output"
+          },
+          {
+            "key": "url-status",
+            "type": "string",
+            "from": "#url-status"
+          }
+        ],
+        "decode": [
+          {
+            "key": "main",
+            "type": "string",
+            "to": "#main"
+          },
+          {
+            "key": "top",
+            "type": "string",
+            "to": "#top"
+          },
+          {
+            "key": "url-copy-input",
+            "type": "string",
+            "to": "#url-copy-input"
+          },
+          {
+            "key": "url-copy-output",
+            "type": "string",
+            "to": "#url-copy-output"
+          },
+          {
+            "key": "url-decode",
+            "type": "string",
+            "to": "#url-decode"
+          },
+          {
+            "key": "url-encode-comp",
+            "type": "string",
+            "to": "#url-encode-comp"
+          },
+          {
+            "key": "url-encode-uri",
+            "type": "string",
+            "to": "#url-encode-uri"
+          },
+          {
+            "key": "url-input",
+            "type": "string",
+            "to": "#url-input"
+          },
+          {
+            "key": "url-output",
+            "type": "string",
+            "to": "#url-output"
+          },
+          {
+            "key": "url-status",
+            "type": "string",
+            "to": "#url-status"
+          }
+        ]
+      },
+      "shortcuts": [],
+      "history-keys": [
+        "main",
+        "top",
+        "url-copy-input",
+        "url-copy-output",
+        "url-decode",
+        "url-encode-comp",
+        "url-encode-uri",
+        "url-input",
+        "url-output",
+        "url-status"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/url-codec/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 480
+      },
+      "search-priority": 6
     }
   ]
 }
