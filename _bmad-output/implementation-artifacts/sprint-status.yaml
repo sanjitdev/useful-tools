@@ -707,6 +707,90 @@ action_items:
     story: null
     revisit_condition: "Before Story 4.1 kicks off"
 
+  # === Epic 1 Retrofit Audit (2026-08-12) ===
+  # 8 retrofit items apply Epic 2/3 retro lessons retroactively to Epic 1.
+  # Audit artifact: _bmad-output/implementation-artifacts/epic-1-retrofit-audit-2026-08-12.md
+  # All items land during Epic 4 first sprint as parallel work; no blockers.
+  - id: AI-E1-9
+    title: "Populate baseline_commit on Stories 1.13, 1.14, 1.15, 1.16"
+    description: "Per AI-E1-1, every story needs a baseline_commit in YAML frontmatter. Stories 1.13, 1.14, 1.15, 1.16 are missing it. Read git log --first-parent for each story file's first PR; populate baseline_commit with that commit hash. If a story has no PR (e.g., 1.16 was direct user request), use the commit hash at the time of the sprint-status entry's transition to in-progress."
+    severity: low
+    status: open
+    owner: future dev
+    epic: 1
+    story: null
+    revisit_condition: "Before Story 4.1 kicks off"
+
+  - id: AI-E1-10
+    title: "Auto-inject storage-registry manifest into chrome.html"
+    description: "storage-registry-gate.py verifies the inline manifest in chrome.html matches the register() calls in storage-registry.js, but does NOT auto-inject. Every new register() requires the dev agent to also update the manifest block in chrome.html. This is the architectural smell that caused Story 3.12's schema drift. Add a --inject mode that walks register() calls and rewrites the manifest block in chrome.html between the ht-storage-registry-manifest-start/end markers. Wire to a pre-commit hook on storage-registry.js + chrome.html."
+    severity: high
+    status: open
+    owner: future dev (Winston or successor)
+    epic: 1
+    story: 1-10
+    revisit_condition: "Before Story 4.1 (and tracked as part of AI-E3-4 from Epic 3 retro)"
+
+  - id: AI-E1-11
+    title: "Hoist magic numbers across Epic 1 to named consts"
+    description: "Per AI-E2-2 + AI-E3-8: tools.schema.json:215 has history-keys maxItems: 10 as inline literal. assets/js/shell.js (Story 1.6) has the theme cycle (auto/light/dark) as inline array. assets/js/search.js (Story 1.11) embeds ranking-tier scores (1000/500/200/50/10) inline. Hoist to HISTORY_CAP (in tools.schema.json $defs), THEME_CYCLE (assets/js/utils.js), RANKING_TIERS (assets/js/search.js), and WHO_DELTAS (tools/lifespan-simulator/lifespan-simulator.js)."
+    severity: medium
+    status: open
+    owner: future dev
+    epic: 1
+    story: null
+    revisit_condition: "When Story 4.1 spec is created (mirrors AI-E3-8)"
+
+  - id: AI-E1-12
+    title: "Add residue/deferred blocks to Stories 1.4, 1.7, 1.11-1.16"
+    description: "Per AI-E3-6: done status doesn't communicate residue. Stories 1.4 and 1.7 have Tasks/Subtasks sections entirely [ ] unchecked but status done. Stories 1.11-1.16 lack File List, Dev Agent Record, and Tasks/Subtasks sections (use a different template). Lift each story's deferred work, follow-ups, and TODOs into a structured Residue & Deferred block. Verify the residue block is empty (or near-empty) for each story before accepting."
+    severity: medium
+    status: open
+    owner: future dev
+    epic: 1
+    story: null
+    revisit_condition: "When Story 4.1 spec is created (mirrors AI-E3-6)"
+
+  - id: AI-E1-13
+    title: "Switch Epic 1 gate scanners from regex to AST"
+    description: "Per AI-E1-4: scripts/shell-bounds-check.py uses substring match for localStorage./fetch(/XMLHttpRequest. A tool whose JS contains // fetch the URL in a comment will FAIL. The INDIRECT_RE walk in scripts/storage-registry-gate.py:30-35 relies on a denylist (null|undefined|true|false|this|NaN|Infinity) that misses new ES2018+ reserved words. Replace with AST walks using the vendored acorn library (already in node_modules/). Add a // shell-bounds-check: allow <surface> line-comment escape hatch for legitimate cases."
+    severity: medium
+    status: open
+    owner: future dev
+    epic: 1
+    story: 1-14
+    revisit_condition: "When a future regex-style gate exposes a false positive"
+
+  - id: AI-E1-14
+    title: "Add search-perf smoke + negative-fixture battery for Epic 1 sweep-like harnesses"
+    description: "Per AI-E2-1: Epic 1 has sweep-like harnesses (rubric-lint, tool-inventory, shell-drift-check) without broken-fixture companions. Add tests/fixtures/rubric-negative/ with one tool entry per criterion that intentionally fails; tests/fixtures/inventory-negative/ for tool-inventory; add make *-negative targets. Also add scripts/_smoke_search_perf.js to verify Story 1.11's AC-8 perf budget <= 50ms cold / <= 10ms warm via performance.now() against 33 synthetic entries."
+    severity: medium
+    status: open
+    owner: future dev
+    epic: 1
+    story: 1-11
+    revisit_condition: "When a future sweep-style gate is added to Epic 1"
+
+  - id: AI-E1-15
+    title: "Replace shell-template byte-aligned gates with structural DOM walk"
+    description: "Per AI-E3-5 (Epic 3 retro): scripts/shell-template.py uses byte-aligned chrome regions (shell:header to shell:footer markers) for the drift check. Pattern is brittle; each new chrome surface requires a new regex + exemption. Replace with a structural smoke that parses the chrome HTML, walks the DOM, and verifies expected nodes exist (#shell-header, #shell-nav, #shell-footer, .print-only.print-footer). The --allow-drift index.html and --allow-drift view-source.html flags would then be removable. Mirrors AI-E3-5."
+    severity: medium
+    status: open
+    owner: future dev (Charlie or successor)
+    epic: 1
+    story: 1-5
+    revisit_condition: "Before Epic 4's first chrome change"
+
+  - id: AI-E1-16
+    title: "Add docs/README.md index"
+    description: "docs/ directory has no central index. A maintainer landing in /docs/ has to grep to find the rubric, ci-gate, shell-public-api docs. Author docs/README.md listing every docs/*.md with a one-line summary. Also lift AI-E1-5 through AI-E1-8 (Epic 1 retro deferred doc items: defineProperties pattern, HT.use deep-freeze, HT.netRegistry key format, shell-public-api smoke registry assertion) into the docs/ tree."
+    severity: low
+    status: open
+    owner: future dev
+    epic: 1
+    story: null
+    revisit_condition: "When docs/ is next touched"
+
 # -----------------------------------------------------------------------------
 # Suggested Sprint Sequencing (Reference)
 # -----------------------------------------------------------------------------
