@@ -426,40 +426,4 @@ h4 { font-size: 1rem; }
   h2 { font-size: 1.25rem; }
 }
 
-/* ============================================
-   Print stylesheet — Story 2.5
-   Hides Shell chrome + tool chrome so the printed
-   page contains only the tool's <main> content.
-   Story 3.10 owns the polish pass (color-adjust,
-   link URLs, 11pt minimum).
-   ============================================ */
-
-@media print {
-  /* Hide Shell chrome */
-  #shell-header,
-  #shell-nav,
-  #shell-footer,
-  #palette-trigger,
-  #shell-settings-trigger,
-  #shell-skip,
-  aside.history-panel,
-  aside.history-sheet,
-  dialog.share-dialog,
-  dialog[open] { display: none !important; }
-
-  /* Hide tool chrome */
-  .tool-actions,
-  .sample-button,
-  .reset-button,
-  .history-button,
-  .share-button { display: none !important; }
-
-  /* Print-friendly page setup */
-  @page { margin: 0.5in; }
-
-  /* Force the main content to full width */
-  main { max-width: none !important; padding: 0 !important; }
-
-  /* Don't print background colors (saves ink) */
-  * { background: transparent !important; color: black !important; }
-}
+/* Print stylesheet moved to assets/css/print.css (Story 3.10) */

@@ -127,6 +127,14 @@ CHROME_HEADER_RE = re.compile(
 CHROME_FOOTER_RE = re.compile(
     r"<!-- shell:footer -->\s*(.*?)\s*<!-- /shell:footer -->", re.DOTALL
 )
+# Story 3.10: the print-only footer block (canonical URL + last-updated
+# timestamp) lives in chrome.html between </main> and <!-- shell:footer -->.
+# The shell-template splices it into every page via the chrome rewrite;
+# the drift check byte-matches it across all pages.
+CHROME_PRINT_FOOTER_RE = re.compile(
+    r"<!-- shell:print-footer \(Story 3\.10\) -->.*?<!-- /shell:print-footer -->",
+    re.DOTALL,
+)
 PALETTE_REGION_RE = re.compile(
     r"<!-- shell:palette -->\s*(.*?)\s*<!-- /shell:palette -->", re.DOTALL
 )
@@ -142,6 +150,21 @@ HELP_REGION_RE = re.compile(
 )
 # Strip ALL palette/settings includes from the source, whether or not
 # they carry the `<!-- shell:palette -->` / `<!-- /shell:palette -->`
+# Story 3.10: the print stylesheet is auto-injected into every tool page
+# head. The byte-aligned check below (print_css_ok) requires exactly one
+# `<link rel="stylesheet" href="../../assets/css/print.css" media="print">`
+# tag in the page; the injection step (splice_print_css) inserts it after
+# the last existing stylesheet <link> when missing. Mirrors the pattern
+# used for the inline tools.json (splice_inline_tools_json) and the
+# storage-registry manifest (splice_storage_registry_manifest): idempotent
+# gate + splice helper.
+PRINT_CSS_REL = Path("assets/css/print.css")
+PRINT_CSS_LINK_PATTERN = (
+    '<link rel="stylesheet" href="../../assets/css/print.css" media="print">'
+)
+PRINT_CSS_LINK_OK_RE = re.compile(
+    r'<link\s+rel="stylesheet"\s+href="\.\./\.\./assets/css/print\.css"\s+media="print">'
+)
 # marker comments. The byte-aligned chrome rewrite
 # (process_file byte_aligned path, regenerate_home byte_aligned path)
 # re-emits the canonical palette + settings blocks after </footer>. A
@@ -239,16 +262,17 @@ def strip_duplicate_includes(source: str) -> str:
     return new_source
 
 
-def read_chrome(root: Path) -> tuple[str, str, str, str, str, str]:
-    """Return (skip_link_html, header_html, footer_html, palette_html, settings_html, help_html).
+def read_chrome(root: Path) -> tuple[str, str, str, str, str, str, str]:
+    """Return (skip_link_html, header_html, footer_html, palette_html,
+    settings_html, help_html, print_footer_html).
 
     The canonical chrome contains a <main ... aria-label="{page_label}"> with
     a `{body}` placeholder. We extract the regions surrounding that
     placeholder so each tool page gets a copy with its own label and body.
-    The palette region (Story 1.7), settings region (Story 1.8), and help
-    region (Story 3.3) are separate canonical sources that are injected
-    after the footer on every page so the overlays are single shared DOM
-    nodes.
+    The palette region (Story 1.7), settings region (Story 1.8), help
+    region (Story 3.3), and print-footer block (Story 3.10) are extracted
+    so they can be spliced into every page via byte-aligned rewrites or
+    targeted injections.
     """
     path = root / CHROME_REL
     if not path.is_file():
@@ -321,7 +345,29 @@ def read_chrome(root: Path) -> tuple[str, str, str, str, str, str]:
         sys.exit(2)
     help_html = help_match.group(1)
 
-    return skip_html, header_html, footer_html, palette_html, settings_html, help_html
+    # Story 3.10: extract the print-footer block from chrome.html. The
+    # block sits between <!-- shell:print-footer (Story 3.10) --> and
+    # <!-- /shell:print-footer --> markers and contains the
+    # canonical-URL/last-updated <footer> plus its inline population
+    # script. Targeted splice injects it into pages that were chrome-
+    # aligned BEFORE the print-footer block was added.
+    print_footer_match = CHROME_PRINT_FOOTER_RE.search(text)
+    if not print_footer_match:
+        sys.stderr.write(
+            "shell-template: chrome.html missing shell:print-footer markers\n"
+        )
+        sys.exit(2)
+    print_footer_html = print_footer_match.group(0)
+
+    return (
+        skip_html,
+        header_html,
+        footer_html,
+        palette_html,
+        settings_html,
+        help_html,
+        print_footer_html,
+    )
 
 
 def read_head_snippet(root: Path) -> str:
@@ -959,6 +1005,74 @@ def splice_inline_tools_json(source: str, tools_json_inline: str) -> str:
     return source
 
 
+def splice_print_footer(source: str, print_footer_html: str) -> str:
+    """Insert the print-only footer block immediately after </main>
+    (Story 3.10). The block contains the canonical-URL/last-updated
+    <footer> plus its inline population script. Idempotent: a page that
+    already carries the block is returned unchanged.
+    """
+    if CHROME_PRINT_FOOTER_RE.search(source):
+        return source
+    anchor = "</main>"
+    if anchor not in source:
+        sys.stderr.write(
+            "shell-template: print-footer splice skipped — no </main> anchor\n"
+        )
+        return source
+    return source.replace(anchor, anchor + "\n  " + print_footer_html, 1)
+
+
+def splice_print_css(source: str) -> str:
+    """Insert the print stylesheet link into the page <head> (Story 3.10).
+
+    The link is `<link rel="stylesheet" href="<prefix>assets/css/print.css"
+    media="print">` — loaded only in print media so it never paints during
+    normal browsing (FOUC-safe per AD-15). The `prefix` is `../../` for
+    tool pages (under `tools/<slug>/index.html`) and empty for the home
+    page (at the repo root). Detection: if the source already references
+    `../../assets/css/...`, the page is a tool page; otherwise, root-
+    relative.
+
+    Strategy:
+      - If the link is already present, return the source unchanged
+        (idempotent).
+      - Otherwise, insert immediately after the last existing
+        `<link rel="stylesheet" ...>` in the <head>. If no stylesheet
+        link is found, append immediately before `</head>` (last
+        resort).
+    """
+    if (
+        PRINT_CSS_LINK_OK_RE.search(source)
+        or '<link rel="stylesheet" href="assets/css/print.css" media="print">' in source
+    ):
+        return source
+    # Choose the link pattern based on whether the page is a tool page
+    # (uses `../../assets/...` paths) or the home page (uses
+    # `assets/...` directly).
+    if '../../assets/css/' in source or '../../assets/js/' in source:
+        link_pattern = PRINT_CSS_LINK_PATTERN
+    else:
+        link_pattern = (
+            '<link rel="stylesheet" href="assets/css/print.css" media="print">'
+        )
+    matches = list(
+        re.finditer(r'<link\s+rel="stylesheet"\s+[^>]*>', source, re.IGNORECASE)
+    )
+    if matches:
+        last = matches[-1]
+        end = last.end()
+        return source[:end] + "\n  " + link_pattern + source[end:]
+    head_end = source.find("</head>")
+    if head_end == -1:
+        sys.stderr.write(
+            "shell-template: print.css splice skipped — no </head> anchor\n"
+        )
+        return source
+    return (
+        source[:head_end] + "  " + link_pattern + "\n  " + source[head_end:]
+    )
+
+
 def process_file(
     root: Path,
     slug: str,
@@ -969,6 +1083,7 @@ def process_file(
     palette_html: str,
     settings_html: str,
     help_html: str,
+    print_footer_html: str,
     head_script: str,
     tools_json_inline: str,
     dry_run: bool,
@@ -1128,6 +1243,20 @@ def process_file(
         TOOLS_JSON_INLINE_START in source
         and TOOLS_JSON_INLINE_END in source
     )
+    # Story 3.10: print.css stylesheet <link> must be present in <head>.
+    # Excluded from `full_ok` so a missing print link triggers a separate
+    # targeted write — the print-only branch below splices it in without
+    # re-touching the chrome bytes or the IIFE.
+    print_css_ok = bool(PRINT_CSS_LINK_OK_RE.search(source))
+    # Story 3.10: print-only footer block (canonical URL + last-updated
+    # timestamp from tools.json) must be present after </main>. The
+    # chrome.html adds this between </main> and <!-- shell:footer -->; the
+    # shell-template byte-aligned rewrite already re-emits it on every
+    # chrome-aligned page, but pages that were chrome-aligned BEFORE the
+    # new block was added would skip the rewrite and never get the footer.
+    # A separate idempotent splice inserts just the footer block when
+    # it's missing.
+    print_footer_ok = bool(CHROME_PRINT_FOOTER_RE.search(source))
     full_ok = (
         chrome_ok
         and palette_ok
@@ -1147,6 +1276,8 @@ def process_file(
         and global_chords_js_ok
         and global_chords_js_after_help_overlay_js
         and tools_json_inline_ok
+        and print_css_ok
+        and print_footer_ok
     )
     # Find the IIFE block on the FIRST `<script>` opener in <head>. The IIFE
     # is always the first inline `<script>` in every page (it must run
@@ -1201,6 +1332,55 @@ def process_file(
     if full_ok and label_ok and iife_ok and nested_count <= 1:
         print(f"  no-change {path.relative_to(root)}  (already has new chrome)")
         return True
+
+    # Story 3.10: targeted print.css splice — when the page is otherwise
+    # chrome-aligned (chrome_ok etc. all true) but is missing the
+    # print stylesheet <link>, splice it in without re-touching the
+    # chrome bytes. Mirrors the Story 1.12 targeted splice pattern.
+    print_basic_ok = (
+        '<a class="shell-skip"' in source
+        and 'class="site-header" role="banner"' in source
+        and '<footer class="site-footer" role="contentinfo"' in source
+        and '<main id="main" class="shell-main"' in source
+        and 'src="../../assets/js/shell.js"' in source
+        and header_html in source
+        and footer_html in source
+        and palette_html in source
+        and settings_html in source
+        and help_html in source
+        and TOOLS_JSON_INLINE_START in source
+        and TOOLS_JSON_INLINE_END in source
+    )
+    if print_basic_ok and not print_css_ok:
+        new_source = splice_print_css(source)
+        if new_source != source:
+            if dry_run:
+                print(f"  would-write {path.relative_to(root)}  (print.css link only)")
+                return True
+            try:
+                path.write_text(new_source, encoding="utf-8")
+            except OSError as exc:
+                sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
+                sys.exit(3)
+            print(f"  wrote {path.relative_to(root)}  (print.css link)")
+            return True
+
+    # Story 3.10: targeted print-footer splice — when the page is
+    # otherwise chrome-aligned but missing the print-only footer block,
+    # inject it immediately after </main>. Idempotent.
+    if print_basic_ok and not print_footer_ok:
+        new_source = splice_print_footer(source, print_footer_html)
+        if new_source != source:
+            if dry_run:
+                print(f"  would-write {path.relative_to(root)}  (print-footer only)")
+                return True
+            try:
+                path.write_text(new_source, encoding="utf-8")
+            except OSError as exc:
+                sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
+                sys.exit(3)
+            print(f"  wrote {path.relative_to(root)}  (print-footer)")
+            return True
 
     # Story 1.12: when the page is otherwise chrome-aligned but is missing
     # only `data-slug` on <main> and/or the site-config.js script tag,
@@ -1632,6 +1812,7 @@ def regenerate_home(
     palette_html: str,
     settings_html: str,
     help_html: str,
+    print_footer_html: str,
     head_script: str,
     tools_json_inline: str,
     storage_registry_manifest: str,
@@ -1703,6 +1884,16 @@ def regenerate_home(
         or source.find('src="assets/js/site-config.js"')
         < source.find('src="assets/js/storage-registry.js"')
     )
+    # Story 3.10: print.css is loaded from the home page (root-relative
+    # path, no `../../`) so the gate regex differs from the tool-page
+    # version. The shell-template splices the link in via the same
+    # splice_print_css helper used for tool pages.
+    home_print_css_ok = (
+        '<link rel="stylesheet" href="assets/css/print.css" media="print">' in source
+    )
+    # Story 3.10: print-footer block must be present (mirrors
+    # `print_footer_ok` in process_file).
+    print_footer_ok = bool(CHROME_PRINT_FOOTER_RE.search(source))
     # Bug fix: a previous broken regeneration can leave a SECOND
     # palette/settings include stranded in the page (the byte-aligned
     # check above only requires "at least one" include, not "exactly
@@ -1731,6 +1922,8 @@ def regenerate_home(
         and palette_actions_js_in_source
         and site_config_js_in_source
         and site_config_first_in_source
+        and home_print_css_ok
+        and print_footer_ok
     )
     # Also require the canonical FOUC IIFE byte sequence to be present.
     # Without this, a home page that was generated before Story 1.5
@@ -1762,6 +1955,58 @@ def regenerate_home(
     if byte_aligned and iife_ok and nested_count <= 1:
         print(f"  no-change {path.relative_to(root)}  (already has new chrome)")
         return True
+
+    # Story 3.10: targeted print.css splice for the home page — when the
+    # page is otherwise byte-aligned but is missing the print stylesheet
+    # link, splice it in without re-touching the chrome bytes. Mirrors
+    # the tool-page print-only branch above.
+    home_print_basic_ok = (
+        has_new_chrome
+        and home_header in source
+        and footer_html in source
+        and palette_html_in_source
+        and settings_html_in_source
+        and help_html_in_source
+        and palette_count_ok
+        and settings_count_ok
+        and home_grid_js_in_source
+        and tools_json_inline_in_source
+        and storage_registry_manifest_in_source
+        and storage_registry_js_in_source
+        and search_js_in_source
+        and palette_actions_js_in_source
+        and site_config_js_in_source
+        and site_config_first_in_source
+    )
+    if home_print_basic_ok and not home_print_css_ok:
+        new_source = splice_print_css(source)
+        if new_source != source:
+            if dry_run:
+                print(f"  would-write {path.relative_to(root)}  (print.css link only)")
+                return True
+            try:
+                path.write_text(new_source, encoding="utf-8")
+            except OSError as exc:
+                sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
+                sys.exit(3)
+            print(f"  wrote {path.relative_to(root)}  (print.css link)")
+            return True
+
+    # Story 3.10: home page targeted print-footer splice — same logic
+    # as the tool-page print-footer splice above.
+    if home_print_basic_ok and not print_footer_ok:
+        new_source = splice_print_footer(source, print_footer_html)
+        if new_source != source:
+            if dry_run:
+                print(f"  would-write {path.relative_to(root)}  (print-footer only)")
+                return True
+            try:
+                path.write_text(new_source, encoding="utf-8")
+            except OSError as exc:
+                sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
+                sys.exit(3)
+            print(f"  wrote {path.relative_to(root)}  (print-footer)")
+            return True
 
     # Bug fix: chrome is byte-aligned and the IIFE is canonical, but the
     # home page has DUPLICATE palette/settings include blocks left over
@@ -2383,7 +2628,7 @@ def main(argv: list[str]) -> int:
         if args.root
         else find_repo_root(Path(__file__).parent)
     )
-    skip_html, header_html, footer_html, palette_html, settings_html, help_html = read_chrome(root)
+    skip_html, header_html, footer_html, palette_html, settings_html, help_html, print_footer_html = read_chrome(root)
     head_script = read_head_snippet(root)
     tools_json_inline = read_tools_json_inline(root)
     storage_registry_manifest = read_storage_registry_manifest(root)
@@ -2400,6 +2645,7 @@ def main(argv: list[str]) -> int:
             palette_html=palette_html,
             settings_html=settings_html,
             help_html=help_html,
+            print_footer_html=print_footer_html,
             head_script=head_script,
             tools_json_inline=tools_json_inline,
             storage_registry_manifest=storage_registry_manifest,
@@ -2430,6 +2676,7 @@ def main(argv: list[str]) -> int:
             palette_html=palette_html,
             settings_html=settings_html,
             help_html=help_html,
+            print_footer_html=print_footer_html,
             head_script=head_script,
             tools_json_inline=tools_json_inline,
             dry_run=args.dry_run,

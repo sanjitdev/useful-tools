@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="../../assets/css/components.css">
   <link rel="stylesheet" href="../../assets/css/tools.css">
   <link rel="stylesheet" href="./base64-codec.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
 </head>
 <body>
   <a class="shell-skip" href="#main">Skip to main content</a>
@@ -67,6 +68,13 @@
 
     <div id="b64-status"></div>
   </main>
+  <!-- shell:print-footer (Story 3.10) -->
+<footer class="print-only print-footer" aria-hidden="true">
+  <p class="print-url"><span class="print-url-label">URL:</span> <span class="print-url-value"></span></p>
+  <p class="print-meta">Last updated: <time class="print-last-updated" datetime=""></time></p>
+</footer>
+<script class="print-footer-populate">(function(){try{var url=document.querySelector("footer.print-only .print-url-value");if(url){url.textContent=location.href;}var ts=document.querySelector("footer.print-only .print-last-updated");if(ts){var slug="";var main=document.getElementById("main");if(main&&main.dataset&&main.dataset.slug){slug=main.dataset.slug;}var inline=document.getElementById("ht-tools-json-inline");if(inline){try{var tools=JSON.parse(inline.textContent||"[]");if(Array.isArray(tools)){for(var i=0;i<tools.length;i++){var t=tools[i];if(t&&t.slug===slug&&t["last-updated"]){ts.textContent=t["last-updated"];ts.setAttribute("datetime",t["last-updated"]);break;}}}}catch(_e){}}}}catch(_e){}})();</script>
+<!-- /shell:print-footer -->
 
   <footer class="site-footer" role="contentinfo" aria-label="Site information">
   <div class="container">

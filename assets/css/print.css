@@ -1,0 +1,252 @@
+/* ============================================
+   Print stylesheet — Story 3.10
+
+   Hides Shell chrome and tool chrome so the
+   printed page contains only the tool's input
+   section, result section, and a print-only
+   footer with the canonical URL and the
+   last-updated timestamp.
+
+   Loaded via <link rel="stylesheet" media="print">
+   so it never paints during normal browsing.
+
+   Migration notes:
+   - The previous @media print block lived in
+     assets/css/base.css (Story 2.5). Story 3.10
+     moved it here as part of the polish pass
+     (color-adjust, 11pt minimum, opt-in
+     data-print markers, page-break rules).
+   - The new file is a SUPERSET of the old rules
+     (adds [data-print="..."] selectors,
+     page-break rules, .print-only rules).
+   ============================================ */
+
+@page {
+  margin: 0.5in;
+  size: auto;
+}
+
+@media print {
+
+  /* ----------------------------------------
+     1. Color forcing — print-friendly palette
+     ---------------------------------------- */
+
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  /* Remove all gradients, shadows, and bg images */
+  * {
+    background-image: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Force cobalt accent to plain black */
+  :root {
+    --accent: #000 !important;
+    --accent-soft: #000 !important;
+  }
+
+  /* Force all text and borders to black */
+  *, *::before, *::after {
+    color: #000 !important;
+    border-color: #000 !important;
+  }
+
+  /* Preserve link readability — links underlined, in black */
+  a, a:visited {
+    color: #000 !important;
+    text-decoration: underline;
+  }
+
+  /* Force full-width main */
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* ----------------------------------------
+     2. Hide Shell chrome
+     ---------------------------------------- */
+
+  #shell-header,
+  #shell-nav,
+  #shell-footer,
+  #palette-trigger,
+  #shell-settings-trigger,
+  #shell-skip,
+  aside.history-panel,
+  aside.history-sheet,
+  dialog.share-dialog,
+  dialog[open] { display: none !important; }
+
+  /* ----------------------------------------
+     3. Hide generic <header>/<footer>/<nav>
+        and tool chrome
+     ---------------------------------------- */
+
+  header,
+  footer,
+  nav,
+  header.tool-header,
+  nav.tool-nav,
+  button.tool-theme-toggle,
+  button.tool-settings,
+  button[aria-label="History"],
+  button[aria-label="Share"],
+  .tool-actions,
+  .tool-actions-bar,
+  .sample-button,
+  .reset-button,
+  .history-button,
+  .share-button,
+  .no-print,
+  [data-print="hidden"] { display: none !important; }
+
+  /* ----------------------------------------
+     4. Visibility opt-in via data-print
+     ---------------------------------------- */
+
+  /* Sections marked as input/result are always visible.
+     The data-print attribute is the canonical opt-in for
+     what should appear in the printed output. */
+  [data-print="input"],
+  [data-print="result"] { display: block !important; }
+
+  /* ----------------------------------------
+     5. Print-only footer
+     ---------------------------------------- */
+
+  .print-only { display: block !important; }
+
+  .print-only {
+    font-size: 9pt;
+    color: #000 !important;
+    border-top: 1px solid #000 !important;
+    padding-top: 0.5em;
+    margin-top: 1em;
+  }
+
+  .print-url,
+  .print-meta,
+  .print-last-updated,
+  .print-url-value,
+  .print-url-label {
+    margin: 0.25em 0;
+    word-break: break-all;
+  }
+
+  /* ----------------------------------------
+     6. Page-break rules
+     ---------------------------------------- */
+
+  /* Result blocks: don't break across pages */
+  [data-print="result"] {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Input section: allow page break after (default), but try to keep the form on one page */
+  [data-print="input"] {
+    page-break-after: auto;
+    break-after: auto;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Print footer: always on its own page */
+  .print-only.print-footer,
+  footer.print-only {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  /* Avoid orphaned tool result elements */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  table, figure, img, pre, blockquote {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* ----------------------------------------
+     7. Tables — readable in print
+     ---------------------------------------- */
+
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  th, td {
+    border: 1px solid #000 !important;
+    padding: 0.25em 0.5em !important;
+    text-align: left !important;
+  }
+
+  /* ----------------------------------------
+     8. Forms — readable in print
+     ---------------------------------------- */
+
+  input, textarea, select, button {
+    color: #000 !important;
+    background: #fff !important;
+    border: 1px solid #000 !important;
+    padding: 0.25em 0.5em !important;
+  }
+
+  input[type="checkbox"], input[type="radio"] {
+    width: auto !important;
+    height: auto !important;
+  }
+
+  /* Hide buttons that don't render meaningfully in print */
+  button {
+    display: none !important;
+  }
+
+  /* Re-show buttons explicitly marked as print-visible */
+  button.print-visible,
+  [data-print="button"] {
+    display: inline-block !important;
+  }
+
+  /* ----------------------------------------
+     9. Code, pre — keep but readable
+     ---------------------------------------- */
+
+  code, pre, kbd, samp {
+    font-family: "Courier New", Courier, monospace !important;
+    font-size: 10pt !important;
+    color: #000 !important;
+    background: transparent !important;
+    border: 1px solid #000 !important;
+    padding: 0.1em 0.3em;
+  }
+
+  pre {
+    padding: 0.5em !important;
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+  }
+
+  /* ----------------------------------------
+     10. SVG, images — print as-is
+     ---------------------------------------- */
+
+  img, svg, canvas, video {
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid;
+  }
+}

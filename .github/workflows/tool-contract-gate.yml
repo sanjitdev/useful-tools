@@ -42,6 +42,7 @@ on:
       - "scripts/_smoke_regression_sweep.js"
       - "scripts/_smoke_regression_sweep_negative.js"
       - "scripts/_regression_sweep.py"
+      - "scripts/_smoke_print.js"
       - "assets/js/quality.js"
       - "assets/js/utils.js"
       - "assets/js/storage.js"
@@ -57,6 +58,7 @@ on:
       - "assets/js/**"
       - "assets/css/base.css"
       - "assets/css/components.css"
+      - "assets/css/print.css"
       - "index.html"
       - "quality.html"
       - "docs/quality-rubric.md"
@@ -97,6 +99,7 @@ on:
       - "scripts/_smoke_regression_sweep.js"
       - "scripts/_smoke_regression_sweep_negative.js"
       - "scripts/_regression_sweep.py"
+      - "scripts/_smoke_print.js"
       - "assets/js/quality.js"
       - "assets/js/utils.js"
       - "assets/js/storage.js"
@@ -112,6 +115,7 @@ on:
       - "assets/js/**"
       - "assets/css/base.css"
       - "assets/css/components.css"
+      - "assets/css/print.css"
       - "index.html"
       - "quality.html"
       - "docs/quality-rubric.md"
@@ -336,6 +340,19 @@ jobs:
         # fixture, the sweep has a vacuous pass and 210/210 is
         # meaningless — exit 1 fails the gate.
         run: make regression-sweep-negative
+
+      - name: Smoke print stylesheet (Story 3.10)
+        # Story 3.10: verifies assets/css/print.css exists and carries
+        # every AC-required selector + color-forcing + page-break
+        # rule; verifies the print.css <link media="print"> is present
+        # on every tool page + the home page + quality.html; verifies
+        # the print-only footer block is in chrome.html and spliced
+        # into every tool page + the home page; verifies the legacy
+        # @media print block was migrated out of base.css into
+        # print.css; and verifies the splice_print_css +
+        # splice_print_footer helpers exist in shell-template.py. 55
+        # PASS expected. Vacuous-pass guard catches hollow runs.
+        run: make print-smoke
 
       - name: Upload regression sweep report
         # Story 2.12 AC-7: when the sweep fails (or passes) the
