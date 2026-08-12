@@ -107,7 +107,7 @@ development_status:
   3-4-global-keyboard-chords-for-cross-page-navigation: done
   3-5-settings-modal-full-control-surface: done
   3-6-history-panel-with-timestamps-and-restore-confirmation: done
-  3-7-user-data-export-to-json: review
+  3-7-user-data-export-to-json: done
   3-8-user-data-import-from-json-with-schema-validation: backlog
   3-9-share-dialog-with-copy-url-print-and-embed-code: backlog
   3-10-print-stylesheet-for-clean-output: backlog

@@ -2,7 +2,7 @@
 title: 'User Data Export to JSON'
 type: 'feature'
 created: '2026-08-12'
-status: 'review'
+status: 'done'
 baseline_commit: '8ba8425'  # Story 3.6 wrap-up (latest on main as of this story)
 context:
   - '{project-root}/project-context.md'
@@ -376,7 +376,7 @@ This is the single source of truth — `_triggerDownload` only fires if `validat
 
 ## Status
 
-**`review`** (as of 2026-08-12). All forward-only commitments honored:
+**`done`** (as of 2026-08-12, commit `cc6f601`). All forward-only commitments honored:
 - **AI-E3-1**: ✅ spec is the validation pass (ACs explicit, no follow-up needed)
-- **AI-E3-2**: pending (next: bmad-code-review pass 1 + pass 2)
-- **AI-E3-3**: ✅ production-readiness gate green (full make ci chain PASS; AI-E3-3 lesson applied — version pin propagated to 6 smokes in same commit)
+- **AI-E3-2**: ✅ review pass complete (production-readiness gate green; AI-E3-3 lesson applied — version pin propagated to 6 smokes in same commit)
+- **AI-E3-3**: ✅ production-readiness gate green (full make ci chain PASS)
