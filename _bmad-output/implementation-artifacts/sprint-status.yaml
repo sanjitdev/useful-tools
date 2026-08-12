@@ -100,7 +100,8 @@ development_status:
   # ADs: AD-4, AD-14 (Shell Public API)
   # UX-DRs: UX-DR-6 (full), UX-DR-14 (offline banner), UX-DR-19 (palette on every page)
   # =========================================================================
-  epic-3: in-progress
+  epic-3: done
+  epic-3-retrospective: done
   3-1-full-command-palette-with-top-5-fuzzy-matches-and-footer-hints: done
   3-2-command-palette-global-actions: done
   3-3-per-tool-keyboard-shortcuts-overlay: done
@@ -113,7 +114,6 @@ development_status:
   3-10-print-stylesheet-for-clean-output: done
   3-11-view-source-route-with-syntax-highlighting-and-download: done
   3-12-recent-and-pinned-tracking: done
-  epic-3-retrospective: optional
 
   # =========================================================================
   # Epic 4: Embed Everywhere — Any Tool Usable on Any Third-Party Site
@@ -619,6 +619,93 @@ action_items:
     epic: 3
     story: null
     revisit_condition: "Every story completion cycle (after second review pass, before marking done)"
+
+  # === Epic 3 Retrospective (2026-08-12) ===
+  # 12 stories shipped. 25 commits. 23 smoke harnesses (1,400+ assertions).
+  # API surface stayed frozen across 8 version bumps (1.9.0 -> 1.16.0).
+  # Embed-mode guard unified across 6 stories. Vacuous-pass guards caught
+  # 3.12 schema drift on first run. Two-pass review on Story 3.6 caught 18
+  # findings that single-pass would have missed. Retro file:
+  # _bmad-output/implementation-artifacts/epic-3-retro-2026-08-12.md
+  - id: AI-E3-4
+    title: "Extract storage schema to a single source"
+    description: "storage-registry.js is the canonical schema but chrome.html carries an inline manifest that has to stay in sync. Story 3.12 had to update both files (array<string> -> object<slug:iso8601>). Extract the schema to assets/data/storage-schema.json and have both storage-registry.js and chrome.html import it at runtime."
+    severity: medium
+    status: open
+    owner: Winston (architect)
+    epic: 3
+    story: null
+    revisit_condition: "Before Story 4.1's embed router config touches storage"
+
+  - id: AI-E3-5
+    title: "Replace byte-aligned gates with structural DOM walk"
+    description: "7 byte-aligned gates, 2 --allow-drift exemptions on index.html and view-source.html. Pattern is brittle; each new chrome surface requires a new regex + exemption. Replace with a structural smoke that parses the chrome HTML, walks the DOM, and verifies expected nodes exist (#shell-header, #shell-nav, #shell-footer, .print-only.print-footer)."
+    severity: medium
+    status: open
+    owner: future dev (Charlie or successor)
+    epic: 3
+    story: null
+    revisit_condition: "Before Epic 4's first chrome change"
+
+  - id: AI-E3-6
+    title: "residue: block convention for story files"
+    description: "done status doesn't communicate residue. Story 3.10 has deferred T4; Story 3.6 has a 6-page gate log. Add a residue: block to every story file. If status is done and there's real deferred work, the block lists it. If status is done and there's no residue, the block is empty."
+    severity: low
+    status: open
+    owner: future dev (Alice or successor)
+    epic: 3
+    story: null
+    revisit_condition: "When Story 4.1 spec is created"
+
+  - id: AI-E3-7
+    title: "Extend shell-template to satellite pages"
+    description: "quality.html, tools-pack.json, tools-pack.zip, tools.json are not touched by regeneration. Stories 3.11 and 3.12 had to manually edit quality.html. Extend shell-template.py to inject the chrome into the satellite pages. One regen, one source of truth."
+    severity: medium
+    status: open
+    owner: future dev (Charlie or successor)
+    epic: 3
+    story: null
+    revisit_condition: "Before Epic 4 starts"
+
+  - id: AI-E3-8
+    title: "Hoist every cap to a named const"
+    description: "HISTORY_CAP hoisted in 3.6 per AI-E2-2; lapsed in 3.7/3.8/3.12. Hoist every cap to a named const at the module top: HISTORY_CAP, EXPORT_SCHEMA_VERSION, PIN_CAP, RECENT_CAP, etc. Consider a global _CAPS object in assets/js/state/limits.js."
+    severity: low
+    status: open
+    owner: future dev (Elena or successor)
+    epic: 3
+    story: null
+    revisit_condition: "When Story 4.1 spec is created"
+
+  - id: AI-E3-9
+    title: "Forward-only commitments get block-the-merge gates"
+    description: "AI-E3-2 was a forward-only commitment; pass-2 was post-merge in spirit on Story 3.6. Every forward-only commitment gets a merge gate. The merge cannot complete until the gate is green. For AI-E3-2, the gate is 'two bmad-code-review passes, both pre-merge, both with a review-pass: 1 and review-pass: 2 label in the commit message.'"
+    severity: medium
+    status: open
+    owner: Sanjit (project lead)
+    epic: 3
+    story: null
+    revisit_condition: "Before Story 4.1 kicks off"
+
+  - id: AI-E3-10
+    title: "Codify adopted patterns into the architecture spine"
+    description: "Pattern adoption has a half-life; the next story author has to rediscover the pattern. Add AD-17 through AD-22 to the architecture spine: embed-mode guard, frozen-internal handle, vacuous-pass guard, forward-compat export keys, two-pass review, vendored-dependency discipline."
+    severity: medium
+    status: open
+    owner: Winston (architect)
+    epic: 3
+    story: null
+    revisit_condition: "When Story 4.1 spec is created"
+
+  - id: AI-E3-11
+    title: "Tech-debt register"
+    description: "We accumulate exemptions (2 --allow-drift flags, 3 inlined caps, 2 vendored files, 2 satellite pages without coverage) with no retirement plan. Introduce _bmad-output/tech-debt.md as a living register. Every exemption, vendored file, missing coverage goes on the register with a retirement plan. The register is reviewed at every retro."
+    severity: low
+    status: open
+    owner: Sanjit (project lead)
+    epic: 3
+    story: null
+    revisit_condition: "Before Story 4.1 kicks off"
 
 # -----------------------------------------------------------------------------
 # Suggested Sprint Sequencing (Reference)
