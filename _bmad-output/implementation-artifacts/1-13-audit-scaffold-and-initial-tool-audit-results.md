@@ -1,5 +1,9 @@
 # Story 1.13 — Audit Scaffold and Initial Tool Audit Results
 
+Status: done
+
+baseline_commit: ea3b8680d8c9c032690a1410f75f47568d20a55a
+
 ## Story
 
 **As a** developer responsible for the calculation-tool suite,
@@ -243,5 +247,30 @@ No runtime errors encountered. The fix is a pure-logic replacement; no event han
 | 2026-08-10 | Sanjit  | Addressed AI review findings: corrected AC-1 closed-form values, tightened Test 7 tolerance, added 10s timeout fallback, renamed smoke-signal flag to `__htSmokeFailed` for consistency with storage-smoke, wired `?ci=1` gate, added `make verify-compound` + `make compound-smoke` targets, added structural smoke check `scripts/compound-smoke.py`, corrected simulation to handle per-period vs per-month PMT consistently. |
 
 ## Status
+
+done
+
+## Residue & Deferred
+
+Added retroactively on 2026-08-12 (AI-E1-12 from the Epic 1 retrofit audit).
+This story shipped the audit harness + the compound-interest bug fix;
+it deliberately did NOT re-audit the 11 tools the audit deemed clean.
+The reviewer asked for a "fast lane for future regressions" — that's
+the value of the harness, not the re-verification of already-clean
+tools. The deferred items:
+
+- **6 brownfield tools without per-tool smoke harnesses.** The audit
+  exercised them via the Python reference checks but no `smoke` HTML
+  equivalent exists for them (only `compound-smoke.html` does). The
+  promotion gates (Stories 1.3, 1.9, 2.x) handle the regression
+  coverage for promoted tools. *Reason deferred:* per-tool harnesses
+  were out of scope; the audit's value is the catalog + the one
+  permanent harness.
+- **`compound-smoke.html` does not run in embed mode.** No embed-page
+  consumption was specified in Story 1.13. Subsequent stories
+  (1.6 = theme toggle, 1.7 = palette, 1.8 = settings) added the
+  embed-mode guard but did not retrofit the smoke. The expected
+  impact is small but it's a real gap. *Reason deferred:* the gate
+  is CI-only and the smoke is dev-only; they don't share a path.
 
 done

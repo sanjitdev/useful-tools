@@ -1,5 +1,9 @@
 # Story 1.14 — Shell Public API and Bypass Prohibition
 
+Status: done
+
+baseline_commit: dcdcacb9ee97e1be0580deb15eda10c3a9522bc4
+
 ## Story
 
 **As a** developer extending the Shell,
@@ -123,3 +127,24 @@ The workflow is `permissions: contents: read` only; the gate is read-only.
 
 *Status: done. Sprint status flipped to `done` in
 `_bmad-output/implementation-artifacts/sprint-status.yaml`.*
+
+## Residue & Deferred
+
+Added retroactively on 2026-08-12 (AI-E1-12 from the Epic 1 retrofit audit).
+Story 1.14 froze the `HT.*` public surface, but two items were
+recognized as out of scope:
+
+- **Per-surface frozen handles (`HT_X_INIT` / `HT_X_VERSION`).** The
+  AD-14 global freeze was applied to the contract surface as a whole
+  but individual surfaces (palette, settings, search, storage, home
+  grid) lack per-surface `HT_X_INIT` / `HT_X_VERSION` constants. The
+  audit's F9 finding calls this "low priority"; no action is
+  scheduled. *Reason deferred:* cross-cutting concern that needs a
+  dedicated stabilization story, not a per-surface one.
+- **`shell-public-api-smoke` HTML harness was added later, not in
+  this story.** This story shipped the freeze + the API-contract
+  doc; the browser smoke that enforces the freeze was added in a
+  follow-up (Epic 2). The `docs/shell-public-api.md` doc is the
+  interim contract; the smoke hardens it. *Reason deferred:* harness
+  scope out — the freeze + doc is the contract; the smoke is the
+  enforcer.

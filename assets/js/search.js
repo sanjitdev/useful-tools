@@ -16,6 +16,23 @@
   var MIN_FUZZY_QUERY_LENGTH = 4;
   var INLINE_ID = 'ht-tools-json-inline';
 
+  /* ---- ranking tiers (AI-E1-11: hoisted from inline literals in
+     scoreExact / scorePrefix / scoreWordBoundary / scoreSubstring) ---- */
+
+  // Each tier's score is the start of a decreasing range. Earlier match
+  // positions get small bonuses (subtracting `idx`) but never below the
+  // next tier's start — that's why the tiers don't overlap and why the
+  // comment in `scoreFuzzy` calls the substring tier's 50 "the lowest
+  // tier". Any future scoring tweak should change the constants below
+  // and the test in scripts/_smoke_search_perf.js (AC-8 ≤ 50ms cold /
+  // ≤ 10ms warm) together.
+  var RANKING_TIERS = Object.freeze({
+    EXACT: 1000,         // full-string match anywhere in the field
+    PREFIX: 500,         // query is the start of the field
+    WORD_BOUNDARY: 200,  // query follows whitespace / hyphen / start
+    SUBSTRING: 50,       // query appears anywhere (first match wins)
+  });
+
   /* ---- normalization ---- */
 
   // NFKD decomposes accents (é -> e + combining acute); the combining-mark
@@ -118,14 +135,14 @@
 
   function scoreExact(query, fieldNorm) {
     if (!fieldNorm) return null;
-    if (fieldNorm === query) return { score: 1000, start: 0, end: fieldNorm.length };
+    if (fieldNorm === query) return { score: RANKING_TIERS.EXACT, start: 0, end: fieldNorm.length };
     return null;
   }
 
   function scorePrefix(query, fieldNorm) {
     if (!fieldNorm || !query || query.length > fieldNorm.length) return null;
     if (fieldNorm.indexOf(query) === 0) {
-      return { score: 500 - 0, start: 0, end: query.length };
+      return { score: RANKING_TIERS.PREFIX - 0, start: 0, end: query.length };
     }
     return null;
   }
@@ -147,7 +164,7 @@
         }
       }
       if (atBoundary) {
-        return { score: 200 - idx, start: idx, end: idx + query.length };
+        return { score: RANKING_TIERS.WORD_BOUNDARY - idx, start: idx, end: idx + query.length };
       }
       from = idx + 1;
     }
@@ -158,7 +175,7 @@
     if (!fieldNorm || !query || query.length > fieldNorm.length) return null;
     var idx = fieldNorm.indexOf(query);
     if (idx === -1) return null;
-    return { score: 50 - idx, start: idx, end: idx + query.length };
+    return { score: RANKING_TIERS.SUBSTRING - idx, start: idx, end: idx + query.length };
   }
 
   // Levenshtein distance, 2-row DP. Returns the edit distance between two

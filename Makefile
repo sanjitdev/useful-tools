@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -71,7 +71,8 @@ help: ## Show available targets
 	@echo "  make print-smoke         Run the Story 3.10 print stylesheet smoke (Node headless driver for assets/css/print.css + the print-only footer block: 55 assertions verifying AC-required selectors, color forcing, page-break rules, and the print.css <link> on every page)"
 	@echo "  make view-source-smoke   Run the Story 3.11 view-source route smoke (Node headless driver for /view-source.html + view-source.js + vendor/highlight.min.js + vendor/zip-store.js: 91 assertions verifying route shape, slug validation, PKZIP STORE byte layout per APPNOTE.TXT, tools.json conventions, and the chrome dual-anchor footer pattern)"
 	@echo "  make pins-recent-smoke   Run the Story 3.12 Recent/Pinned tracking smoke (Node vm-context harness: 119 assertions covering recent.js FIFO cap + dedupe, pins.js {slug: iso} map + cap 9, home-grid.js pin button + pinned row, shell.js markToolVisited, home-sidebar.js recent list, api-contract 1.16.0, and storage-registry schemas)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke + view-source-smoke + pins-recent-smoke"
+	@echo "  make search-perf-smoke   Run the Story 1.11 / AI-E1-14 search perf smoke (cold path ≤ 50ms/query × 5 fresh VMs; warm path ≤ 10ms/query × 90th-trimmed avg of 50; no-result ≤ 25ms/query; 4 PASS expected)"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke + view-source-smoke + pins-recent-smoke + search-perf-smoke"
 
 validate: validate-tools-json
 
@@ -115,7 +116,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -169,6 +170,18 @@ storage-registry:
 	@$(PYTHON) scripts/storage-registry-gate.py
 
 sr: storage-registry
+
+# `storage-registry-inject` rewrites the manifest block in chrome.html
+# from the register() calls in storage-registry.js + shell.js. Run this
+# after adding a new register() call: the injector appends the new key
+# to chrome.html, and the pre-commit hook propagates the change into
+# index.html + every tool page. Exits 0 on success, 1 on drift that
+# requires manual intervention, 2 on parse error. (AI-E1-10 — added
+# 2026-08-12 to close the schema-drift class that bit Story 3.12.)
+storage-registry-inject:
+	@$(PYTHON) scripts/storage-registry-gate.py --inject
+
+sri: storage-registry-inject
 
 # `site-config` runs the Story 1.12 site-config gate: verifies
 # assets/js/site-config.js's HT_SITE_CONFIG + HT.siteConfig shapes, the
@@ -589,3 +602,19 @@ view-source-smoke:
 # sidebar markup, export.js + import.js regression guards).
 pins-recent-smoke:
 	@node scripts/_smoke_pins_recent.js
+
+# `search-perf-smoke` is the Story 1.11 / AI-E1-14 perf budget smoke.
+# Headless Node driver loads assets/js/search.js in a vm context
+# against a synthetic tools fixture, then measures:
+#   - cold path: ≤ 50ms/query (NFKD normalize dominates, 5 fresh VM
+#     invocations). The cold-path budget is distinct from warm because
+#     the disk-cache miss + first normalize pass are the dominant cost.
+#   - warm path: ≤ 10ms/query (50 queries on one engine, 90th-percentile-
+#     trimmed avg to ignore GC spikes). The published Story 1.11 budget.
+#   - no-result boundary: ≤ 25ms/query for zero-match queries (Promise
+#     microtask roundtrip is the dominant cost; budget leaves room for
+#     the scheduling overhead in the test harness).
+# Vacuous-pass guard (pass === 0 && fail === 0 → exit 1) catches
+# hollow runs. Authored as part of the Epic 1 retrofit audit (AI-E1-14).
+search-perf-smoke:
+	@node scripts/_smoke_search_perf.js

@@ -261,3 +261,24 @@ Keyboard chord rationale:
 
 - Re-ordering + home-grid-protection in `process_file` / `regenerate_home`.
   [`scripts/shell-template.py:473`](../../scripts/shell-template.py#L473)
+
+## Residue & Deferred
+
+Added retroactively on 2026-08-12 (AI-E1-12 from the Epic 1 retrofit audit).
+The palette skeleton story predates the bmad-style `Tasks / Subtasks` and
+Dev Agent Record sections. The verification list above is the
+authoritative record of what shipped; no retroactive fill-in is attempted
+(the git history is the source of truth). One item was explicitly
+deferred and is now visible:
+
+- **Command palette global actions (Story 3.2).** The palette
+  scaffolding supports static commands (jump to tool, copy slug) but
+  the global actions (theme toggle, settings, privacy, view-source) live
+  in Story 3.2. The code shipped here exposes the `HT.palette.actions`
+  registry so Story 3.2 can register handlers without touching the
+  skeleton. *Reason deferred:* scoped out — global actions are a UX
+  surface, not a runtime skeleton concern.
+- **Hierarchy / breadcrumb UI (UX-DR-16).** The palette renders a flat
+  list of tools; the breadcrumb (`Tools > Productivity > Pomodoro`) is a
+  Story 1.9-era pack-composition concern. *Reason deferred:* no packs
+  existed when this story shipped.

@@ -3,6 +3,7 @@ title: 'First Promoted Tool Lands on Home Grid (QR Code Generator)'
 type: 'feature'
 created: '2026-08-08'
 status: 'done'
+baseline_commit: 965b13d045f024ea887f2441968b026e73899934
 context:
   - '{project-root}/project-context.md'
   - '{project-root}/_bmad-output/planning-artifacts/epics.md'
@@ -286,3 +287,22 @@ Puku CLI (Claude Opus 4.6). Followed dev-story workflow; no specialized code-rev
 
 - 2026-08-08 — Story 1.15 created.
 - 2026-08-08 — Story 1.15 implemented and shipped. `qr-code-generator` is the first `tools.json` entry with `ready: true`, `score: 8`, full schema coverage, and a 2-release score-waiver referencing the Wave-1 substrate work in Stories 2.1-2.5. All six cross-cutting gates exit 0. End-to-end Epic 1 contract is now provably wired for a real tool.
+- 2026-08-12 — Retroactive retrofit (AI-E1-12 from the Epic 1 retrofit audit): added `baseline_commit:` to the YAML frontmatter and this `## Residue & Deferred` block.
+
+## Residue & Deferred
+
+Added retroactively on 2026-08-12 (AI-E1-12 from the Epic 1 retrofit audit).
+Story 1.15 promoted a single tool (`qr-code-generator`) to prove the
+end-to-end contract; the broader wave-1 promotion is Story 1.9 / 2.x.
+Two items were noted at ship time:
+
+- **QR-code-generator sample-data path is the v1 simple form.** The
+  generator accepts a `text` input and returns a PNG data-URL; no
+  error-correction-level / margin / size controls (which were
+  deferred to a later tool revision). *Reason deferred:* the
+  promotion was a contract proof, not a feature-complete ship.
+- **Score waiver's "two releases" timer has no expiration job.** The
+  waiver's `expires-after-releases: 2` is documented but not
+  enforced. The release-engineering job that decrements the counter
+  ships in a later epic. *Reason deferred:* release-engineering
+  scope, not tool-promotion scope.

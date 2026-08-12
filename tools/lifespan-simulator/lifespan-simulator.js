@@ -8,6 +8,37 @@
   'use strict';
 
   /* ===========================================================
+     0. WHO_DELTAS — scale convention (AI-E1-11: hoisted metadata)
+
+     Every per-input delta below is expressed in YEARS OF LIFE and is
+     negative for harm, positive for benefit, zero for the neutral
+     reference. The scale is consistent across the 22+ tables:
+       -3.0 yrs  strong harm (daily smoking, heavy alcohol)
+       -1.0 yrs  moderate harm (high blood pressure, no exercise)
+        0.0 yrs  neutral reference (never smoked, healthy BMI)
+       +1.0 yrs  modest benefit (vaccinated, daily fruit/veg)
+       +4.0 yrs  strong benefit (60+ min daily exercise)
+
+     Sources are cited inline next to each table (WHO fact sheet,
+     GBD 2019, Moore et al. BMJ 2012, etc.) and re-asserted in the
+     per-tooltip `sourceLabel` shown when the user clicks ⓘ. Do NOT
+     change a delta without re-validating the source citation — this
+     is an entertainment-only tool (see FR-2 / Story 1.16) but the
+     numbers are still attached to real WHO publications, and a stale
+     citation is worse than no citation.
+
+     The constants below document the scale; per-input values live
+     in the named tables (SMOKING, STRESS, BLOODPRESSURE, ...).
+     =========================================================== */
+
+  var WHO_DELTAS = Object.freeze({
+    SCALE_MIN: -10.0,        // floor for any single contribution (defense in depth)
+    SCALE_MAX: 10.0,         // ceiling for any single contribution
+    SYNERGY_SMOKING_ALCOHOL: -1.5,
+    SYNERGY_SMOKING_SEDENTARY: -1.0,
+  });
+
+  /* ===========================================================
      1. Country baselines (life expectancy at birth, by sex)
      Source: WHO Global Health Observatory, latest year per country.
      =========================================================== */

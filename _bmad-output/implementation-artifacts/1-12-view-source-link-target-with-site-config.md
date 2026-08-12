@@ -802,3 +802,27 @@ diff; not used in the final triage.
   chain (`validate`, `rubric-all`, `gate`, `site-config`,
   `storage-registry`, `shell-drift`, `shell-a11y`) passes
   end-to-end against the canonical `main` branch state.
+
+## Residue & Deferred
+
+Added retroactively on 2026-08-12 (AI-E1-12 from the Epic 1 retrofit audit).
+This story is the second-pass review of Story 1.12 itself (a
+self-review after the code-review feedback surfaced the missing
+site-config integration). Two items were intentionally left for
+follow-up stories:
+
+- **`HT_SITE_CONFIG` < 1024-byte budget is enforced at startup, not
+  edit-time.** A developer who edits `assets/js/site-config.js` and
+  blows the budget sees the breach on next page load, not on save. The
+  author-time check (lint rule or pre-commit hook warning) is a small
+  follow-up. *Reason deferred:* the gate is the contract; the
+  authoring experience is a separate tool.
+- **`site-config.js` is loaded before `storage-registry.js` but AFTER
+  `utils.js` in the chrome order.** That ordering passed the gate
+  but means `HT_SITE_CONFIG` is undefined inside `storage-registry.js`'s
+  IIFE. We verified via the gate (the bootstrap order test passes)
+  that no storage-registry code path references site-config during
+  module-init; if a future story adds such a reference, the
+  ordering needs to flip. *Reason deferred:* the gate is sufficient
+  enforcement; flipping the order preemptively would have wider
+  blast radius than the surface change warranted.

@@ -293,3 +293,28 @@ Puku CLI (Dev agent persona, bmad-dev-story workflow).
 ### File List
 
 - (filled in by dev agent)
+
+## Residue & Deferred
+
+Added retroactively on 2026-08-12 (AI-E1-12 from the Epic 1 retrofit audit).
+This story shipped the inventory + rollout order but the dev-agent record
+(Debug Log / Completion Notes / File List) was never filled in. Two ACs
+were intentionally not landed in this story and were deferred to later
+waves of the migration:
+
+- **Wave-1 home-grid swap (Story 1.9).** The inventory table is generated
+  but the home grid still shows "Coming soon" placeholders for the 34
+  brownfield tools; Story 1.9 lights them up via the promote-wave-1 gate.
+  *Reason deferred:* out of scope; this story was the source-of-truth
+  catalog, not the rendering layer.
+- **Rubric waiver expiry tracking (FR-2 "two releases" rule).** The
+  inventory marks `expires-after-releases: 2` on wave-1 entries but no
+  reviewer job currently checks the counter at release time. Story 1.3's
+  follow-up tickets (planned in Epic 2) add the cron-style check.
+  *Reason deferred:* release-engineering scope.
+
+**Known residue at audit time:** the Debug Log / Completion Notes /
+File List sections above are still placeholders. No retroactive
+fill-in is attempted — the work landed in commit
+`4e5baf76a5f31b8a55d3e1d8e6e16a5b3a3aef52` and the diff there is the
+authoritative record. A retroactive fill-in would be fiction.

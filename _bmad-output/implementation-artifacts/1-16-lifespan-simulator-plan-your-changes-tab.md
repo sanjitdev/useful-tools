@@ -3,6 +3,7 @@ title: 'Lifespan Simulator — Plan Your Changes Tab with WHO-Cited Lifestyle De
 type: 'feature'
 created: '2026-08-08'
 status: 'done'
+baseline_commit: 726cf332c8b683df333b61e1ea39a1428d4f3e93
 context:
   - '{project-root}/project-context.md'
   - '{project-root}/_bmad-output/planning-artifacts/architecture/architecture-useful-tools-2026-07-31/ARCHITECTURE-SPINE.md'
@@ -324,3 +325,36 @@ Claude (Puku CLI / Anthropic Claude) — bmad-dev-story workflow, manual executi
 
 - 2026-08-08 — Story 1.16 created.
 - 2026-08-08 — Story 1.16 implemented. All 10 tasks complete, all 13 ACs verified via cross-cutting CI gates.
+- 2026-08-12 — Retroactive retrofit (AI-E1-12 from the Epic 1 retrofit audit): added `baseline_commit:` to the YAML frontmatter and this `## Residue & Deferred` block.
+
+## Residue & Deferred
+
+Added retroactively on 2026-08-12 (AI-E1-12 from the Epic 1 retrofit audit).
+The Plan Your Changes tab is an entertainment-only surface (per FR-2
++ Story 1.16's own preamble) but the WHO effect sizes are still
+attached to real publications — the residue list flags the items
+where a stale citation would be worse than no citation:
+
+- **Per-input WHO deltas are inline literals in the `lifespan-simulator.js`
+  tables.** The audit's AI-E1-11 retrofit added a `WHO_DELTAS` metadata
+  const block at the top of the file documenting the scale and
+  synergy terms, but the per-input values remain inline. Each value
+  is labeled with its source (WHO fact sheet, GBD 2019, Moore
+  et al. BMJ 2012, etc.) and re-asserted in the per-tooltip
+  `sourceLabel`. *Reason deferred:* lifting 22+ tables' values into
+  a single const block would obscure the per-row source-citation
+  pattern that makes the tool honest. The metadata block is the
+  light-touch middle ground.
+- **The "synergy" deltas (−1.5 for smoking+alcohol, −1.0 for
+  smoking+sedentary) are not WHO-cited.** The audit's F4 finding
+  flagged these as mentioned in the WHO_DELTAS block but not
+  empirically scored in the simulation. They are best-effort
+  estimates for entertainment only. *Reason deferred:* adding a
+  false authority to a synergy claim would mislead; the source
+  language ("estimated", "compound" rather than "WHO cites") is
+  used in the tooltip.
+- **The Plan Your Changes tab is gated behind a tab UI tab that
+  exists only after the user lands on the tool page.** There is no
+  deep-link to a specific plan; if a user wants to share a plan
+  with a friend, they have to take a screenshot. *Reason deferred:*
+  deep-link is a share-dialog concern (Story 2.x).

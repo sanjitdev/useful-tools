@@ -156,6 +156,27 @@ Four review layers ran (blind-hunter, edge-case-hunter, verification-gap, accept
 - [x] [Review][Dismiss] Manual Chrome+Firefox claim — substituted with Node headless automation
 - [x] [Review][Dismiss] `bySlug` rebuilt every query — O(n) cost is trivial at 34 entries
 
+## Residue
+
+Added retroactively on 2026-08-12 (AI-E1-12 from the Epic 1 retrofit audit).
+Story 1.11 already has a thorough `## Deferred decisions` section below —
+the work captured here is the opposite (debt that was RETAINED at ship
+time, not pushed forward):
+
+- **Tier scores are inline literals (1000 / 500 / 200 / 50).** The
+  ranking-tiers live as numeric literals in `scoreExact` /
+  `scorePrefix` / `scoreWordBoundary` / `scoreSubstring`. AI-E1-11
+  (Epic 1 retrofit audit) hoisted them into a `RANKING_TIERS` const
+  block in a separate retrofit commit; that refactor is the canonical
+  resolution. *Reason retained:* rewriting the engine while the perf
+  budget was under contention risked breaking the AC-8 budget. The
+  retrofit (4 hours) is a safer home.
+- **`HT.search._normalize` is exported as "internal."** The internal
+  hint is in the name only; no freeze or guard prevents tool files
+  from depending on it. Story 1.14's public-API surface moved it
+  toward formalization but the freeze is still pending. *Reason
+  retained:* cross-cutting stabilization, not search-specific.
+
 ## Deferred decisions
 
 These are intentionally deferred from Story 1.11 and will surface as separate stories:

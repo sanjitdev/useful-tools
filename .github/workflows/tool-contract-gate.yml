@@ -46,6 +46,7 @@ on:
       - "scripts/_smoke_view_source.js"
       - "view-source.html"
       - "scripts/_smoke_pins_recent.js"
+      - "scripts/_smoke_search_perf.js"
       - "assets/js/recent.js"
       - "assets/js/pins.js"
       - "assets/js/home-sidebar.js"
@@ -57,6 +58,7 @@ on:
       - "assets/js/a11y.js"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
+      - "assets/js/search.js"
       - "docs/tool-inventory.md"
       - "docs/quality-audit.md"
       - "docs/pack-taxonomy.md"
@@ -109,6 +111,7 @@ on:
       - "scripts/_smoke_view_source.js"
       - "view-source.html"
       - "scripts/_smoke_pins_recent.js"
+      - "scripts/_smoke_search_perf.js"
       - "assets/js/recent.js"
       - "assets/js/pins.js"
       - "assets/js/home-sidebar.js"
@@ -120,6 +123,7 @@ on:
       - "assets/js/a11y.js"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
+      - "assets/js/search.js"
       - "docs/tool-inventory.md"
       - "docs/quality-audit.md"
       - "docs/pack-taxonomy.md"
@@ -410,6 +414,18 @@ jobs:
         # chrome.html inline manifest matches the JS registry.
         # 119 PASS expected. Vacuous-pass guard catches hollow runs.
         run: make pins-recent-smoke
+
+      - name: Smoke search perf budget (Story 1.11 / AI-E1-14)
+        # Story 1.11 + Epic 1 retrofit audit AI-E1-14: verifies the
+        # search engine meets its published perf budgets. Cold path
+        # (NFKD normalize dominates) ≤ 50ms/query across 5 fresh VM
+        # invocations; warm path (Story 1.11 published budget) ≤
+        # 10ms/query as a 90th-percentile-trimmed avg of 50 queries;
+        # no-result boundary ≤ 25ms/query (10 zero-match queries,
+        # returns [] each). 4 PASS expected. Vacuous-pass guard
+        # (pass===0 && fail===0 → exit 1) catches hollow runs and
+        # breaks the gate.
+        run: make search-perf-smoke
 
       - name: Upload regression sweep report
         # Story 2.12 AC-7: when the sweep fails (or passes) the

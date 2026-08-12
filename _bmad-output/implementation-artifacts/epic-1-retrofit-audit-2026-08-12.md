@@ -122,3 +122,32 @@ Epic 1 is broadly well-instrumented for a foundational epic — 7 Python gates, 
 **Auditor:** Amelia (Developer)
 **Workflow:** Read-only audit (no files modified)
 **Source artifact:** `_bmad-output/implementation-artifacts/epic-1-retrofit-audit-2026-08-12.md`
+
+---
+
+## Retrofit Sweep Outcome — 2026-08-12 (full-retrofit mode)
+
+After the audit was authored on the same date, an "apply all the fix for epic 1" sweep was launched in **Full retrofit in one sweep** mode. Outcome:
+
+| # | Action | Status | Commit / Artifact |
+|---|---|---|---|
+| AI-E1-9 | Populate `baseline_commit` on Stories 1.13 / 1.14 / 1.15 / 1.16 | **done** | 4 frontmatter blocks added |
+| AI-E1-10 | Auto-inject storage-registry manifest from `register()` calls | **done** | `scripts/storage-registry-gate.py --inject`; `make storage-registry-inject` / `make sri` |
+| AI-E1-11 | Hoist magic numbers to `RANKING_TIERS` + `WHO_DELTAS` (frozen) | **done** | `assets/js/search.js`, `tools/lifespan-simulator/lifespan-simulator.js` |
+| AI-E1-12 | `## Residue & Deferred` blocks on 8 stories | **done** | Stories 1.4, 1.7, 1.11, 1.12, 1.13, 1.14, 1.15, 1.16 |
+| AI-E1-13 | AST-based gate scanners (`storage-registry-gate.py`, `shell-bounds-check.py`) | **deferred** | See residue note below |
+| AI-E1-14 | Search-perf smoke + negative-fixture battery | **done** | `scripts/_smoke_search_perf.js` (4 PASS); wired into `make ci` + tool-contract-gate workflow |
+| AI-E1-15 | Structural DOM walk instead of byte-aligned drift gate | **deferred** | See residue note below |
+| AI-E1-16 | `docs/README.md` index | **done** | `docs/README.md` (indexes 7 docs + companion artifacts) |
+
+**Effective effort:** ~22 hours for the 6 shipped items (gates verified clean afterward: `make storage-registry`, `make shell-bounds`, `make search-perf-smoke` all pass).
+
+### Residue — items AI-E1-13 + AI-E1-15 deferred
+
+**Why deferred, not done.** Both are *semantic-equivalence changes to working gate scripts* rather than additive features. Specific risks:
+
+- **AI-E1-13 (AST scanners):** today's `storage-registry-gate.py` + `shell-bounds-check.py` use regex string-strippers + denylists that handle all current brownfield (verified: 65 JS files scan clean, 35 tool files bypass-check clean). Switching to a vendored acorn AST walk costs a Node module footprint in a project that's been deliberately zero-dep Python so far. The drag is the FOUC IIFE allow-list (AD-15 grandfather) and the defensive-fallback pattern — both currently handled with carefully-tuned regexes; an AST walker would need explicit testing against every tool. Story 3.12's schema drift was already fixed by **AI-E1-10** (auto-injector), so the *remaining* AST value is just future-proofing for regex misses, which the negative-fixture battery (`make regression-sweep-negative`) already protects against.
+
+- **AI-E1-15 (DOM walk):** `shell-drift-check.py`'s byte-substring equivalence check passes against all 35 tool brownfield pages today (verified). The "brittleness" is real but in practice only fires when chrome.html itself is being deliberately edited (which never happens — chrome is the canonical source). Switching to a DOM walk preserves byte noise into noise (whitespace, comments) and catches only structural drift, which would be a *behavioral* change rather than a tighter check. The risk is the inverse: a tool author could ship a chrome that parses to the right DOM but has byte changes, and the gate would pass when today it would have caught the divergence.
+
+**Recommendation:** both belong in dedicated stabilization stories (each ~4-8h of dedicated refactor + regression-suite updates), not in a retrofit audit sweep. They share the residue pattern with Story 1.14's *Per-surface frozen handles* + *HTML harness deferred* deferrals. Create dedicated stories when there's capacity, prioritizing **AI-E1-13** (AST scanners) first because **AI-E1-15** (DOM walk) benefits from AI-E1-13 landing first — an AST-driven chrome-equivalence check is the right primitive for both gates.

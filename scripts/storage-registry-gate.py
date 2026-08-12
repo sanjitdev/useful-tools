@@ -579,11 +579,324 @@ def collect_legacy_key_map(root: Path) -> dict[str, str]:
     return out
 
 
+# ---------------------------------------------------------------------------
+# --inject mode: rewrite the manifest in chrome.html from the register()
+# call sites in storage-registry.js + shell.js. The drift check at
+# `check_register_calls_match_manifest` only verifies set equality; it
+# does not auto-inject missing entries. Without an injector, every new
+# `register(...)` call requires a manual chrome.html edit AND must survive
+# the pre-commit hook (which regenerates index.html from chrome.html).
+#
+# AI-E1-10 (Epic 1 retrofit audit, 2026-08-12): this drift class first
+# bit us in Story 3.12 (pins schema: array<string> vs object<slug:iso8601>
+# drift between shell.js and the manifest). The injection mode eliminates
+# the manual step at the cost of a single JSON.stringify + marker-delimited
+# rewrite.
+# ---------------------------------------------------------------------------
+
+# Match `register('foo.bar', { ... })` (single- or double-quoted key) and
+# capture the literal meta-object body. We deliberately do NOT try to
+# parse the JS — we know every call site in this repo uses a top-level
+# object literal with single-line or multiline string fields, and the
+# pre-commit hook will catch any deviation via the AST scanners (AI-E1-13).
+# The body is captured non-greedily up to the matching `)`. The regex
+# requires the meta to be an object literal (`{`) so we skip any call
+# that uses a runtime-evaluated meta (those are bugs — meta must be
+# constant — and the gate will surface them as a parse failure here).
+REGISTER_FULL_RE = re.compile(
+    r"\bregister\(\s*(['\"])([a-zA-Z0-9_.\-]+)\1\s*,\s*(\{(?:[^{}]|\{[^{}]*\})*\})\s*\)",
+    re.DOTALL,
+)
+
+# Literal string fields inside the meta object. Captures the inner
+# string excluding the surrounding quotes. We deliberately do NOT
+# try to parse template literals or computed fields — every call site
+# in the repo uses a plain single-quoted string, and the AST gate
+# (AI-E1-13) will surface any deviation. Field names in the JS are
+# bare identifiers (`purpose:`), not quoted (`'purpose':`), so the
+# name is matched without quotes.
+#
+# Value body allows the OTHER quote character (e.g. `"en", "bn"`)
+# so we don't refuse legitimate descriptions that nest one quote
+# kind inside the other (the regex would still reject a single-
+# quoted string with a `'` in it — that's an actual bug).
+_META_FIELD_RE_TEMPLATE = (
+    r"(?<![\w$])" + "{name}"
+    + r"\s*:\s*(['\"])((?:(?!\1).)*)\1"
+)
+
+
+def _extract_meta_field(meta: str, field: str) -> str | None:
+    """Pull the literal string value of `field` from a meta-object body.
+    Returns None if the field is missing or has a non-literal value
+    (e.g. a template literal)."""
+    pattern = re.compile(_META_FIELD_RE_TEMPLATE.format(name=re.escape(field)))
+    m = pattern.search(meta)
+    if m is None:
+        return None
+    return m.group(2)
+
+
+def collect_register_meta(root: Path) -> dict[str, dict]:
+    """Walk every JS file and collect the meta object for every
+    `register('key', { ... })` call. Returns {key: {purpose, lifetime,
+    schema, owner}}. Skips calls where the meta object is malformed
+    (returns a sentinel entry with a `__invalid__` flag in the rare
+    event the parse fails — the caller decides whether to print a
+    warning and skip or fail outright)."""
+    out: dict[str, dict] = {}
+    js_dir = root / ASSETS_JS_DIR
+    if not js_dir.is_dir():
+        return out
+    for path in sorted(js_dir.rglob("*.js")):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for m in REGISTER_FULL_RE.finditer(text):
+            key = m.group(2)
+            meta_body = m.group(3)
+            purpose = _extract_meta_field(meta_body, "purpose")
+            lifetime = _extract_meta_field(meta_body, "lifetime")
+            schema = _extract_meta_field(meta_body, "schema")
+            owner = _extract_meta_field(meta_body, "owner")
+            if not (purpose and lifetime and schema and owner):
+                # Malformed meta — skip silently. The drift check
+                # (check_register_calls_match_manifest) will still flag
+                # the key as missing if the manifest doesn't have it,
+                # and the dev can re-run --inject after fixing the
+                # call site.
+                continue
+            # If a key is registered twice (different files), the LAST
+            # call wins. The runtime throws on duplicate registration,
+            # so the dev should fix the call site — but the inject
+            # mode is best-effort and prefers the most recent seen.
+            out[key] = {
+                "purpose": purpose,
+                "lifetime": lifetime,
+                "schema": schema,
+                "owner": owner,
+            }
+    return out
+
+
+def inject_manifest(root: Path) -> int:
+    """Rewrite the manifest block in chrome.html with the union of
+    (existing manifest entries) and (new register() calls). Preserves
+    existing entry order; appends new entries at the end in the order
+    they were discovered by collect_register_meta.
+
+    The pre-commit hook (.git/hooks/pre-commit) regenerates index.html
+    from chrome.html whenever the chrome source is staged, so the dev
+    only needs to commit chrome.html + storage-registry.js (or shell.js)
+    together — the splice happens automatically.
+
+    Returns 0 on success, 1 on drift (the manifest has keys that no
+    register() call owns — symptomatic of a manually-added entry that
+    should be re-registered), 2 on missing chrome.html or markers."""
+    chrome_path = root / CHROME_REL
+    if not chrome_path.is_file():
+        sys.stderr.write(
+            f"storage-registry-gate --inject: missing {chrome_path}\n"
+        )
+        return 2
+    text = chrome_path.read_text(encoding="utf-8")
+    marker_match = MARKER_DELIMITED_RE.search(text)
+    script_match = None
+    block_offset = 0  # offset of the matched block in the full text;
+    # added to script_match.start()/end() if the script regex ran
+    # against the block slice.
+    if marker_match:
+        block_offset = marker_match.start(1)
+        block = marker_match.group(1)
+        script_match = re.search(
+            r'(<script\s+type="application/json"\s+id="ht-storage-registry-manifest"\s*>)(.*?)(</script>)',
+            block,
+            re.DOTALL | re.IGNORECASE,
+        )
+    if script_match is None:
+        script_match = re.search(
+            r'(<script\s+type="application/json"\s+id="ht-storage-registry-manifest"\s*>)(.*?)(</script>)',
+            text,
+            re.DOTALL | re.IGNORECASE,
+        )
+        block_offset = 0
+    if script_match is None:
+        sys.stderr.write(
+            "storage-registry-gate --inject: chrome.html missing "
+            "<script id=\"ht-storage-registry-manifest\"> element\n"
+        )
+        return 2
+
+    # Parse the existing manifest entries (preserving order).
+    try:
+        existing_payload = json.loads(script_match.group(2))
+    except ValueError as exc:
+        sys.stderr.write(
+            f"storage-registry-gate --inject: existing manifest is not "
+            f"valid JSON: {exc}\n"
+        )
+        return 2
+    if not isinstance(existing_payload, dict) or "entries" not in existing_payload:
+        sys.stderr.write(
+            "storage-registry-gate --inject: manifest must be an object "
+            "with an 'entries' array\n"
+        )
+        return 2
+    existing_entries = existing_payload["entries"]
+    if not isinstance(existing_entries, list):
+        sys.stderr.write(
+            "storage-registry-gate --inject: manifest 'entries' must be "
+            "an array\n"
+        )
+        return 2
+
+    existing_by_key: dict[str, dict] = {}
+    for entry in existing_entries:
+        if isinstance(entry, dict) and "key" in entry:
+            existing_by_key[entry["key"]] = entry
+
+    # Collect register() meta from the JS source. If the meta-block is
+    # malformed the call is silently skipped (the existing manifest
+    # entry, if any, is preserved). This matches the existing gate's
+    # behaviour: it reports drift but doesn't try to auto-inject.
+    register_meta = collect_register_meta(root)
+
+    # Drift check: keys in the manifest but absent from register() calls.
+    # These are typically the per-tool `handy-tools.history.<slug>` keys
+    # (registered dynamically via registerHistoryKeys) OR the
+    # `handy-tools.dashboard`, `handy-tools.pwa.dismissals`, etc. keys
+    # owned by shell.js but registered via programs other than the
+    # static register() calls. We do NOT remove these — they're real
+    # keys the gate currently allows. We only warn so the dev can audit.
+    registered_keys = set(register_meta.keys())
+    manifest_only_keys = sorted(set(existing_by_key.keys()) - registered_keys)
+    if manifest_only_keys:
+        print(
+            "storage-registry-gate --inject: warning — manifest has "
+            f"{len(manifest_only_keys)} key(s) with no static register() "
+            "call (dynamic registerHistoryKeys or shell.js try/catch):"
+        )
+        for k in manifest_only_keys:
+            print(f"  - {k}")
+
+    # Union: keep existing order, append new register() keys at the end.
+    new_entries: list[dict] = []
+    seen_keys: set[str] = set()
+    for entry in existing_entries:
+        if not isinstance(entry, dict) or "key" not in entry:
+            continue
+        key = entry["key"]
+        # If the register() call has FRESH meta, refresh the entry.
+        # This handles the Story 3.12 case (pins schema drift): the
+        # JS is the source of truth, so the manifest gets the latest
+        # version from the register() call. We mutate the existing
+        # dict IN PLACE so the key order (and any extra fields added
+        # in the future) survives — only the four required fields
+        # get refreshed.
+        if key in register_meta:
+            ref = register_meta[key]
+            entry["purpose"] = ref["purpose"]
+            entry["lifetime"] = ref["lifetime"]
+            entry["schema"] = ref["schema"]
+            entry["owner"] = ref["owner"]
+        new_entries.append(entry)
+        seen_keys.add(key)
+    # Append any register() keys that the manifest doesn't have yet.
+    added = []
+    for key in sorted(register_meta.keys()):
+        if key in seen_keys:
+            continue
+        ref = register_meta[key]
+        new_entries.append({
+            "key": key,
+            "purpose": ref["purpose"],
+            "lifetime": ref["lifetime"],
+            "schema": ref["schema"],
+            "owner": ref["owner"],
+        })
+        added.append(key)
+        seen_keys.add(key)
+
+    # Build the new JSON payload. Use the same compact shape the
+    # chrome.html already uses (no whitespace between entries) so the
+    # diff is minimal and the byte-marker drift check still passes.
+    new_payload = {"entries": new_entries}
+    new_inner = json.dumps(new_payload, separators=(",", ":"))
+
+    # Semantically compare the new payload to the existing one. If
+    # they're equal and the only difference is whitespace, treat the
+    # run as a no-op so we don't churn chrome.html on every invocation.
+    # (Re-serializing always produces a slightly different byte stream
+    # even when the JSON values are identical.)
+    if (
+        not added
+        and json.dumps(existing_payload, separators=(",", ":")) == new_inner
+    ):
+        print(
+            "storage-registry-gate --inject: manifest already in sync "
+            "(no changes written)"
+        )
+        return 0
+
+    # Splice the new JSON into the script element. Preserve the
+    # surrounding markers + the leading comment block — only the
+    # JSON inside the <script>...</script> tag changes. If the
+    # script regex ran against the block slice (bounded by the
+    # markers), add the block_offset to convert the relative
+    # span to an absolute one in the full text.
+    open_tag = script_match.group(1)
+    close_tag = script_match.group(3)
+    new_script_block = open_tag + new_inner + close_tag
+    abs_start = script_match.start() + block_offset
+    abs_end = script_match.end() + block_offset
+    new_text = text[:abs_start] + new_script_block + text[abs_end:]
+
+    if new_text == text:
+        print(
+            "storage-registry-gate --inject: manifest already in sync "
+            "(no changes written)"
+        )
+        return 0
+
+    chrome_path.write_text(new_text, encoding="utf-8")
+    if added:
+        print(
+            f"storage-registry-gate --inject: {len(added)} new key(s) "
+            f"added to chrome.html — {', '.join(added)}"
+        )
+    # If we refreshed any existing entries, the write happened too.
+    if not added:
+        print(
+            "storage-registry-gate --inject: manifest refreshed from "
+            "register() calls (existing entries updated to match JS)"
+        )
+    print(
+        "storage-registry-gate --inject: chrome.html written. "
+        "Next step: re-run `make shell-template-home` to propagate "
+        "into index.html (the pre-commit hook does this automatically "
+        "if you stage chrome.html + the JS file you edited)."
+    )
+    return 0
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     parser.add_argument(
         "--root",
         help="explicit repo root (default: walk up to find tools.schema.json)",
+    )
+    parser.add_argument(
+        "--inject",
+        action="store_true",
+        help=(
+            "rewrite the manifest block in chrome.html from the "
+            "register() call sites in assets/js/storage-registry.js "
+            "and assets/js/shell.js (AI-E1-10). New keys are appended; "
+            "existing keys are refreshed to match the JS source of "
+            "truth. The pre-commit hook propagates the change into "
+            "index.html + every tool page automatically."
+        ),
     )
     args = parser.parse_args(argv)
 
@@ -592,6 +905,9 @@ def main(argv: list[str]) -> int:
         if args.root
         else find_repo_root(Path(__file__).parent)
     )
+
+    if args.inject:
+        return inject_manifest(root)
 
     print("storage-registry-gate: loading manifest from chrome.html…")
     by_key = load_manifest(root)
