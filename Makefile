@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -72,7 +72,9 @@ help: ## Show available targets
 	@echo "  make view-source-smoke   Run the Story 3.11 view-source route smoke (Node headless driver for /view-source.html + view-source.js + vendor/highlight.min.js + vendor/zip-store.js: 91 assertions verifying route shape, slug validation, PKZIP STORE byte layout per APPNOTE.TXT, tools.json conventions, and the chrome dual-anchor footer pattern)"
 	@echo "  make pins-recent-smoke   Run the Story 3.12 Recent/Pinned tracking smoke (Node vm-context harness: 119 assertions covering recent.js FIFO cap + dedupe, pins.js {slug: iso} map + cap 9, home-grid.js pin button + pinned row, shell.js markToolVisited, home-sidebar.js recent list, api-contract 1.16.0, and storage-registry schemas)"
 	@echo "  make search-perf-smoke   Run the Story 1.11 / AI-E1-14 search perf smoke (cold path ≤ 50ms/query × 5 fresh VMs; warm path ≤ 10ms/query × 90th-trimmed avg of 50; no-result ≤ 25ms/query; 4 PASS expected)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke + view-source-smoke + pins-recent-smoke + search-perf-smoke"
+	@echo "  make ast-gates-self-test Run the vendored acorn AST walker's 15-fixture self-test (Story 1.17 / AI-E1-13)"
+	@echo "  make ast-gates-negative  Run the negative-test battery for shell-bounds + storage-registry AST walk (Story 1.17 AC-4)"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke + view-source-smoke + pins-recent-smoke + search-perf-smoke + ast-gates-self-test + ast-gates-negative"
 
 validate: validate-tools-json
 
@@ -116,14 +118,26 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative
 
 # `shell-drift` checks that every page's chrome matches the canonical
-# bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
+# bytes in assets/shell/chrome.html. Story 1.18 (AI-E1-15) replaced the
+# legacy byte-substring scan with a DOM-walk structural-identity
+# comparator; the `--allow-drift` flag is no longer required (every
+# page passes without exemptions). Exit 2 if any page is out of sync.
 # Wired into the tool-contract-gate workflow; the path filter covers
 # chrome.html, the generator, the drift check, and every tools/<slug>.
 shell-drift:
-	@$(PYTHON) scripts/shell-drift-check.py --allow-drift index.html
+	@$(PYTHON) scripts/shell-drift-check.py
+
+# `chrome-dom-smoke` runs scripts/_smoke_chrome_dom_walk.js — the
+# Story 1.18 (AI-E1-15) negative + positive test battery for the
+# chrome DOM walk. 8 assertions across 6 fixture pages: 1 canonical
+# pass, 1 missing-landmark (drift), 1 extra-inline-script (no
+# drift), 1 whitespace-drift (no drift), 1 attr-drift (drift),
+# 1 root-page-kind pass. Exits 1 on any fail or vacuous run.
+chrome-dom-smoke:
+	@node scripts/_smoke_chrome_dom_walk.js
 
 # `shell-a11y` verifies AC #1's structural invariants that the byte-level
 # drift check cannot catch: <main aria-label> on every page, and cobalt
@@ -618,3 +632,32 @@ pins-recent-smoke:
 # hollow runs. Authored as part of the Epic 1 retrofit audit (AI-E1-14).
 search-perf-smoke:
 	@node scripts/_smoke_search_perf.js
+
+# Story 1.17 / AI-E1-13 — AST-based gate scanners. Two targets exercise
+# the vendored acorn parser (scripts/vendor/acorn.js) and the wrapper
+# walker (scripts/vendor/ast-walker.js):
+#
+#   `ast-gates-self-test` runs the walker's 15-fixture inline battery
+#   (comment-internal fetch, string-internal fetch, real localStorage /
+#   real fetch, every key-resolution branch on HT.storage.<op>, template
+#   literal, unbound identifier, parse error, registry-level ops, dynamic
+#   key expressions including optional chaining). 15 PASS expected.
+#   Vacuous-pass guard catches hollow runs.
+#
+#   `ast-gates-negative` runs scripts/_smoke_ast_gates.js — a Node
+#   driver that builds a temp repo with three fixture tool files plus a
+#   minimal chrome.html + storage-registry.js, then runs the two Python
+#   gates against the temp repo to prove end-to-end that:
+#     - comment-internal fetch / localStorage / XMLHttpRequest refs do
+#       NOT trip shell-bounds-check,
+#     - string-internal `fetch('...')` and `localStorage.setItem(...)`
+#       literals do NOT trip shell-bounds-check,
+#     - real localStorage.setItem + fetch calls DO trip shell-bounds-check.
+#   7 PASS expected. Both steps (acorn walker + Python gate subprocess)
+#   are verified end-to-end via the Python harness, not just the AST
+#   walker unit tests.
+ast-gates-self-test:
+	@node scripts/vendor/ast-walker.js --self-test
+
+ast-gates-negative:
+	@node scripts/_smoke_ast_gates.js

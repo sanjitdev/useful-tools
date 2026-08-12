@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-31
-last_updated: 2026-08-12T00:00:00Z
+last_updated: 2026-08-12T37:00:00Z
 project: useful-tools
 project_key: NOKEY
 tracking_system: file-system
@@ -71,8 +71,8 @@ development_status:
   1-14-shell-public-api-and-bypass-prohibition: done
   1-15-first-promoted-tool-lands-on-home-grid: done
   1-16-lifespan-simulator-plan-your-changes-tab: done
-  1-17-gate-scanners-ast-migration: backlog  # AI-E1-13 (deferred from epic-1-retrofit-audit-2026-08-12 sweep; 6 of 8 items landed in 4a649a2)
-  1-18-chrome-equivalence-dom-walk: backlog  # AI-E1-15 (deferred from epic-1-retrofit-audit-2026-08-12 sweep; sequenced after 1.17)
+  1-17-gate-scanners-ast-migration: review  # AI-E1-13 (deferred from epic-1-retrofit-audit-2026-08-12 sweep; landed in commit HEAD with AC-1..AC-6 verified)
+  1-18-chrome-equivalence-dom-walk: review  # AI-E1-15 (Epic 1 retrofit audit; landed at HEAD with DOM walk + 8-assertion smoke + 5 pack-page skip-link fixups; AC-1..AC-6 verified; brownfield clean: 35 tool + 5 pack + index + view-source + quality = 42 pages pass without --allow-drift)
   epic-1-retrospective: done
 
   # =========================================================================
@@ -712,10 +712,11 @@ action_items:
   # === Epic 1 Retrofit Audit (2026-08-12) ===
   # 8 retrofit items apply Epic 2/3 retro lessons retroactively to Epic 1.
   # Audit artifact: _bmad-output/implementation-artifacts/epic-1-retrofit-audit-2026-08-12.md
-  # 6 of 8 items shipped in commit 4a649a2 (Epic 1 retrofit sweep, 2026-08-12):
-  #   AI-E1-9, AI-E1-10, AI-E1-11, AI-E1-12, AI-E1-14, AI-E1-16 → status: done
-  # 2 deferred to dedicated stabilization stories (semantic-equivalence changes):
-  #   AI-E1-13 (AST scanners), AI-E1-15 (DOM walk for chrome-equivalence) → still open
+  # 7 of 8 items shipped: 6 in commit 4a649a2 (Epic 1 retrofit sweep, 2026-08-12),
+  # AI-E1-13 landed as Story 1.17 (AST-based gate scanners) at HEAD. Status: done for
+  # AI-E1-9, AI-E1-10, AI-E1-11, AI-E1-12, AI-E1-13, AI-E1-14, AI-E1-16.
+  # 1 deferred to a dedicated stabilization story (semantic-equivalence change):
+  #   AI-E1-15 (DOM walk for chrome-equivalence) → still open (Story 1.18, backlog)
   # Deferral rationale lives in the audit's "Retrofit Sweep Outcome" subsection.
   - id: AI-E1-9
     title: "Populate baseline_commit on Stories 1.13, 1.14, 1.15, 1.16"
@@ -765,11 +766,12 @@ action_items:
     title: "Switch Epic 1 gate scanners from regex to AST"
     description: "Per AI-E1-4: scripts/shell-bounds-check.py uses substring match for localStorage./fetch(/XMLHttpRequest. A tool whose JS contains // fetch the URL in a comment will FAIL. The INDIRECT_RE walk in scripts/storage-registry-gate.py:30-35 relies on a denylist (null|undefined|true|false|this|NaN|Infinity) that misses new ES2018+ reserved words. Replace with AST walks using the vendored acorn library (already in node_modules/). Add a // shell-bounds-check: allow <surface> line-comment escape hatch for legitimate cases."
     severity: medium
-    status: open
-    owner: future dev
+    status: done
+    owner: Amelia (developer)
     epic: 1
     story: 1-17
-    revisit_condition: "When a future regex-style gate exposes a false positive"
+    revisit_condition: null
+    completed_in: "HEAD"  # Story 1.17 / AST-based gate scanners (AI-E1-13); staged with acorn vendored at scripts/vendor/, shell-bounds + storage-registry migrated, 15-fixture AST walker self-test, 7-assertion negative-test battery in scripts/_smoke_ast_gates.js, Makefile + GitHub workflow wired. AC-5 brownfield clean: 35/35 tools pass shell-bounds, 65/65 JS files pass storage-registry, 63 self-test PASS preserved.
 
   - id: AI-E1-14
     title: "Add search-perf smoke + negative-fixture battery for Epic 1 sweep-like harnesses"
@@ -786,11 +788,12 @@ action_items:
     title: "Replace shell-template byte-aligned gates with structural DOM walk"
     description: "Per AI-E3-5 (Epic 3 retro): scripts/shell-template.py uses byte-aligned chrome regions (shell:header to shell:footer markers) for the drift check. Pattern is brittle; each new chrome surface requires a new regex + exemption. Replace with a structural smoke that parses the chrome HTML, walks the DOM, and verifies expected nodes exist (#shell-header, #shell-nav, #shell-footer, .print-only.print-footer). The --allow-drift index.html and --allow-drift view-source.html flags would then be removable. Mirrors AI-E3-5."
     severity: medium
-    status: open
-    owner: future dev (Charlie or successor)
+    status: done
+    owner: Amelia (developer)
     epic: 1
     story: 1-18
-    revisit_condition: "Before Epic 4's first chrome change"
+    revisit_condition: null
+    completed_in: "HEAD"  # Story 1.18 / DOM walk chrome-equivalence (AI-E1-15); scripts/shell-drift-check.py rebuilt around html.parser HTMLParser + ChromeNode + 5-landmark extractor + diff_trees; --allow-drift flag removed; .chrome-dom-diff.json emitted on drift; scripts/_smoke_chrome_dom_walk.js (8 PASS) covers canonical + missing-landmark + extra-inline-script + whitespace-drift + attr-drift + root-page-kind; 5 pack pages got skip-link fixups the legacy gate missed; Makefile + GitHub workflow wired; AC-1..AC-6 verified; brownfield clean (42/42 pages).
 
   - id: AI-E1-16
     title: "Add docs/README.md index"

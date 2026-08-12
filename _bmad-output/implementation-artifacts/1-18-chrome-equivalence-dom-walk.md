@@ -1,6 +1,8 @@
 # Story 1.18 — Chrome Equivalence DOM Walk (AI-E1-15)
 
-Status: backlog
+Status: review
+
+baseline_commit: ac9930641112f2e30338fa5904f679d155b05e5c
 
 ## Story
 
@@ -89,7 +91,55 @@ Add `scripts/_smoke_chrome_dom_walk.js` (or `.py`) that:
 - `scripts/_smoke_chrome_dom_walk.js` (or `.py`) — new positive + negative test battery.
 - `Makefile` — new `chrome-dom-smoke` target; `shell-drift` no longer passes `--allow-drift`; `ci` chain updated.
 - `.github/workflows/tool-contract-gate.yml` — `make shell-drift` invocation updated; new step for `chrome-dom-smoke`; path filter updated.
+- `packs/{developer,finance,household,study,travel}.html` — added the `<a class="shell-skip" href="#main">` skip link that the legacy byte-substring gate had silently let drift past.
 
 ---
 
-*Status: backlog. Sequenced after AI-E1-13 / Story 1.17 (the AST walker is a sibling primitive; doing the DOM walk first means we'd write a structural-diff report twice). Retro audit F10.*
+## Implementation Plan
+
+### Approach summary
+
+Replaced the byte-substring scan in `scripts/shell-drift-check.py` with a Python stdlib `html.parser.HTMLParser`-based DOM walker. The walker:
+
+1. Parses the canonical `assets/shell/chrome.html` once into a tree (`ChromeNode` with tag/attrs/children/text/script_text/style_text slots).
+2. For each target page, parses the page, then locates five chrome landmarks by structural signature — skip link (`a.shell-skip`), site header (`header.site-header`), main (`main#main`), print footer (`footer.print-only.print-footer`, omitted for pack pages), site footer (`footer.site-footer`).
+3. Runs `diff_trees(canonical, page)` per landmark and aggregates the diff list. `diff_trees` compares recursively: tag equality, attribute set with normalization (brand `href` → `__BRAND_HREF__`, main `aria-label` → `__MAIN_ARIA_LABEL__`), children in order. Whitespace-only text nodes are dropped; comments are dropped at parse time; inline `<script>`/`<style>` text is captured but not compared.
+
+### What landed
+
+- **`scripts/shell-drift-check.py`**: rebuilt the chrome scan around the DOM walker. The five non-DOM per-page checks (search.js, site-config, data-slug, tools.json-inline, manifest SHA) are preserved as separate gates. The `--allow-drift` arg, the `allowed` parameter, and the exemption logic are removed. On any drift detection, `.chrome-dom-diff.json` is written to repo root with `{files: [{path, drift: [{region, kind, path, expected, actual}]}]}`.
+- **`scripts/_smoke_chrome_dom_walk.js`**: mirrors `_smoke_ast_gates.js` idiom (`'use strict'`, `assert()` helper, vacuous-pass guard, exit 0/1/2). Builds `$TMP/chrome-dom-smoke-<rand>/repo/` with synthesized `assets/shell/chrome.html` plus 6 fixture pages (canonical + missing landmark + extra inline script + whitespace drift + attr drift + quality.html root-page-kind). 8 PASS expected.
+- **`Makefile`**: dropped `--allow-drift index.html` from `shell-drift`; added `chrome-dom-smoke` to `.PHONY` + `ci:` chain + a new target with body `@node scripts/_smoke_chrome_dom_walk.js`.
+- **`.github/workflows/tool-contract-gate.yml`**: added `scripts/_smoke_chrome_dom_walk.js` to both pr.paths and push.paths; updated the shell-drift step comment to describe the DOM walk; added a new `make chrome-dom-smoke` step after shell-drift.
+- **`packs/{developer,finance,household,study,travel}.html`**: each previously had a missing `<a class="shell-skip">` skip link — real drift that the legacy byte-substring gate had silently let through. The DOM walker caught it on the first brownfield run; all 5 pack pages now carry the skip link.
+
+### Real drift the new gate caught on first brownfield run
+
+- 5 pack pages (`developer`, `finance`, `household`, `study`, `travel`) had no `<a class="shell-skip" href="#main">` element. The legacy gate didn't flag this because the byte-substring scan looked at the canonical chrome's skip link region and accepted the empty match (it wasn't being checked at all). The DOM walker's landmark extractor requires every landmark to be present.
+- Pack pages correctly omit the `print-only print-footer` block (the canonical chrome carries it; pack pages don't). The per-page-kind rules skip the print-footer landmark for pack pages.
+
+### Verification (run on HEAD)
+
+```
+$ make chrome-dom-smoke
+chrome-dom smoke: 8 passed, 0 failed
+exit=0
+
+$ make shell-drift
+... all 35 tool pages + 5 pack pages + index.html + view-source.html + quality.html
+shell-drift-check: all pages in sync (DOM walk + 5 non-DOM checks per page; Story 1.18 / AI-E1-15)
+
+$ make ci
+... every step exits 0
+```
+
+### Dev Notes for Reviewers
+
+- The DOM walker uses `html.parser.HTMLParser` (stdlib) — zero-dep. The `void_elements` set ensures `<meta>`, `<link>`, etc. are recognized as void; the comparator records a node's tag + attributes + children, so void vs non-void is preserved as part of the structural identity (canonical `<meta charset="utf-8">` matches page `<meta charset="utf-8">` even though both are self-closing).
+- The five normalization rules (brand href, main aria-label, inline script/style content, whitespace, comments) are deliberately generous to absorb harmless differences. They're listed in the plan (`C:\Users\BS707\.puku-cli\plans\logical-finding-sprout.md`) under "Normalization rules".
+- Pack-page identity rules differ from tool/index/quality rules (no print-only footer, no data-slug on `<main>`, brand `href` is `../index.html`). These are encoded inline in the per-page-kind dispatch in `shell-drift-check.py`.
+- The `.chrome-dom-diff.json` is the machine-readable diff report; the Markdown stdout is preserved (one `ok` or `drift (N findings)` line per file).
+
+---
+
+*Status: review. Sequenced after AI-E1-13 / Story 1.17 (the AST walker is a sibling primitive). Retro audit F10. brownfield clean: 35 tool + 5 pack + index + view-source + quality = 42 pages pass without `--allow-drift`. Smoke: 8 PASS.*

@@ -47,6 +47,11 @@ on:
       - "view-source.html"
       - "scripts/_smoke_pins_recent.js"
       - "scripts/_smoke_search_perf.js"
+      - "scripts/vendor/acorn.js"
+      - "scripts/vendor/acorn.LICENSE"
+      - "scripts/vendor/ast-walker.js"
+      - "scripts/_smoke_ast_gates.js"
+      - "scripts/_smoke_chrome_dom_walk.js"
       - "assets/js/recent.js"
       - "assets/js/pins.js"
       - "assets/js/home-sidebar.js"
@@ -112,6 +117,11 @@ on:
       - "view-source.html"
       - "scripts/_smoke_pins_recent.js"
       - "scripts/_smoke_search_perf.js"
+      - "scripts/vendor/acorn.js"
+      - "scripts/vendor/acorn.LICENSE"
+      - "scripts/vendor/ast-walker.js"
+      - "scripts/_smoke_ast_gates.js"
+      - "scripts/_smoke_chrome_dom_walk.js"
       - "assets/js/recent.js"
       - "assets/js/pins.js"
       - "assets/js/home-sidebar.js"
@@ -239,14 +249,35 @@ jobs:
         # converts a hollow run into a hard failure.
         run: make site-config-smoke
 
-      - name: Check Shell chrome drift (Story 1.5)
-        # Verifies that every page's chrome (index.html + 34 tool pages)
-        # matches the canonical bytes in assets/shell/chrome.html. The
-        # check is substring-based: any drift exits 2 with a
-        # `CHROME DRIFT: <path>` line per offending file. The check
-        # runs after make gate so a tool contract violation short-
-        # circuits before the chrome scan.
+      - name: Check Shell chrome drift (Story 1.18 / AI-E1-15)
+        # Story 1.18 (Epic 1 retrofit audit AI-E1-15) replaced the
+        # legacy byte-substring scan with a DOM-walk structuralidentity
+        # comparator. The Python stdlib `html.parser` parses each
+        # page, locates the five chrome landmarks (skip link, site
+        # header, main, print-only footer, site footer) by structural
+        # signature, and compares tag/attribute/text/nesting with
+        # normalization rules (whitespace collapse, comment drop,
+        # inline script/style content ignored, brand href + main
+        # aria-label normalization). The `--allow-drift` exemptions
+        # for index.html and view-source.html are no longer needed —
+        # both pages pass cleanly without them. On drift, a JSON
+        # report is written to .chrome-dom-diff.json at repo root
+        # for machine inspection. The five non-DOM per-page checks
+        # (search.js, site-config, data-slug, tools.json-inline,
+        # manifest SHA) are preserved. See `_smoke_chrome_dom_walk.js`
+        # for the positive + negative test battery.
         run: make shell-drift
+
+      - name: Smoke chrome DOM walk (Story 1.18 / AI-E1-15)
+        # Story 1.18 AC-5: prove the structural comparator and
+        # normalization rules are real and not vacuous. Builds a
+        # temp repo with 6 fixture pages (canonical + missing
+        # landmark + extra inline script + whitespace drift + attr
+        # drift + root-page-kind) and asserts: 4 ok lines, 2 drift
+        # detections (missing-landmark + attr-drift), and the diff
+        # report names the specific landmark/attribute. 8 PASS
+        # expected. Vacuous-pass guard catches hollow runs.
+        run: make chrome-dom-smoke
 
       - name: Check Shell a11y invariants (Story 1.5 code review)
         # Verifies AC #1's structural invariants that the byte-level
@@ -426,6 +457,37 @@ jobs:
         # (pass===0 && fail===0 → exit 1) catches hollow runs and
         # breaks the gate.
         run: make search-perf-smoke
+
+      - name: AST walker self-test (Story 1.17 / AI-E1-13)
+        # Story 1.17 + Epic 1 retrofit audit AI-E1-13: the vendored
+        # acorn parser (scripts/vendor/acorn.js) + the wrapper walker
+        # (scripts/vendor/ast-walker.js) replace the legacy regex
+        # trio in shell-bounds-check.py + storage-registry-gate.py.
+        # The walker's 15-fixture inline battery covers every branch:
+        # comment-internal fetch / localStorage, string-internal
+        # fetch, real localStorage.setItem, real fetch, every key-
+        # resolution branch on HT.storage.<op> (literal, constant-
+        # bound, template, unbound), parse error, registry-level ops
+        # (list / clear / registerHistoryKeys), and dynamic-key
+        # expressions (member expr, call expr, optional chaining).
+        # 15 PASS expected. Vacuous-pass guard catches hollow runs.
+        run: make ast-gates-self-test
+
+      - name: AST gates negative-test battery (Story 1.17 AC-4)
+        # Story 1.17 AC-4: proves the AST migration didn't regress
+        # either gate's behavior. Builds a temp repo with three
+        # fixture tool files (comment-only, string-only, real-call),
+        # runs shell-bounds-check.py + storage-registry-gate.py
+        # against it, and asserts: (a) the comment fixture shows 0
+        # violations, (b) the string fixture shows 0 violations,
+        # (c) the violation fixture shows 2 hits (localStorage +
+        # fetch), (d) the storage-registry gate passes cleanly,
+        # (e) the AST walker self-test still reports 15 passed. 7
+        # PASS expected. This end-to-end harness catches any drift
+        # in the Python gate subprocess contract (e.g., the JSON
+        # output format from the AST walker). Vacuous-pass guard
+        # catches hollow runs.
+        run: make ast-gates-negative
 
       - name: Upload regression sweep report
         # Story 2.12 AC-7: when the sweep fails (or passes) the
