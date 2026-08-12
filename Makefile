@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -69,7 +69,8 @@ help: ## Show available targets
 	@echo "  make global-chords-smoke  Run the Story 3.4 global chords smoke (Node headless driver for the g <key> arm-then-fire chord listener: 5 chords, 1-second timeout, all 4 guards, Esc-cancel, case-insensitivity, same-URL early-return, idempotent arm)"
 	@echo "  make settings-modal-smoke Run the Story 3.5 settings modal smoke (Node headless driver for the 7-field modal: theme select, dynamic locale, reducedMotion checkbox with OS-override, units, currency, fontScale range with percentage <output>, clear-all button; immediate persistence, frozen HT.settings surface)"
 	@echo "  make print-smoke         Run the Story 3.10 print stylesheet smoke (Node headless driver for assets/css/print.css + the print-only footer block: 55 assertions verifying AC-required selectors, color forcing, page-break rules, and the print.css <link> on every page)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke"
+	@echo "  make view-source-smoke   Run the Story 3.11 view-source route smoke (Node headless driver for /view-source.html + view-source.js + vendor/highlight.min.js + vendor/zip-store.js: 91 assertions verifying route shape, slug validation, PKZIP STORE byte layout per APPNOTE.TXT, tools.json conventions, and the chrome dual-anchor footer pattern)"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke + view-source-smoke"
 
 validate: validate-tools-json
 
@@ -113,7 +114,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -569,3 +570,14 @@ settings-modal-smoke:
 # 55 PASS expected. Vacuous-pass guard catches hollow runs.
 print-smoke:
 	@node scripts/_smoke_print.js
+
+# Story 3.11: view-source route + vendored highlighter + vendored
+# PKZIP STORE-only builder. 91 PASS expected. Vacuous-pass guard
+# catches hollow runs. Covers (a) /view-source.html shape, (b)
+# view-source.js module + slug validation, (c) vendor/highlight.min.js
+# tokenizer, (d) vendor/zip-store.js byte layout per APPNOTE.TXT,
+# (e) tools.json view-source conventions, (f) wireViewSourceLink()
+# target, (g) chrome.html dual-anchor footer, and (h) api-contract.js
+# version 1.15.0 with new entries.
+view-source-smoke:
+	@node scripts/_smoke_view_source.js

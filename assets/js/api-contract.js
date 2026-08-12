@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.14.0',
+  version: '1.15.0',
   generated: '2026-08-12',
   entries: Object.freeze([
     Object.freeze({
@@ -565,6 +565,27 @@ window.HT.__apiContract = Object.freeze({
       stability: 'internal',
       module: 'assets/js/global-chords.js',
       notes: 'Story 3.4 cross-page keyboard chord listener bootstrap handle. Frozen at module init. The only contract surface for the smoke harness (scripts/_smoke_global_chords.js). Per AD-14 the chord listener deliberately does NOT add HT.globalChords.* — the shell public API is frozen. The chords array is shape-compatible with help-overlay.js GLOBAL_SHORTCUTS (keys: [first, second], label: string, route: string|null, goto: function) plus the resolved route. Consumer pages should rely on the g <key> chord (or the palette / help overlay) to navigate, not on direct chords array inspection. cancel() clears the armed state and is exposed primarily for tests.',
+    }),
+    Object.freeze({
+      name: 'HT.viewSource',
+      signature: 'Readonly<{boot: () => void, fetchAll: (slug: string) => Promise<{html: string, css: string, js: string}>, getQuerySlug: () => string|null, _internal: {STORAGE_KEY: string, RECENT_CAP: number}}>',
+      stability: 'stable',
+      module: 'assets/js/view-source.js',
+      notes: 'Story 3.11 view-source route module. Mounted only on /view-source.html. Validates the ?tool=<slug> query (kebab-case regex), fetches the three tool files from tools/<slug>/{index.html, <slug>.css, <slug>.js}, runs each through the vendored syntax highlighter (if loaded), populates the three <pre><code> blocks, and wires the Download button to a vendored ZIP builder (PKZIP STORE-only). On fetch failure it surfaces the 404 region and sets document.title = "404 Not Found". getQuerySlug() returns the validated slug or null; fetchAll() throws on fetch error. _internal exposes the storage key (handy-tools.viewSource.recent, used for Story 3.12 recent-list pre-population) and the recency cap. Smoke harness: scripts/_smoke_view_source.js.',
+    }),
+    Object.freeze({
+      name: 'HT.highlight',
+      signature: '(code: string, lang: "html"|"css"|"js") => DocumentFragment',
+      stability: 'internal',
+      module: 'assets/js/vendor/highlight.min.js',
+      notes: 'Story 3.11 hand-rolled syntax highlighter. Token classes: tok-keyword, tok-string, tok-comment, tok-tag, tok-attr, tok-number, tok-literal. Returns a DocumentFragment (XSS-safe — no innerHTML). Falls back to a single text node on unknown lang. Internal because the API surface is minimal and Story 3.11 owns the entire tokenizer; if a future Story needs a richer surface (theme strings, custom tokens) it should be exposed via a stable entry rather than mutating this one.',
+    }),
+    Object.freeze({
+      name: 'HT.zipStore',
+      signature: '(files: ReadonlyArray<{name: string, data: Uint8Array}>) => Uint8Array',
+      stability: 'internal',
+      module: 'assets/js/vendor/zip-store.js',
+      notes: 'Story 3.11 PKZIP STORE-only (no compression) ZIP builder. Implements the local-file-header + central-directory + end-of-central-directory record format per APPNOTE.TXT sections 4.3.7 / 4.3.12 / 4.3.16. CRC-32 with polynomial 0xEDB88320. UTF-8 filenames (general-purpose bit 11 set). Internal because no compression / no encryption / single-volume — if a future Story needs DEFLATE or AES, expose a new module (HT.zipStoreDeflate or HT.zipStoreAes) rather than expanding this one. Smoke harness: scripts/_smoke_view_source.js verifies the byte layout.',
     }),
   ]),
 });

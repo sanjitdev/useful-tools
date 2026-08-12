@@ -1073,6 +1073,53 @@ def splice_print_css(source: str) -> str:
     )
 
 
+# Story 3.11: targeted splice for the static View-source chrome region.
+# Pages chrome-aligned BEFORE Story 3.11 shipped a single placeholder
+# `<span aria-disabled="true">View source</span>`; Story 3.11 promotes
+# the chrome to a dual-anchor pattern (primary local /view-source
+# route + secondary GH blob link). This helper swaps the old single
+# span for the new dual-anchor pair inside the existing <footer>
+# block, idempotently. If the page already carries the new pattern
+# (the `data-view-source-link` anchor is present), it returns the
+# source unchanged.
+LEGACY_VIEW_SOURCE_RE = re.compile(
+    r'<span aria-disabled="true">View source</span>'
+)
+NEW_VIEW_SOURCE_PRIMARY = (
+    '<a href="/view-source?tool=" data-view-source-link>View source</a>'
+)
+NEW_VIEW_SOURCE_SECONDARY = (
+    '<a href="" rel="noopener noreferrer" data-view-source-github hidden>View on GitHub</a>'
+)
+
+
+def splice_view_source_footer(source: str) -> str:
+    """Story 3.11: replace the legacy View-source placeholder span
+    with the new dual-anchor pattern (primary local route + secondary
+    GitHub blob link). Idempotent: a page that already carries the
+    new pattern (the `data-view-source-link` attribute is present) is
+    returned unchanged.
+
+    Strategy:
+      - If the page already has the new primary anchor, return
+        unchanged.
+      - Otherwise, replace the legacy single span with the new
+        primary + secondary anchor pair.
+    """
+    if 'data-view-source-link' in source:
+        return source
+    if not LEGACY_VIEW_SOURCE_RE.search(source):
+        # No legacy placeholder AND no new anchor — leave alone; the
+        # shell-bounds check + drift check will surface this on next
+        # gate run.
+        return source
+    return LEGACY_VIEW_SOURCE_RE.sub(
+        NEW_VIEW_SOURCE_PRIMARY + "\n      " + NEW_VIEW_SOURCE_SECONDARY,
+        source,
+        count=1,
+    )
+
+
 def process_file(
     root: Path,
     slug: str,
@@ -1380,6 +1427,48 @@ def process_file(
                 sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
                 sys.exit(3)
             print(f"  wrote {path.relative_to(root)}  (print-footer)")
+            return True
+
+    # Story 3.11: targeted splice for the View-source footer block.
+    # Pages chrome-aligned BEFORE Story 3.11 carry the legacy single
+    # `<span aria-disabled="true">View source</span>` placeholder;
+    # Story 3.11 promotes the chrome to a dual-anchor pattern (primary
+    # local /view-source route + secondary GitHub blob link). When the
+    # page is otherwise chrome-aligned but the view-source footer is
+    # stale (legacy span still present, dual-anchor absent), swap just
+    # the footer block in place without touching the rest of the chrome
+    # or the IIFE. Idempotent (re-running is a no-op).
+    view_source_basic_ok = (
+        '<a class="shell-skip"' in source
+        and 'class="site-header" role="banner"' in source
+        and '<footer class="site-footer" role="contentinfo"' in source
+        and '<main id="main" class="shell-main"' in source
+        and 'src="../../assets/js/shell.js"' in source
+        and header_html in source
+        and palette_html in source
+        and settings_html in source
+        and help_html in source
+        and TOOLS_JSON_INLINE_START in source
+        and TOOLS_JSON_INLINE_END in source
+        and print_css_ok
+        and print_footer_ok
+    )
+    view_source_stale = (
+        'data-view-source-link' not in source
+        and LEGACY_VIEW_SOURCE_RE.search(source) is not None
+    )
+    if view_source_basic_ok and view_source_stale:
+        new_source = splice_view_source_footer(source)
+        if new_source != source:
+            if dry_run:
+                print(f"  would-write {path.relative_to(root)}  (view-source footer only)")
+                return True
+            try:
+                path.write_text(new_source, encoding="utf-8")
+            except OSError as exc:
+                sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
+                sys.exit(3)
+            print(f"  wrote {path.relative_to(root)}  (view-source footer)")
             return True
 
     # Story 1.12: when the page is otherwise chrome-aligned but is missing
@@ -1786,6 +1875,7 @@ def process_file(
         footer_html=footer_html,
         palette_html=palette_html,
         settings_html=settings_html,
+        help_html=help_html,
         head_script=head_script,
     )
     if updated == source:
@@ -2006,6 +2096,46 @@ def regenerate_home(
                 sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
                 sys.exit(3)
             print(f"  wrote {path.relative_to(root)}  (print-footer)")
+            return True
+
+    # Story 3.11: home-page targeted View-source footer splice — when the
+    # page is otherwise chrome-aligned but the view-source footer is stale
+    # (legacy span still present, dual-anchor absent), swap just the
+    # footer block in place. Mirrors the tool-page pattern added above.
+    # NB: we do NOT require `footer_html in source` here — a page that
+    # still carries the OLD footer block is *exactly* what we're trying
+    # to repair, so requiring the new footer would be self-defeating.
+    # We also use `home_header` (not the tool-page `header_html`) since
+    # the home page substitutes `href="#top"` for the brand link, so the
+    # canonical tool-page header bytes do not match the home page bytes.
+    home_view_source_basic_ok = (
+        '<a class="shell-skip"' in source
+        and 'class="site-header" role="banner"' in source
+        and '<footer class="site-footer" role="contentinfo"' in source
+        and 'src="assets/js/shell.js"' in source
+        and home_header in source
+        and palette_html in source
+        and settings_html in source
+        and help_html in source
+        and home_print_css_ok
+        and print_footer_ok
+    )
+    home_view_source_stale = (
+        'data-view-source-link' not in source
+        and LEGACY_VIEW_SOURCE_RE.search(source) is not None
+    )
+    if home_view_source_basic_ok and home_view_source_stale:
+        new_source = splice_view_source_footer(source)
+        if new_source != source:
+            if dry_run:
+                print(f"  would-write {path.relative_to(root)}  (view-source footer only)")
+                return True
+            try:
+                path.write_text(new_source, encoding="utf-8")
+            except OSError as exc:
+                sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
+                sys.exit(3)
+            print(f"  wrote {path.relative_to(root)}  (view-source footer)")
             return True
 
     # Bug fix: chrome is byte-aligned and the IIFE is canonical, but the

@@ -70,7 +70,7 @@ EXPECTED_FIELDS_INTERNAL = (
 EXPECTED_FIELDS_PUBLIC = (
     "repoUrl", "blobBase", "defaultBranch", "brand", "defaultLocale",
 )
-EXPECTED_VERSION = "1.14.0"
+EXPECTED_VERSION = "1.15.0"
 
 TOOL_SCRIPT_RE = re.compile(
     r'<script\s+src="\.\./\.\./assets/js/site-config\.js"></script>'
@@ -336,18 +336,26 @@ def check_blob_substring_in_tool_pages(
 
 
 def check_placeholder_retention(raw: dict[str, object], root: Path) -> list[str]:
-    """Story 1.12 AC #10: every tool page and the home page must keep
-    the static `<span aria-disabled="true">View source</span>`
-    placeholder so that the chrome is stable even before JS hydrates.
+    """Story 1.12 AC #10 / Story 3.11 promotion: every tool page and
+    the home page must keep the static view-source anchor placeholders
+    so that the chrome is stable even before JS hydrates. After
+    Story 3.11 the chrome bytes carry TWO anchors (the primary local
+    /view-source link + the secondary GitHub blob link); both must
+    be present in byte-identical form across all pages.
+
+    Also covers /view-source.html itself (the primary anchor's slug
+    is *frozen* to 'qr-code-generator' on that page so the example
+    URL is stable for first-visit visitors).
     """
     violations: list[str] = []
-    targets: list[Path] = [root / HOME_PAGE]
+    targets: list[Path] = [root / HOME_PAGE, root / "view-source.html"]
     tools_dir = root / TOOLS_DIR
     if tools_dir.is_dir():
         for slug_dir in sorted(tools_dir.iterdir()):
             if slug_dir.is_dir():
                 targets.append(slug_dir / "index.html")
-    placeholder = '<span aria-disabled="true">View source</span>'
+    primary_placeholder = '<a href="/view-source?tool=" data-view-source-link>View source</a>'
+    secondary_placeholder = '<a href="" rel="noopener noreferrer" data-view-source-github hidden>View on GitHub</a>'
     for page in targets:
         if not page.is_file():
             violations.append(f"{page}: missing — cannot verify placeholder")
@@ -357,11 +365,17 @@ def check_placeholder_retention(raw: dict[str, object], root: Path) -> list[str]
         except (OSError, UnicodeDecodeError) as exc:
             sys.stderr.write(f"site-config-gate: cannot read {page}: {exc}\n")
             sys.exit(2)
-        if placeholder not in text:
+        if primary_placeholder not in text:
             label = page.name if page.parent == root else f"tools/{page.parent.name}/index.html"
             violations.append(
-                f"{label}: missing static placeholder {placeholder!r} "
+                f"{label}: missing static primary placeholder {primary_placeholder!r} "
                 "— AC #10 requires the chrome to remain stable pre-hydration"
+            )
+        if secondary_placeholder not in text:
+            label = page.name if page.parent == root else f"tools/{page.parent.name}/index.html"
+            violations.append(
+                f"{label}: missing static secondary placeholder {secondary_placeholder!r} "
+                "— Story 3.11 secondary GitHub-blob link must be present"
             )
     return violations
 

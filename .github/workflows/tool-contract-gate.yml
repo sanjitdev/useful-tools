@@ -43,6 +43,8 @@ on:
       - "scripts/_smoke_regression_sweep_negative.js"
       - "scripts/_regression_sweep.py"
       - "scripts/_smoke_print.js"
+      - "scripts/_smoke_view_source.js"
+      - "view-source.html"
       - "assets/js/quality.js"
       - "assets/js/utils.js"
       - "assets/js/storage.js"
@@ -100,6 +102,8 @@ on:
       - "scripts/_smoke_regression_sweep_negative.js"
       - "scripts/_regression_sweep.py"
       - "scripts/_smoke_print.js"
+      - "scripts/_smoke_view_source.js"
+      - "view-source.html"
       - "assets/js/quality.js"
       - "assets/js/utils.js"
       - "assets/js/storage.js"
@@ -353,6 +357,26 @@ jobs:
         # splice_print_footer helpers exist in shell-template.py. 55
         # PASS expected. Vacuous-pass guard catches hollow runs.
         run: make print-smoke
+
+      - name: Smoke view-source route (Story 3.11)
+        # Story 3.11: verifies /view-source.html exists with the three
+        # <pre><code> blocks + Download button + 404 region + script
+        # tags in correct order; verifies view-source.js parses +
+        # exposes HT.viewSource with the slug-validator regex +
+        # rejects malformed input; verifies vendor/highlight.min.js
+        # exposes HT.highlight and tokenizes HTML/CSS/JS; verifies
+        # vendor/zip-store.js produces a valid PKZIP STORE archive
+        # with the correct byte layout (per APPNOTE.TXT sections
+        # 4.3.7 / 4.3.12 / 4.3.16) and a correct CRC-32 (0x3610A686
+        # for "hello"); verifies tools.json has view-source.enabled
+        # + path = tools/<slug>/index.html for every tool; verifies
+        # wireViewSourceLink() targets /view-source?tool= ; verifies
+        # chrome.html carries the dual-anchor footer pattern
+        # (data-view-source-link + data-view-source-github); and
+        # verifies api-contract.js is version 1.15.0 with the new
+        # HT.viewSource + HT.highlight + HT.zipStore entries. 91
+        # PASS expected. Vacuous-pass guard catches hollow runs.
+        run: make view-source-smoke
 
       - name: Upload regression sweep report
         # Story 2.12 AC-7: when the sweep fails (or passes) the

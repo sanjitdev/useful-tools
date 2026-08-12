@@ -1775,15 +1775,24 @@
   HT.boot = boot;
 
   /* ============================================
-     Story 1.12 — Footer "View source" link wiring
-     ============================================
-     Every page renders a static placeholder:
+     Story 1.12 + 3.11 — Footer "View source" link wiring
+
+     Story 1.12 originally shipped a single placeholder span:
        <span aria-disabled="true">View source</span>
-     which is byte-identical across all pages (so chrome drift is
-     detectable). On tool pages that opt in via `view-source.enabled`
+     rewired to a GitHub blob URL. Story 3.11 promoted the *local*
+     /view-source route (per UX-DR-7 / EXPERIENCE.md) so the chrome
+     now ships with TWO anchors:
+       <a href="/view-source?tool=" data-view-source-link>View source</a>
+       <a href="" rel="noopener noreferrer" data-view-source-github hidden>View on GitHub</a>
+     The primary anchor points at the LOCAL route (Story 3.11); the
+     secondary anchor (initially hidden) points at the GH blob URL
+     (Story 1.12, preserved as a backup / canonical-source-on-GitHub
+     affordance).
+
+     Both bytes are byte-identical across all pages (so chrome drift
+     is detectable). On tool pages that opt in via `view-source.enabled`
      in tools.json (the default for promoted tools), this function
-     replaces the placeholder with a real <a> pointing at the GitHub
-     blob URL derived from HT.siteConfig.
+     fills in the hrefs + aria-labels.
 
      Slug discovery order (Story 1.12 dev notes):
        1. <main id="main" data-slug="..."> — fastest, no URL parsing
@@ -1792,7 +1801,7 @@
      Slug vs URL: when both are present and disagree, the URL wins
      because the URL is the actual file the browser is rendering.
 
-     The link only renders when all three conditions hold:
+     The links only render when all three conditions hold:
        - HT.siteConfig is defined (site-config.js loaded)
        - HT.homeGrid.entries has an entry for the slug
        - the entry's `view-source.enabled` is not explicitly false
@@ -1872,14 +1881,23 @@
       return;
     }
 
-    // Locate the placeholder. The static include ships as:
-    //   <span aria-disabled="true">View source</span>
-    // inside <footer class="site-footer" role="contentinfo">. Use
-    // querySelector for the exact span.
-    const placeholder = document.querySelector(
-      'footer.site-footer span[aria-disabled="true"]'
+    // Locate the placeholder anchors. As of Story 3.11 the static
+    // chrome ships with TWO anchors in the footer:
+    //   <a href="/view-source?tool=" data-view-source-link>View source</a>
+    //   <a href="" rel="noopener noreferrer" data-view-source-github hidden>View on GitHub</a>
+    // The primary link points at the local /view-source route
+    // (Story 3.11); the secondary link points at the GitHub blob URL
+    // (Story 1.12 — preserved as a backup / "open the canonical
+    // source on GitHub" affordance). On pages without a slug the
+    // primary link is left empty (no `?tool=...`) and the secondary
+    // link stays hidden.
+    const primaryAnchor = document.querySelector(
+      'footer.site-footer a[data-view-source-link]'
     );
-    if (!placeholder) {
+    const secondaryAnchor = document.querySelector(
+      'footer.site-footer a[data-view-source-github]'
+    );
+    if (!primaryAnchor) {
       // Already wired, removed, or page is missing the footer. No-op.
       return;
     }
@@ -1905,11 +1923,11 @@
       const elapsed = _viewSourceEntryRetries * _VIEW_SOURCE_RETRY_BASE_MS;
       if (elapsed >= _VIEW_SOURCE_RETRY_BUDGET_MS) {
         // Surface a soft warn rather than failing silently — the
-        // placeholder remains as a static span so the link simply
+        // primary anchor remains without `?tool=` so the link simply
         // never materializes (consistent with non-promoted tools).
         console.info(
           'shell.viewSource: no entry for slug "' + slug +
-          '" after ' + _VIEW_SOURCE_RETRY_BUDGET_MS + 'ms — leaving placeholder'
+          '" after ' + _VIEW_SOURCE_RETRY_BUDGET_MS + 'ms — leaving anchors'
         );
         return;
       }
@@ -1924,18 +1942,30 @@
 
     const viewSource = entry['view-source'];
     if (viewSource && viewSource.enabled === false) {
-      // Explicit opt-out: leave the placeholder intact (the entry
+      // Explicit opt-out: leave both anchors untouched (the entry
       // author chose to hide the link). No console message — the
       // intent is encoded in the data.
       return;
     }
 
-    // Resolve the blob URL. Default path is "tools/<slug>/index.html";
-    // entries may override via `view-source.path`. Defensive normalize:
-    // strip leading slashes from `pathSegment` (the schema field is
-    // optional and a maintainer could set "/foo" producing a double
-    // slash) and reject `..` segments to prevent a typo from leaving
-    // the repo root.
+    // Wire the primary anchor to the local /view-source route.
+    // Decision (Story 3.11): the primary anchor's label is the
+    // tool's title when we have one, falling back to the literal
+    // "View source" placeholder text. The href is /view-source?tool=<slug>.
+    const localHref = '/view-source?tool=' + encodeURIComponent(slug);
+    primaryAnchor.setAttribute('href', localHref);
+    const toolTitle = (entry && typeof entry.title === 'string' && entry.title.length > 0)
+      ? entry.title
+      : 'View source';
+    primaryAnchor.textContent = toolTitle;
+
+    // Wire the secondary anchor to the GitHub blob URL (Story 1.12).
+    // Default path is "tools/<slug>/index.html"; entries may override
+    // via `view-source.path`. Defensive normalize: strip leading
+    // slashes from `pathSegment` (the schema field is optional and
+    // a maintainer could set "/foo" producing a double slash) and
+    // reject `..` segments to prevent a typo from leaving the repo
+    // root.
     let pathSegment = (viewSource && typeof viewSource.path === 'string')
       ? viewSource.path
       : 'tools/' + slug + '/index.html';
@@ -1947,26 +1977,15 @@
       );
       pathSegment = 'tools/' + slug + '/index.html';
     }
-    const blobBase = String(HT.siteConfig.blobBase).replace(/\/+$/, '');
-    const href = blobBase + '/' + pathSegment;
-
-    const anchor = document.createElement('a');
-    anchor.setAttribute('href', href);
-    anchor.setAttribute('rel', 'noopener noreferrer');
-    anchor.setAttribute('target', '_blank');
-    // Decision #2 (Story 1.12 review): the spec says the link's
-    // accessible name is the tool's title. We honor that literally —
-    // visible label becomes the tool title (e.g., "Inflation
-    // Calculator"), not the static "View source" placeholder text.
-    // Sighted users still understand the action because the anchor
-    // sits in the footer next to the other chrome links.
-    anchor.textContent = (entry && typeof entry.title === 'string' && entry.title.length > 0)
-      ? entry.title
-      : (placeholder.textContent || 'View source');
-    // Copy classes so the existing CSS rule (footer span → anchor)
-    // applies without a separate selector.
-    placeholder.classList.forEach((cls) => anchor.classList.add(cls));
-    placeholder.replaceWith(anchor);
+    if (secondaryAnchor) {
+      const blobBase = String(HT.siteConfig.blobBase).replace(/\/+$/, '');
+      const blobHref = blobBase + '/' + pathSegment;
+      secondaryAnchor.setAttribute('href', blobHref);
+      secondaryAnchor.setAttribute('rel', 'noopener noreferrer');
+      secondaryAnchor.setAttribute('target', '_blank');
+      secondaryAnchor.setAttribute('aria-label', toolTitle + ' on GitHub');
+      secondaryAnchor.hidden = false;
+    }
   }
 
   // findToolEntry: locate the slug in HT.homeGrid.entries (preferred)
