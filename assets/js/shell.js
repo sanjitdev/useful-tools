@@ -1752,6 +1752,20 @@
     // read-only view of the registry, expose `Object.freeze({..._actions})`.
   });
 
+  // Module-level view-source state — declared BEFORE the boot invocation
+  // below so that when boot() fires wireViewSourceLink() synchronously,
+  // the function body (declared later, ~line 1830) can read these
+  // bindings without hitting the temporal-dead-zone. wireViewSourceLink
+  // is a hoisted function declaration, so the late-bound function
+  // reference inside boot() works fine; only the `let` bindings need
+  // to be initialized ahead of the boot call. (Bug fix: Story 3.8
+  // wrap-up found that boot() → wireViewSourceLink → read of
+  // `_viewSourceEntryRetries` threw ReferenceError because the let
+  // initializer was originally placed at line 1789, AFTER the boot
+  // invocation at line 1758.)
+  let _viewSourceConfigRetries = 0;
+  let _viewSourceEntryRetries = 0;
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot, { once: true });
   } else {
@@ -1785,8 +1799,12 @@
      On the home page (no slug) the function is a no-op — the home
      page itself is the repo root, no View Source link is needed.
   */
-  let _viewSourceConfigRetries = 0;
-  let _viewSourceEntryRetries = 0;
+  // The retry counters (`_viewSourceConfigRetries`, `_viewSourceEntryRetries`)
+  // are declared just above the boot invocation block (see the
+  // `Module-level view-source state` comment near line 1755) so that
+  // when boot() fires wireViewSourceLink() synchronously, the function
+  // body can read the bindings without hitting the TDZ. The constants
+  // live here because they belong with the function that uses them.
   const _VIEW_SOURCE_RETRY_BUDGET_MS = 2000;
   const _VIEW_SOURCE_RETRY_BASE_MS = 50;
 

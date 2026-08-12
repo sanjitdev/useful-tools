@@ -100,20 +100,36 @@
   // Review finding: reject empty-body prefixes like 'ht.' and
   // 'handy-tools.' (was previously accepted because startsWith matches
   // the literal prefix regardless of what — if anything — follows).
-  // Also require ≥2 dots after the prefix for handy-tools.* so that
-  // two-segment keys like 'handy-tools.foo' don't masquerade as the
-  // namespaced form used for trust-surface enumeration.
+  // The 'ht.' form is for runtime/legacy preferences (ht.theme, ht.locale,
+  // ht.reducedMotion, ht.units, ht.currency, ht.fontScale — single-segment
+  // is correct here). The 'handy-tools.' form covers both single-segment
+  // reserved keys (handy-tools.recent, handy-tools.pins, handy-tools.favorites,
+  // handy-tools.dashboard — Story 3.12 + Epic 6 own these) and per-tool
+  // keys (handy-tools.history.<slug>, handy-tools.<slug>.state — multi-segment).
+  // The trust-surface check is the prefix itself + a non-empty body, not a
+  // segment-count floor; the privacy export enumerates by prefix.
   function isValidNamespace(key) {
     if (typeof key !== 'string') return false;
     if (key === 'ht.' || key === 'handy-tools.') return false;
+    // Reject any key with two adjacent dots anywhere — empty segments
+    // are not meaningful (e.g. 'ht..foo', 'handy-tools..foo', 'handy-
+    // tools.x..bar'). The check must span the whole key, not just the
+    // rest-after-prefix, because a malformed key like 'handy-tools..foo'
+    // splits the '..' across the prefix boundary.
+    if (key.indexOf('..') !== -1) return false;
     if (key.startsWith('ht.')) {
-      return key.length > 'ht.'.length;
+      const rest = key.slice('ht.'.length);
+      // Accept any number of non-empty segments (ht.theme has 1; future
+      // ht.foo.bar could have more).
+      return rest.length > 0;
     }
     if (key.startsWith('handy-tools.')) {
       const rest = key.slice('handy-tools.'.length);
-      // ≥2 dot-separated segments so the privacy export boundary is
-      // crisp: handy-tools.<purpose>.<purpose> or deeper.
-      return rest.length > 0 && rest.split('.').filter(Boolean).length >= 2;
+      // Accept ≥1 non-empty segment so single-segment reserved keys
+      // (handy-tools.recent, handy-tools.pins, handy-tools.favorites,
+      // handy-tools.dashboard) AND multi-segment per-tool keys
+      // (handy-tools.history.<slug>) both pass.
+      return rest.length > 0;
     }
     return false;
   }
