@@ -1471,6 +1471,21 @@
       }
     }
 
+    // Story 3.8 — Import-my-data action. Destructive-and-overwriting
+    // (UX-DR-3); the import.js module opens a window.confirm dialog
+    // when any settings conflict (and emits "Import canceled" toast
+    // if the user backs out). Click → HT.import.run() → file picker.
+    // Embed-mode guard mirrors the exportButton block above.
+    const importButton = document.getElementById('shell-settings-import');
+    if (importButton) {
+      importButton.addEventListener('click', () => HT.import.run());
+      if (isEmbedMode()) {
+        importButton.hidden = true;
+        importButton.setAttribute('aria-hidden', 'true');
+        importButton.dataset.embedSuppressed = '1';
+      }
+    }
+
     // Apply the persisted reduced-motion preference at boot as well as when
     // the modal field changes, so a reload preserves the setting immediately.
     // Story 3.5: respect an explicit stored value; otherwise default to the

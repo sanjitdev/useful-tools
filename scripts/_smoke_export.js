@@ -6,8 +6,8 @@
    and asserts the HT.export surface + payload assembly
    + validation + download trigger + embed-mode guard.
 
-   Version pinned to api-contract.js 1.13.0
-   (Story 3.7 bumped 1.12.0 → 1.13.0 for HT.export).
+   Version pinned to api-contract.js 1.14.0
+   (Story 3.7 bumped 1.12.0 → 1.14.0 for HT.export).
    ============================================ */
 
 'use strict';
@@ -296,7 +296,7 @@ check('G.2 qr-code history error path starts with "history.qr-code-generator"',
   lastToast && /^Export validation failed: history\.qr-code-generator$/.test(lastToast.msg));
 
 // H. api-contract pin
-check('H.1 api-contract.js version === 1.13.0 (Story 3.7)', /version:\s*['"]1\.13\.0['"]/.test(CONTRACT_SRC));
+check('H.1 api-contract.js version === 1.14.0 (Story 3.7)', /version:\s*['"]1\.14\.0['"]/.test(CONTRACT_SRC));
 check('H.2 api-contract.js lists HT.export entry', /name:\s*'HT\.export'/.test(CONTRACT_SRC));
 
 // === Vacuous-pass guard ===

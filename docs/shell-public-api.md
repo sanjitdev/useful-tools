@@ -1,7 +1,7 @@
 # Shell Public API Contract (AD-14)
 
 **Status:** active
-**Story:** [1.14 — Shell Public API and Bypass Prohibition](../_bmad-output/planning-artifacts/epics.md#story-114-shell-public-api-and-bypass-prohibition) + [2.1 — Per-Tool URL State Codec Wiring](../_bmad-output/planning-artifacts/epics.md#story-21-per-tool-url-state-codec-wiring) + [2.2 — Per-Tool Sample Data and Reset Button](../_bmad-output/planning-artifacts/epics.md#story-22-per-tool-sample-data-and-reset-button) + [2.3 — Per-Tool History Panel](../_bmad-output/planning-artifacts/epics.md#story-23-per-tool-history-panel) + [2.4 — Per-Tool Keyboard-Complete Surface](../_bmad-output/planning-artifacts/epics.md#story-24-per-tool-keyboard-complete-surface) + [2.5 — Per-Tool Share Dialog with URL and Print](../_bmad-output/planning-artifacts/epics.md#story-25-per-tool-share-dialog-with-url-and-print)
+**Story:** [1.14 — Shell Public API and Bypass Prohibition](../_bmad-output/planning-artifacts/epics.md#story-114-shell-public-api-and-bypass-prohibition) + [2.1 — Per-Tool URL State Codec Wiring](../_bmad-output/planning-artifacts/epics.md#story-21-per-tool-url-state-codec-wiring) + [2.2 — Per-Tool Sample Data and Reset Button](../_bmad-output/planning-artifacts/epics.md#story-22-per-tool-sample-data-and-reset-button) + [2.3 — Per-Tool History Panel](../_bmad-output/planning-artifacts/epics.md#story-23-per-tool-history-panel) + [2.4 — Per-Tool Keyboard-Complete Surface](../_bmad-output/planning-artifacts/epics.md#story-24-per-tool-keyboard-complete-surface) + [2.5 — Per-Tool Share Dialog with URL and Print](../_bmad-output/planning-artifacts/epics.md#story-25-per-tool-share-dialog-with-url-and-print) + [3.7 — User Data Export to JSON](../_bmad-output/planning-artifacts/epics.md#story-37-user-data-export-to-json) + [3.8 — User Data Import from JSON with Schema Validation](../_bmad-output/planning-artifacts/epics.md#story-38-user-data-import-from-json-with-schema-validation)
 **Architecture binding:** AD-14, AD-13, AD-4, AD-5, AD-15
 **Source of truth for runtime:** `assets/js/api-contract.js`
 
@@ -83,8 +83,8 @@ calls `HT.provide(slug, api)` once at boot, after `HT.boot()`.
 ## 5. The `HT.*` surface (stable + experimental + internal)
 
 The current entries live in `assets/js/api-contract.js` (read that file for
-the canonical, machine-verified list — version `1.13.0` as of this writing,
-bumped from `1.12.0` by Story 3.7 for `HT.export`).
+the canonical, machine-verified list — version `1.14.0` as of this writing,
+bumped from `1.13.0` by Story 3.8 for `HT.import`).
 
 | Entry | Stability | Module |
 |---|---|---|
@@ -142,6 +142,7 @@ bumped from `1.12.0` by Story 3.7 for `HT.export`).
 | `HT.history.hasHistory` | stable | history.js (Story 2.3 / AD-4) |
 | `HT.history.lastEntry` | stable | history.js (Story 2.3 / AD-4) |
 | `HT.history._loadSchema` | internal | history.js (Story 2.3 / AD-4) |
+| `HT.history._replaceAll` | internal | history.js (Story 3.8 — bulk-replace the per-tool list; internal handle for import.js merge, AD-14 internal-handle pattern) |
 | `HT_HISTORY_INIT` | internal | history.js (Story 3.6 — bootstrap handle, AD-14 internal-handle pattern, mirrors other Story 3.x bootstrap handles) |
 | `HT.share.open` | stable | share.js (Story 2.5 / AD-4 / AD-5) |
 | `HT.share.close` | stable | share.js (Story 2.5 / AD-4) |
@@ -155,6 +156,8 @@ bumped from `1.12.0` by Story 3.7 for `HT.export`).
 | `HT.share._loadSchema` | internal | share.js (Story 2.5 / AD-4) |
 | `HT.export` | stable | export.js (Story 3.7 / AD-4 + AD-14 — `HT.export.run()` assembles + validates + downloads; reversible, no typed confirmation; hidden in embed mode) |
 | `HT_EXPORT_SCHEMA_VERSION` | internal | export.js (Story 3.7 / AD-14 — single source of truth for the JSON `version` field; Story 3.8 reads this) |
+| `HT.import` | stable | import.js (Story 3.8 / AD-4 + AD-14 — `HT.import.run()` + `HT.import.prompt()` alias opens a file picker, parses via `FileReader.readAsText`, validates against `HT_EXPORT_SCHEMA_VERSION` (Story 3.7's single source of truth), shows an overwrite-confirm dialog (`window.confirm` per Story 3.5 precedent) if any settings conflict, then writes settings → pins → favorites → recent → history.<slug> (merged) via the storage registry; hidden in embed mode; idempotent within page lifetime via `importInFlight` flag) |
+| `HT_IMPORT_DIALOG_VERSION` | internal | import.js (Story 3.8 / AD-14 — dialog-shape contract version; mirrors `HT_HISTORY_INIT` + `HT_EXPORT_SCHEMA_VERSION`) |
 
 ---
 

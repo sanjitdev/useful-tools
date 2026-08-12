@@ -287,6 +287,25 @@
     return HT.storage.set(_storageKey(slug), entries);
   }
 
+  // HT.history._replaceAll(slug, entries) — Story 3.8 internal handle.
+  // Bulk-replaces the per-tool history list with a caller-supplied
+  // (already-merged, already-sorted, already-cap-trimmed) array. Used
+  // by import.js to merge existing + imported entries without
+  // round-tripping through HT.history.push (which can't dedup by ts
+  // and couldn't honor the "imported wins on ts collision" rule). The
+  // caller is responsible for the merge math; this handle just writes
+  // + emits. AD-14 internal-handle pattern — NOT a public HT.* entry.
+  // Stable-ish: invoked from exactly one place (assets/js/import.js).
+  function _replaceAll(slug, entries) {
+    _requireSlug(slug);
+    if (!Array.isArray(entries)) return false;
+    const plain = [];
+    for (let i = 0; i < entries.length; i += 1) plain.push(entries[i]);
+    _writeRaw(slug, plain);
+    _emit(slug);
+    return true;
+  }
+
   // -------------------------------------------------------------
   // HT.history.push(slug, entry?)
   //
@@ -1396,6 +1415,7 @@
   Object.freeze(hasHistory);
   Object.freeze(lastEntry);
   Object.freeze(_loadSchema);
+  Object.freeze(_replaceAll);
 
   Object.defineProperties(HT, {
     history: {
@@ -1412,6 +1432,7 @@
         lastEntry: lastEntry,
         // Internal:
         _loadSchema: _loadSchema,
+        _replaceAll: _replaceAll,
       }),
       writable: false,
       configurable: false,

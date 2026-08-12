@@ -6,10 +6,10 @@
    has-share-and-embed / has-share-no-embed /
    neither), plus stubbed HT.copyToClipboard /
    HT.toast / window.print. Asserts the HT.share
-   surface per api-contract.js (version 1.13.0 as
+   surface per api-contract.js (version 1.14.0 as
    of this writing — Story 2.5 bumped 1.7.0 → 1.8.0,
    Story 3.6 bumped 1.11.0 → 1.12.0, Story 3.7 bumped
-   1.12.0 → 1.13.0 for HT.export).
+   1.12.0 → 1.14.0 for HT.export).
    ============================================ */
 
 'use strict';
@@ -637,8 +637,8 @@ for (const name of requiredEntries) {
 }
 check('api-contract.js: all 10 HT.share.* entries registered (9 stable + 1 internal)',
   allEntriesFound);
-check('api-contract.js: version bumped to 1.13.0 (Story 3.7 — HT.export added; Story 3.6 — history panel shape migration + cap 50; Story 3.3 superseded)',
-  /version:\s*['"]1\.13\.0['"]/.test(CONTRACT_SRC));
+check('api-contract.js: version bumped to 1.14.0 (Story 3.7 + 3.8 — HT.export + HT.import added; Story 3.6 — history panel shape migration + cap 50; Story 3.3 superseded)',
+  /version:\s*['"]1\.14\.0['"]/.test(CONTRACT_SRC));
 
 // === Vacuous-pass guard ===
 

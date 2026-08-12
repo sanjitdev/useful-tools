@@ -136,13 +136,16 @@
         </div>
       </div>
 
-      <!-- 7. Data — Export my data (LIVE — Story 3.7, FR-13 export half) -->
+      <!-- 7. Data — Export (Story 3.7) + Import (Story 3.8) — FR-13 export/import pair -->
       <div class="shell-settings-field shell-settings-field--data">
-        <div class="shell-settings-label" aria-hidden="true">Data</div>
+        <h3 class="shell-settings-section-title">Data</h3>
         <div class="shell-settings-control">
           <button type="button" id="shell-settings-export" class="shell-settings-modal__export"
                   aria-label="Export your settings, history, and saved tools as a JSON file"
                   data-ht-action="export-data">Export my data…</button>
+          <button type="button" id="shell-settings-import" class="shell-settings-modal__import"
+                  aria-label="Import a previously exported JSON file and merge it into your settings, history, and saved tools"
+                  data-ht-action="import-data">Import…</button>
         </div>
       </div>
 
@@ -277,7 +280,6 @@
   <script src="../assets/js/shell.js" defer></script>
   <script src="../assets/js/search.js" defer></script>
   <script src="../assets/js/help-overlay.js" defer></script>
-  <script src="../assets/js/export.js" defer></script>
   <script src="../assets/js/pack-page.js" defer></script>
 </body>
 </html>

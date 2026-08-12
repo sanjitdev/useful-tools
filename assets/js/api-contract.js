@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.13.0',
+  version: '1.14.0',
   generated: '2026-08-12',
   entries: Object.freeze([
     Object.freeze({
@@ -413,6 +413,13 @@ window.HT.__apiContract = Object.freeze({
       notes: 'Story 2.3 + 3.6. Internal: returns the parsed urlState block + the history-keys declaration for the slug. Composes on HT.urlState._loadSchema to avoid duplicating the schema parser; the historyKeys slice is the per-tool array from tools.json entries[i].history-keys. Throws UrlStateSchemaError(NO_URLSTATE) when HT.urlState._loadSchema is unavailable — load assets/js/url.js BEFORE assets/js/history.js. Tools calling this is undefined behavior — use HT.history.hasHistory for the boolean predicate.',
     }),
     Object.freeze({
+      name: 'HT.history._replaceAll',
+      signature: '(slug: string, entries: HistoryEntry[]) => boolean',
+      stability: 'internal',
+      module: 'assets/js/history.js',
+      notes: 'Story 3.8 internal handle (AD-14 internal-handle pattern; mirrors HT.history._loadSchema). Bulk-replaces the per-tool history list with a caller-supplied already-merged/sorted/cap-trimmed array. Used by assets/js/import.js to merge existing + imported history without round-tripping through HT.history.push (push appends and cannot dedup by ts, so it cannot honor the "imported wins on ts collision" rule). The caller is responsible for the merge math; this handle just writes + emits the subscriber notification. Returns false (no-op) when entries is not an array. Tools calling this is undefined behavior — use HT.history.push for incremental writes.',
+    }),
+    Object.freeze({
       name: 'HT_HISTORY_INIT',
       signature: 'Readonly<{version: string, cap: number}>',
       stability: 'internal',
@@ -432,6 +439,20 @@ window.HT.__apiContract = Object.freeze({
       stability: 'internal',
       module: 'assets/js/export.js',
       notes: 'Story 3.7 internal handle (AD-14 internal-handle pattern; mirrors HT_HISTORY_INIT). Exposes the export module bootstrap tuple {version} so the smoke harness can verify the loaded module matches the api-contract version. Frozen via Object.freeze at module load. The `version` field is the literal "1.0.0" — it is the single source of truth for the JSON `version` field that every export payload carries. Story 3.8 reads this to reject mismatches. NOT a public HT.* surface — accessing this from a tool is undefined behavior.',
+    }),
+    Object.freeze({
+      name: 'HT.import',
+      signature: 'Object.freeze({run: () => Promise<{ok: boolean, reason?: string, counts?: {settings: number, pins: number, favorites: number, recent: number, historyAdded: number, historyReplaced: number}, errors?: Array<{path: string, message: string}>}> | {ok: boolean, state: string}, prompt: () => same as run})',
+      stability: 'stable',
+      module: 'assets/js/import.js',
+      notes: 'Story 3.8. Frozen since Story 3.8. Methods: HT.import.run() — opens a file picker (hidden <input type="file" accept="application/json"> cached in #ht-import-file-picker-host), parses via FileReader.readAsText, validates against window.HT_EXPORT_SCHEMA_VERSION (Story 3.7\'s single source of truth — never redefined), shows an overwrite-confirm dialog (window.confirm, per Story 3.5 precedent — "Importing will overwrite <N> setting(s). Continue?") if any settings conflict, then writes all keys via the storage registry in this exact order: settings → pins → favorites → recent → history.<slug> (merged, not replaced; existing entries preserved; imported entries override on ts collision; capped at HT_HISTORY_INIT.cap = 50 per Story 3.6). Hidden in embed mode (AD-7) — both the URL pattern (?embed=1|true) and window.HT_SHELL_EMBED. Returns {ok: true, state: "awaiting-file"} synchronously after the picker opens; the rest of the pipeline runs in the promise chain tied to the input change event. The same flag pattern as Story 3.5\'s `clearAllInFlight` makes rapid double-clicks idempotent within a page lifetime. HT.import.prompt() is a thin alias for run() (mirrors Story 3.7\'s HT.export.run alias and Story 2.5\'s HT.share.open/print alias pattern). Internal handle: HT_IMPORT_DIALOG_VERSION = "1.0.0" (the dialog-shape contract version).',
+    }),
+    Object.freeze({
+      name: 'HT_IMPORT_DIALOG_VERSION',
+      signature: 'Readonly<{version: "1.0.0"}>',
+      stability: 'internal',
+      module: 'assets/js/import.js',
+      notes: 'Story 3.8 internal handle (AD-14 internal-handle pattern; mirrors HT_HISTORY_INIT + HT_EXPORT_SCHEMA_VERSION). Exposes the import module bootstrap tuple {version} so the smoke harness can verify the loaded module matches the api-contract version. Frozen via Object.freeze at module load. The `version` field is the literal "1.0.0" — it is the dialog-shape contract version. Future migrations (e.g., adding dry-run mode, batch import, etc.) bump this number so the smoke harness can detect a contract drift. NOT a public HT.* surface — accessing this from a tool is undefined behavior.',
     }),
     Object.freeze({
       name: 'HT.share.open',

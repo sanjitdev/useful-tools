@@ -4,10 +4,10 @@
    with stub window/document/HT objects, plus a
    synthetic HT.storage facade, and asserts the
    HT.history surface per api-contract.js (version
-   1.13.0 as of this writing — Story 2.3 bumped the
+   1.14.0 as of this writing — Story 2.3 bumped the
    contract 1.6.0 → 1.7.0, Story 2.5 bumped 1.7.0 → 1.8.0,
    Story 3.6 bumped 1.11.0 → 1.12.0, Story 3.7 bumped
-   1.12.0 → 1.13.0 for HT.export).
+   1.12.0 → 1.14.0 for HT.export).
 
    Story 3.6: 76 assertions (was 47 in Story 2.3/3.3
    intermediate) — storage shape + migration, relative
@@ -488,6 +488,7 @@ const requiredEntries = [
   'HT.history.hasHistory',
   'HT.history.lastEntry',
   'HT.history._loadSchema',
+  'HT.history._replaceAll',
 ];
 let allEntriesFound = true;
 for (const name of requiredEntries) {
@@ -498,8 +499,8 @@ for (const name of requiredEntries) {
 }
 check('api-contract.js: all 10 HT.history.* entries registered (9 stable + 1 internal)',
   allEntriesFound);
-check('api-contract.js: version bumped to 1.13.0 (Story 3.7 — HT.export added; Story 3.6 — history panel shape migration + cap 50)',
-  /version:\s*['"]1\.13\.0['"]/.test(CONTRACT_SRC));
+check('api-contract.js: version bumped to 1.14.0 (Story 3.7 + 3.8 — HT.export + HT.import added; Story 3.6 — history panel shape migration + cap 50)',
+  /version:\s*['"]1\.14\.0['"]/.test(CONTRACT_SRC));
 
 // === Vacuous-pass guard (assertion 31) ===
 
@@ -1309,7 +1310,7 @@ if (closeBtnEl) {
 // Section F: Cross-pins (8)
 // ============================================
 
-// F.38 — api-contract.js has all 9 HT.history.* entries (8 stable + 1 internal)
+// F.38 — api-contract.js has all 11 HT.history.* entries (9 stable + 2 internal; Story 3.8 added HT.history._replaceAll)
 // (Already covered by earlier check, but recount with the new shape.)
 let allEntriesFoundF = true;
 for (const name of requiredEntries) {
@@ -1318,12 +1319,12 @@ for (const name of requiredEntries) {
     console.log('  missing contract entry: ' + name);
   }
 }
-check('F.38 api-contract.js: all 9 HT.history.* entries registered (8 stable + 1 internal)',
+check('F.38 api-contract.js: all 11 HT.history.* entries registered (9 stable + 2 internal)',
   allEntriesFoundF);
 
-// F.39 — api-contract.js version is 1.13.0 (Story 3.7 bumped 1.12.0 → 1.13.0 for HT.export)
-check('F.39 api-contract.js: version bumped to 1.13.0',
-  /version:\s*['"]1\.13\.0['"]/.test(CONTRACT_SRC));
+// F.39 — api-contract.js version is 1.14.0 (Story 3.7 bumped 1.12.0 → 1.14.0 for HT.export)
+check('F.39 api-contract.js: version bumped to 1.14.0',
+  /version:\s*['"]1\.14\.0['"]/.test(CONTRACT_SRC));
 
 // F.40 — api-contract.js HT.history.push notes mention Story 3.6 + cap 50 + new shape
 const pushNotesMatch = CONTRACT_SRC.match(/HT\.history\.push[\s\S]*?(?=name:\s*'HT\.history\.)/);
@@ -1340,13 +1341,67 @@ check('F.41 HT_HISTORY_INIT exists and is frozen',
 check('F.42 HT_HISTORY_INIT.cap === 50',
   ctx.window.HT_HISTORY_INIT && ctx.window.HT_HISTORY_INIT.cap === 50);
 
-// F.43 — HT_HISTORY_INIT.version is unchanged by Story 3.7 (still 1.12.0 — Story 3.7 added HT.export alongside)
+// F.43 — HT_HISTORY_INIT.version is unchanged by Story 3.7 + 3.8 (still 1.12.0 — Story 3.7 added HT.export alongside, Story 3.8 added HT.import alongside)
 check('F.43 HT_HISTORY_INIT.version === "1.12.0"',
   ctx.window.HT_HISTORY_INIT && ctx.window.HT_HISTORY_INIT.version === '1.12.0');
 
-// F.44 — exit code is 0 when assertions pass (deferred to final tally)
-// F.45 — vacuous-pass guard
-check('F.45 vacuous-pass guard: pass > 0 after full run', pass > 0);
+// === Story 3.8 — HT.history._replaceAll internal handle ===
+// Story 3.8 (import.js) needs to bulk-write per-tool history for the
+// import merge; HT.history.push can't dedup-by-ts so the merge math
+// needs an internal handle that replaces the whole list at once.
+
+// F.44 — _replaceAll is exposed as a function on HT.history
+check('F.44 HT.history._replaceAll is a function (Story 3.8 internal handle)',
+  historyApi && typeof historyApi._replaceAll === 'function');
+
+// F.45 — _replaceAll overwrites the per-tool list (Story 3.8 bulk write)
+(function () {
+  const slug = 'inflation-calculator';
+  const initial = [
+    { ts: '2026-08-10T08:00:00.000Z', inputs: { x: 1 }, result: 'r1' },
+    { ts: '2026-08-10T09:00:00.000Z', inputs: { x: 2 }, result: 'r2' },
+  ];
+  historyApi._replaceAll(slug, initial);
+  const after = historyApi.list(slug);
+  check('F.45 _replaceAll(slug, entries) bulk-writes the per-tool history list',
+    after.length === 2 && after[0].ts === initial[1].ts && after[1].ts === initial[0].ts);
+})();
+
+// F.46 — _replaceAll emits a pub/sub event so the panel re-renders
+(function () {
+  const slug = 'inflation-calculator';
+  let emitted = 0;
+  const unsub = historyApi.subscribe(slug, function () { emitted += 1; });
+  historyApi._replaceAll(slug, [{ ts: '2026-08-12T12:00:00.000Z', inputs: {}, result: 'fresh' }]);
+  unsub();
+  check('F.46 _replaceAll emits a subscriber notification (panel re-render)',
+    emitted >= 1);
+})();
+
+// F.47 — _replaceAll accepts an empty array (clears the list without
+// firing the destructive _confirmDestructive dialog — different from
+// HT.history.clear which IS destructive)
+(function () {
+  const slug = 'inflation-calculator';
+  historyApi._replaceAll(slug, [
+    { ts: '2026-08-12T12:00:00.000Z', inputs: {}, result: 'will be cleared' },
+  ]);
+  historyApi._replaceAll(slug, []);
+  check('F.47 _replaceAll(slug, []) empties the per-tool list (silent)',
+    historyApi.list(slug).length === 0);
+})();
+
+// F.48 — _replaceAll rejects non-array entries (returns false, no write)
+(function () {
+  const slug = 'inflation-calculator';
+  historyApi._replaceAll(slug, [{ ts: '2026-08-12T12:00:00.000Z', inputs: {}, result: 'keep' }]);
+  const ok = historyApi._replaceAll(slug, 'not an array');
+  check('F.48 _replaceAll rejects non-array entries (returns false, no write)',
+    ok === false && historyApi.list(slug).length === 1);
+})();
+
+// F.49 — vacuous-pass guard
+check('F.49 vacuous-pass guard: pass > 0 after full run', pass > 0);
 
 // === Final tally ===
 

@@ -3,7 +3,7 @@
    Loads a11y.js in a fresh vm context with stub
    window / document / getComputedStyle and asserts
    the HT.a11y surface + AuditReport behavior per
-   api-contract.js (version 1.13.0; bumped from 1.12.0 by Story 3.7 for HT.export; prior bump from 1.11.0 by Story 3.6 for HT_HISTORY_INIT bootstrap handle + history entry-shape migration).
+   api-contract.js (version 1.14.0; bumped from 1.12.0 by Story 3.7 for HT.export; prior bump from 1.11.0 by Story 3.6 for HT_HISTORY_INIT bootstrap handle + history entry-shape migration).
    Five synthetic
    tools exercise every check: clean-tool,
    hover-only-tool, unlabeled-tool,
@@ -450,8 +450,8 @@ const contractSrc = fs.readFileSync(
   path.resolve(__dirname, '../assets/js/api-contract.js'),
   'utf8'
 );
-check('api-contract: version === 1.13.0 (Story 3.7: 1.12.0 → 1.13.0 for HT.export; Story 3.6: 1.11.0 → 1.12.0 for HT_HISTORY_INIT bootstrap handle + history entry-shape migration)',
-  /version:\s*['"]1\.13\.0['"]/.test(contractSrc));
+check('api-contract: version === 1.14.0 (Story 3.7: 1.12.0 → 1.14.0 for HT.export; Story 3.6: 1.11.0 → 1.12.0 for HT_HISTORY_INIT bootstrap handle + history entry-shape migration)',
+  /version:\s*['"]1\.14\.0['"]/.test(contractSrc));
 const matches = contractSrc.match(/name:\s*['"]HT\.a11y\.[\w.]+['"]/g) || [];
 const names = matches.map(function (m) {
   return /['"](HT\.a11y\.[\w.]+)['"]/.exec(m)[1];

@@ -36,9 +36,11 @@ on:
       - "scripts/_smoke_sample_data.js"
       - "scripts/_smoke_history_panel.js"
       - "scripts/_smoke_export.js"
+      - "scripts/_smoke_import.js"
       - "assets/js/sample-data.js"
       - "assets/js/history.js"
       - "assets/js/export.js"
+      - "assets/js/import.js"
       - "docs/shell-public-api.md"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
@@ -57,9 +59,11 @@ on:
       - "scripts/_smoke_sample_data.js"
       - "scripts/_smoke_history_panel.js"
       - "scripts/_smoke_export.js"
+      - "scripts/_smoke_import.js"
       - "assets/js/sample-data.js"
       - "assets/js/history.js"
       - "assets/js/export.js"
+      - "assets/js/import.js"
       - "docs/shell-public-api.md"
       - "assets/js/shell.js"
       - "assets/js/api-contract.js"
@@ -175,3 +179,20 @@ jobs:
         # api-contract pin (version 1.13.0 + HT.export entry).
         # 43 PASS expected. Vacuous-pass guard catches hollow runs.
         run: make export-smoke
+
+      - name: Smoke import.js User Data Import (Story 3.8 / AD-4 + AD-14)
+        # Loads assets/js/import.js in a fresh vm context against a
+        # synthetic HT.storage facade + HT.homeGrid + HT.history + HT.toast
+        # + stubbed FileReader/Blob/URL/window.confirm + HT_EXPORT_SCHEMA_VERSION
+        # + HT_HISTORY_INIT. Asserts the frozen HT.import surface (run + prompt
+        # alias), the internal HT_IMPORT_DIALOG_VERSION handle, the 6-check
+        # payload validator (read-side mirror of export.js), _detectConflicts
+        # + the overwrite-confirm dialog (window.confirm), the apply phase
+        # ordering (settings → pins → favorites → recent → history.<slug>),
+        # history merge semantics (existing preserved; ts-collision → imported
+        # wins; FIFO cap 50), idempotency within page lifetime (importInFlight
+        # flag), embed mode no-op, parse-error path (toast truncated to 60 chars),
+        # and the api-contract pin (version 1.14.0 + HT.import +
+        # HT_IMPORT_DIALOG_VERSION entries).
+        # 53 PASS expected. Vacuous-pass guard catches hollow runs.
+        run: make import-smoke
