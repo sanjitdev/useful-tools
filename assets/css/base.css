@@ -309,6 +309,41 @@ a:hover {
   transform: none !important;
 }
 
+/* Story 3.6 — History panel close button + backdrop.
+   Desktop sidebar variant only — mobile sheet uses Story 2.3's
+   swipe-down. Mirrors the Settings modal close button + backdrop
+   pattern (Story 1.8) for visual consistency. */
+.history-panel__close {
+  position: absolute;
+  top: var(--space-2, 0.5rem);
+  right: var(--space-2, 0.5rem);
+  background: transparent;
+  border: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  color: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-1, 4px);
+}
+.history-panel__close:hover,
+.history-panel__close:focus-visible {
+  background: var(--color-surface-2, rgba(0, 0, 0, 0.05));
+  outline: 2px solid var(--color-focus, currentColor);
+  outline-offset: 2px;
+}
+:root[data-theme="dark"] .history-panel__close:hover,
+:root[data-theme="dark"] .history-panel__close:focus-visible {
+  background: var(--color-surface-2-dark, rgba(255, 255, 255, 0.08));
+}
+.history-panel__backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--color-backdrop, rgba(0, 0, 0, 0.4));
+  z-index: 90; /* below the panel itself (100), above page content */
+  cursor: pointer;
+}
+
 @media (forced-colors: active) {
   .theme-toggle {
     display: none !important;

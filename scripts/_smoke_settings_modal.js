@@ -1083,7 +1083,9 @@ assert(
 );
 
 // -------------------------------------------------------------
-// AC-1: api-contract.js HT.settings entry exists and pins version 1.11.0.
+// AC-1: api-contract.js HT.settings entry exists and pins version 1.12.0
+// (Story 3.6 supersedes Story 3.5's 1.11.0 with the history migration bump;
+// HT.settings entry itself is unchanged — see the notes block).
 // -------------------------------------------------------------
 const apiContract = fs.readFileSync(
   path.join(REPO_ROOT, 'assets/js/api-contract.js'),
@@ -1098,8 +1100,8 @@ assert(
   /HT\.settings[\s\S]{0,400}Story 3\.5/.test(apiContract)
 );
 assert(
-  'api-contract.js: version stays at 1.11.0',
-  /version:\s*'1\.11\.0'/.test(apiContract)
+  'api-contract.js: version stays at 1.12.0',
+  /version:\s*'1\.12\.0'/.test(apiContract)
 );
 
 // -------------------------------------------------------------

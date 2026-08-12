@@ -1,5 +1,5 @@
 # generated: 2026-07-31
-# last_updated: 2026-08-11T32:00:00Z
+# last_updated: 2026-08-11T33:00:00Z
 # project: useful-tools
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-31
-last_updated: 2026-08-11T29:30:00Z
+last_updated: 2026-08-12T00:00:00Z
 project: useful-tools
 project_key: NOKEY
 tracking_system: file-system
@@ -106,7 +106,7 @@ development_status:
   3-3-per-tool-keyboard-shortcuts-overlay: done
   3-4-global-keyboard-chords-for-cross-page-navigation: done
   3-5-settings-modal-full-control-surface: done
-  3-6-history-panel-with-timestamps-and-restore-confirmation: ready-for-dev
+  3-6-history-panel-with-timestamps-and-restore-confirmation: done
   3-7-user-data-export-to-json: backlog
   3-8-user-data-import-from-json-with-schema-validation: backlog
   3-9-share-dialog-with-copy-url-print-and-embed-code: backlog
@@ -159,7 +159,7 @@ development_status:
   epic-6: backlog
   6-1-pack-card-component-on-home-grid: done
   6-2-pack-page-renderer: done
-  6-3-pack-taxonomy-documentation: backlog
+  6-3-pack-taxonomy-documentation: backlog  # Fun Pack doc (`docs/packs/fun.md`) lands here; all 6.21–6.27 tools depend on this story
   6-4-json-formatter-enhancements-sort-keys-schema-validate-diff: backlog
   6-5-citation-formatter-apa-mla-chicago: backlog
   6-6-diff-viewer-text-line-word-char: backlog
@@ -177,6 +177,13 @@ development_status:
   6-18-currency-converter-live-rates-offline-fallback: backlog
   6-19-travel-pack-composition: backlog
   6-20-finance-study-developer-household-pack-composition: backlog
+  6-21-fun-pack-love-chemistry: backlog
+  6-22-fun-pack-marriage-probability: backlog
+  6-23-fun-pack-superpower-fit: backlog
+  6-24-fun-pack-pet-personality: backlog
+  6-25-fun-pack-main-character-era: backlog
+  6-26-fun-pack-age-capsule: backlog
+  6-27-fun-pack-what-if-time-warp: backlog
   epic-6-retrospective: optional
 
   # =========================================================================
@@ -582,6 +589,36 @@ action_items:
     epic: 2
     story: null
     revisit_condition: "Resolving — done in commit e24cf90"
+
+  - id: AI-E3-1
+    title: "Validate every story spec before starting development"
+    description: "Run the available BMad story-validation workflow before invoking bmad-dev-story. Resolve blocking findings and record the validation result in the story Change Log before implementation begins."
+    severity: medium
+    status: open
+    owner: Sanjit (project lead)
+    epic: 3
+    story: null
+    revisit_condition: "Before every future story development kickoff"
+
+  - id: AI-E3-2
+    title: "Run bmad-code-review twice on every story"
+    description: "Run bmad-code-review, apply the findings, then run it a second time before marking the story done. The second pass catches issues the first one missed (residual drift, regression-introducing fixes, deeper audit axes). Record both passes and the second-pass unique findings in the story Change Log. If the second pass surfaces no new findings, mark the second-pass entry as 'second pass: clean' so the discipline is visible."
+    severity: medium
+    status: open
+    owner: Sanjit (project lead)
+    epic: 3
+    story: null
+    revisit_condition: "Every story review cycle (before marking review → done)"
+
+  - id: AI-E3-3
+    title: "Production-readiness gate after second code-review pass"
+    description: "After the second bmad-code-review pass, run a hard production-readiness gate before marking the story done. Validate behavior in a clean environment, run the full regression suite (e.g. `make ci`), run accessibility + security + shell-bounds + drift + regression-sweep + site-config gates, audit the final diff for scope creep and untracked secrets/credentials, verify File List matches `git status`, verify documentation/migration/backward-compatibility impacts (old data + fresh empty state + new-format data; migrations must be idempotent), and record evidence in the story Dev Agent Record before marking done. If any required check fails or evidence is missing, the story remains in `review`/`in-progress` (hard gate)."
+    severity: medium
+    status: open
+    owner: Sanjit (project lead)
+    epic: 3
+    story: null
+    revisit_condition: "Every story completion cycle (after second review pass, before marking done)"
 
 # -----------------------------------------------------------------------------
 # Suggested Sprint Sequencing (Reference)

@@ -132,16 +132,17 @@ bumped from `1.7.0` by Story 2.5).
 | `HT.a11y.hoverOnly` | stable | a11y.js (Story 2.4) |
 | `HT.a11y.focusRingOk` | stable | a11y.js (Story 2.4) |
 | `HT.a11y.focusable` | internal | a11y.js (Story 2.4) |
-| `HT.history.push` | stable | history.js (Story 2.3 / AD-4) |
-| `HT.history.list` | stable | history.js (Story 2.3 / AD-4) |
-| `HT.history.restore` | stable | history.js (Story 2.3 / AD-4) |
-| `HT.history.clear` | stable | history.js (Story 2.3 / AD-4) |
+| `HT.history.push` | stable | history.js (Story 2.3 / AD-4 — entry shape Story 3.6) |
+| `HT.history.list` | stable | history.js (Story 2.3 / AD-4 — sort by ISO 8601 ts Story 3.6) |
+| `HT.history.restore` | stable | history.js (Story 2.3 / AD-4 — entry-or-ts, focusReturn Story 3.6) |
+| `HT.history.clear` | stable | history.js (Story 2.3 / AD-4 — destructive variant Story 2.3) |
 | `HT.history.subscribe` | stable | history.js (Story 2.3 / AD-4) |
-| `HT.history.panel` | stable | history.js (Story 2.3 / AD-4) |
+| `HT.history.panel` | stable | history.js (Story 2.3 / AD-4 — close button + backdrop Story 3.6) |
 | `HT.history.button` | stable | history.js (Story 2.3 / AD-4) |
 | `HT.history.hasHistory` | stable | history.js (Story 2.3 / AD-4) |
 | `HT.history.lastEntry` | stable | history.js (Story 2.3 / AD-4) |
 | `HT.history._loadSchema` | internal | history.js (Story 2.3 / AD-4) |
+| `HT_HISTORY_INIT` | internal | history.js (Story 3.6 — bootstrap handle, AD-14 internal-handle pattern, mirrors other Story 3.x bootstrap handles) |
 | `HT.share.open` | stable | share.js (Story 2.5 / AD-4 / AD-5) |
 | `HT.share.close` | stable | share.js (Story 2.5 / AD-4) |
 | `HT.share.isOpen` | stable | share.js (Story 2.5 / AD-4) |
@@ -199,7 +200,7 @@ in the architectural sense:
    Tools delegate to the Shell.
 
 5. **No direct reads/writes of the `handy-tools.history.*` key family**
-   (Story 2.3) — the Shell owns per-tool history persistence via
+   (Story 2.3 + 3.6) — the Shell owns per-tool history persistence via
    `HT.history.push` / `HT.history.list` / `HT.history.restore` /
    `HT.history.clear` (see `assets/js/history.js`), and history data
    always lives under the `handy-tools.history.<slug>` storage key. A
@@ -211,7 +212,11 @@ in the architectural sense:
    both fail the gate. Tools delegate to the Shell. The lifecycle-fallback
    pattern from rule 2 above is the only allowed wrap shape (a `HT.history.*`
    call inside the `if` arm with a defensive `localStorage` arm in the
-   `else`).
+   `else`). Story 3.6 changed the entry shape from
+   `{id, ts number, state, result, label}` to `{ts ISO 8601, inputs, result}`;
+   legacy entries are migrated transparently in `_readRaw` (read-time, one-shot,
+   routes through `HT.storage.set` so the gate's localStorage ban is honored
+   even during migration).
 
 6. **No ad-hoc share / print UI in `<slug>.js`** (Story 2.5) — the
    canonical Share and Print affordances are owned by the Shell. A Tool

@@ -636,8 +636,8 @@ for (const name of requiredEntries) {
 }
 check('api-contract.js: all 10 HT.share.* entries registered (9 stable + 1 internal)',
   allEntriesFound);
-check('api-contract.js: version bumped to 1.11.0 (Story 3.3 — keyboard-shortcuts overlay bootstrap handle)',
-  /version:\s*['"]1\.11\.0['"]/.test(CONTRACT_SRC));
+check('api-contract.js: version bumped to 1.12.0 (Story 3.6 — history panel shape migration + cap 50; Story 3.3 superseded)',
+  /version:\s*['"]1\.12\.0['"]/.test(CONTRACT_SRC));
 
 // === Vacuous-pass guard ===
 
