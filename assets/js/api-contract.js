@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.15.0',
+  version: '1.16.0',
   generated: '2026-08-12',
   entries: Object.freeze([
     Object.freeze({
@@ -54,6 +54,27 @@ window.HT.__apiContract = Object.freeze({
       stability: 'stable',
       module: 'assets/js/shell.js',
       notes: 'Story 3.2 (revised 3.2-review). AD-14 surface for the `source.view` palette action. Resolves the current tool slug from data-slug / URL when slug is omitted, then navigates to `${HT.siteConfig.blobBase}/tools/<slug>/index.html` via window.location.assign. Slugs are validated against /^[a-z0-9-]+$/ — any other shape (including `../` traversal) resolves false without navigating. Resolves false on the home page or when blobBase is missing (no throw). The Promise is fire-and-forget on the navigation side. Read-only (Object.defineProperties, writable:false).',
+    }),
+    Object.freeze({
+      name: 'HT.recent',
+      signature: 'Object.freeze({push: (slug: string) => void, list: () => string[], clear: () => void, cap: number, key: string})',
+      stability: 'stable',
+      module: 'assets/js/recent.js',
+      notes: 'Story 3.12. Recent-tools FIFO list (cap 5; UX-DR-11). push(slug) removes any prior occurrence of the slug before appending (most-recent-first), then slices to 5. Writes route through HT.storage.set("handy-tools.recent", arr). Reads filter to non-empty strings. Read-only (Object.freeze).',
+    }),
+    Object.freeze({
+      name: 'HT.pins',
+      signature: 'Object.freeze({toggle: (slug: string) => boolean, list: () => {slug: iso}[], isPinned: (slug: string) => boolean, clear: () => void, orderByMostRecent: () => string[], cap: number, key: string})',
+      stability: 'stable',
+      module: 'assets/js/pins.js',
+      notes: 'Story 3.12. Pinned-tools map (cap 9; UX-DR-12). toggle(slug) removes the slug if present, else writes new Date().toISOString(); returns the new boolean pinned state. orderByMostRecent() returns the slug array sorted by ISO timestamp descending, capped at 9. Read-only (Object.freeze).',
+    }),
+    Object.freeze({
+      name: 'HT.homeSidebar',
+      signature: 'Object.freeze({render: () => void, version: string})',
+      stability: 'stable',
+      module: 'assets/js/home-sidebar.js',
+      notes: 'Story 3.12. Renders the <ol class="recent-list"> in the home page sidebar by reading HT.recent.list() + HT.homeGrid.entries. Idempotent. Read-only (Object.freeze).',
     }),
     Object.freeze({
       name: 'HT.palette.open',

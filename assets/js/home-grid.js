@@ -155,6 +155,28 @@
     );
   }
 
+  function buildPinButton(entry) {
+    // Story 3.12: star button per tool card. aria-pressed reflects the
+    // current pin state; the icon character is ★ (filled, pinned) or
+    // ☆ (empty, not pinned). The button is a SIBLING of the anchor
+    // card (not nested) because nested interactive elements are not
+    // allowed in HTML — the button calls preventDefault() + stopPropagation
+    // to keep the anchor click handler from firing on toggles.
+    const pinned = (window.HT && window.HT.pins && typeof window.HT.pins.isPinned === 'function')
+      ? window.HT.pins.isPinned(entry.slug)
+      : false;
+    const icon = pinned ? '\u2605' : '\u2606';
+    const label = pinned ? 'Unpin ' + entry.title : 'Pin ' + entry.title;
+    return (
+      '<button class="pin-toggle" type="button" aria-pressed="' +
+      (pinned ? 'true' : 'false') +
+      '" aria-label="' + escapeAttr(label) +
+      '" data-pin-slug="' + escapeAttr(entry.slug) + '">' +
+      '<span class="pin-toggle-icon" aria-hidden="true">' + icon + '</span>' +
+      '</button>'
+    );
+  }
+
   function buildCard(entry) {
     if (entry.ready === false) {
       return (
@@ -175,6 +197,9 @@
       );
     }
     return (
+      '<div class="tool-card-wrap" data-tool-slug="' +
+      escapeAttr(entry.slug) +
+      '">' +
       '<a class="tool-card" href="tools/' +
       escapeAttr(entry.slug) +
       '/index.html">' +
@@ -185,7 +210,9 @@
       '<span class="tool-card-desc">' +
       escapeAttr(entry.description || '') +
       '</span>' +
-      '</a>'
+      '</a>' +
+      buildPinButton(entry) +
+      '</div>'
     );
   }
 
@@ -254,6 +281,99 @@
     }
   }
 
+  // Story 3.12: pinned row markup. Renders the <ol class="pinned-row"> with
+  // one <li> per pinned slug, ordered most-recent-pin-first. The title is
+  // resolved from the liveEntries snapshot (tools.json) when available; a
+  // missing slug falls back to the slug itself (defensive — the home grid
+  // only renders seeds that already exist in tools.json today).
+  const PINNED_SECTION_ID = 'home-grid-pinned-section';
+  const PINNED_HOST_ID = 'home-grid-pinned';
+  function buildPinnedRow(slugs) {
+    if (!Array.isArray(slugs) || slugs.length === 0) return '';
+    const items = slugs.map(function (slug) {
+      const title = (Array.isArray(liveEntries) ? liveEntries : [])
+        .filter(function (e) { return e && e.slug === slug; })
+        .map(function (e) { return e.title; })[0] || slug;
+      return (
+        '<li class="pinned-row-item" data-pin-slug="' +
+        escapeAttr(slug) +
+        '">' +
+        '<a class="pinned-row-link" href="tools/' +
+        escapeAttr(slug) +
+        '/index.html">' +
+        escapeAttr(title) +
+        '</a>' +
+        '</li>'
+      );
+    }).join('');
+    return (
+      '<div class="category-header"><h2>Pinned</h2></div>' +
+      '<ol class="pinned-row" aria-label="Pinned tools">' +
+      items +
+      '</ol>'
+    );
+  }
+
+  function mountPinnedRow() {
+    const host = document.getElementById(PINNED_HOST_ID);
+    const section = document.getElementById(PINNED_SECTION_ID);
+    if (!host || !section) return;
+    const pins = (window.HT && window.HT.pins && typeof window.HT.pins.orderByMostRecent === 'function')
+      ? window.HT.pins.orderByMostRecent()
+      : [];
+    if (!pins || pins.length === 0) {
+      section.setAttribute('hidden', '');
+      host.innerHTML = '';
+      host.setAttribute('data-mounted', 'false');
+      return;
+    }
+    host.innerHTML = buildPinnedRow(pins);
+    section.removeAttribute('hidden');
+    host.setAttribute('data-mounted', 'true');
+  }
+
+  function updatePinButton(slug) {
+    // After a toggle, find every pin-toggle button for the slug (one in the
+    // pinned row, one in the regular grid) and refresh its aria-pressed +
+    // icon character. The HTTP-driven render is not re-fetched; only the
+    // lightweight button state is updated.
+    const buttons = document.querySelectorAll(
+      '.pin-toggle[data-pin-slug="' + (window.CSS && CSS.escape ? CSS.escape(slug) : slug) + '"]'
+    );
+    const pinned = (window.HT && window.HT.pins && typeof window.HT.pins.isPinned === 'function')
+      ? window.HT.pins.isPinned(slug)
+      : false;
+    for (let i = 0; i < buttons.length; i += 1) {
+      const btn = buttons[i];
+      btn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
+      const icon = btn.querySelector('.pin-toggle-icon');
+      if (icon) icon.textContent = pinned ? '\u2605' : '\u2606';
+      const title = (Array.isArray(liveEntries) ? liveEntries : [])
+        .filter(function (e) { return e && e.slug === slug; })
+        .map(function (e) { return e.title; })[0] || slug;
+      btn.setAttribute('aria-label', pinned ? 'Unpin ' + title : 'Pin ' + title);
+    }
+  }
+
+  function attachPinHandlers(host) {
+    // Delegated click handler for every .pin-toggle inside the host. The
+    // toggle runs HT.pins.toggle(slug), updates the button states, and
+    // re-renders the pinned row (without re-fetching tools.json).
+    if (!host || host.__pinHandlersAttached === true) return;
+    host.addEventListener('click', function (event) {
+      const btn = event.target.closest('.pin-toggle');
+      if (!btn) return;
+      const slug = btn.getAttribute('data-pin-slug');
+      if (!slug || !window.HT || !window.HT.pins || typeof window.HT.pins.toggle !== 'function') return;
+      event.preventDefault();
+      event.stopPropagation();
+      window.HT.pins.toggle(slug);
+      updatePinButton(slug);
+      mountPinnedRow();
+    });
+    host.__pinHandlersAttached = true;
+  }
+
   function mount(data) {
     const host = document.getElementById(HOST_ID);
     const section = document.getElementById(SECTION_ID);
@@ -264,6 +384,7 @@
     if (!data || !Array.isArray(data.tools)) {
       section.setAttribute('hidden', '');
       host.setAttribute('data-mounted', 'false');
+      mountPinnedRow();
       return;
     }
 
@@ -272,14 +393,17 @@
       host.innerHTML = buildEmptyState();
       section.removeAttribute('hidden');
       host.setAttribute('data-mounted', 'true');
+      mountPinnedRow();
       return;
     }
 
     const groups = groupByCategory(valid);
     host.innerHTML = groups.map(buildGroupMarkup).join('');
     attachLockedHandlers(host);
+    attachPinHandlers(host);
     section.removeAttribute('hidden');
     host.setAttribute('data-mounted', 'true');
+    mountPinnedRow();
   }
 
   // Live snapshot used to populate HT.homeGrid.entries. Updated on every

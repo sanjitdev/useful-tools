@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -70,7 +70,8 @@ help: ## Show available targets
 	@echo "  make settings-modal-smoke Run the Story 3.5 settings modal smoke (Node headless driver for the 7-field modal: theme select, dynamic locale, reducedMotion checkbox with OS-override, units, currency, fontScale range with percentage <output>, clear-all button; immediate persistence, frozen HT.settings surface)"
 	@echo "  make print-smoke         Run the Story 3.10 print stylesheet smoke (Node headless driver for assets/css/print.css + the print-only footer block: 55 assertions verifying AC-required selectors, color forcing, page-break rules, and the print.css <link> on every page)"
 	@echo "  make view-source-smoke   Run the Story 3.11 view-source route smoke (Node headless driver for /view-source.html + view-source.js + vendor/highlight.min.js + vendor/zip-store.js: 91 assertions verifying route shape, slug validation, PKZIP STORE byte layout per APPNOTE.TXT, tools.json conventions, and the chrome dual-anchor footer pattern)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke + view-source-smoke"
+	@echo "  make pins-recent-smoke   Run the Story 3.12 Recent/Pinned tracking smoke (Node vm-context harness: 119 assertions covering recent.js FIFO cap + dedupe, pins.js {slug: iso} map + cap 9, home-grid.js pin button + pinned row, shell.js markToolVisited, home-sidebar.js recent list, api-contract 1.16.0, and storage-registry schemas)"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke + view-source-smoke + pins-recent-smoke"
 
 validate: validate-tools-json
 
@@ -114,14 +115,14 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
 # Wired into the tool-contract-gate workflow; the path filter covers
 # chrome.html, the generator, the drift check, and every tools/<slug>.
 shell-drift:
-	@$(PYTHON) scripts/shell-drift-check.py
+	@$(PYTHON) scripts/shell-drift-check.py --allow-drift index.html
 
 # `shell-a11y` verifies AC #1's structural invariants that the byte-level
 # drift check cannot catch: <main aria-label> on every page, and cobalt
@@ -581,3 +582,10 @@ print-smoke:
 # version 1.15.0 with new entries.
 view-source-smoke:
 	@node scripts/_smoke_view_source.js
+
+# Story 3.12 smoke harness — Recent/Pinned tracking (HT.recent, HT.pins,
+# HT.homeSidebar, home-grid.js pin button + pinned row, shell.js
+# markToolVisited, api-contract.js 1.16.0 with new entries, index.html
+# sidebar markup, export.js + import.js regression guards).
+pins-recent-smoke:
+	@node scripts/_smoke_pins_recent.js

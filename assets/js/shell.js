@@ -452,6 +452,14 @@
       try { HT.storage.register('handy-tools.favorites', { purpose: 'favorited-tools', lifetime: 'persistent', schema: 'string-array', owner: 'assets/js/home-grid.js (Story 3.12)' }); } catch (_) {}
       try { HT.storage.register('handy-tools.pins', { purpose: 'pinned-tools', lifetime: 'persistent', schema: '{slug: iso-timestamp}', owner: 'assets/js/home-grid.js (Story 3.12)' }); } catch (_) {}
     }
+
+    // Story 3.12: record this page visit in the recent-tools list. We read
+    // the slug from <main data-slug="..."> (set by the chrome regenerator on
+    // every tool page). The write happens once per page load via the
+    // _toolVisited flag so a re-entrant boot doesn't reorder the list. The
+    // call is deferred to the next macrotask so any chrome-include scripts
+    // that publish HT.recent during their own boot can land first.
+    setTimeout(markToolVisited, 0);
   }
 
   // Retry budget: ~2 seconds, exponential backoff capped at 200 ms.
@@ -461,6 +469,28 @@
   let _historyKeyRetries = 0;
   const _HISTORY_KEY_RETRY_BUDGET = 2000;
   const _HISTORY_KEY_RETRY_BASE_MS = 50;
+
+  // Story 3.12: record this page visit in the recent-tools list. The slug
+  // comes from <main data-slug="..."> (set by the chrome regenerator). A
+  // missing or empty slug is a no-op (defense in depth — the home page,
+  // pack pages, /privacy, /quality, etc. do not carry data-slug). The
+  // _toolVisited flag ensures the write happens exactly once per boot.
+  let _toolVisited = false;
+  function markToolVisited() {
+    if (_toolVisited) return;
+    if (isEmbedMode()) { _toolVisited = true; return; }
+    const main = document.getElementById('main');
+    if (!main || !main.dataset || typeof main.dataset.slug !== 'string') {
+      _toolVisited = true;
+      return;
+    }
+    const slug = main.dataset.slug.trim();
+    if (!slug) { _toolVisited = true; return; }
+    if (HT.recent && typeof HT.recent.push === 'function') {
+      try { HT.recent.push(slug); } catch (_) { /* storage unavailable */ }
+    }
+    _toolVisited = true;
+  }
 
   function registerToolHistoryKeys() {
     if (!HT.storage || typeof HT.storage.registerHistoryKeys !== 'function') return;

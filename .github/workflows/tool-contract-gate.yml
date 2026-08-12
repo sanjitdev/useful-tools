@@ -45,6 +45,10 @@ on:
       - "scripts/_smoke_print.js"
       - "scripts/_smoke_view_source.js"
       - "view-source.html"
+      - "scripts/_smoke_pins_recent.js"
+      - "assets/js/recent.js"
+      - "assets/js/pins.js"
+      - "assets/js/home-sidebar.js"
       - "assets/js/quality.js"
       - "assets/js/utils.js"
       - "assets/js/storage.js"
@@ -104,6 +108,10 @@ on:
       - "scripts/_smoke_print.js"
       - "scripts/_smoke_view_source.js"
       - "view-source.html"
+      - "scripts/_smoke_pins_recent.js"
+      - "assets/js/recent.js"
+      - "assets/js/pins.js"
+      - "assets/js/home-sidebar.js"
       - "assets/js/quality.js"
       - "assets/js/utils.js"
       - "assets/js/storage.js"
@@ -377,6 +385,31 @@ jobs:
         # HT.viewSource + HT.highlight + HT.zipStore entries. 91
         # PASS expected. Vacuous-pass guard catches hollow runs.
         run: make view-source-smoke
+
+      - name: Smoke pins-recent (Story 3.12)
+        # Story 3.12: verifies recent.js exposes HT.recent with FIFO
+        # cap 5, dedupe-before-cap, and writes via HT.storage under
+        # handy-tools.recent; verifies pins.js exposes HT.pins with
+        # {slug: iso8601} map, cap 9, most-recent-first ordering, and
+        # writes via HT.storage under handy-tools.pins; verifies
+        # home-grid.js renders the pinned row + per-card pin toggle
+        # (sibling of anchor, not nested) and handles click delegation
+        # idempotently; verifies shell.js calls markToolVisited() once
+        # per boot and reads the slug from data-slug; verifies
+        # home-sidebar.js populates <ol class="recent-list"> and hides
+        # the <aside> when the list is empty; verifies index.html
+        # carries the new <aside> + pinned <section> + 3 new script
+        # tags in the correct order; verifies export.js + import.js
+        # include both handy-tools.recent and handy-tools.pins
+        # top-level keys (regression guard); verifies
+        # api-contract.js version 1.16.0 with HT.recent + HT.pins +
+        # HT.homeSidebar entries; verifies site-config-gate.py
+        # expects 1.16.0; verifies storage-registry schemas
+        # (handy-tools.pins is object<slug:iso8601>;
+        # handy-tools.recent is array<string>); verifies
+        # chrome.html inline manifest matches the JS registry.
+        # 119 PASS expected. Vacuous-pass guard catches hollow runs.
+        run: make pins-recent-smoke
 
       - name: Upload regression sweep report
         # Story 2.12 AC-7: when the sweep fails (or passes) the

@@ -112,7 +112,7 @@ development_status:
   3-9-share-dialog-with-copy-url-print-and-embed-code: done
   3-10-print-stylesheet-for-clean-output: done
   3-11-view-source-route-with-syntax-highlighting-and-download: done
-  3-12-recent-and-pinned-tracking: backlog
+  3-12-recent-and-pinned-tracking: done
   epic-3-retrospective: optional
 
   # =========================================================================

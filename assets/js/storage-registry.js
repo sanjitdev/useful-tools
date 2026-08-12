@@ -559,9 +559,9 @@
     owner: 'shell.js',
   });
   register('handy-tools.pins', {
-    purpose: 'Pinned tool slugs (home grid ordering)',
+    purpose: 'Pinned tool slugs keyed by ISO 8601 timestamp (home grid ordering)',
     lifetime: 'persistent',
-    schema: 'array<string>',
+    schema: 'object<slug:iso8601>',
     owner: 'shell.js',
   });
   register('handy-tools.favorites', {
