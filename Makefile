@@ -118,7 +118,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Story 1.18 (AI-E1-15) replaced the
@@ -456,6 +456,24 @@ audit-wave-3:
 # catches hollow runs.
 wave-3-smoke:
 	@node scripts/_smoke_wave_3_pages.js
+
+# Story AI-E2-3 (Epic 2 retrospective) — _wave_lib factoring smoke.
+# `wave-lib-smoke` runs scripts/_smoke_wave_lib.js which verifies:
+#   (i) the shared _wave_lib.py exposes the documented helper surface;
+#   (ii) the six wave-{1,2,3}.py wrappers still expose WAVE_N_SLUGS +
+#       WAVE_N_PACKS (the data contract _pack_tags.py imports);
+#   (iii) promote_wave in dry-run mode reports 0 fail for waves 2/3
+#       (Wave-1's --inventory-only path runs cleanly);
+#   (iv) docs/tool-inventory.md is byte-equivalent on re-run;
+#   (v) docs/quality-audit.md is byte-equivalent for waves 2/3 on re-run
+#       modulo today's date stamp (Wave-1's score drift is a separate
+#       tech-debt item, not this factoring's responsibility);
+#   (vi) validate_entry's negative paths return non-empty failure lists
+#       containing the expected substrings (below-bar, ready, missing).
+# 43 PASS expected. Vacuous-pass guard (pass===0 && fail===0 → exit 1)
+# catches hollow runs.
+wave-lib-smoke:
+	@node scripts/_smoke_wave_lib.js
 
 # Story 2.9 — Pack tag audit + taxonomy doc + smoke.
 # `pack-tags` aggregates the canonical pack roster from the three
