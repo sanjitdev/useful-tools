@@ -37,3 +37,12 @@ _bmad/render/
 # artifact in the tool-contract-gate workflow, never committed).
 .regression-sweep-output.txt
 
+# Code-review scratch (transient per-skill session output; not project
+# artifacts). `bmad-code-review` writes proposed patches here for the
+# human reviewer to inspect; after the review patches are applied or
+# rejected, the directory is safe to delete.
+.review/
+
+# Diff scratch from ad-hoc analysis (e.g. earlier story wrap-ups).
+diff-unique.txt
+
