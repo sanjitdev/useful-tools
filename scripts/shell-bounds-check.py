@@ -93,7 +93,9 @@ Author: Handy Tools (Story 1.14 — Shell Public API and Bypass Prohibition
 from __future__ import annotations
 
 import argparse
+import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Iterable
@@ -696,6 +698,91 @@ def _line_numbers(text: str, pattern: re.Pattern[str]) -> list[tuple[int, str]]:
     return out
 
 
+# ---------------------------------------------------------------------------
+# AST-based call-site walker (Story 1.17 / AI-E1-13)
+# ---------------------------------------------------------------------------
+#
+# Story 1.17 migrated the JS-only call-site rules (localStorage.<op>(...),
+# fetch(...), new XMLHttpRequest(), HT.provide.register(...), etc.) from
+# regex/string-stripping to an AST walk via the vendored acorn parser
+# (scripts/vendor/acorn.js). The AST walk is comment- and string-aware by
+# construction — a CallExpression can only be a real call, not a string
+# literal — so the comment-string false positives the regex hit (e.g.,
+# `// fetch the URL when offline` was previously flagged) vanish.
+#
+# The raw-line scanners below (SAMPLE_LITERAL_RE, TABINDEX_RE,
+# HISTORY_KEY_*, SHARE_DIALOG_*, etc.) are intentionally NOT routed
+# through the AST walker: their *primary* surface IS string contents
+# (an HTML attribute literal, a hard-coded UI string, etc.), and the
+# AST would suppress them by design. Routing them through AST would
+# be a regression.
+#
+# acorn is invoked via the thin wrapper at scripts/vendor/ast-walker.js.
+# The wrapper reads a file, parses with acorn, and emits JSON to stdout
+# describing every bypass call-site it found. We never `require('acorn')`
+# from Python (acorn is a Node library); we spawn `node ast-walker.js`.
+
+AST_WALKER_PATH = Path(__file__).parent / "vendor" / "ast-walker.js"
+
+
+def _find_ast_bypass_callsites(tool_js_path: Path) -> list[tuple[str, int, str]]:
+    """Run the vendored acorn AST walker against a tool JS file and
+    return a list of (rule, line, snippet) for every bypass call-site
+    detected. Each rule is the same string the regex scanner produced
+    (localStorage / fetch / xhr / xhr-ref / directProvide) so the
+    report format doesn't change.
+
+    Falls back to returning [(parse-error, 0, err_msg)] if acorn
+    can't parse the file; the gate treats parse-error as a failure
+    (the previous regex walker would have flagged every JS string
+    as a hit, which would also be a failure, so this preserves
+    semantics on bad JS)."""
+    try:
+        result = subprocess.run(
+            ["node", str(AST_WALKER_PATH), str(tool_js_path), "bypass"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except FileNotFoundError:
+        # node not on PATH — gate fails loudly. AD-1 / Story 1.14 audit
+        # expectation: gate runs in CI which has node.
+        return [("ast-error", 0, "node executable not found on PATH")]
+    except subprocess.TimeoutExpired:
+        return [("ast-timeout", 0, "ast-walker.js exceeded 30s")]
+
+    stdout = result.stdout.strip()
+    if not stdout:
+        return [("ast-empty-output", 0, "ast-walker.js produced no output")]
+
+    try:
+        payload = json.loads(stdout)
+    except json.JSONDecodeError as err:
+        return [("ast-bad-json", 0, f"could not parse ast-walker.js output: {err}")]
+
+    if not payload.get("ok"):
+        return [("parse-error", 0, payload.get("error", "unknown parse error"))]
+
+    findings = payload.get("findings", [])
+    out: list[tuple[str, int, str]] = []
+    for f in findings:
+        kind = f.get("kind", "unknown")
+        line = int(f.get("line", 0))
+        snippet = f.get("snippet", "")
+        # Map acorn finding kinds to the rule names the bypass report
+        # uses (preserves the existing report format).
+        rule = {
+            "localStorage": "localStorage",
+            "cookie": "document.cookie",
+            "fetch": "fetch",
+            "xhr": "XMLHttpRequest",
+            "xhr-ref": "XMLHttpRequest",
+            "directProvide": "HT.provide",
+        }.get(kind, kind)
+        out.append((rule, line, snippet))
+    return out
+
+
 # Story 2.2 review fix P-4: pre-strip /* ... */ block comments before
 # raw-line scanners run, so a long comment on its own line isn't
 # matched by a `data-ht-action="..."` literal scan, AND so a literal
@@ -725,11 +812,36 @@ def _strip_block_comments(text: str) -> str:
 
 def _scan_file(path: Path) -> list[tuple[str, int, str]]:
     """Scan a single tool JS file. Returns a list of (rule, line, text).
-    The scan is string/comment-aware (see _scan_pattern_in_code): a
-    tool's UI text or doc comment that mentions 'XMLHttpRequest' is
-    not flagged.
+    The scan is string/comment-aware via two layers:
 
-    Story 2.2 additions:
+    Layer 1 — AST call-site walker (Story 1.17 / AI-E1-13): the
+    vendored acorn parser (scripts/vendor/ast-walker.js) walks the
+    parsed AST and reports every real call-site that bypasses the
+    Shell public API:
+        - localStorage.{getItem,setItem,removeItem,clear}(...)
+        - document.cookie (assignment or read)
+        - fetch(...)
+        - new XMLHttpRequest() and bare XMLHttpRequest.<prop> refs
+        - HT.provide.register(...) (direct registration bypass)
+    These flags used to be raised by code-span-aware regex scanners
+    (LOCAL_STORAGE_RE, DOC_COOKIE_RE, FETCH_RE, XHR_RE, HT_PROVIDE_RE).
+    Routing them through AST eliminates the comment/string false-
+    positive class that plagued the previous regex path (e.g.,
+    `// fetch the URL when offline` was previously flagged).
+
+    The lifecycle fallback allowlist (find_lifecycle_allowlist_lines)
+    still applies to localStorage hits — a tool with the documented
+    if/else pattern is tolerated as a whole block.
+
+    Layer 2 — raw-line scanners (unchanged). The remaining rules
+    scan for LITERAL string surfaces (HTML attribute literals, ARIA
+    labels, share-dialog ID literals, tabindex values, etc.). These
+    rules are intentionally NOT routed through the AST because their
+    primary surface IS string contents; an AST walker would suppress
+    the bypass case by design. Routing them through AST would be a
+    regression.
+
+    Story 2.2 additions (still on Layer 2):
       - SAMPLE_ACTION_RE runs via the code-span scanner (assignment
         only; comparison form is suppressed by the `(?!=)` lookahead).
       - SAMPLE_LITERAL_RE + SAMPLE_ARIA_RE run as raw-line scanners
@@ -737,13 +849,11 @@ def _scan_file(path: Path) -> list[tuple[str, int, str]]:
         attribute literal or ARIA-label string inside a `setAttribute`
         call or template-literal HTML fragment still trips the gate.
 
-    Story 2.4 additions:
+    Story 2.4 additions (still on Layer 2):
       - TABINDEX_RE is run as a raw-line scanner against the
         block-comment-stripped source. Matches tabindex="N" with N
         a positive integer (1, 2, 3, ...). tabindex="-1" and
-        tabindex="0" are allowlisted (the latter is the documented
-        "tabbable but not focusable via script" pattern; EXPERIENCE.md
-        §6.2 row 4 forbids only positive values).
+        tabindex="0" are allowlisted.
     """
     try:
         text = path.read_text(encoding="utf-8")
@@ -757,18 +867,26 @@ def _scan_file(path: Path) -> list[tuple[str, int, str]]:
     stripped = _strip_block_comments(text)
     hits: list[tuple[str, int, str]] = []
 
-    for ln, line in _scan_pattern_in_code(text, LOCAL_STORAGE_RE):
-        if ln in allowed:
+    # Layer 1 — AST walker for the JS-only call-site rules. Each
+    # finding is mapped to the same rule name the regex scanner used
+    # to emit (localStorage / fetch / XMLHttpRequest / HT.provide)
+    # so the report format is unchanged.
+    ast_findings = _find_ast_bypass_callsites(path)
+    for rule, ln, snippet in ast_findings:
+        # ast-* / parse-error findings are unconditional failures —
+        # the file may be malformed, in which case the gate is
+        # suspect. Surface them at line 0 of the report.
+        if rule.startswith("ast-") or rule == "parse-error":
+            hits.append((rule, ln, snippet))
             continue
-        hits.append(("localStorage", ln, line))
-    for ln, line in _scan_pattern_in_code(text, DOC_COOKIE_RE):
-        hits.append(("document.cookie", ln, line))
-    for ln, line in _scan_pattern_in_code(text, FETCH_RE):
-        hits.append(("fetch", ln, line))
-    for ln, line in _scan_pattern_in_code(text, XHR_RE):
-        hits.append(("XMLHttpRequest", ln, line))
-    for ln, line in _scan_pattern_in_code(text, HT_PROVIDE_RE):
-        hits.append(("HT.provide", ln, line))
+        # Apply the lifecycle fallback allowlist to localStorage
+        # hits (the defensive fallback pattern is the only allowlisted
+        # bypass surface in the JS-only rules).
+        if rule == "localStorage" and ln in allowed:
+            continue
+        hits.append((rule, ln, snippet))
+
+    # Layer 2 — raw-line scanners for the literal-string rules.
     # Story 2.2 ad-hoc sample/reset button rule.
     for ln, line in _scan_pattern_in_code(text, SAMPLE_ACTION_RE):
         hits.append(("sample/reset", ln, line))

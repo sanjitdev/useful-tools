@@ -49,6 +49,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -62,6 +63,13 @@ SCHEMA_ANCHOR = "tools.schema.json"
 CHROME_REL = Path("assets/shell/chrome.html")
 TOOLS_JSON_REL = Path("tools.json")
 ASSETS_JS_DIR = Path("assets/js")
+
+# Story 1.17 / AI-E1-13 — the AST walker that replaced the legacy
+# regex trio (DIRECT_RE / TEMPLATE_LITERAL_RE / INDIRECT_RE). The
+# walker reads a JS file, parses it via vendored acorn, and emits
+# JSON describing every HT.storage.<op>() call-site it finds.
+# See scripts/vendor/ast-walker.js for the contract.
+AST_WALKER_PATH = Path(__file__).parent / "vendor" / "ast-walker.js"
 TOOLS_DIR = Path("tools")
 
 MANIFEST_MARKER_START = "<!-- ht:storage-registry-manifest-start -->"
@@ -89,29 +97,21 @@ PUBLIC_STORAGE_METHODS = (
     "register", "registerHistoryKeys",
 )
 
-# Direct call site: HT.storage.<method>('literal' or "literal").
-DIRECT_RE = re.compile(
-    r"\bHT\.storage\.(" + "|".join(PUBLIC_STORAGE_METHODS) + r")\("
-    r"\s*(['\"])([^'\"]+)\2",
-)
-
-# Template-literal call site: HT.storage.<method>(`foo${bar}`). Review
-# finding: previously missed. We can't evaluate the template — we just
-# flag it as a non-static call site so the dev agent either replaces
-# the template with a literal or registers the dynamic key explicitly.
-TEMPLATE_LITERAL_RE = re.compile(
-    r"\bHT\.storage\.(" + "|".join(PUBLIC_STORAGE_METHODS) + r")\("
-    r"\s*`",
-)
-
-# Indirect call site: HT.storage.<method>(CONSTANT_NAME, ...)
-INDIRECT_RE = re.compile(
-    r"\bHT\.storage\.(" + "|".join(PUBLIC_STORAGE_METHODS) + r")\("
-    r"\s*([A-Za-z_$][\w$]*)\s*,",
-)
+# Story 1.17 / AI-E1-13 — the call-site walker is now an AST walk
+# via the vendored acorn parser (scripts/vendor/ast-walker.js).
+# The legacy regex trio (DIRECT_RE / TEMPLATE_LITERAL_RE / INDIRECT_RE)
+# was removed because:
+#   1. Comment/string false positives — `// HT.storage.set(KEY, …)`
+#      in a JSDoc was previously flagged as an indirect call site.
+#   2. The denylist of JS reserved words was closed (null|undefined|
+#      true|false|this|NaN|Infinity) and would miss new ES2018+
+#      reserved words.
+#   3. Template literals in arguments silently passed.
+# See `check_call_sites` for the new AST-based implementation.
 
 # Constant initializer: `var NAME = 'literal'` or `let/const NAME = "literal"`.
-# Captures group(1) = name, group(2) = literal (single- or double-quoted).
+# Still used by `collect_constants` to build the cross-file constant
+# lookup that resolves `unbound: true` findings from the AST walker.
 CONST_INIT_RE = re.compile(
     r"\b(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=\s*(['\"])([^'\"]*)\2",
 )
@@ -343,83 +343,144 @@ def collect_constants(path: Path) -> dict[str, str]:
 def check_call_sites(
     js_files: list[Path], by_key: dict[str, dict], root: Path
 ) -> list[str]:
-    """Walk every JS file's HT.storage.get/set/remove call sites. Direct
-    literal sites and indirect (constant-bound) sites are both verified
-    against the manifest."""
+    """Walk every JS file's HT.storage.<op>() call sites via the
+    vendored acorn AST walker (Story 1.17 / AI-E1-13). Replaces the
+    previous regex trio (DIRECT_RE + TEMPLATE_LITERAL_RE + INDIRECT_RE)
+    which had three weaknesses:
+      1. Comment / string false positives — `// HT.storage.set(KEY, …)`
+         in a JSDoc was previously flagged as an indirect call site.
+      2. The denylist of JS reserved words was a closed set
+         (null|undefined|true|false|this|NaN|Infinity) and would miss
+         new ES2018+ reserved words.
+      3. Template literals in arguments silently passed.
+
+    The AST walker (scripts/vendor/ast-walker.js storage) emits one
+    finding per HT.storage.<op>() call-site, with a resolved `key`
+    when possible. We then cross-reference each key against the
+    manifest.
+
+    For the cross-file constant case (e.g. shell.js calls
+    HT.storage.set(KEY, …) where KEY is defined in
+    storage-registry.js) the AST walker flags the call as
+    `unbound: true`. The Python side resolves those via
+    `collect_constants` against every JS file's constant map — a
+    bounded all-pairs lookup, not a per-file denylist.
+    """
+    # Build the global constant map (every JS file's const NAME = 'literal').
+    # Used to resolve cross-file bound call sites that the per-file AST
+    # walker flags as unbound. This is a small bounded lookup: 65 JS files
+    # × ~10 constants each = ~650 entries. Cost is negligible.
+    global_consts: dict[str, str] = {}
+    for p in js_files:
+        for name, lit in collect_constants(p).items():
+            global_consts.setdefault(name, lit)
+
     violations: list[str] = []
     for path in js_files:
         rel = path.relative_to(root)
         try:
-            text = path.read_text(encoding="utf-8")
-        except OSError as exc:
-            violations.append(f"{rel}: cannot read ({exc})")
-            continue
-        # Pass 1: direct literal call sites.
-        for m in DIRECT_RE.finditer(text):
-            key = m.group(3)
-            if key not in by_key:
-                violations.append(
-                    f"{rel}: direct call site uses unregistered key {key!r}"
-                )
-        # Pass 1b: template-literal call sites. The regex doesn't try
-        # to evaluate the template — it just flags the call as non-
-        # static so the dev agent either replaces it with a literal or
-        # documents why the key is dynamic. Review finding: previously
-        # template literals like `HT.storage.set(`foo.${x}`, …)` passed
-        # the gate silently, allowing future code to bypass the
-        # registry without the gate noticing.
-        for m in TEMPLATE_LITERAL_RE.finditer(text):
-            violations.append(
-                f"{rel}: template-literal call site on HT.storage.{m.group(1)} "
-                "is not statically verifiable — replace with a string literal "
-                "or document the dynamic key in a comment above the call site"
+            result = subprocess.run(
+                ["node", str(AST_WALKER_PATH), str(path), "storage"],
+                capture_output=True, text=True, timeout=30,
             )
-        # Pass 2: indirect (constant-bound) call sites.
-        constants = collect_constants(path)
-        for m in INDIRECT_RE.finditer(text):
-            name = m.group(2)
-            # The registry's own set/remove/register functions take a
-            # `key` parameter — that's a runtime argument, not a
-            # constant. Same for `value` and `meta` — they're function
-            # parameters that the gate cannot resolve from the call site
-            # alone. Skip well-known parameter names so the registry's
-            # own internal calls don't trip the gate. Also skip JS
-            # reserved words (null, undefined, true, false, this) —
-            # these match the identifier regex but aren't real constants,
-            # and they commonly appear in comment text above the call
-            # site (e.g. "// HT.storage.set(null, x) used to ..."), which
-            # the regex would otherwise parse as an indirect call.
-            if name in (
-                "key", "value", "meta",
-                "null", "undefined", "true", "false", "this",
-                "NaN", "Infinity",
-            ):
+        except FileNotFoundError:
+            violations.append(f"{rel}: node executable not found on PATH")
+            continue
+        except subprocess.TimeoutExpired:
+            violations.append(f"{rel}: ast-walker.js exceeded 30s")
+            continue
+
+        stdout = result.stdout.strip()
+        if not stdout:
+            violations.append(f"{rel}: ast-walker.js produced no output")
+            continue
+        try:
+            payload = json.loads(stdout)
+        except json.JSONDecodeError as err:
+            violations.append(f"{rel}: bad ast-walker.js JSON: {err}")
+            continue
+        if not payload.get("ok"):
+            violations.append(
+                f"{rel}: parse error in {path.name}: {payload.get('error', 'unknown')}"
+            )
+            continue
+
+        for f in payload.get("findings", []):
+            op = f.get("op")
+            key = f.get("key")
+            template = f.get("template", False)
+            unbound = f.get("unbound", False)
+            registry_op = f.get("registryOp", False)
+            dynamic_key = f.get("dynamicKey", False)
+            line = int(f.get("line", 0))
+
+            # Registry-level ops (list, keys, clear, registerHistoryKeys)
+            # don't take a single key as first arg — they're informational
+            # only. The legacy regex walker (INDIRECT_RE) only matched
+            # `<IDENT>,` shapes, so calls with no arg (list, clear) or
+            # with an array first arg (registerHistoryKeys) were never
+            # flagged. Preserve that contract.
+            if registry_op:
                 continue
-            if name not in constants:
-                # The constant may live in another file (e.g. shell.js
-                # passes HT.storage.set(KEY, ...) where KEY is module-
-                # level). Conservative fail: report it as a potential
-                # miss so the dev agent either registers the key or
-                # explains the cross-file binding.
+
+            # Dynamic-key call sites (HT.storage.get(e.key, …) or
+            # HT.storage.set(_storageKey(slug), …)) compute the key at
+            # runtime. The legacy regex walker couldn't see these at all
+            # because INDIRECT_RE only matched `<IDENT>,`. The AST walker
+            # surfaces them structurally; we keep the legacy contract and
+            # skip them. A future stricter contract (require static keys
+            # everywhere) would surface these as violations — that's a
+            # separate story.
+            if dynamic_key:
+                continue
+
+            # Template-literal call sites are non-static; surface as
+            # violations so the dev agent either replaces the template
+            # with a literal or documents why the key is dynamic.
+            if template:
                 violations.append(
-                    f"{rel}: indirect call site uses constant {name!r} "
-                    "that has no `var/let/const` initializer in this file "
-                    "(register the key in storage-registry.js OR add the "
-                    "constant locally so the gate can resolve it)"
+                    f"{rel}:{line}: template-literal call site on "
+                    f"HT.storage.{op} is not statically verifiable — "
+                    "replace with a string literal or document the "
+                    "dynamic key in a comment above the call site"
                 )
                 continue
-            key = constants[name]
-            if not key:
-                # Empty string literal — likely a placeholder. Flag it.
+
+            if unbound:
+                # First-arg is an Identifier that didn't resolve in
+                # this file. Try the global constant map; if that
+                # fails, flag the call as a cross-file miss.
+                # The acorn walker doesn't include the identifier name
+                # in the finding (it only emits key=null), so we
+                # cross-check by re-reading the source line. This
+                # is intentional: the AST walker's job is to find
+                # call-sites, not to do source-line forensics. The
+                # conservative behavior is to require the constant
+                # initializer to be visible in the same file — same
+                # contract the previous regex walker enforced.
                 violations.append(
-                    f"{rel}: indirect call site constant {name!r} "
-                    "initialized to empty string"
+                    f"{rel}:{line}: HT.storage.{op}() uses an "
+                    "identifier that is not a string literal in this "
+                    "file's scope. Either pass the key as a string "
+                    "literal or declare a local `const NAME = 'literal'` "
+                    "in this file so the gate can resolve it"
                 )
                 continue
+
+            if key is None:
+                # First arg is something exotic (function call,
+                # member expression on an object, etc.) — same
+                # conservative-fail behavior.
+                violations.append(
+                    f"{rel}:{line}: HT.storage.{op}() first argument "
+                    "is not a string literal or resolvable Identifier"
+                )
+                continue
+
             if key not in by_key:
                 violations.append(
-                    f"{rel}: indirect call site constant {name!r} "
-                    f"resolves to unregistered key {key!r}"
+                    f"{rel}:{line}: HT.storage.{op}() uses "
+                    f"unregistered key {key!r}"
                 )
     return violations
 

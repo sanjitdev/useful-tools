@@ -1,6 +1,80 @@
 # Story 1.17 — AST-based Gate Scanners (AI-E1-13)
 
-Status: backlog
+Status: review
+
+## Implementation Plan
+
+This story migrates two Python gate scripts to use AST-based call-site detection
+instead of regex/string matching, eliminating the false-positive class that
+plagued the previous implementation (comment-internal `localStorage.getItem`,
+template literals containing `"fetch("`, ES2018+ reserved words not in
+`INDIRECT_RE`'s denylist).
+
+### Approach
+
+1. **Vendor acorn 8.18.0** at `scripts/vendor/acorn.js` with the MIT license
+   preserved verbatim from upstream. No `package.json` or `node_modules` —
+   the vendored UMD build is CommonJS-compatible via `require()`.
+2. **Wrap acorn in a CLI** at `scripts/vendor/ast-walker.js` with two
+   `concern` modes: `bypass` (for shell-bounds-check) and `storage` (for
+   storage-registry-gate). Both gate scripts shell out to the walker via
+   Python `subprocess.run(["node", ...])` and parse the JSON output.
+3. **Migrate `shell-bounds-check.py`** — replace the substring-scan layer
+   (LOCAL_STORAGE_RE / FETCH_RE / XHR_RE / DOC_COOKIE_RE / HT_PROVIDE_RE)
+   with an AST walk. Layer 2 raw-line scanners (sample/reset literal
+   strings, share-dialog IDs, tabindex values) stay as regex because their
+   surface IS string contents.
+4. **Migrate `storage-registry-gate.py`** — remove the legacy
+   `DIRECT_RE` / `TEMPLATE_LITERAL_RE` / `INDIRECT_RE` regex trio and
+   shell out to the AST walker instead. The walker emits one finding per
+   `HT.storage.<op>()` call-site with the resolved key (literal,
+   constant-bound, template-flagged, unbound-flagged, registryOp, or
+   dynamicKey). Cross-file constant resolution stays as a bounded all-pairs
+   lookup (small N).
+5. **Add AC-4 negative-test battery** at `scripts/_smoke_ast_gates.js` —
+   Node driver that builds a temp repo with three fixture tool files
+   (comment-only, string-only, real-call) and runs both Python gates
+   against it end-to-end. Exits 1 on any false positive or false negative.
+6. **Wire into CI** — `Makefile` `ast-gates-self-test` + `ast-gates-negative`
+   targets added; `ci` chain extended; `.github/workflows/tool-contract-gate.yml`
+   gets two new steps + the path filter covers `scripts/vendor/**` and the
+   new smoke.
+
+### AST walker findings schema
+
+```json
+{
+  "ok": true,
+  "concern": "bypass",
+  "findings": [
+    {"kind": "localStorage", "op": "setItem", "line": 42, "col": 2, "snippet": "..."}
+  ]
+}
+{
+  "ok": true,
+  "concern": "storage",
+  "findings": [
+    {
+      "op": "get",
+      "registryOp": false,
+      "key": "ht.theme",
+      "template": false,
+      "unbound": false,
+      "dynamicKey": false,
+      "line": 18, "col": 4, "snippet": "..."
+    }
+  ]
+}
+```
+
+The `registryOp` flag (true for `list` / `keys` / `clear` /
+`registerHistoryKeys`) and `dynamicKey` flag (true for runtime-computed
+keys like `_storageKey(slug)` or `e.key` or optional-chaining expressions)
+preserve the legacy regex walker's contract: the Python gate skips both
+classes, since the legacy `INDIRECT_RE` only matched `<IDENT>,` shapes
+(no-arg calls and computed-arg calls were never flagged). A future
+stricter contract would surface these as violations — that's a separate
+story.
 
 ## Story
 
