@@ -439,6 +439,19 @@
     // that any caller passes — the gate cross-check covers whether a
     // tools.json entry's history-keys are covered).
     setTimeout(registerToolHistoryKeys, 0);
+
+    // Story 3.7 — best-effort register the forward-compat keys
+    // `handy-tools.recent`, `handy-tools.favorites`, `handy-tools.pins`
+    // so the export module's `HT.storage.list()` enumeration can see
+    // them. These keys are 2-segment (no slug segment) and may be
+    // rejected by `isValidNamespace`; the try/catch ensures the
+    // bootstrap never breaks on a registration conflict — export.js
+    // falls back to direct `HT.storage.get(key, fallback)` reads.
+    if (HT.storage && typeof HT.storage.register === 'function') {
+      try { HT.storage.register('handy-tools.recent', { purpose: 'recently-used-tools', lifetime: 'persistent', schema: 'string-array', owner: 'assets/js/home-grid.js (Story 3.12)' }); } catch (_) {}
+      try { HT.storage.register('handy-tools.favorites', { purpose: 'favorited-tools', lifetime: 'persistent', schema: 'string-array', owner: 'assets/js/home-grid.js (Story 3.12)' }); } catch (_) {}
+      try { HT.storage.register('handy-tools.pins', { purpose: 'pinned-tools', lifetime: 'persistent', schema: '{slug: iso-timestamp}', owner: 'assets/js/home-grid.js (Story 3.12)' }); } catch (_) {}
+    }
   }
 
   // Retry budget: ~2 seconds, exponential backoff capped at 200 ms.
@@ -1441,6 +1454,22 @@
 
     const clearButton = document.getElementById('shell-settings-clear');
     if (clearButton) clearButton.addEventListener('click', clearAllLocalData);
+
+    // Story 3.7 — Export-my-data action. Reversible, no typed confirmation
+    // (UX-DR-3). Click → HT.export.run() → JSON Blob download. In embed
+    // mode the Settings modal is already blocked from opening (AD-7),
+    // but we still mark the button [hidden] + aria-hidden so screen
+    // readers and future parsers see it as suppressed, mirroring the
+    // pattern the History panel uses.
+    const exportButton = document.getElementById('shell-settings-export');
+    if (exportButton) {
+      exportButton.addEventListener('click', () => HT.export.run());
+      if (isEmbedMode()) {
+        exportButton.hidden = true;
+        exportButton.setAttribute('aria-hidden', 'true');
+        exportButton.dataset.embedSuppressed = '1';
+      }
+    }
 
     // Apply the persisted reduced-motion preference at boot as well as when
     // the modal field changes, so a reload preserves the setting immediately.

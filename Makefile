@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -43,6 +43,7 @@ help: ## Show available targets
 	@echo "  make a11y-audit          Per-tool keyboard-complete audit (Story 2.4 AC-2) — exit 1 on any failed ready:true tool"
 	@echo "  make history-smoke       Run the Node smoke harness for assets/js/history.js (Story 2.3 / AD-4 + AD-14)"
 	@echo "  make share-dialog-smoke  Run the Node smoke harness for assets/js/share.js (Story 2.5 / AD-4 + AD-14)"
+	@echo "  make export-smoke        Run the Node smoke harness for assets/js/export.js (Story 3.7 / AD-4 + AD-14)"
 	@echo "  make tool-inventory      Regenerate docs/tool-inventory.md (Story 2.6 / Story 1.4)"
 	@echo "  make promote-wave-1      Validate the three Wave-1 tools are at the 8/10 bar and refresh the inventory (Story 2.6)"
 	@echo "  make audit-wave-1        Run docs/quality-rubric.md against each Wave-1 tool and emit docs/quality-audit.md (Story 2.6)"
@@ -110,7 +111,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke wave-1-smoke wave-2-smoke wave-3-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Exit 2 if any page is out of sync.
@@ -299,6 +300,16 @@ history-smoke:
 # catches hollow runs.
 share-dialog-smoke:
 	@node scripts/_smoke_share_dialog.js
+
+# `export-smoke` runs the Node smoke harness for assets/js/export.js.
+# Verifies the public HT.export surface (frozen in api-contract.js
+# 1.13.0), the internal HT_EXPORT_SCHEMA_VERSION handle, the payload
+# assembly (version / exportedAt / settings / history / favorites /
+# recent / pins), the validation-failure path (toast + console.error
+# + no download), the embed-mode guard, and the api-contract pin.
+# 43 PASS expected (Story 3.7). Vacuous-pass guard catches hollow runs.
+export-smoke:
+	@node scripts/_smoke_export.js
 
 # Story 2.6 — Wave-1 promotion + inventory + audit + page smoke.
 # `tool-inventory` regenerates docs/tool-inventory.md, listing all

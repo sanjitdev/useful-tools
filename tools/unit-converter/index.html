@@ -340,7 +340,17 @@
         </div>
       </div>
 
-      <!-- 7. Clear all local data (LIVE — only consumer of SETTINGS_KEYS) -->
+      <!-- 7. Data — Export my data (LIVE — Story 3.7, FR-13 export half) -->
+      <div class="shell-settings-field shell-settings-field--data">
+        <div class="shell-settings-label" aria-hidden="true">Data</div>
+        <div class="shell-settings-control">
+          <button type="button" id="shell-settings-export" class="shell-settings-modal__export"
+                  aria-label="Export your settings, history, and saved tools as a JSON file"
+                  data-ht-action="export-data">Export my data…</button>
+        </div>
+      </div>
+
+      <!-- 8. Clear all local data (LIVE — only consumer of SETTINGS_KEYS) -->
       <div class="shell-settings-field shell-settings-field--danger">
         <div class="shell-settings-control">
           <button type="button" id="shell-settings-clear" class="shell-settings-modal__danger">Clear all local data…</button>
@@ -420,6 +430,7 @@
   <script src="../../assets/js/history.js"></script>
   <script src="../../assets/js/sample-data.js"></script>
   <script src="../../assets/js/share.js"></script>
+  <script src="../../assets/js/export.js"></script>
   <script src="../../assets/js/a11y.js"></script>
   <script src="../../assets/js/palette-actions.js"></script>
   <script src="../../assets/js/shell.js" defer></script>

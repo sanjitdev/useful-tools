@@ -70,7 +70,7 @@ EXPECTED_FIELDS_INTERNAL = (
 EXPECTED_FIELDS_PUBLIC = (
     "repoUrl", "blobBase", "defaultBranch", "brand", "defaultLocale",
 )
-EXPECTED_VERSION = "1.12.0"
+EXPECTED_VERSION = "1.13.0"
 
 TOOL_SCRIPT_RE = re.compile(
     r'<script\s+src="\.\./\.\./assets/js/site-config\.js"></script>'
@@ -231,7 +231,7 @@ def check_api_contract(path: Path) -> list[str]:
     elif version_match.group(1) != EXPECTED_VERSION:
         violations.append(
             f"api-contract.js version is {version_match.group(1)!r}; "
-            f"Story 3.6 requires {EXPECTED_VERSION!r}"
+            f"Story 3.7 requires {EXPECTED_VERSION!r}"
         )
     if "HT.siteConfig" not in text:
         violations.append(

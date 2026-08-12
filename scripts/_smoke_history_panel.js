@@ -4,8 +4,10 @@
    with stub window/document/HT objects, plus a
    synthetic HT.storage facade, and asserts the
    HT.history surface per api-contract.js (version
-   1.8.0 as of this writing — Story 2.3 bumped the
-   contract 1.6.0 → 1.7.0, Story 2.5 bumped 1.7.0 → 1.8.0).
+   1.13.0 as of this writing — Story 2.3 bumped the
+   contract 1.6.0 → 1.7.0, Story 2.5 bumped 1.7.0 → 1.8.0,
+   Story 3.6 bumped 1.11.0 → 1.12.0, Story 3.7 bumped
+   1.12.0 → 1.13.0 for HT.export).
 
    Story 3.6: 76 assertions (was 47 in Story 2.3/3.3
    intermediate) — storage shape + migration, relative
@@ -496,8 +498,8 @@ for (const name of requiredEntries) {
 }
 check('api-contract.js: all 10 HT.history.* entries registered (9 stable + 1 internal)',
   allEntriesFound);
-check('api-contract.js: version bumped to 1.12.0 (Story 3.6 — history panel shape migration + cap 50)',
-  /version:\s*['"]1\.12\.0['"]/.test(CONTRACT_SRC));
+check('api-contract.js: version bumped to 1.13.0 (Story 3.7 — HT.export added; Story 3.6 — history panel shape migration + cap 50)',
+  /version:\s*['"]1\.13\.0['"]/.test(CONTRACT_SRC));
 
 // === Vacuous-pass guard (assertion 31) ===
 
@@ -1319,9 +1321,9 @@ for (const name of requiredEntries) {
 check('F.38 api-contract.js: all 9 HT.history.* entries registered (8 stable + 1 internal)',
   allEntriesFoundF);
 
-// F.39 — api-contract.js version is 1.12.0 (bumped from 1.11.0)
-check('F.39 api-contract.js: version bumped to 1.12.0',
-  /version:\s*['"]1\.12\.0['"]/.test(CONTRACT_SRC));
+// F.39 — api-contract.js version is 1.13.0 (Story 3.7 bumped 1.12.0 → 1.13.0 for HT.export)
+check('F.39 api-contract.js: version bumped to 1.13.0',
+  /version:\s*['"]1\.13\.0['"]/.test(CONTRACT_SRC));
 
 // F.40 — api-contract.js HT.history.push notes mention Story 3.6 + cap 50 + new shape
 const pushNotesMatch = CONTRACT_SRC.match(/HT\.history\.push[\s\S]*?(?=name:\s*'HT\.history\.)/);
@@ -1338,7 +1340,7 @@ check('F.41 HT_HISTORY_INIT exists and is frozen',
 check('F.42 HT_HISTORY_INIT.cap === 50',
   ctx.window.HT_HISTORY_INIT && ctx.window.HT_HISTORY_INIT.cap === 50);
 
-// F.43 — HT_HISTORY_INIT.version === '1.12.0'
+// F.43 — HT_HISTORY_INIT.version is unchanged by Story 3.7 (still 1.12.0 — Story 3.7 added HT.export alongside)
 check('F.43 HT_HISTORY_INIT.version === "1.12.0"',
   ctx.window.HT_HISTORY_INIT && ctx.window.HT_HISTORY_INIT.version === '1.12.0');
 

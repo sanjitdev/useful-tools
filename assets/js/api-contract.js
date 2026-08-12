@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.12.0',
+  version: '1.13.0',
   generated: '2026-08-12',
   entries: Object.freeze([
     Object.freeze({
@@ -418,6 +418,20 @@ window.HT.__apiContract = Object.freeze({
       stability: 'internal',
       module: 'assets/js/history.js',
       notes: 'Story 3.6 internal handle (AD-14 internal-handle pattern; mirrors the bootstrap-handle pattern used by other Story 3.x modules). Exposes the history module bootstrap tuple {version, cap} so the smoke harness can verify the loaded module matches the api-contract version. Frozen via Object.freeze at module load. NOT a public HT.* surface — accessing this from a tool is undefined behavior.',
+    }),
+    Object.freeze({
+      name: 'HT.export',
+      signature: 'Object.freeze({run: () => {ok: boolean, reason?: string, filename?: string, payload?: object, errors?: Array<{path: string, message: string}>}, version: "1.0.0"})',
+      stability: 'stable',
+      module: 'assets/js/export.js',
+      notes: 'Story 3.7. Frozen since Story 3.7. Methods: HT.export.run() — assembles the export payload (version, exportedAt, settings, history, favorites, recent, pins), validates it against HT_EXPORT_SCHEMA_VERSION, and triggers a Blob download as `handy-tools-export-YYYY-MM-DD.json` in the user\'s local timezone. Reversible action (UX-DR-3) — no typed confirmation. Returns {ok: true, filename, payload} on success; {ok: false, reason: "embed-mode"} when AD-7 hides the Settings modal; {ok: false, reason: "validation-failed", errors} when the payload fails the hand-rolled 6-check predicate (console.error logs the full error array; the toast names the first failing path). Internal handle: HT_EXPORT_SCHEMA_VERSION = "1.0.0" (single source of truth for the JSON `version` field; Story 3.8 reads this to reject mismatches). Read-only (Object.freeze).',
+    }),
+    Object.freeze({
+      name: 'HT_EXPORT_SCHEMA_VERSION',
+      signature: 'Readonly<{version: "1.0.0"}>',
+      stability: 'internal',
+      module: 'assets/js/export.js',
+      notes: 'Story 3.7 internal handle (AD-14 internal-handle pattern; mirrors HT_HISTORY_INIT). Exposes the export module bootstrap tuple {version} so the smoke harness can verify the loaded module matches the api-contract version. Frozen via Object.freeze at module load. The `version` field is the literal "1.0.0" — it is the single source of truth for the JSON `version` field that every export payload carries. Story 3.8 reads this to reject mismatches. NOT a public HT.* surface — accessing this from a tool is undefined behavior.',
     }),
     Object.freeze({
       name: 'HT.share.open',

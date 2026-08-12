@@ -83,8 +83,8 @@ calls `HT.provide(slug, api)` once at boot, after `HT.boot()`.
 ## 5. The `HT.*` surface (stable + experimental + internal)
 
 The current entries live in `assets/js/api-contract.js` (read that file for
-the canonical, machine-verified list — version `1.8.0` as of this writing,
-bumped from `1.7.0` by Story 2.5).
+the canonical, machine-verified list — version `1.13.0` as of this writing,
+bumped from `1.12.0` by Story 3.7 for `HT.export`).
 
 | Entry | Stability | Module |
 |---|---|---|
@@ -153,6 +153,8 @@ bumped from `1.7.0` by Story 2.5).
 | `HT.share.mount` | stable | share.js (Story 2.5 / AD-4 — Shell-side insertion helper, 3rd `.tool-actions` consumer) |
 | `HT.share.print` | stable | share.js (Story 2.5 / AD-4 — sanctioned Print wrapper for legacy tools) |
 | `HT.share._loadSchema` | internal | share.js (Story 2.5 / AD-4) |
+| `HT.export` | stable | export.js (Story 3.7 / AD-4 + AD-14 — `HT.export.run()` assembles + validates + downloads; reversible, no typed confirmation; hidden in embed mode) |
+| `HT_EXPORT_SCHEMA_VERSION` | internal | export.js (Story 3.7 / AD-14 — single source of truth for the JSON `version` field; Story 3.8 reads this) |
 
 ---
 
