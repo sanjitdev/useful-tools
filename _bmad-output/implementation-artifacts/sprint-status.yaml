@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-31
-last_updated: 2026-08-12T37:00:00Z
+last_updated: 2026-08-12T38:00:00Z
 project: useful-tools
 project_key: NOKEY
 tracking_system: file-system
@@ -71,8 +71,8 @@ development_status:
   1-14-shell-public-api-and-bypass-prohibition: done
   1-15-first-promoted-tool-lands-on-home-grid: done
   1-16-lifespan-simulator-plan-your-changes-tab: done
-  1-17-gate-scanners-ast-migration: review  # AI-E1-13 (deferred from epic-1-retrofit-audit-2026-08-12 sweep; landed in commit HEAD with AC-1..AC-6 verified)
-  1-18-chrome-equivalence-dom-walk: review  # AI-E1-15 (Epic 1 retrofit audit; landed at HEAD with DOM walk + 8-assertion smoke + 5 pack-page skip-link fixups; AC-1..AC-6 verified; brownfield clean: 35 tool + 5 pack + index + view-source + quality = 42 pages pass without --allow-drift)
+  1-17-gate-scanners-ast-migration: done  # AI-E1-13 (deferred from epic-1-retrofit-audit-2026-08-12 sweep; landed in commit HEAD with AC-1..AC-6 verified; second-pass review 2026-08-12 found 0 new findings; smoke 7/7 PASS; 35/35 tools shell-bounds, 65/65 JS files storage-registry)
+  1-18-chrome-equivalence-dom-walk: done  # AI-E1-15 (Epic 1 retrofit audit; landed at HEAD with DOM walk + 8-assertion smoke + 5 pack-page skip-link fixups; AC-1..AC-6 verified; second-pass review 2026-08-12 found 0 new findings; brownfield clean: 35 tool + 5 pack + index + view-source + quality = 42 pages pass without --allow-drift)
   epic-1-retrospective: done
 
   # =========================================================================
