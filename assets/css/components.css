@@ -498,24 +498,31 @@
 
 /* Five columns on desktop. With natural height, each tile is wide
    (~200px) and short (~80px). The row reads as a horizontal
-   scannable index, not a stack of squares taking the whole page. */
-.pack-section > div {
+   scannable index, not a stack of squares taking the whole page.
+
+   The grid container is the #home-grid-packs div that pack-grid.js
+   mounts into (rendered host, NOT a hand-authored <div>). The
+   earlier selector `.pack-section > div` matched nothing because
+   the section uses class="home-grid-section home-pack" — there is
+   no `.pack-section` class on the page. Targeting the host ID
+   directly is robust regardless of how the section is structured. */
+#home-grid-packs {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: var(--space-3);
 }
 
 @media (max-width: 900px) {
-  .pack-section > div { grid-template-columns: repeat(4, 1fr); }
+  #home-grid-packs { grid-template-columns: repeat(4, 1fr); }
 }
 @media (max-width: 720px) {
-  .pack-section > div { grid-template-columns: repeat(3, 1fr); }
+  #home-grid-packs { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 540px) {
-  .pack-section > div { grid-template-columns: repeat(2, 1fr); }
+  #home-grid-packs { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 360px) {
-  .pack-section > div { grid-template-columns: 1fr; }
+  #home-grid-packs { grid-template-columns: 1fr; }
 }
 
 /* Horizontal tile — icon on the left, title + count stacked on the
