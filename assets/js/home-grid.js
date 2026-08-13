@@ -121,14 +121,20 @@
   function groupByCategory(entries) {
     // Preserves first-seen order; categories inherit DOM order from tools.json.
     const groups = [];
-    const indexByName = Object.create(null);
+    const byName = Object.create(null);
     for (let i = 0; i < entries.length; i += 1) {
       const entry = entries[i];
       const category = entry.category || 'Other';
-      let group = indexByName[category];
+      let group = byName[category];
       if (group === undefined) {
+        // Bug fix: previously we stored `groups.length` (a number) in
+        // `indexByName[category]` and then tried to call `.entries.push`
+        // on the number, throwing "Cannot read properties of undefined
+        // (reading 'push')" the moment a category recurred (i.e. the
+        // 2nd tool of any category — i.e. always). Store the group
+        // object directly so the lookup yields something with `.entries`.
         group = { name: category, entries: [] };
-        indexByName[category] = groups.length;
+        byName[category] = group;
         groups.push(group);
       }
       group.entries.push(entry);
