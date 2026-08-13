@@ -537,8 +537,8 @@ console.log('JSON Formatter Enhancements smoke (Story 9.1):');
     'api-contract.js: HT.diff entry present');
   check(/name:\s*'HT\.jsonSchema'/.test(acSrc),
     'api-contract.js: HT.jsonSchema entry present');
-  check(/version:\s*'1\.17\.0'/.test(acSrc),
-    'api-contract.js: version bumped to 1.17.0 (Story 9.1 surface additions)');
+  check(/version:\s*'1\.18\.0'/.test(acSrc),
+    'api-contract.js: version bumped to 1.18.0 (Story 9.2 surface addition: HT.citation)');
 }
 
 // ============================================================

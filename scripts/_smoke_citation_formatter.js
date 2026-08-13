@@ -457,9 +457,16 @@ check(dispMla === formatMla9({ author: 'a', title: 'b', year: 'c', publisher: 'd
 check(dispChi === formatChicago17({ author: 'a', title: 'b', year: 'c', publisher: 'd' }),
   'formatCitation: dispatches to Chicago when style="chicago-17"');
 
-const dispUnknown = formatCitation('unknown', { author: 'a', title: 'b', year: 'c', publisher: 'd' });
-check(dispUnknown === formatApa7({ author: 'a', title: 'b', year: 'c', publisher: 'd' }),
-  'formatCitation: unknown style falls back to APA');
+let dispUnknownThrew = false;
+let dispUnknownErr = '';
+try {
+  formatCitation('unknown', { author: 'a', title: 'b', year: 'c', publisher: 'd' });
+} catch (e) {
+  dispUnknownThrew = true;
+  dispUnknownErr = (e && e.message) ? e.message : String(e);
+}
+check(dispUnknownThrew && /unknown style/i.test(dispUnknownErr),
+  'formatCitation: unknown style throws (not silent fallback) — got: ' + dispUnknownErr);
 
 // ---------------------------------------------------------------
 // Category 9: DOM rendering — load tool script, set inputs,

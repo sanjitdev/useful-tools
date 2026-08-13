@@ -1,5 +1,5 @@
 /* ============================================
-   Citation Formatter
+   Citation Formatter — Story 9.2
    Format citations in APA 7, MLA 9, or
    Chicago 17. Manual fields + ISBN lookup via
    Open Library (user-initiated). DOI regex
@@ -84,7 +84,17 @@
   function render() {
     if (!outEl) return;
     var style = getStyle();
-    var text = HT.citation.formatCitation(style, currentInput());
+    var text;
+    try {
+      text = HT.citation.formatCitation(style, currentInput());
+    } catch (err) {
+      // formatCitation throws on unknown style. getStyle() whitelists
+      // and falls back to 'apa-7', so this branch is defensive only —
+      // if it fires, surface a status error instead of leaving the
+      // previous rendered output in place.
+      setStatus('Render failed: ' + (err.message || err), 'error');
+      return;
+    }
     // Wrap missing-field placeholders in <span class="citation-missing">
     // for visual highlight. Only the open paren (n.d.) / (n.p.) /
     // (untitled) / (unknown author) markers get wrapped.

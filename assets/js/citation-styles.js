@@ -225,8 +225,13 @@
     if (style === 'apa-7') return formatApa7(input);
     if (style === 'mla-9') return formatMla9(input);
     if (style === 'chicago-17') return formatChicago17(input);
-    // Unknown style — fall back to APA.
-    return formatApa7(input);
+    // Unknown style — throw so a typo (e.g. "APA-7" from a stale URL
+    // hash, or an upstream schema enum drift) surfaces as a visible
+    // status error instead of silently rendering APA. The tool's
+    // getStyle() whitelist pre-filters the value, so this branch only
+    // fires on a programming error. AC-1 specifies exactly three
+    // style strings; anything else is a contract violation.
+    throw new Error('HT.citation.formatCitation: unknown style "' + style + '" (expected apa-7 | mla-9 | chicago-17)');
   }
 
   // -------------------------------------------------------------

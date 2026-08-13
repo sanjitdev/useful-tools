@@ -5588,7 +5588,23 @@
         "min-width": 320,
         "min-height": 280
       },
-      "search-priority": 5
+      "search-priority": 5,
+      "tab-order-canonical": [
+        "#shell-skip",
+        "a.back-link",
+        "#cite-style",
+        "#cite-author",
+        "#cite-title",
+        "#cite-year",
+        "#cite-publisher",
+        "#cite-isbn",
+        "#cite-lookup-isbn",
+        "#cite-doi",
+        "#cite-source",
+        "#cite-copy",
+        "#cite-generate",
+        "#cite-output"
+      ]
     },
     {
       "id": "diff-viewer",

@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.17.0',
+  version: '1.18.0',
   generated: '2026-08-13',
   entries: Object.freeze([
     Object.freeze({
@@ -19,6 +19,13 @@ window.HT.__apiContract = Object.freeze({
       stability: 'stable',
       module: 'assets/js/shell.js',
       notes: 'Idempotent. Safe to call twice — second call is a no-op.',
+    }),
+    Object.freeze({
+      name: 'HT.citation',
+      signature: 'Object.freeze({parseAuthor: (raw: string) => {last: string, first: string, rest: string, initials: string, suffix: string, isCorporate: boolean}, validateIsbn: (raw: string) => string, validateDoi: (raw: string) => string, isUrl: (raw: string) => boolean, formatApa7: (input: object) => string, formatMla9: (input: object) => string, formatChicago17: (input: object) => string, formatCitation: (style: string, input: object) => string})',
+      stability: 'stable',
+      module: 'assets/js/citation-styles.js',
+      notes: 'Story 9.2 (Citation Formatter APA 7 / MLA 9 / Chicago 17 author-date). Pure functions, no DOM. parseAuthor handles "Last, F. M." + "First Last" + "First M. Last" + "Surname, et al." forms; the tool UI never sees the raw parser output — only the rendered string. validateIsbn strips ISBN-10/13 prefixes + dashes before validating check digit (returns empty string on invalid). validateDoi accepts /10.NNNN/... form. isUrl is a permissive https? match (the tool user-initiated Open Library lookup routes through HT.net.json, NOT through this). The 3 formatters take a normalized input (author, title, year, publisher, doi, url, isbn) and return a plain-text citation (italic placeholders are NOT rendered — AC-1 specifies plain output; future enhancement). formatCitation dispatches on style string. Read-only (Object.defineProperty writable:false).',
     }),
     Object.freeze({
       name: 'HT.shell.version',
