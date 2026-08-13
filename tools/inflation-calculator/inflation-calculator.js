@@ -541,12 +541,16 @@
     var newest = (typeof HT.history.lastEntry === 'function')
       ? HT.history.lastEntry('inflation-calculator')
       : null;
-    if (newest && JSON.stringify(newest.state) === JSON.stringify(state)) return;
+    // History entries use the Story 3.6 shape {ts, inputs, result} —
+    // the dedup check has to compare against `inputs`, not `state`,
+    // otherwise the second push would always fire and the panel
+    // would show "No inputs or result" for every entry.
+    if (newest && JSON.stringify(newest.inputs) === JSON.stringify(state)) return;
     var amount = state['ic-amount'] || '';
     var from = state['ic-from'] || '';
     var to = state['ic-to'] || '';
     HT.history.push('inflation-calculator', {
-      state: state,
+      inputs: state,
       result: (out.adjusted && out.adjusted.textContent) || '',
       label: amount && from ? ('$' + amount + ' in ' + from + (to ? ' → ' + to : '')) : '',
     });

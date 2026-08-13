@@ -55,10 +55,14 @@
       'qr-margin': String(quiet),
     };
     var newest = HT.history.lastEntry('qr-code-generator');
-    if (newest && JSON.stringify(newest.state) === JSON.stringify(state)) return;
+    // History entries use the Story 3.6 shape {ts, inputs, result} —
+    // compare against `inputs` so the dedup is symmetric with what
+    // we push below. Without this fix every entry would render
+    // "No inputs or result" in the panel.
+    if (newest && JSON.stringify(newest.inputs) === JSON.stringify(state)) return;
     var preview = text.length > 40 ? (text.slice(0, 37) + '…') : text;
     HT.history.push('qr-code-generator', {
-      state: state,
+      inputs: state,
       result: modules + '×' + modules + ' modules, ECC ' + ecc,
       label: preview,
     });
