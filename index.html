@@ -4,8 +4,8 @@
   <meta http-equiv="Permissions-Policy" content="unload=(*)">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="A free, dependency-free collection of 34 useful everyday tools â€” age calculator, unit converter, password generator, QR code generator, space calculator, and more.">
-  <title>Handy Tools · 34 free online tools</title>
+  <meta name="description" content="A free, dependency-free collection of useful everyday tools — age calculator, unit converter, QR code generator, citation formatter, UUID generator, and more. Works offline, no sign-up, no tracking.">
+  <title>Handy Tools — small, fast, private everyday tools</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%232F5BFF'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
 <script> (function(){try{var t=localStorage.getItem("ht.theme");var mqd=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)");t=t==="light"||t==="dark"?t:(mqd&&mqd.matches?"dark":"light");var d=document.documentElement;d.setAttribute("data-theme",t);d.style.backgroundColor=t==="dark"?"#0f1117":"#f7f8fb";d.style.color=t==="dark"?"#e8eaf0":"#1a1d29";try{if(/[?&]embed=1(?:&|$)/.test(location.search)){d.setAttribute("data-embed","1");}}catch(_){}try{var po=window.PerformanceObserver?new PerformanceObserver(function(list){try{var e=list.getEntries().find(function(x){return x.name==="first-paint"});if(e){d.dispatchEvent(new CustomEvent("ht:fouc-resolved",{detail:{elapsedMs:e.startTime}}));po.disconnect();}}catch(_){}}):null;if(po){po.observe({type:"paint",buffered:true});}}catch(_){}}catch(e){document.documentElement.setAttribute("data-theme","light")}})(); </script>
   <link rel="stylesheet" href="assets/css/base.css">
@@ -53,17 +53,35 @@
 </header>
 
   
-  <main id="main" class="shell-main" aria-label="Handy Tools home" tabindex="-1">
+  <main id="main" class="shell-main home" aria-label="Handy Tools home" tabindex="-1">
     <div id="top"></div>
-    <section class="hero">
-      <h1>Handy Tools</h1>
-      <p>34 small, useful online tools for everyday tasks. Zero dependencies, no sign-up, works offline.</p>
-      <div class="hero-badges">
-        <span class="badge"><span class="badge-dot"></span> Free</span>
-        <span class="badge">No tracking</span>
-        <span class="badge">Works offline</span>
-        <span class="badge">Mobile-friendly</span>
+
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title" class="hero-title">
+        <span class="hero-title-row">Handy Tools</span>
+        <span class="hero-title-accent" aria-hidden="true">— small, fast, private.</span>
+      </h1>
+      <p class="hero-lead">
+        A growing collection of <span class="hero-count" data-tool-count>40</span> everyday tools.
+        Zero dependencies, no sign-up, no tracking — and they all work offline once loaded.
+      </p>
+      <div class="hero-cta">
+        <button class="btn btn-primary hero-search-btn" type="button" data-open-palette>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <span>Search tools</span>
+          <kbd class="hero-kbd" aria-hidden="true">/</kbd>
+        </button>
+        <a class="btn btn-link" href="https://github.com/sanjitdev/useful-tools" rel="noopener noreferrer">
+          View source on GitHub
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+        </a>
       </div>
+      <ul class="hero-meta" aria-label="Highlights">
+        <li><span class="hero-meta-dot" aria-hidden="true"></span>Free forever</li>
+        <li><span class="hero-meta-dot" aria-hidden="true"></span>No tracking</li>
+        <li><span class="hero-meta-dot" aria-hidden="true"></span>Works offline</li>
+        <li><span class="hero-meta-dot" aria-hidden="true"></span>Mobile-friendly</li>
+      </ul>
     </section>
 
     <aside class="home-sidebar" aria-label="Recently used tools" hidden>
@@ -71,257 +89,24 @@
       <ol class="recent-list" aria-label="Recently used tools"></ol>
     </aside>
 
-    <section class="category-section home-grid-section pack-section" id="home-grid-packs-section" role="region" aria-labelledby="home-grid-packs-heading" hidden>
-      <div class="category-header"><h2 id="home-grid-packs-heading">Browse by Pack</h2></div>
-      <div id="home-grid-packs" data-mounted="false"></div>
-    </section>
-
-    <section class="category-section home-grid-section" id="home-grid-pinned-section" hidden>
+    <section class="home-grid-section home-pin" id="home-grid-pinned-section" hidden>
       <div id="home-grid-pinned" data-mounted="false"></div>
     </section>
 
-    <section class="category-section home-grid-section" id="home-grid-tools-json-section" hidden>
-      <div class="category-header"><h2>From tools.json</h2></div>
+    <section class="home-grid-section home-pack" id="home-grid-packs-section" role="region" aria-labelledby="home-grid-packs-heading" hidden>
+      <div class="home-section-header">
+        <h2 id="home-grid-packs-heading">Browse by Pack</h2>
+        <p class="home-section-sub">Curated groups of tools for common workflows.</p>
+      </div>
+      <div id="home-grid-packs" data-mounted="false"></div>
+    </section>
+
+    <section class="home-grid-section home-tools" id="home-grid-tools-json-section" hidden>
+      <div class="home-section-header">
+        <h2>All tools</h2>
+        <p class="home-section-sub">Everything we have, grouped by what it does.</p>
+      </div>
       <div id="home-grid-tools-json" data-mounted="false"></div>
-    </section>
-
-    <section class="category-section">
-      <div class="category-header"><h2>Featured</h2></div>
-      <div class="tool-grid">
-        <a class="tool-card tool-card-featured" href="tools/age-calculator/index.html" data-feature="anchor">
-          <span class="tool-card-badge">New</span>
-          <span class="tool-card-icon">
-            <svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/><circle cx="12" cy="15" r="2.5"/></svg>
-          </span>
-          <span class="tool-card-title">Age Calculator</span>
-          <span class="tool-card-desc">See your age in years, months, weeks, days, hours, minutes, seconds â€” or find the date you'll reach a target age.</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category-section">
-      <div class="category-header"><h2>Date &amp; Time</h2></div>
-      <div class="tool-grid">
-        <a class="tool-card" href="tools/date-difference/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg></span>
-          <span class="tool-card-title">Date Difference</span>
-          <span class="tool-card-desc">Count days, weeks, months, or business days between two dates.</span>
-        </a>
-        <a class="tool-card" href="tools/stopwatch/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6M12 2v3"/></svg></span>
-          <span class="tool-card-title">Stopwatch &amp; Timer</span>
-          <span class="tool-card-desc">Precision stopwatch with laps and a countdown timer with a chime.</span>
-        </a>
-        <a class="tool-card" href="tools/pomodoro-timer/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 8v5l3 2M5 3l3 3M19 3l-3 3"/></svg></span>
-          <span class="tool-card-title">Pomodoro Timer</span>
-          <span class="tool-card-desc">25-minute focus sessions with breaks and a cycle counter.</span>
-        </a>
-        <a class="tool-card" href="tools/countdown-to-date/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M5 5l-2 2M19 5l2 2"/></svg></span>
-          <span class="tool-card-title">Countdown to Date</span>
-          <span class="tool-card-desc">Live countdown to any future date, with quick-pick presets.</span>
-        </a>
-        <a class="tool-card" href="tools/world-clock/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
-          <span class="tool-card-title">World Clock</span>
-          <span class="tool-card-desc">Track current time in multiple cities and find meeting times.</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category-section">
-      <div class="category-header"><h2>Converters &amp; Calculators</h2></div>
-      <div class="tool-grid">
-        <a class="tool-card" href="tools/unit-converter/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 7h7M4 7l3-3M4 7l3 3M20 17h-7M20 17l-3 3M20 17l-3-3"/><path d="M3 12h2M19 12h2"/></svg></span>
-          <span class="tool-card-title">Unit Converter</span>
-          <span class="tool-card-desc">Length, mass, temperature, volume, time, and data units.</span>
-        </a>
-        <a class="tool-card" href="tools/tip-calculator/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M15 10c0-1-1-2-3-2s-3 1-3 2 1 2 3 2 3 1 3 2-1 2-3 2-3-1-3-2"/></svg></span>
-          <span class="tool-card-title">Tip Calculator</span>
-          <span class="tool-card-desc">Split bills with custom tip percentages and round up.</span>
-        </a>
-        <a class="tool-card" href="tools/percentage-calculator/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5 19L19 5M9 8a1.5 1.5 0 1 0 0 .01M15 16a1.5 1.5 0 1 0 0 .01"/></svg></span>
-          <span class="tool-card-title">Percentage Calculator</span>
-          <span class="tool-card-desc">Solve X% of Y, what % X is of Y, and % change.</span>
-        </a>
-        <a class="tool-card" href="tools/grade-calculator/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M3 5h18v14H3z"/><path d="M7 14l2-3 2 2 3-5 3 4"/></svg></span>
-          <span class="tool-card-title">Grade Calculator</span>
-          <span class="tool-card-desc">Weighted assignment grades, final grade, and letter grade.</span>
-        </a>
-        <a class="tool-card" href="tools/compound-interest/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 8-8"/><path d="M14 8h6v6"/></svg></span>
-          <span class="tool-card-title">Compound Interest</span>
-          <span class="tool-card-desc">See how savings grow with principal, contributions, and compounding.</span>
-        </a>
-        <a class="tool-card" href="tools/loan-calculator/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 12h2M11 12h6"/></svg></span>
-          <span class="tool-card-title">Loan Calculator</span>
-          <span class="tool-card-desc">Monthly payment, total interest, and amortization for any loan.</span>
-        </a>
-        <a class="tool-card" href="tools/bd-tax-calculator/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M10 4l-1 2M14 4l-1 2"/></svg></span>
-          <span class="tool-card-title">Bangladesh Tax Calculator</span>
-          <span class="tool-card-desc">Estimate personal income tax for AY 2026-27. Bilingual, printable.</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category-section">
-      <div class="category-header"><h2>Health &amp; Body</h2></div>
-      <div class="tool-grid">
-        <a class="tool-card" href="tools/lifespan-simulator/index.html" data-feature="anchor">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"/><path d="M12 7v5l3 2"/><path d="M19 3l1.5 1.5M5 5L3.5 3.5"/></svg></span>
-          <span class="tool-card-title">Lifespan Simulator</span>
-          <span class="tool-card-desc">Estimate your statistical lifespan from lifestyle, health, and habits â€” with "what if?" sliders.</span>
-        </a>
-        <a class="tool-card" href="tools/bmi-calculator/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 7v6l3 6M12 13l-3 6M9 13h6"/></svg></span>
-          <span class="tool-card-title">BMI Calculator</span>
-          <span class="tool-card-desc">Compute body mass index with metric or imperial units.</span>
-        </a>
-        <a class="tool-card" href="tools/calorie-estimator/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 3l4 8a4 4 0 1 1-8 0z"/><path d="M12 11v10M9 17h6"/></svg></span>
-          <span class="tool-card-title">Calorie Estimator</span>
-          <span class="tool-card-desc">BMR, TDEE, and macro split using Mifflin-St Jeor.</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category-section">
-      <div class="category-header"><h2>Text &amp; Writing</h2></div>
-      <div class="tool-grid">
-        <a class="tool-card" href="tools/word-counter/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>
-          <span class="tool-card-title">Word &amp; Character Counter</span>
-          <span class="tool-card-desc">Live counts of words, characters, sentences, and reading time.</span>
-        </a>
-        <a class="tool-card" href="tools/lorem-ipsum/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
-          <span class="tool-card-title">Lorem Ipsum Generator</span>
-          <span class="tool-card-desc">Placeholder text by paragraphs, sentences, or words.</span>
-        </a>
-        <a class="tool-card" href="tools/markdown-previewer/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15V9l2 2 2-2v6M14 9v6M14 9l2 3 2-3"/></svg></span>
-          <span class="tool-card-title">Markdown Previewer</span>
-          <span class="tool-card-desc">Type Markdown on the left, see rendered HTML on the right.</span>
-        </a>
-        <a class="tool-card" href="tools/json-formatter/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M8 4c-2 0-3 1-3 3v3c0 1-1 2-2 2 1 0 2 1 2 2v3c0 2 1 3 3 3M16 4c2 0 3 1 3 3v3c0 1 1 2 2 2-1 0-2 1-2 2v3c0 2-1 3-3 3"/></svg></span>
-          <span class="tool-card-title">JSON Formatter</span>
-          <span class="tool-card-desc">Pretty-print, minify, validate, and view JSON as a tree.</span>
-        </a>
-        <a class="tool-card" href="tools/gpa-calculator/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5z"/><path d="M7 11v5c2 1.5 4 1.5 5 1.5s3 0 5-1.5v-5"/></svg></span>
-          <span class="tool-card-title">GPA Calculator</span>
-          <span class="tool-card-desc">Weighted GPA from courses, with cumulative GPA combiner.</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category-section">
-      <div class="category-header"><h2>Generators</h2></div>
-      <div class="tool-grid">
-        <a class="tool-card" href="tools/random-tools/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 8h.01M16 8h.01M8 16h.01M16 16h.01M12 12h.01"/></svg></span>
-          <span class="tool-card-title">Random Tools</span>
-          <span class="tool-card-desc">Numbers, passwords, dice rolls, and coin flips.</span>
-        </a>
-        <a class="tool-card" href="tools/password-strength/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
-          <span class="tool-card-title">Password Strength</span>
-          <span class="tool-card-desc">Check entropy, crack-time, and get improvement tips.</span>
-        </a>
-        <a class="tool-card" href="tools/qr-code-generator/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM18 18h3v3M14 18v3M18 14v3"/></svg></span>
-          <span class="tool-card-title">QR Code Generator</span>
-          <span class="tool-card-desc">Generate QR codes offline and download as SVG or PNG.</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category-section">
-      <div class="category-header"><h2>Colors</h2></div>
-      <div class="tool-grid">
-        <a class="tool-card" href="tools/color-tools/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18c2 0 2-2 2-3s-1-2 1-3 4-1 4-4-3-8-7-8z"/></svg></span>
-          <span class="tool-card-title">Color Tools</span>
-          <span class="tool-card-desc">Pick a color and convert between HEX, RGB, and HSL.</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category-section">
-      <div class="category-header"><h2>Productivity</h2></div>
-      <div class="tool-grid">
-        <a class="tool-card" href="tools/habit-tracker/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-          <span class="tool-card-title">Habit Tracker</span>
-          <span class="tool-card-desc">Build streaks and track daily habits right in your browser.</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category-section">
-      <div class="category-header"><h2>Developer</h2></div>
-      <div class="tool-grid">
-        <a class="tool-card" href="tools/base64-codec/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M7 8l-4 4 4 4M17 8l4 4-4 4M14 4l-4 16"/></svg></span>
-          <span class="tool-card-title">Base64 Codec</span>
-          <span class="tool-card-desc">Encode and decode text to and from Base64 (UTF-8 safe).</span>
-        </a>
-        <a class="tool-card" href="tools/url-codec/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M10 14l4-4M9 7l-2 2a3 3 0 0 0 4 4l2-2M15 17l2-2a3 3 0 0 0-4-4l-2 2"/><circle cx="12" cy="12" r="9"/></svg></span>
-          <span class="tool-card-title">URL Codec</span>
-          <span class="tool-card-desc">Encode and decode URLs and components.</span>
-        </a>
-        <a class="tool-card" href="tools/regex-tester/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 8l-2 4 2 4M16 8l2 4-2 4M14 7l-4 10"/></svg></span>
-          <span class="tool-card-title">Regex Tester</span>
-          <span class="tool-card-desc">Test regular expressions with live match highlighting and capture groups.</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category-section">
-      <div class="category-header"><h2>Planning &amp; Decisions</h2></div>
-      <div class="tool-grid">
-        <a class="tool-card" href="tools/decision-wheel/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v9M3 12h9M14 12l5 3"/></svg></span>
-          <span class="tool-card-title">Decision Wheel</span>
-          <span class="tool-card-desc">Spin a wheel to pick between your options â€” for the indecisive.</span>
-        </a>
-        <a class="tool-card" href="tools/pros-cons/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M5 5h14v14H5z"/><path d="M9 9l6 6M9 15l6-6"/></svg></span>
-          <span class="tool-card-title">Pros &amp; Cons</span>
-          <span class="tool-card-desc">Weigh pros against cons to make tough decisions easier.</span>
-        </a>
-        <a class="tool-card" href="tools/eisenhower-matrix/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="8"/><rect x="3" y="13" width="8" height="8"/><rect x="13" y="13" width="8" height="8"/></svg></span>
-          <span class="tool-card-title">Eisenhower Matrix</span>
-          <span class="tool-card-desc">Sort tasks by urgent vs important in a 2Ã—2 priority grid.</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="category-section">
-      <div class="category-header"><h2>Fun &amp; Curious</h2></div>
-      <div class="tool-grid">
-        <a class="tool-card" href="tools/space-calculator/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><ellipse cx="12" cy="12" rx="10" ry="3" transform="rotate(-25 12 12)"/><circle cx="20" cy="6" r="1.2"/></svg></span>
-          <span class="tool-card-title">Space Calculator</span>
-          <span class="tool-card-desc">Your age, weight, jump, and free-fall on every planet, Pluto, and the Moon.</span>
-        </a>
-        <a class="tool-card" href="tools/animal-race/index.html">
-          <span class="tool-card-icon"><svg class="icon-svg" viewBox="0 0 24 24"><circle cx="7" cy="9" r="3"/><path d="M10 12c1 3 3 5 6 5h6"/><path d="M16 14l3 3 3-3"/></svg></span>
-          <span class="tool-card-title">Animal Race</span>
-          <span class="tool-card-desc">Pick racers, add a human with a custom speed, and watch a frame-perfect 100 m race.</span>
-        </a>
-      </div>
     </section>
   </main>
   <!-- shell:print-footer (Story 3.10) -->

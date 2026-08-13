@@ -427,6 +427,17 @@
       ready: Boolean(liveEntries),
       version: VERSION,
     });
+    // Hero count badge: drives the live tool count in the hero lead. The
+    // <span data-tool-count> sits in index.html's hero; we update it on
+    // every successful mount so the count reflects tools.json rather than
+    // the hardcoded fallback in the markup.
+    try {
+      var count = Array.isArray(liveEntries) ? liveEntries.length : 0;
+      var nodes = document.querySelectorAll('[data-tool-count]');
+      for (var i = 0; i < nodes.length; i += 1) {
+        nodes[i].textContent = String(count);
+      }
+    } catch (_) { /* no DOM access in non-DOM contexts */ }
   }
 
   function render() {

@@ -576,7 +576,7 @@
 
   function onClick(event) {
     const target = event.target.closest(
-      '.theme-toggle, .shell-search-trigger, .shell-settings, .shell-locale'
+      '.theme-toggle, .shell-search-trigger, .shell-settings, .shell-locale, [data-open-palette]'
     );
     if (!target) return;
 
@@ -590,11 +590,12 @@
       return;
     }
 
-    if (target.classList.contains('shell-search-trigger')) {
+    if (target.classList.contains('shell-search-trigger') || target.hasAttribute('data-open-palette')) {
       // Story 1.7: open the command palette. In embed mode the trigger is
       // hidden via CSS but a focused programmatic click could still fire —
       // the chord/keyboard paths early-return on isEmbedMode() so we never
       // surface the overlay in embed.
+      if (target.tagName === 'A') event.preventDefault();
       openPalette();
       return;
     }

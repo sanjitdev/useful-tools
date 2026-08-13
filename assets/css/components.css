@@ -319,10 +319,32 @@
 
 /* ---------- Tool cards (home page) ---------- */
 
+/* Modern minimal card: more padding, lighter border, gentler hover.
+   The .tool-card-wrap class is appended by home-grid.js around the
+   anchor + pin button — both rules below support both the static
+   <a class="tool-card"> (rare; used for legacy surfaces) and the
+   home-grid wrapped form. */
+
 .category-section {
   margin-top: var(--space-6);
 }
 
+.home-grid-section {
+  margin-top: var(--space-7);
+}
+
+/* Wider gap between grid sections — modern minimal breathing room. */
+.home-grid-section + .home-grid-section {
+  margin-top: var(--space-7);
+}
+
+.home-section-header {
+  margin-bottom: var(--space-4);
+}
+
+/* Legacy category-header kept for tool-internal use (tool pages still
+   use it for sub-section grouping). The home page uses
+   .home-section-header instead, which is sentence-case + softer. */
 .category-header {
   display: flex;
   align-items: baseline;
@@ -346,50 +368,58 @@
      grid-template-columns + clamp()" requirement. The 480px form-factor
      flip below forces 1-col on phones. */
   grid-template-columns: repeat(auto-fill, minmax(clamp(240px, 30vw, 320px), 1fr));
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .tool-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-5);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   color: var(--color-text);
-  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
   position: relative;
+  min-block-size: 100%;
 }
 
 .tool-card:hover {
   text-decoration: none;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-md);
-  border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
+  border-color: color-mix(in srgb, var(--color-accent) 22%, var(--color-border));
 }
 
 .tool-card-icon {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   background: var(--color-accent-soft);
   color: var(--color-accent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+}
+
+.tool-card-icon svg {
+  width: 22px;
+  height: 22px;
 }
 
 .tool-card-title {
-  font-weight: 700;
-  font-size: 1rem;
+  font-weight: 600;
+  font-size: 1.0625rem;
   letter-spacing: -0.01em;
+  line-height: 1.3;
 }
 
 .tool-card-desc {
   color: var(--color-muted);
   font-size: 0.875rem;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .tool-card-featured {
@@ -627,48 +657,230 @@
   }
 }
 
-/* ---------- Hero ---------- */
+/* ---------- Hero (modern minimal) ---------- */
+
+/* Modern minimal hero: oversized title, gradient accent line, generous
+   breathing room. The accent text sits inline next to the title so the
+   line wraps as a single phrase — desktop view shows the accent on its
+   own line via the .hero-title-accent block. */
 
 .hero {
-  padding-block: var(--space-6) var(--space-5);
+  padding-block: var(--space-7) var(--space-6);
+  display: grid;
+  gap: var(--space-4);
 }
 
-.hero h1 {
-  font-size: 2.5rem;
-  letter-spacing: -0.02em;
-  margin-bottom: var(--space-2);
-}
-
-.hero p {
-  color: var(--color-muted);
-  font-size: 1.05rem;
-  max-width: 60ch;
-}
-
-.hero-badges {
+.hero-title {
+  font-size: clamp(2.25rem, 4.5vw, 3.25rem);
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  font-weight: 800;
+  margin: 0;
   display: flex;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
   flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+  max-width: 22ch;
 }
 
-.badge {
+.hero-title-row {
+  background: linear-gradient(
+    100deg,
+    var(--color-text) 0%,
+    var(--color-text) 60%,
+    color-mix(in srgb, var(--color-accent) 70%, var(--color-text)) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-title-accent {
+  font-size: clamp(1.125rem, 2vw, 1.375rem);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-muted);
+  -webkit-text-fill-color: var(--color-muted);
+}
+
+.hero-lead {
+  color: var(--color-muted);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  max-width: 60ch;
+  margin: 0;
+}
+
+.hero-count {
+  color: var(--color-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-cta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+/* Hero search button — primary CTA, soft shadow, generous padding.
+   Holds an inline kbd hint showing the keyboard chord (/). The kbd
+   inherits the muted color from .btn so it reads as a "hint" rather
+   than a literal key cap, but still looks keyboard-y. */
+.hero-search-btn {
+  padding: var(--space-3) var(--space-4);
+  gap: var(--space-2);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.hero-search-btn:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.hero-kbd {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  font-size: 0.8rem;
-  color: var(--color-muted);
+  justify-content: center;
+  min-width: 22px;
+  padding: 1px 6px;
+  margin-left: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--color-on-primary) 75%, transparent);
+  background: color-mix(in srgb, var(--color-on-primary) 18%, transparent);
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--color-on-primary) 22%, transparent);
+  line-height: 1.4;
 }
 
-.badge-dot {
+.hero-meta {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-5);
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.hero-meta li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hero-meta-dot {
   width: 6px;
   height: 6px;
   border-radius: 999px;
   background: var(--color-success);
+}
+
+@media (max-width: 640px) {
+  .hero-title {
+    max-width: 100%;
+  }
+}
+
+/* ---------- Button base + variants ---------- */
+
+/* Reusable .btn primitives used across the shell. The .hero-search-btn
+   above uses .btn + .btn-primary. Keep variants few (primary, link) —
+   destructive/ghost live in tools (Story 3.6 polish). */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease,
+              color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  text-decoration: none;
+  background: transparent;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.btn:hover {
+  text-decoration: none;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: var(--color-primary);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  color: var(--color-on-primary);
+}
+
+.btn-primary:active {
+  background: var(--color-primary-pressed);
+  border-color: var(--color-primary-pressed);
+}
+
+.btn-link {
+  background: transparent;
+  color: var(--color-accent);
+  border-color: transparent;
+  padding-inline: var(--space-2);
+}
+
+.btn-link:hover {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+}
+
+/* ---------- Home section header ---------- */
+
+/* Replaces the old uppercase letter-spaced category header. The new
+   treatment is friendlier: real sentence-case headings, optional
+   supporting line for context. Used by the redesigned home page
+   (Story: homepage polish) for "Browse by Pack" and "All tools". */
+
+.home-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.home-section-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.home-section-sub {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  margin: 0;
 }
 
 @media (max-width: 640px) {
