@@ -1,7 +1,8 @@
 # Shell Public API Contract (AD-14)
 
 **Status:** active
-**Story:** [1.14 — Shell Public API and Bypass Prohibition](../_bmad-output/planning-artifacts/epics.md#story-114-shell-public-api-and-bypass-prohibition) + [2.1 — Per-Tool URL State Codec Wiring](../_bmad-output/planning-artifacts/epics.md#story-21-per-tool-url-state-codec-wiring) + [2.2 — Per-Tool Sample Data and Reset Button](../_bmad-output/planning-artifacts/epics.md#story-22-per-tool-sample-data-and-reset-button) + [2.3 — Per-Tool History Panel](../_bmad-output/planning-artifacts/epics.md#story-23-per-tool-history-panel) + [2.4 — Per-Tool Keyboard-Complete Surface](../_bmad-output/planning-artifacts/epics.md#story-24-per-tool-keyboard-complete-surface) + [2.5 — Per-Tool Share Dialog with URL and Print](../_bmad-output/planning-artifacts/epics.md#story-25-per-tool-share-dialog-with-url-and-print) + [3.7 — User Data Export to JSON](../_bmad-output/planning-artifacts/epics.md#story-37-user-data-export-to-json) + [3.8 — User Data Import from JSON with Schema Validation](../_bmad-output/planning-artifacts/epics.md#story-38-user-data-import-from-json-with-schema-validation)
+**Updated:** 2026-08-13
+**Story:** [1.14 — Shell Public API and Bypass Prohibition](../_bmad-output/planning-artifacts/epics.md#story-114-shell-public-api-and-bypass-prohibition) + [2.1 — Per-Tool URL State Codec Wiring](../_bmad-output/planning-artifacts/epics.md#story-21-per-tool-url-state-codec-wiring) + [2.2 — Per-Tool Sample Data and Reset Button](../_bmad-output/planning-artifacts/epics.md#story-22-per-tool-sample-data-and-reset-button) + [2.3 — Per-Tool History Panel](../_bmad-output/planning-artifacts/epics.md#story-23-per-tool-history-panel) + [2.4 — Per-Tool Keyboard-Complete Surface](../_bmad-output/planning-artifacts/epics.md#story-24-per-tool-keyboard-complete-surface) + [2.5 — Per-Tool Share Dialog with URL and Print](../_bmad-output/planning-artifacts/epics.md#story-25-per-tool-share-dialog-with-url-and-print) + [3.7 — User Data Export to JSON](../_bmad-output/planning-artifacts/epics.md#story-37-user-data-export-to-json) + [3.8 — User Data Import from JSON with Schema Validation](../_bmad-output/planning-artifacts/epics.md#story-38-user-data-import-from-json-with-schema-validation) + [post-redesign retrofit — 2026-08-13](../_bmad-output/implementation-artifacts/post-home-redesign-retrofit-2026-08-13.md)
 **Architecture binding:** AD-14, AD-13, AD-4, AD-5, AD-15
 **Source of truth for runtime:** `assets/js/api-contract.js`
 
@@ -104,6 +105,12 @@ bumped from `1.13.0` by Story 3.8 for `HT.import`).
 | `HT.storage.keys` | stable | storage-registry.js |
 | `HT.storage.register` | internal | storage-registry.js |
 | `HT.storage.registerHistoryKeys` | internal | storage-registry.js |
+| `HT.$` | stable | utils.js — alias of `HT.qs`; `(sel: string, root?: Element) => Element \| null` (post-redesign retrofit 2026-08-13) |
+| `HT.$$` | stable | utils.js — alias of `HT.qsa`; `(sel: string, root?: Element) => Element[]` (post-redesign retrofit 2026-08-13) |
+| `HT.qs` | stable | utils.js — `(sel: string, root?: Element) => Element \| null` |
+| `HT.qsa` | stable | utils.js — `(sel: string, root?: Element) => Element[]` |
+| `HT.fetch` | stable | utils.js — `(url: string, opts?: { type?: 'json' \| 'text' }) => Promise<any>`; rejects on non-2xx |
+| `HT.formatNumber` | stable | utils.js — `(n: number, opts?: { minFractionDigits?: number, … }) => string` |
 | `HT.search` | stable | search.js |
 | `HT.siteConfig` | stable | site-config.js |
 | `HT.provide` | stable | shell.js (this story) |
@@ -332,6 +339,85 @@ breakdown makes the remaining work visible.
 navigation. The audit is read-only — it never mutates the DOM. Tools
 that fail the audit are simply not ready to ship as `ready:true`.
 Waves 2.6/2.7/2.8 own the fix; Story 2.4 owns the visibility.
+
+---
+
+## 10. Script load-order invariant (utils.js before <slug>.js)
+
+Every entry in the §5 table is defined in a module that's loaded as a
+classic (`non-defer`) `<script>` in `tools/<slug>/index.html`. A Tool
+IIFE that calls `HT.$('#…')`, `HT.storage.get(…)`, `HT.urlState.bindForm(…)`,
+or any other `HT.*` helper at the **top of the script** runs *during*
+that script's parse — not after a `DOMContentLoaded` callback. The
+helper must therefore already exist on `window.HT` by the time the
+Tool IIFE evaluates.
+
+The canonical load order, observed by every shipped Tool except the
+three the post-redesign retrofit caught (citation-formatter,
+diff-viewer, jwt-inspector — fixed in commits `e8b7a35` and `bffb3ca`):
+
+```
+<!-- 1. Inline FOUC IIFE (must be first; reads localStorage synchronously) -->
+<script>/* FOUC theme + embed-mode + first-paint observer */</script>
+
+<!-- 2. Footer print-populate IIFE (subscribes to document.body) -->
+<script>/* print footer placeholder */</script>
+
+<!-- 3. Standard Shell block — utils.js MUST come before <slug>.js -->
+<script src="../../assets/js/site-config.js"></script>
+<script src="../../assets/js/storage-registry.js"></script>
+<script src="../../assets/js/utils.js"></script>             <!-- HT.$ lives here -->
+<script src="../../assets/js/url.js"></script>
+<script src="../../assets/js/history.js"></script>
+<script src="../../assets/js/sample-data.js"></script>
+<script src="../../assets/js/share.js"></script>
+<script src="../../assets/js/export.js"></script>
+
+<!-- 4. Inline tools.json splice for file:// loads -->
+<script type="application/json" id="ht-tools-json-inline">…</script>
+
+<!-- 5. Rest of the Shell surface -->
+<script src="../../assets/js/import.js"></script>
+<script src="../../assets/js/a11y.js"></script>
+<script src="../../assets/js/palette-actions.js"></script>
+<script src="../../assets/js/shell.js" defer></script>
+<script src="../../assets/js/search.js" defer></script>
+<script src="../../assets/js/help-overlay.js" defer></script>
+<script src="../../assets/js/global-chords.js" defer></script>
+
+<!-- 6. Tool-local helpers (optional, must precede the Tool's own script) -->
+<script src="../../assets/js/citation-styles.js"></script>   <!-- only on citation-formatter -->
+
+<!-- 7. The Tool's own script — ALWAYS the LAST <script> in the file -->
+<script src="./<slug>.js"></script>
+```
+
+**Rule.** The `<script src="./<slug>.js">` line is *always* the last
+classic `<script>` in the file — after the Shell surface, after every
+optional helper (`citation-styles.js`, `diff.js`, `jwt-codec.js`,
+`sample-data.js` for tools that bring their own seed, etc.), and after
+the `defer`-loaded Shell modules. This guarantees `window.HT.*` is
+fully populated when the Tool IIFE runs.
+
+**Why this matters in practice.** When the bug fires the page is
+broken in a way the regression sweep doesn't catch directly: `_smoke_regression_sweep.js`
+treats `console.warn` ("HT.$ is not a function") as a pass-with-warning
+because the harness doesn't load the real shell. The user-facing
+crash is a TypeError on the very first line of the Tool IIFE — the
+page stays in its empty initial state with no visible affordances.
+
+**Defense.** `.test-output/check-script-load-order.js` walks every
+tool under `tools/` and confirms `./<slug>.js` sits at a greater line
+number than `../../assets/js/utils.js`. The current tree passes
+1/1. A future Tool that copies the broken pattern trips this check
+before the load order can ship.
+
+**Recovering from the bug.** If a Tool errors `HT.$ is not a function`
+(or any other `HT.<name> is not a function`) on page load, find the
+`<script src="./<slug>.js">` line in `tools/<slug>/index.html` and
+move it to the very end of the script block — after every other
+`<script src="…/assets/js/…">` tag and any optional `defer`-loaded
+helper. Re-run the regression sweep to confirm.
 
 ---
 

@@ -36,7 +36,7 @@ that way", look in `_bmad-output/`.
 | [`tool-inventory.md`](tool-inventory.md) | Snapshot of the tool roster: slug, title, owner story, pack membership, last-updated timestamp. Companion to `tools.json` but human-readable. |
 | [`tool-ideas.md`](tool-ideas.md) | Parking lot for tool concepts not yet promoted to `tools.json`. Each idea has a one-liner rationale + the epic it would belong to. |
 | [`pack-taxonomy.md`](pack-taxonomy.md) | Definition of the 5 packs (productivity, finance, health, planning, education). Which tools belong, ordering rules, the `dashboard` schema. |
-| [`shell-public-api.md`](shell-public-api.md) | The `HT.*` frozen-public surface (AD-14): every method, signature, version, and the gate that enforces it (`shell-public-api-smoke`). The mirror of `assets/js/api-contract.js` in prose. |
+| [`shell-public-api.md`](shell-public-api.md) | The `HT.*` frozen-public surface (AD-14): every method, signature, version, and the gate that enforces it (`shell-public-api-smoke`). The mirror of `assets/js/api-contract.js` in prose. §10 documents the canonical tool-script load order with the bug story (post-home-redesign retrofit). |
 
 ---
 
@@ -53,6 +53,7 @@ that way", look in `_bmad-output/`.
 
 - **`_bmad-output/planning-artifacts/`** — PRD, architecture, epics, UX
 - **`_bmad-output/implementation-artifacts/`** — story files, sprint status, retro/audit notes
+  - [`post-home-redesign-retrofit-2026-08-13.md`](../_bmad-output/implementation-artifacts/post-home-redesign-retrofit-2026-08-13.md) — retrofit audit for the post-home-redesign fix round (4 commits: home polish + 2 boot crashes + category spacing + load-order doc)
 - **`_bmad/bmm/config.yaml`** — workflow configuration (comm language, output paths)
 - **`assets/js/api-contract.js`** — machine-checkable mirror of `shell-public-api.md`
 - **`tools.schema.json`** — machine-checkable mirror of `ci-gate.md`'s truth table
@@ -67,3 +68,9 @@ index is the entry point.
 finding F11). The audit found AI-E1-5 through AI-E1-8 (Epic 1 deferred
 items) referenced patterns that should be documented but had no
 discoverable home. This index is the home.
+
+**Updated 2026-08-13:** added a Companion-artifacts row pointing to the
+post-home-redesign retrofit audit (`_bmad-output/implementation-artifacts/post-home-redesign-retrofit-2026-08-13.md`).
+The audit captured four bug classes (category spacing, shell.js TDZ,
+HT.$ load order, undocumented `utils.js` helpers) and surfaced four
+follow-up items; the shell-public-api.md link got an inline §10 pointer.
