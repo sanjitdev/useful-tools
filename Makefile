@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke script-load-order uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -75,13 +75,14 @@ help: ## Show available targets
 	@echo "  make search-perf-smoke   Run the Story 1.11 / AI-E1-14 search perf smoke (cold path ≤ 50ms/query × 5 fresh VMs; warm path ≤ 10ms/query × 90th-trimmed avg of 50; no-result ≤ 25ms/query; 4 PASS expected)"
 	@echo "  make ast-gates-self-test Run the vendored acorn AST walker's 15-fixture self-test (Story 1.17 / AI-E1-13)"
 	@echo "  make ast-gates-negative  Run the negative-test battery for shell-bounds + storage-registry AST walk (Story 1.17 AC-4)"
+	@echo "  make script-load-order   Run the post-home-redesign retrofit script-load-order check (1 PASS expected — every tool's <slug>.js must load AFTER ../../assets/js/utils.js; AF-1 from post-home-redesign-retrofit-2026-08-13.md)"
 	@echo "  make uuid-generator-smoke Run the Node vm-context smoke for the UUID Generator tool (Story 9.4)"
 	@echo "  make json-formatter-enhancements-smoke Run the Node vm-context smoke for the JSON Formatter enhancements (Story 9.1)"
 	@echo "  make citation-formatter-smoke Run the Node vm-context smoke for the Citation Formatter tool (Story 9.2)"
 	@echo "  make diff-viewer-smoke Run the Node vm-context smoke for the Diff Viewer tool (Story 9.3)"
 	@echo "  make jwt-inspector-smoke Run the Node vm-context smoke for the JWT Inspector tool (Story 9.5)"
 	@echo "  make timestamp-converter-smoke Run the Node vm-context smoke for the Timestamp Converter tool (Story 9.6)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + check-pack-taxonomy + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke + view-source-smoke + pins-recent-smoke + search-perf-smoke + ast-gates-self-test + ast-gates-negative"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + check-pack-taxonomy + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke + view-source-smoke + pins-recent-smoke + search-perf-smoke + ast-gates-self-test + ast-gates-negative + script-load-order"
 
 validate: validate-tools-json
 
@@ -125,7 +126,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke script-load-order shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Story 1.18 (AI-E1-15) replaced the
@@ -145,6 +146,19 @@ shell-drift:
 # 1 root-page-kind pass. Exits 1 on any fail or vacuous run.
 chrome-dom-smoke:
 	@node scripts/_smoke_chrome_dom_walk.js
+
+# `script-load-order` runs .test-output/check-script-load-order.js — the
+# post-home-redesign retrofit's regression guard for the "HT.$ is not
+# a function" bug class. Walks every tool under tools/, finds the line
+# numbers of `./<slug>.js` and `../../assets/js/utils.js` from each
+# tool's `index.html`, and fails if the tool script loads BEFORE
+# utils.js. The bug is fixed by moving `<script src="./<slug>.js">` to
+# the very end of the script block (after every Shell module and every
+# `defer`-loaded helper). See docs/shell-public-api.md §10 for the
+# canonical order + bug story. 1 PASS expected. Vacuous-pass guard
+# catches hollow runs. Wired into `make ci` after `chrome-dom-smoke`.
+script-load-order:
+	@node .test-output/check-script-load-order.js
 
 # `shell-a11y` verifies AC #1's structural invariants that the byte-level
 # drift check cannot catch: <main aria-label> on every page, and cobalt

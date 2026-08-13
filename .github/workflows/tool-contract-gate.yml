@@ -301,6 +301,18 @@ jobs:
         # expected. Vacuous-pass guard catches hollow runs.
         run: make chrome-dom-smoke
 
+      - name: Check tool script load order (post-home-redesign retrofit)
+        # Walks every tool under tools/, finds the line numbers of
+        # ./<slug>.js and ../../assets/js/utils.js from each tool's
+        # index.html, and fails if the tool script loads BEFORE
+        # utils.js. The bug is fixed by moving <script src="./<slug>.js">
+        # to the very end of the script block (after every Shell
+        # module and every defer-loaded helper). See
+        # docs/shell-public-api.md §10 for the canonical order + bug
+        # story. 1 PASS expected. Vacuous-pass guard catches hollow
+        # runs.
+        run: make script-load-order
+
       - name: Check Shell a11y invariants (Story 1.5 code review)
         # Verifies AC #1's structural invariants that the byte-level
         # drift check cannot catch: <main aria-label> non-empty on
