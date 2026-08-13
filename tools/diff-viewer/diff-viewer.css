@@ -1,0 +1,319 @@
+/* Diff Viewer — tool-specific tweaks */
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+@media (min-width: 720px) {
+  .field-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.field-inline {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.field-inline > label {
+  min-width: 90px;
+  flex: 0 0 auto;
+  font-weight: 600;
+  font-size: 0.95em;
+  padding-top: 6px;
+}
+
+.field-inline > .textarea,
+.field-inline > .select,
+.field-inline > textarea,
+.field-inline > select {
+  flex: 1 1 220px;
+  min-width: 180px;
+  font-family: var(--font-mono, ui-monospace, "SFMono-Regular", "Menlo", monospace);
+  font-size: 0.95em;
+  line-height: 1.5;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  background: var(--color-input-bg, #fff);
+  color: var(--color-text, #1a1d29);
+  resize: vertical;
+}
+
+[data-theme="dark"] .textarea {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.diff-empty {
+  margin: 0;
+  padding: var(--space-4);
+  background: var(--color-code-bg, rgba(0, 0, 0, 0.04));
+  border-radius: 6px;
+  text-align: center;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+[data-theme="dark"] .diff-empty {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ============================================
+   Side-by-side table
+   ============================================ */
+.diff-side-by-side {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono, ui-monospace, "SFMono-Regular", "Menlo", monospace);
+  font-size: 0.95em;
+  line-height: 1.5;
+  background: var(--color-bg, #fff);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--color-border, #e5e7eb);
+}
+
+.diff-side-by-side th,
+.diff-side-by-side td {
+  padding: 4px 8px;
+  vertical-align: top;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff-side-by-side .diff-line-num {
+  width: 1%;
+  min-width: 44px;
+  white-space: nowrap;
+  text-align: right;
+  color: var(--color-text-muted, #6b7280);
+  background: var(--color-code-bg, rgba(0, 0, 0, 0.04));
+  border-right: 1px solid var(--color-border, #e5e7eb);
+  user-select: none;
+  font-weight: 500;
+}
+
+.diff-side-by-side .diff-cell-a,
+.diff-side-by-side .diff-cell-b {
+  width: 50%;
+  min-width: 0;
+}
+
+.diff-side-by-side .diff-row-equal .diff-cell-a,
+.diff-side-by-side .diff-row-equal .diff-cell-b {
+  background: transparent;
+}
+
+.diff-side-by-side .diff-row-delete .diff-cell-a,
+.diff-side-by-side .diff-row-delete .diff-cell-b {
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--color-text, #1a1d29);
+}
+
+.diff-side-by-side .diff-row-insert .diff-cell-a,
+.diff-side-by-side .diff-row-insert .diff-cell-b {
+  background: rgba(22, 163, 74, 0.08);
+  color: var(--color-text, #1a1d29);
+}
+
+[data-theme="dark"] .diff-side-by-side {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .diff-side-by-side .diff-line-num {
+  background: rgba(255, 255, 255, 0.06);
+  border-right-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .diff-side-by-side .diff-row-delete .diff-cell-a,
+[data-theme="dark"] .diff-side-by-side .diff-row-delete .diff-cell-b {
+  background: rgba(220, 38, 38, 0.18);
+}
+
+[data-theme="dark"] .diff-side-by-side .diff-row-insert .diff-cell-a,
+[data-theme="dark"] .diff-side-by-side .diff-row-insert .diff-cell-b {
+  background: rgba(22, 163, 74, 0.18);
+}
+
+/* ============================================
+   Unified table
+   ============================================ */
+.diff-unified {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono, ui-monospace, "SFMono-Regular", "Menlo", monospace);
+  font-size: 0.95em;
+  line-height: 1.5;
+  background: var(--color-bg, #fff);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--color-border, #e5e7eb);
+}
+
+.diff-unified .diff-marker {
+  width: 1%;
+  min-width: 32px;
+  text-align: center;
+  color: var(--color-text-muted, #6b7280);
+  background: var(--color-code-bg, rgba(0, 0, 0, 0.04));
+  border-right: 1px solid var(--color-border, #e5e7eb);
+  user-select: none;
+  font-weight: 700;
+}
+
+.diff-unified .diff-line-num {
+  width: 1%;
+  min-width: 44px;
+  white-space: nowrap;
+  text-align: right;
+  color: var(--color-text-muted, #6b7280);
+  background: var(--color-code-bg, rgba(0, 0, 0, 0.04));
+  border-right: 1px solid var(--color-border, #e5e7eb);
+  user-select: none;
+  font-weight: 500;
+}
+
+.diff-unified .diff-cell {
+  padding: 4px 8px;
+  vertical-align: top;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff-unified .diff-row-equal .diff-cell {
+  background: transparent;
+}
+
+.diff-unified .diff-row-delete .diff-cell {
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--color-text, #1a1d29);
+}
+
+.diff-unified .diff-row-insert .diff-cell {
+  background: rgba(22, 163, 74, 0.08);
+  color: var(--color-text, #1a1d29);
+}
+
+[data-theme="dark"] .diff-unified {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .diff-unified .diff-marker,
+[data-theme="dark"] .diff-unified .diff-line-num {
+  background: rgba(255, 255, 255, 0.06);
+  border-right-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .diff-unified .diff-row-delete .diff-cell {
+  background: rgba(220, 38, 38, 0.18);
+}
+
+[data-theme="dark"] .diff-unified .diff-row-insert .diff-cell {
+  background: rgba(22, 163, 74, 0.18);
+}
+
+/* ============================================
+   Word/char granularity inline spans
+   ============================================ */
+.diff-token-equal {
+  background: transparent;
+}
+
+.diff-token-insert {
+  background: rgba(22, 163, 74, 0.18);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+.diff-token-delete {
+  background: rgba(220, 38, 38, 0.18);
+  border-radius: 2px;
+  padding: 0 2px;
+  text-decoration: none;
+}
+
+[data-theme="dark"] .diff-token-insert {
+  background: rgba(22, 163, 74, 0.28);
+}
+
+[data-theme="dark"] .diff-token-delete {
+  background: rgba(220, 38, 38, 0.28);
+}
+
+/* ============================================
+   Sticky line-number column for long texts
+   ============================================ */
+@media (min-width: 720px) {
+  .diff-side-by-side .diff-line-num,
+  .diff-unified .diff-line-num,
+  .diff-unified .diff-marker {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+  }
+  .diff-side-by-side .diff-row-equal .diff-cell-a,
+  .diff-side-by-side .diff-row-equal .diff-cell-b {
+    position: relative;
+  }
+  .diff-unified .diff-row-equal .diff-cell {
+    position: relative;
+  }
+}
+
+/* ============================================
+   Story 2.7 / Story 2.8 — @media print block
+   ============================================ */
+@media print {
+  .site-header,
+  .site-footer,
+  .shell-palette,
+  .shell-settings-modal,
+  dialog[open] {
+    display: none !important;
+  }
+  html,
+  body,
+  .shell-main {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  a {
+    color: #000 !important;
+    text-decoration: underline;
+  }
+  .panel,
+  .field,
+  .result-tile,
+  .diff-empty,
+  .diff-side-by-side,
+  .diff-unified {
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    border-color: #000 !important;
+  }
+  .diff-row-delete .diff-cell-a,
+  .diff-row-delete .diff-cell-b,
+  .diff-row-delete .diff-cell,
+  .diff-row-insert .diff-cell-a,
+  .diff-row-insert .diff-cell-b,
+  .diff-row-insert .diff-cell {
+    background: #fff !important;
+    color: #000 !important;
+    border-color: #000 !important;
+  }
+}

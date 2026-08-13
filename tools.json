@@ -2,7 +2,7 @@
   "$schema": "tools.schema.json",
   "schemaVersion": "1",
   "releaseVersion": "0.0.0",
-  "generated": "2026-08-11T00:00:00Z",
+  "generated": "2026-08-13T00:00:00Z",
   "tools": [
     {
       "id": "lifespan-simulator",
@@ -2685,7 +2685,7 @@
       "id": "json-formatter",
       "slug": "json-formatter",
       "title": "JSON Formatter",
-      "description": "Format, minify, and validate JSON. Includes a collapsible tree view.",
+      "description": "Format, minify, and validate JSON. Sort keys recursively. Validate against a JSON Schema subset. Diff two JSONs.",
       "category": "Developer",
       "pack": [
         "developer"
@@ -2698,9 +2698,12 @@
         "minify",
         "validate",
         "developer",
-        "lint"
+        "lint",
+        "sort-keys",
+        "schema-validate",
+        "json-diff"
       ],
-      "last-updated": "2026-08-11T00:00:00Z",
+      "last-updated": "2026-08-13T00:00:00Z",
       "ready": true,
       "score": 8,
       "urlState": {
@@ -2823,16 +2826,10 @@
       },
       "shortcuts": [],
       "history-keys": [
-        "copy-out",
-        "format",
         "json-input",
-        "main",
+        "format",
         "minify",
-        "output",
-        "status",
-        "top",
-        "tree",
-        "validate"
+        "feature"
       ],
       "view-source": {
         "enabled": true,
@@ -5393,6 +5390,475 @@
         "min-height": 480
       },
       "search-priority": 6
+    },
+    {
+      "id": "uuid-generator",
+      "slug": "uuid-generator",
+      "title": "UUID Generator",
+      "description": "Generate UUID v1, v4, v7, and ULID identifiers in bulk, with URL state.",
+      "category": "Developer Tools",
+      "pack": [
+        "developer"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4z' fill='none' stroke='%234f46e5' stroke-width='2'/%3E%3Cpath d='M9 9h6M9 12h6M9 15h4' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E",
+      "keywords": [
+        "uuid",
+        "ulid",
+        "identifier",
+        "guid",
+        "random"
+      ],
+      "last-updated": "2026-08-13T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "uuid-version": "v4",
+          "uuid-count": "1"
+        },
+        "encode": [
+          {
+            "key": "version",
+            "type": "string",
+            "from": "#uuid-version"
+          },
+          {
+            "key": "count",
+            "type": "number",
+            "from": "#uuid-count"
+          }
+        ],
+        "decode": [
+          {
+            "key": "version",
+            "type": "string",
+            "to": "#uuid-version"
+          },
+          {
+            "key": "count",
+            "type": "number",
+            "to": "#uuid-count"
+          }
+        ]
+      },
+      "shortcuts": [
+        {
+          "key": "g",
+          "label": "Generate UUIDs",
+          "action": "sample"
+        },
+        {
+          "key": "c",
+          "label": "Copy output",
+          "action": "copy"
+        }
+      ],
+      "history-keys": [
+        "uuid-version",
+        "uuid-count"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/uuid-generator/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 240
+      },
+      "search-priority": 5
+    },
+    {
+      "id": "citation-formatter",
+      "slug": "citation-formatter",
+      "title": "Citation Formatter",
+      "description": "Format citations in APA, MLA, and Chicago. Manual fields, ISBN lookup via Open Library, DOI + URL references.",
+      "category": "Study",
+      "pack": [
+        "study"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EC%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "citation",
+        "apa",
+        "mla",
+        "chicago",
+        "bibliography",
+        "isbn",
+        "doi"
+      ],
+      "last-updated": "2026-08-13T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "cite-style": "apa-7"
+        },
+        "encode": [
+          {
+            "key": "style",
+            "type": "string",
+            "from": "#cite-style"
+          },
+          {
+            "key": "author",
+            "type": "string",
+            "from": "#cite-author"
+          },
+          {
+            "key": "title",
+            "type": "string",
+            "from": "#cite-title"
+          },
+          {
+            "key": "year",
+            "type": "string",
+            "from": "#cite-year"
+          },
+          {
+            "key": "publisher",
+            "type": "string",
+            "from": "#cite-publisher"
+          }
+        ],
+        "decode": [
+          {
+            "key": "style",
+            "type": "string",
+            "to": "#cite-style"
+          },
+          {
+            "key": "author",
+            "type": "string",
+            "to": "#cite-author"
+          },
+          {
+            "key": "title",
+            "type": "string",
+            "to": "#cite-title"
+          },
+          {
+            "key": "year",
+            "type": "string",
+            "to": "#cite-year"
+          },
+          {
+            "key": "publisher",
+            "type": "string",
+            "to": "#cite-publisher"
+          }
+        ]
+      },
+      "shortcuts": [
+        {
+          "key": "g",
+          "label": "Format citation",
+          "action": "sample"
+        },
+        {
+          "key": "c",
+          "label": "Copy citation",
+          "action": "copy"
+        }
+      ],
+      "history-keys": [
+        "cite-style",
+        "cite-author",
+        "cite-title",
+        "cite-year",
+        "cite-publisher"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/citation-formatter/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 280
+      },
+      "search-priority": 5
+    },
+    {
+      "id": "diff-viewer",
+      "slug": "diff-viewer",
+      "title": "Diff Viewer",
+      "description": "Compare two texts side-by-side or unified, with line / word / char granularity. Hand-rolled Myers algorithm.",
+      "category": "Developer Tools",
+      "pack": [
+        "developer"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "diff",
+        "compare",
+        "myers",
+        "side-by-side",
+        "unified"
+      ],
+      "last-updated": "2026-08-13T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "diff-a": "",
+          "diff-b": "",
+          "diff-granularity": "line",
+          "diff-view": "side-by-side"
+        },
+        "encode": [
+          {
+            "key": "a",
+            "type": "string",
+            "from": "#diff-a"
+          },
+          {
+            "key": "b",
+            "type": "string",
+            "from": "#diff-b"
+          },
+          {
+            "key": "granularity",
+            "type": "string",
+            "from": "#diff-granularity"
+          },
+          {
+            "key": "view",
+            "type": "string",
+            "from": "#diff-view"
+          }
+        ],
+        "decode": [
+          {
+            "key": "a",
+            "type": "string",
+            "to": "#diff-a"
+          },
+          {
+            "key": "b",
+            "type": "string",
+            "to": "#diff-b"
+          },
+          {
+            "key": "granularity",
+            "type": "string",
+            "to": "#diff-granularity"
+          },
+          {
+            "key": "view",
+            "type": "string",
+            "to": "#diff-view"
+          }
+        ]
+      },
+      "shortcuts": [
+        {
+          "key": "s",
+          "label": "Swap A and B",
+          "action": "sample"
+        },
+        {
+          "key": "c",
+          "label": "Clear inputs",
+          "action": "reset"
+        }
+      ],
+      "history-keys": [
+        "diff-a",
+        "diff-b",
+        "diff-granularity",
+        "diff-view"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/diff-viewer/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 480,
+        "min-height": 360
+      },
+      "search-priority": 5
+    },
+    {
+      "id": "jwt-inspector",
+      "slug": "jwt-inspector",
+      "title": "JWT Inspector",
+      "description": "Decode JWT header, payload, and signature. Verify HS256 / RS256 / ES256 signatures offline via Web Crypto.",
+      "category": "Developer Tools",
+      "pack": [
+        "developer"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EJ%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "jwt",
+        "jsonwebtoken",
+        "token",
+        "auth",
+        "debug",
+        "signature",
+        "hs256",
+        "rs256"
+      ],
+      "last-updated": "2026-08-13T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "jwt-token": ""
+        },
+        "encode": [
+          {
+            "key": "token",
+            "type": "string",
+            "from": "#jwt-token"
+          }
+        ],
+        "decode": [
+          {
+            "key": "token",
+            "type": "string",
+            "to": "#jwt-token"
+          }
+        ]
+      },
+      "shortcuts": [
+        {
+          "key": "d",
+          "label": "Decode token",
+          "action": "sample"
+        },
+        {
+          "key": "v",
+          "label": "Verify signature",
+          "action": "reset"
+        }
+      ],
+      "history-keys": [
+        "jwt-alg",
+        "jwt-secret-set"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/jwt-inspector/index.html"
+      },
+      "embed-snippet": {
+        "enabled": false,
+        "badge-default": false,
+        "min-width": 480,
+        "min-height": 360
+      },
+      "search-priority": 5,
+      "tab-order-canonical": [
+        "#shell-skip",
+        "a.back-link",
+        "#jwt-token",
+        "#jwt-secret",
+        "#jwt-pem"
+      ]
+    },
+    {
+      "id": "timestamp-converter",
+      "slug": "timestamp-converter",
+      "title": "Timestamp Converter",
+      "description": "Convert Unix epoch, ISO 8601, and RFC 2822 timestamps to every other format, with batch mode.",
+      "category": "Developer Tools",
+      "pack": [
+        "developer"
+      ],
+      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3ET%3C/text%3E%3C/svg%3E",
+      "keywords": [
+        "timestamp",
+        "unix",
+        "epoch",
+        "iso",
+        "rfc2822",
+        "time",
+        "date",
+        "convert"
+      ],
+      "last-updated": "2026-08-13T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "ts-input": "",
+          "ts-mode": "single"
+        },
+        "encode": [
+          {
+            "key": "input",
+            "type": "string",
+            "from": "#ts-input"
+          },
+          {
+            "key": "mode",
+            "type": "string",
+            "from": "[data-action=\"mode\"][aria-pressed=\"true\"]"
+          }
+        ],
+        "decode": [
+          {
+            "key": "input",
+            "type": "string",
+            "to": "#ts-input"
+          },
+          {
+            "key": "mode",
+            "type": "string",
+            "to": "[data-action=\"mode\"]"
+          }
+        ]
+      },
+      "shortcuts": [
+        {
+          "key": "n",
+          "label": "Use current time",
+          "action": "sample"
+        },
+        {
+          "key": "b",
+          "label": "Toggle batch mode",
+          "action": "reset"
+        },
+        {
+          "key": "c",
+          "label": "Copy ISO output",
+          "action": "copy"
+        }
+      ],
+      "history-keys": [
+        "ts-format",
+        "ts-input-mode"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/timestamp-converter/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 240
+      },
+      "search-priority": 5,
+      "tab-order-canonical": [
+        "#shell-skip",
+        "a.back-link",
+        "[data-action=\"mode\"][data-mode=\"single\"]",
+        "[data-action=\"mode\"][data-mode=\"batch\"]",
+        "#ts-input",
+        "#ts-now",
+        "#ts-unix-s",
+        "#ts-unix-ms",
+        "#ts-iso",
+        "#ts-rfc",
+        "#ts-human-utc",
+        "#ts-human-local"
+      ]
     }
   ]
 }

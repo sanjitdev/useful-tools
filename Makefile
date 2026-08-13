@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -58,6 +58,7 @@ help: ## Show available targets
 	@echo "  make wave-3-smoke        Run the static smoke harness verifying the 17 Wave-3 pages + their @media print CSS (Story 2.8)"
 	@echo "  make pack-tags           Audit every ready:true tool's pack tags and regenerate docs/pack-taxonomy.md (Story 2.9)"
 	@echo "  make pack-tags-smoke     Run the static Node smoke verifying every ready:true entry has a valid pack array (Story 2.9)"
+	@echo "  make check-pack-taxonomy Suggest a pack for tools with missing/invalid pack tags (Story 6.3 — not a gate; the schema is)"
 	@echo "  make es5-grep            Scan assets/js/** for ES5 anti-patterns (`var` declarations + `.concat(` calls). Story 2.10 gate."
 	@echo "  make quality-smoke       Run the Node smoke harness for quality.html + assets/js/quality.js (Story 2.11 /quality inventory view)"
 	@echo "  make regression-sweep    Run the cross-cutting tool-JS regression sweep (Story 2.12 — vm-context Node harness + Python wrapper; emits .regression-sweep-output.txt)"
@@ -74,7 +75,13 @@ help: ## Show available targets
 	@echo "  make search-perf-smoke   Run the Story 1.11 / AI-E1-14 search perf smoke (cold path ≤ 50ms/query × 5 fresh VMs; warm path ≤ 10ms/query × 90th-trimmed avg of 50; no-result ≤ 25ms/query; 4 PASS expected)"
 	@echo "  make ast-gates-self-test Run the vendored acorn AST walker's 15-fixture self-test (Story 1.17 / AI-E1-13)"
 	@echo "  make ast-gates-negative  Run the negative-test battery for shell-bounds + storage-registry AST walk (Story 1.17 AC-4)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke + view-source-smoke + pins-recent-smoke + search-perf-smoke + ast-gates-self-test + ast-gates-negative"
+	@echo "  make uuid-generator-smoke Run the Node vm-context smoke for the UUID Generator tool (Story 9.4)"
+	@echo "  make json-formatter-enhancements-smoke Run the Node vm-context smoke for the JSON Formatter enhancements (Story 9.1)"
+	@echo "  make citation-formatter-smoke Run the Node vm-context smoke for the Citation Formatter tool (Story 9.2)"
+	@echo "  make diff-viewer-smoke Run the Node vm-context smoke for the Diff Viewer tool (Story 9.3)"
+	@echo "  make jwt-inspector-smoke Run the Node vm-context smoke for the JWT Inspector tool (Story 9.5)"
+	@echo "  make timestamp-converter-smoke Run the Node vm-context smoke for the Timestamp Converter tool (Story 9.6)"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + check-pack-taxonomy + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke + view-source-smoke + pins-recent-smoke + search-perf-smoke + ast-gates-self-test + ast-gates-negative"
 
 validate: validate-tools-json
 
@@ -118,7 +125,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Story 1.18 (AI-E1-15) replaced the
@@ -494,6 +501,16 @@ pack-tags:
 pack-tags-smoke:
 	@node scripts/_smoke_pack_tags.js
 
+# Story 6.3 — Pack taxonomy suggestion gate (NOT a CI gate; the
+# schema is). Reads tools.json, posts a suggestion for any
+# ready:true entry with a missing/invalid pack value using the
+# hand-rolled KEYWORD_TO_PACK map at the top of the script.
+# Wired into `make ci` between `pack-tags-smoke` and `wave-1-smoke`.
+# Exit codes: 0 = clean, 2 = repo layout issue, 3 = I/O failure or
+# vacuous run (no ready:true entries). Never exits 1 by design.
+check-pack-taxonomy:
+	@$(PYTHON) scripts/check-pack-taxonomy.py
+
 # Story 2.10 — ES5 anti-pattern gate.
 # `es5-grep` scans assets/js/** for two ES5 anti-patterns that the
 # shared-helpers migration (utils.js, layout.js, theme.js) eliminated:
@@ -679,3 +696,53 @@ ast-gates-self-test:
 
 ast-gates-negative:
 	@node scripts/_smoke_ast_gates.js
+
+# Story 9.4 — UUID Generator smoke (Node vm-context harness covering
+# the four generators v1/v4/v7/ULID, validators, URL state, count
+# clamping, history push, and uniqueness invariants per AC-6).
+# ≥ 30 PASS expected (currently 133). Vacuous-pass guard catches
+# hollow runs.
+uuid-generator-smoke:
+	@node scripts/_smoke_uuid_generator.js
+
+# Story 9.1 — JSON Formatter enhancements smoke.
+# ≥ 20 PASS expected (currently 39). Vacuous-pass guard catches
+# hollow runs.
+json-formatter-enhancements-smoke:
+	@node scripts/_smoke_json_formatter_enhancements.js
+
+# Story 9.2 — Citation Formatter smoke (Node vm-context harness covering
+# parseAuthor, validateIsbn (with the regex alternation fix that
+# keeps ISBN-13 from collapsing into ISBN-10), validateDoi, isUrl,
+# the three formatters (APA 7 / MLA 9 / Chicago 17), the dispatcher,
+# the DOM render path with .citation-missing wrapping, the DOI/URL
+# link visibility, and the user-initiated HT.net.json ISBN lookup).
+# ≥ 25 PASS expected across 9 categories. Vacuous-pass guard.
+citation-formatter-smoke:
+	@node scripts/_smoke_citation_formatter.js
+
+# Story 9.3 — Diff Viewer smoke (Node vm-context harness covering
+# myersDiff, empty inputs, single-line / multi-line ops, splitLines /
+# splitWords / splitChars, word- and char-granularity diffs,
+# base64 round-trip with non-ASCII, URL state encode/decode,
+# invalid-granularity fallback, empty-state message, swap click).
+# ≥ 25 PASS expected across 15 categories. Vacuous-pass guard.
+diff-viewer-smoke:
+	@node scripts/_smoke_diff_viewer.js
+
+# Story 9.5 — JWT Inspector smoke (Node vm-context harness covering
+# base64url encode/decode + splitJwt + decodeJwt, HS256 + RS256
+# sign+verify round-trips via Web Crypto, the SPKI fixture PEM,
+# malformed PEM handling, exp render path, URL state (token + embed
+# privacy guard), history push with the jwt-alg + jwt-secret-set
+# keys only — never the token — , no-fetch / no-XHR assertions,
+# console scrubber, defensive guard, module + browser export shapes).
+# ≥ 30 PASS expected across 15 categories (currently 47).
+# Vacuous-pass guard catches hollow runs.
+jwt-inspector-smoke:
+	@node scripts/_smoke_jwt_inspector.js
+
+# Story 9.6 — Timestamp Converter (Unix epoch, ISO 8601, RFC 2822, human).
+# Vacuous-pass guard catches hollow runs.
+timestamp-converter-smoke:
+	@node scripts/_smoke_timestamp_converter.js

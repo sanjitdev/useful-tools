@@ -37,6 +37,7 @@ on:
       - "scripts/_smoke_wave_3_pages.js"
       - "scripts/_pack_tags.py"
       - "scripts/_smoke_pack_tags.js"
+      - "scripts/check-pack-taxonomy.py"
       - "scripts/_es5_grep.py"
       - "scripts/_smoke_quality.js"
       - "scripts/_smoke_regression_sweep.js"
@@ -52,6 +53,16 @@ on:
       - "scripts/vendor/ast-walker.js"
       - "scripts/_smoke_ast_gates.js"
       - "scripts/_smoke_chrome_dom_walk.js"
+      - "scripts/_smoke_uuid_generator.js"
+      - "scripts/_uuid_generator_self_test.js"
+      - "scripts/_smoke_json_formatter_enhancements.js"
+      - "scripts/_smoke_citation_formatter.js"
+      - "scripts/_smoke_diff_viewer.js"
+      - "scripts/fixtures/jwt-test-keypair.pem"
+      - "scripts/_smoke_jwt_inspector.js"
+      - "scripts/_smoke_timestamp_converter.js"
+      - "assets/js/diff.js"
+      - "assets/js/json-schema-lite.js"
       - "assets/js/recent.js"
       - "assets/js/pins.js"
       - "assets/js/home-sidebar.js"
@@ -107,6 +118,7 @@ on:
       - "scripts/_smoke_wave_3_pages.js"
       - "scripts/_pack_tags.py"
       - "scripts/_smoke_pack_tags.js"
+      - "scripts/check-pack-taxonomy.py"
       - "scripts/_es5_grep.py"
       - "scripts/_smoke_quality.js"
       - "scripts/_smoke_regression_sweep.js"
@@ -122,6 +134,16 @@ on:
       - "scripts/vendor/ast-walker.js"
       - "scripts/_smoke_ast_gates.js"
       - "scripts/_smoke_chrome_dom_walk.js"
+      - "scripts/_smoke_uuid_generator.js"
+      - "scripts/_uuid_generator_self_test.js"
+      - "scripts/_smoke_json_formatter_enhancements.js"
+      - "scripts/_smoke_citation_formatter.js"
+      - "scripts/_smoke_diff_viewer.js"
+      - "scripts/fixtures/jwt-test-keypair.pem"
+      - "scripts/_smoke_jwt_inspector.js"
+      - "scripts/_smoke_timestamp_converter.js"
+      - "assets/js/diff.js"
+      - "assets/js/json-schema-lite.js"
       - "assets/js/recent.js"
       - "assets/js/pins.js"
       - "assets/js/home-sidebar.js"
@@ -343,6 +365,15 @@ jobs:
         # Vacuous-pass guard catches hollow runs.
         run: make pack-tags-smoke
 
+      - name: Check pack taxonomy (Story 6.3)
+        # Story 6.3: posts a *suggestion* per missing/invalid pack
+        # entry in tools.json using the hand-rolled KEYWORD_TO_PACK
+        # map in scripts/check-pack-taxonomy.py. Not a gate — the
+        # schema is the authoritative check. Exit codes: 0 = clean,
+        # 2 = repo layout issue, 3 = I/O or vacuous run. Never exits
+        # 1 by design.
+        run: make check-pack-taxonomy
+
       - name: Enforce ES5 anti-pattern gate (Story 2.10)
         # Story 2.10: scans assets/js/** for ES5 anti-patterns
         # (`var` declarations in the migrated shared files + `.concat(`
@@ -472,6 +503,101 @@ jobs:
         # expressions (member expr, call expr, optional chaining).
         # 15 PASS expected. Vacuous-pass guard catches hollow runs.
         run: make ast-gates-self-test
+
+      - name: Smoke UUID Generator (Story 9.4)
+        # Story 9.4: verifies the UUID Generator tool's four generators
+        # (UUID v1 / v4 / v7 / ULID) plus validators, URL state
+        # (?version=...&count=...), invalid-version warning, count
+        # clamping to [1, 100], uniqueness across 1000 generations,
+        # Crockford alphabet integrity, and history.push side-effect
+        # under tools/uuid-generator/. 133 PASS expected. Vacuous-pass
+        # guard (pass===0 && fail===0 → exit 1) catches hollow runs.
+        run: make uuid-generator-smoke
+
+      - name: Smoke JSON Formatter Enhancements (Story 9.1)
+        # Story 9.1: verifies the JSON Formatter tool's three
+        # enhancements — Sort keys (recursive), Schema validate (Draft-07
+        # subset: type/required/properties/items/enum/minimum/maximum/
+        # minLength/maxLength/pattern), Diff (Myers/LCS, line-granularity
+        # via assets/js/diff.js). Plus feature gating via ?feature=
+        # sort|schema|diff, invalid-feature fallback, no-shell-bounds
+        # violations in the tool script. 39 PASS expected. Vacuous-pass
+        # guard catches hollow runs.
+        run: make json-formatter-enhancements-smoke
+
+      - name: Smoke Citation Formatter (Story 9.2)
+        # Story 9.2: verifies the three citation formatters (APA 7 / MLA 9
+        # / Chicago 17), parseAuthor, validateIsbn (ISBN-13 alternation
+        # order — the bug that consumed 9780306406157 to ISBN-10 9780306406
+        # before the fix), validateDoi, isUrl, the formatCitation
+        # dispatcher, the DOM render path that wraps missing-field
+        # placeholders in <span class="citation-missing" data-field="...">,
+        # the DOI/URL link visibility cycle, and the user-initiated
+        # HT.net.json ISBN lookup. 65 PASS expected across 9 categories.
+        # Vacuous-pass guard catches hollow runs.
+        run: make citation-formatter-smoke
+
+      - name: Smoke Diff Viewer (Story 9.3)
+        # Story 9.3: verifies myersDiff (hand-rolled Myers O(ND) +
+        # LCS fallback for small inputs), the three splitters
+        # (splitLines / splitWords / splitChars), word- and char-
+        # granularity diffs, empty / single-side / multi-line
+        # inputs, base64 round-trip with non-ASCII (covers emoji +
+        # diacritics), URL state encode/decode via ?a=&b=&granularity=
+        # &view= with base64-encoded payloads, invalid-granularity
+        # fallback to "line", the empty-state <p class="diff-empty">
+        # message, swap click behavior, and the browser surface
+        # (window.HT.diff). 46 PASS expected across 12 categories.
+        # Vacuous-pass guard catches hollow runs.
+        run: make diff-viewer-smoke
+
+      - name: Smoke JWT Inspector (Story 9.5)
+        # Story 9.5: verifies the JWT Inspector tool's decoder +
+        # verifier. Loads assets/js/jwt-codec.js (Node-side exports) +
+        # tools/jwt-inspector/jwt-inspector.js (vm context with stub
+        # HT + DOM). Asserts base64url alphabet + padding (URL-safe
+        # alphabet, no `=` in output, decode accepts padded input),
+        # splitJwt 3-segment contract (2/4 segments throw), decodeJwt
+        # parses header + payload as JSON, HS256 sign + verify round-
+        # trip via Web Crypto (correct secret verifies, wrong secret
+        # fails), RS256 sign + verify with the on-the-fly-generated
+        # keypair + the committed fixture PEM (jwt-test-keypair.pem)
+        # imports as RSASSA-PKCS1-v1_5 verify key, malformed PEM
+        # throws cleanly (no opaque DecoderError), exp render path
+        # ("Expired at …" / "Valid until …"), URL state (?token=…
+        # sets textarea, ?embed=1 + token → privacy: token NOT
+        # loaded), history push carries only jwt-alg + jwt-secret-set
+        # (token NEVER enters history per AC-4), no fetch / XHR
+        # asserted, console scrubber (token / payload sub / signature
+        # never logged), defensive guard (missing HT.jwt → console.warn
+        # + no throw), and the module + window.HT.jwt browser export
+        # surface. 47 PASS expected across 15 categories. Vacuous-pass
+        # guard catches hollow runs.
+        run: make jwt-inspector-smoke
+
+      - name: Smoke Timestamp Converter (Story 9.6)
+        # Story 9.6: verifies the Timestamp Converter tool's
+        # classifier + formatters + batch mode. Loads
+        # tools/timestamp-converter/timestamp-converter.js into a
+        # vm context with stub HT + DOM + stubbed clipboard. Asserts
+        # Unix seconds + milliseconds round-trip (1755000000 ↔
+        # 2025-08-13T01:20:00.000Z ↔ Wed, 13 Aug 2025 01:20:00 GMT),
+        # ISO 8601 with Z / fractional / offset / date-only, RFC 2822
+        # decode, human UTC exact format ("YYYY-MM-DD HH:MM:SS UTC"),
+        # human local round-trip (locale-dependent format, parse-back
+        # preserves instant), 4 detection labels, invalid input error
+        # path (foo / 2025-13-99), epoch magnitude boundary (10
+        # digits = s, 11 digits = ms), URL state (?input= populates
+        # on load), URL state + embed (privacy: input NOT loaded),
+        # history keys carry ts-format + ts-input-mode only (input
+        # NEVER enters history), no fetch / XHR asserted, console.log
+        # scrubber, batch mode (3 lines → 3 parsed + caption), batch
+        # with invalid line (2 parsed + 1 error cell), blank-line
+        # tolerance, mode toggle reveals the right panel, naive
+        # datetime warning ("Interpreted as UTC"), Now button
+        # populates 10-digit epoch, negative epoch rejected. Vacuous-
+        # pass guard catches hollow runs.
+        run: make timestamp-converter-smoke
 
       - name: AST gates negative-test battery (Story 1.17 AC-4)
         # Story 1.17 AC-4: proves the AST migration didn't regress
