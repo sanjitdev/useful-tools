@@ -1,0 +1,52 @@
+/* ============================================
+   Exam Countdown — Story 9.8
+   Tool-specific styles for the live countdown.
+   Reuses shared tokens from assets/css/components.css
+   and .result-tile / .result-grid from assets/css/tools.css.
+   Adds the .countdown-segment typography, the
+   empty-state + past-notice paragraphs, and a
+   print-friendly @media print block.
+   ============================================ */
+
+.ec-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ec-notice {
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md, 6px);
+  font-size: var(--font-size-sm, 0.9rem);
+  text-align: center;
+}
+
+.ec-notice--empty {
+  background: var(--color-surface-alt, rgba(0,0,0,0.04));
+  color: var(--color-text-muted, #555);
+  border: 1px dashed var(--color-border, #ccc);
+}
+
+.ec-notice--past {
+  background: var(--color-warning-bg, rgba(255, 200, 0, 0.12));
+  color: var(--color-warning-text, #6a4d00);
+  border: 1px solid var(--color-warning-border, rgba(255, 200, 0, 0.4));
+}
+
+.countdown-segment {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.ec-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-4);
+}
+
+@media print {
+  .ec-actions { display: none; }
+  .ec-notice { border: none; padding: 0; }
+}
