@@ -117,6 +117,20 @@
     delete _netInflight[inflightKey];
   }
 
+  // Story 9.2 — `HT.net.json(url, options)` — convenience that wraps
+  // `HT.net.get(url)` and parses the response body as JSON. Tools that
+  // need a JSON response (e.g. citation-formatter hitting Open Library)
+  // should use this rather than calling fetch() directly. The
+  // non-2xx -> reject contract matches HT.fetch: HTTP 4xx/5xx throw.
+  function netJson(url, options) {
+    return netGet(url, options).then(function (res) {
+      if (!res.ok) {
+        throw new Error('HTTP ' + res.status + ' for ' + url);
+      }
+      return res.json();
+    });
+  }
+
   // AD-14 requires the public surface to be frozen. The functions
   // themselves are frozen via Object.freeze(...) (a no-op on
   // function objects but documents intent and prevents the body
@@ -150,6 +164,7 @@
       get: netGet,
       head: netHead,
       abort: netAbort,
+      json: netJson,
     }), writable: false, configurable: false, enumerable: true },
     provideRegistry: { value: Object.freeze({ list: function () {
       return Object.keys(_providedApis).sort();
@@ -350,6 +365,19 @@
     syncThemeToggleAria();
     refreshFooterYear();
 
+    // Register per-tool history keys BEFORE the panel mounts. The
+    // panel mounts synchronously below (HT.history.panel → list → _readRaw
+    // → HT.storage.get('handy-tools.history.<slug>', [])), and the
+    // registry throws a `HT.storage.get: unregistered key ...` warning
+    // whenever a get lands on a key that hasn't been registered yet.
+    // On tool pages, home-grid.js never loads so HT.homeGrid.entries
+    // stays null; the inline tools.json block (spliced by
+    // shell-template.py) is the only source of truth. Registering
+    // synchronously here is the cheapest fix — the deferred
+    // registerToolHistoryKeys() call below still runs as a safety net
+    // for the home page where HT.homeGrid.entries may publish later.
+    registerToolHistoryKeys();
+
     // Story 2.2 / AD-4: mount the Sample / Reset buttons onto every tool
     // page. Sample is global, Tools opt in via the urlState.sample block
     // in tools.json. The mount helper renders both buttons into a
@@ -420,24 +448,21 @@
       wireViewSourceLink();
     }
 
-    // Story 1.10: register per-tool history keys once HT.homeGrid publishes.
-    // The home-grid renderer loads on every page (it's a deferred script)
-    // but only publishes live entries on the home page; on tool pages
-    // HT.homeGrid.entries stays null. Defer the registration to the next
-    // macrotask so the home-grid renderer's async loadTools() can complete
-    // first; if home-grid never publishes (tool pages), fall back to the
-    // manifest block in chrome.html.
+    // Story 1.10: retry registration in case HT.homeGrid.entries
+    // publishes after boot() (it does on the home page where
+    // home-grid.js fetches tools.json async). On tool pages the
+    // synchronous call earlier in boot() has already registered the
+    // keys from the inline JSON splice; this retry is a no-op
+    // (registry refuses duplicate registrations) but keeps the home
+    // page path — which prefers HT.homeGrid.entries for fidelity.
     //
-    // Review fix: the previous implementation gave up after one retry
-    // (~50 ms) which meant tool pages shipped without history-keys
-    // registration. We now retry for up to ~2 seconds AND accept a
-    // fallback path: the storage-registry manifest block in chrome.html
-    // carries the canonical `handy-tools.history.<slug>` keys (the
-    // history-keys list is per-tool and lives in tools.json which is
-    // spliced into the home page; for tool pages we instead use the
-    // registry's own keys() as a backstop by registering the slug list
-    // that any caller passes — the gate cross-check covers whether a
-    // tools.json entry's history-keys are covered).
+    // Review fix: the previous implementation deferred the FIRST
+    // registration too, which meant the panel's initial _renderRows()
+    // synchronously called HT.storage.get('handy-tools.history.<slug>')
+    // before the keys existed, firing the
+    // `HT.storage.get: unregistered key` warning. Now we register
+    // synchronously above (lines ~365-380), then queue this retry for
+    // the home-page-only HT.homeGrid.upgrade path.
     setTimeout(registerToolHistoryKeys, 0);
 
     // Story 3.7 — best-effort register the forward-compat keys
@@ -493,15 +518,38 @@
   }
 
   function registerToolHistoryKeys() {
-    if (!HT.storage || typeof HT.storage.registerHistoryKeys !== 'function') return;
-    const homeGrid = HT.homeGrid;
-    if (homeGrid && Array.isArray(homeGrid.entries)) {
+    // Use the registry directly: utils.js's HT.storage dispatch layer
+    // intentionally omits `registerHistoryKeys` (it's a boot-time-only
+    // surface; we don't want tool code calling it post-boot). The
+    // registry is the source of truth.
+    const reg = HT.storageRegistry;
+    if (!reg || typeof reg.registerHistoryKeys !== 'function') return;
+    const call = (tools) => {
       try {
-        HT.storage.registerHistoryKeys(homeGrid.entries);
+        reg.registerHistoryKeys(tools);
       } catch (err) {
         console.warn('shell.historyKeys: registration failed', err);
       }
+    };
+    const homeGrid = HT.homeGrid;
+    if (homeGrid && Array.isArray(homeGrid.entries)) {
+      call(homeGrid.entries);
       return;
+    }
+    // Fallback for tool pages: home-grid.js doesn't load on tool pages,
+    // so HT.homeGrid.entries stays null. Parse the inline tools.json
+    // block (spliced by shell-template.py) to recover the entries and
+    // register their history-keys. Without this, HT.storage.get(historyKey)
+    // returns the fallback (empty array) and the panel never populates.
+    const inline = document.getElementById('ht-tools-json-inline');
+    if (inline) {
+      try {
+        const parsed = JSON.parse(inline.textContent || '');
+        if (parsed && Array.isArray(parsed.tools)) {
+          call(parsed.tools);
+          return;
+        }
+      } catch (_) { /* malformed inline JSON — fall through to retry */ }
     }
     // No entries yet — retry with exponential backoff up to the budget.
     const elapsed = _historyKeyRetries * _HISTORY_KEY_RETRY_BASE_MS;
