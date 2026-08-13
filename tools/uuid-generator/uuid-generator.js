@@ -1,5 +1,5 @@
 /* ============================================
-   UUID Generator
+   UUID Generator — Story 9.4
    Generate RFC 4122 v1/v4/v7 UUIDs and ULIDs.
    Pure offline identifier generator — uses crypto.getRandomValues
    + crypto.randomUUID (where available) only.
@@ -364,8 +364,15 @@
     }
   });
 
-  // --- Initial render: apply URL state then generate one ---
-
+  // --- Initial render ---
+  // The output textarea has aria-live="polite" so screen readers
+  // announce whatever sits in it. On a bare load (no URL state) we
+  // must NOT auto-generate — that would surprise users with an
+  // uninvited UUID announcement. When the URL DOES pin a generation
+  // (?version= or ?count=) the user has explicitly requested it via
+  // the URL, so honour it by generating once on boot.
   applyUrlState();
-  generate();
+  if (readUrlState().version !== null || readUrlState().count !== null) {
+    generate();
+  }
 })();

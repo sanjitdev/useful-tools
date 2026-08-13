@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 baseline_commit: 344fde9be3334ae727b2edbf44eb326a0c0ec224
 ---
 
@@ -143,7 +143,7 @@ None. All four identifier formats are unambiguous in their specs.
 - [x] T7 — Write `scripts/_smoke_uuid_generator.js`: ≥ 30 assertions covering AC-6's nine categories. Vacuous-pass guard. **Done 2026-08-13.** Result: 133/133 PASS.
 - [x] T8 — Wire Makefile + CI (uuid-generator-smoke target, ci chain, path filters in workflow). **Done 2026-08-13.**
 - [x] T9 — Run `make ci` end-to-end. All gates green. Capture exit codes in Dev Agent Record. **Done 2026-08-13.** Result: regression-sweep 36/36 tools (216/216), tool-contract-gate 36/36, pack-tags-smoke 114/114.
-- [ ] T10 — Two-pass review (AI-E3-2). Apply findings. Re-run `make ci`. Mark `done`. **DEFERRED.**
+- [x] T10 — Two-pass review (AI-E3-2). Apply findings. Re-run `make ci`. Mark `done`. **Done 2026-08-13.** Result: CR1 produced 4 findings (M1 banner, M3 manifest regen, N6 category normalization, S4 boot path); CR2 surfaced 1 follow-on (inline-manifest drift in uuid-generator + timestamp-converter tool pages that `shell-template.py --tool` had not rewritten because `tools_json_inline_ok` checks markers only, not content). All fixed. Smoke 133/133, regression 240/240, global chords 43/43, pins/recent 119/119, ast-gates 7/7. Site-config, storage-registry, shell-public-api gates all PASS.
 
 ## Dev Agent Record
 
@@ -213,7 +213,7 @@ These are documented but out of scope for Story 9.4. The uuid-generator entry is
 
 ### Completion Notes
 
-**Status: DS DONE — T1–T9 complete; T10 (two-pass review) DEFERRED.**
+**Status: DONE — T1–T10 complete (2026-08-13).**
 
 What was delivered in this session:
 - Spec: `_bmad-output/implementation-artifacts/9-4-uuid-generator-v1-v4-v7-ulid.md` (CS+VS done, 7 findings resolved).
@@ -228,12 +228,37 @@ What was delivered in this session:
 What remains:
 - T10 — Two-pass review (CR1 + CR2) per AI-E3-2. The DS pass is high-confidence: all 8 ACs are met (algorithmic correctness verified by 23-fixture self-test; tool-script integration verified by 133-assertion smoke; contract gates green; shell-drift clean). The two-pass review will focus on code-quality and rubric-criterion verification (keyboard completeness, history-keys, embed-snippet, view-source) and apply any findings before marking the spec `done`.
 
+**2026-08-13 — T10 closeout (two-pass review per AI-E3-2).**
+
+CR1 produced 4 findings, all applied:
+- **M1** — Added "Story 9.4" to the header banner of `tools/uuid-generator/uuid-generator.js`.
+- **M3** — Regenerated inline `ht-tools-json-inline` JSON in `tools/uuid-generator/index.html` so the `generated` timestamp matches today's date.
+- **N6** — Normalized `category: "Developer Tools"` → `"Developer"` for 4 Wave-4 tool entries in `tools.json` (uuid-generator, diff-viewer, jwt-inspector, timestamp-converter). `tools.schema.json` permits free-form `category` strings (minLength 1, maxLength 40) so both values were valid; the rename aligns with the rest of the corpus' category vocabulary.
+- **S4** — Removed unconditional `applyUrlState(); generate();` boot path. The output textarea has `aria-live="polite"` so an auto-generated UUID on bare load would surprise screen-reader users with an uninvited announcement. The fix preserves the URL-pinned generation behaviour (smoke expects 5 UUIDs when `?version=invalid&count=5` is in the URL) by gating `generate()` on `readUrlState().version !== null || readUrlState().count !== null`. Documented inline with a comment block.
+
+CR2 surfaced 1 follow-on (the second reviewer flagged it as "same defect as the original N6, half-fixed"):
+- The category rename in `tools.json` left the inline `<script id="ht-tools-json-inline">` blocks in `tools/uuid-generator/index.html` and `tools/timestamp-converter/index.html` stale (4 stale `"Developer Tools"` entries in each file). Root cause: `scripts/shell-template.py`'s `process_file` checks `tools_json_inline_ok` (markers present) on the early-exit "no-change (already has new chrome)" path, NOT byte-equivalence against the current `tools.json`. So a content drift inside the markers is silently treated as aligned and the splice never re-runs. **Fix applied**: ran a one-off Python helper (`scripts/_tmp_regen_inline_two.py`, deleted) that imports `shell_template.read_tools_json_inline` + `TOOLS_JSON_INLINE_RE` and explicitly re-splices the canonical block in those two tool pages. Verified: 0 stale `"Developer Tools"` strings, 26 `"category":"Developer"` matches across the 4 affected tool pages. **Out-of-scope follow-up**: the underlying bug in `shell-template.py`'s "markers present" check should be fixed in a separate story (e.g., change `tools_json_inline_ok` to use byte-content check like the home-page path uses `tools_json_inline_in_source`). Documented here for tracking; not required for Story 9.4 closure.
+
+Final gate results:
+- `node scripts/_smoke_uuid_generator.js`: 133/133 PASS
+- `node scripts/_smoke_regression_sweep.js`: 240/240 PASS
+- `node scripts/_smoke_global_chords.js`: 43/43 PASS
+- `node scripts/_smoke_pins_recent.js`: 119/119 PASS
+- `node scripts/_smoke_ast_gates.js`: 7/7 PASS
+- `node scripts/_smoke_shell_public_api.js`: 23/23 PASS
+- `python scripts/validate-tools-json.py`: OK
+- `python scripts/site-config-gate.py`: PASS
+- `python scripts/storage-registry-gate.py`: PASS
+- `python scripts/shell-drift-check.py`: 7 pre-existing drift findings (unrelated to this story — verified by `git stash` re-run)
+
+Story 9.4 closed.
+
 ## Residue & Deferred
 
 - v1 node-id fallback is documented as random (RFC 4122 §4.5 allows this). No follow-up planned; users wanting real MAC-derived v1s should use a different tool.
 - The "Now" button (used by Story 9.6 Timestamp converter) is not in scope here.
 - The "share dialog" affordance is provided by the standard chrome `HT.share` mount (Story 2.5) and is not a per-tool addition.
-- **T2..T10 deferred to next session** (see Tasks block). The algorithmic core is shipped and tested; the chrome + contract + smoke + CI wiring is the next session's work. The spec is at `ready-for-dev` throughout; status is **not** `done` because T1 is the only completed task and AC-1..AC-7 require the full implementation.
+- **T2..T10 deferred to next session** (see Tasks block). The algorithmic core is shipped and tested; the chrome + contract + smoke + CI wiring is the next session's work. The spec is at `ready-for-dev` throughout; status is **not** `done` because T1 is the only completed task and AC-1..AC-7 require the full implementation. **Resolved in this session (2026-08-13): T2–T10 closed. See Completion Notes.**
 
 ## File List
 
@@ -247,15 +272,17 @@ What remains:
 - `Makefile` (modified — 1 new target + help + .PHONY + CI chain — DELIVERED 2026-08-13)
 - `.github/workflows/tool-contract-gate.yml` (modified — 1 new step + path filters — DELIVERED 2026-08-13)
 
+## Status
+
+done
+
+## Change Log
+
 - 2026-08-13 — CS: spec drafted (AC-1..AC-7, Validation block with V-1..V-7, File List, Tasks, Dev Agent Record).
 - 2026-08-13 — VS: 7 validation findings (V-1..V-3 applied to AC text; V-4..V-7 informational). Validation verdict: PASS.
 - 2026-08-13 — DS (partial): algorithmic core + 23-fixture self-test shipped in `scripts/_uuid_generator_self_test.js`. 23/23 PASS.
 - 2026-08-13 — DS (T2–T9): tool implementation complete. Files: `tools/uuid-generator/{index.html, uuid-generator.js, uuid-generator.css}`; `tools.json` entry; `scripts/_smoke_uuid_generator.js` (133/133 PASS); Makefile + CI wiring. CI subset: validate, gate, shell-bounds, regression-sweep (216/216), shell-drift (36/36), pack-tags-smoke (114/114), chrome-dom-smoke (8/8), shell-public-api-smoke (23/23), pins-recent-smoke (119/119), wave-3-smoke (392/392), uuid-generator-smoke (133/133), regression-sweep-negative — all PASS. Pre-existing tech-debt (api-contract drift, print-smoke 35-tool hardcode) is documented but out of scope.
-- 2026-08-13 — DS (T10): Two-pass review (CR1 + CR2) **DEFERRED** to next session.
-
-## Status
-
-ready-for-dev
+- 2026-08-13 — DS (T10): Two-pass review (CR1 + CR2) closed. Applied M1 (header banner), M3 (inline manifest regen), N6 (category rename across 4 tools), S4 (boot path no-auto-generate). CR2 surfaced an inline-manifest drift follow-on (root cause: `shell-template.py` `tools_json_inline_ok` checks markers only, not content); fixed by direct splice in the two affected tool pages. All gates green. Spec status → done.
 
 ## Validation (VS — 2026-08-13)
 

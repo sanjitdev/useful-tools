@@ -5405,7 +5405,7 @@
       "slug": "uuid-generator",
       "title": "UUID Generator",
       "description": "Generate UUID v1, v4, v7, and ULID identifiers in bulk, with URL state.",
-      "category": "Developer Tools",
+      "category": "Developer",
       "pack": [
         "developer"
       ],
@@ -5595,7 +5595,7 @@
       "slug": "diff-viewer",
       "title": "Diff Viewer",
       "description": "Compare two texts side-by-side or unified, with line / word / char granularity. Hand-rolled Myers algorithm.",
-      "category": "Developer Tools",
+      "category": "Developer",
       "pack": [
         "developer"
       ],
@@ -5697,7 +5697,7 @@
       "slug": "jwt-inspector",
       "title": "JWT Inspector",
       "description": "Decode JWT header, payload, and signature. Verify HS256 / RS256 / ES256 signatures offline via Web Crypto.",
-      "category": "Developer Tools",
+      "category": "Developer",
       "pack": [
         "developer"
       ],
@@ -5774,7 +5774,7 @@
       "slug": "timestamp-converter",
       "title": "Timestamp Converter",
       "description": "Convert Unix epoch, ISO 8601, and RFC 2822 timestamps to every other format, with batch mode.",
-      "category": "Developer Tools",
+      "category": "Developer",
       "pack": [
         "developer"
       ],
