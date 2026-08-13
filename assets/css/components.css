@@ -486,46 +486,54 @@
 /* ---------- Pack cards (home grid, Story 6.1) ----------
    Rendered by assets/js/pack-grid.js into #home-grid-packs. Each card
    is a real <a> to /packs/<slug>.html (Story 6.2's destination).
-   Clean modern layout: 3 columns on desktop with generous padding,
-   large icon, clear title/description hierarchy, soft hover (no
-   jumpy transforms), bottom-anchored count + arrow meta row.
-   Cobalt-aware tokens only; no per-card hue. */
+   Compact square tile: 5 across on desktop, each tile is a true 1:1
+   square (~180px on the 1100px container). Icon + title + count
+   only — descriptions live on the dedicated pack page, not on the
+   home grid where space is tight. Cobalt-aware tokens only. */
 
 .pack-section {
   margin-top: var(--space-6);
 }
 
-/* Three-column grid on desktop. 1100px container / 3 cards = ~360px
-   per card, which gives generous room for icon + title + 2-line
-   description + meta row without cramping. Drops to 2 columns on
-   tablet, 1 on phones. Cards grow vertically with content (no
-   aspect-ratio constraint) so descriptions can breathe. */
+/* Five columns on desktop. 1100px container / 5 ≈ 200px per card.
+   With aspect-ratio: 1/1 each card is a ~200px square — small but
+   readable. Drops to 4 / 3 / 2 / 1 columns at smaller viewports so
+   the squares stay a reasonable size. */
 .pack-section > div {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-3);
 }
 
-@media (max-width: 820px) {
-  .pack-section > div { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 900px) {
+  .pack-section > div { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 720px) {
+  .pack-section > div { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 540px) {
+  .pack-section > div { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 360px) {
   .pack-section > div { grid-template-columns: 1fr; }
 }
 
 .pack-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-5);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   color: var(--color-text);
   text-decoration: none;
-  /* Soft hover: only the border + icon background shift. No transform
-     jump, no shadow flicker. Calmer feel that matches the rest of
-     the redesigned home page. */
+  text-align: center;
+  /* Hard 1:1 square — every tile in the row is the same size
+     regardless of content. */
+  aspect-ratio: 1 / 1;
   transition: border-color 180ms ease, background-color 180ms ease;
 }
 
@@ -535,22 +543,15 @@
   background: color-mix(in srgb, var(--color-accent) 3%, var(--color-surface));
 }
 
-.pack-card:hover .pack-card-arrow {
-  transform: translateX(3px);
-  color: var(--color-accent);
-}
-
 .pack-card:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-/* Icon: prominent 48px square with cobalt soft background. The hover
-   state darkens the background so it visually activates with the
-   rest of the card. */
+/* Compact 36px icon — fits cleanly inside the small square. */
 .pack-card-icon {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-md);
   background: var(--color-accent-soft);
   color: var(--color-accent);
@@ -566,60 +567,38 @@
 }
 
 .pack-card-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
 }
 
-/* Title: 1.125rem, semibold. Big enough to read as the primary
-   element, not so big it competes with the homepage hero. */
 .pack-card-title {
   font-weight: 600;
-  font-size: 1.125rem;
-  letter-spacing: -0.015em;
-  line-height: 1.3;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
   color: var(--color-text);
 }
 
-.pack-card-desc {
-  color: var(--color-muted);
-  font-size: 0.9375rem;
-  line-height: 1.5;
-  flex: 1 1 auto;
-}
-
-/* Bottom meta row: tool count on the left, subtle arrow on the right.
-   The arrow nudges right on hover (3px) as a directional cue. */
-.pack-card-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: var(--space-2);
-  padding-top: var(--space-3);
-  border-block-start: 1px solid var(--color-border);
-}
-
+/* Count sits below the title — small, muted, with tabular-nums so
+   "13 tools" and "3 tools" align across the row. */
 .pack-card-count {
   color: var(--color-muted);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
-.pack-card-arrow {
-  color: var(--color-muted);
-  display: inline-flex;
-  align-items: center;
-  transition: transform 180ms ease, color 180ms ease;
+/* Hide the description + meta row inside compact tiles — there's no
+   room. The full description + count live on the dedicated pack page. */
+.pack-card-desc,
+.pack-card-meta {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pack-card,
-  .pack-card-icon,
-  .pack-card-arrow {
+  .pack-card-icon {
     transition: none !important;
-  }
-  .pack-card:hover .pack-card-arrow {
-    transform: none;
   }
 }
 
