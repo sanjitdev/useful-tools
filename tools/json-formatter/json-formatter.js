@@ -1,6 +1,14 @@
 /* ============================================
    JSON Formatter
    Format, minify, validate; optional tree view.
+   Story 9.1 — three enhancements gated by ?feature=...
+     ?feature=sort   → Sort keys checkbox
+     ?feature=schema → Schema textarea + Validate
+     ?feature=diff   → JSON-B textarea + Diff
+   The page renders only the controls for the
+   active features. Invalid ?feature=foo is
+   silently dropped (page renders with no
+   enhancements visible).
    ============================================ */
 
 (function () {
@@ -8,18 +16,67 @@
 
   var DEFAULT_INPUT = '{\n  "name": "Handy Tools",\n  "version": 1,\n  "tags": ["utility", "static", "vanilla"],\n  "author": { "name": "you", "email": "you@example.com" },\n  "active": true,\n  "beta": null\n}';
 
+  // ----- DOM lookups -----
   var input = HT.$('#json-input');
   var out = HT.$('#output');
   var status = HT.$('#status');
+  var sortPanel = HT.$('#sort-panel');
+  var sortKeys = HT.$('#sort-keys');
+  var schemaPanel = HT.$('#schema-panel');
+  var schemaInput = HT.$('#schema-input');
+  var schemaErrors = HT.$('#schema-errors');
+  var schemaOk = HT.$('#schema-ok');
+  var runSchema = HT.$('#run-schema');
+  var diffPanel = HT.$('#diff-panel');
+  var inputB = HT.$('#json-input-b');
+  var runDiff = HT.$('#run-diff');
+  var diffOutput = HT.$('#json-diff-output');
+
   var currentPretty = '';
   var currentTree = false;
   var lastParsed = null;
 
   if (!input.value.trim()) input.value = DEFAULT_INPUT;
 
+  // ----- Feature gating (AC-4) -----
+  // URL is ?feature=sort,schema,diff (comma-separated).
+  // Read directly from the location; no HT.urlState dep for the
+  // toggle panels because they are presentational, not bindable
+  // inputs in the schema.
+  function readFeatures() {
+    try {
+      var params = new URLSearchParams(location.search || '');
+      var raw = (params.get('feature') || '').toLowerCase();
+      if (!raw) return [];
+      var ALLOWED = { sort: 1, schema: 1, diff: 1 };
+      var out = {};
+      raw.split(',').forEach(function (part) {
+        var t = part.trim();
+        if (ALLOWED[t]) out[t] = 1;
+      });
+      return Object.keys(out);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function applyFeatureGating() {
+    var features = readFeatures();
+    if (sortPanel) sortPanel.hidden = features.indexOf('sort') < 0;
+    if (schemaPanel) schemaPanel.hidden = features.indexOf('schema') < 0;
+    if (diffPanel) diffPanel.hidden = features.indexOf('diff') < 0;
+  }
+
+  // ----- Helpers -----
   function setStatus(text, cls) {
     status.className = cls || '';
     status.textContent = text || '';
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
   }
 
   function lineColumnOfError(text, err) {
@@ -28,7 +85,6 @@
     if (matched) {
       return 'line ' + matched[1] + ', column ' + matched[2];
     }
-    // Estimate from character position if present
     var pos = (err.message || '').match(/position\s+(\d+)/);
     if (pos) {
       var p = parseInt(pos[1], 10);
@@ -54,14 +110,18 @@
     }
   }
 
-  // ----- Tree rendering -----
-
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
+  // ----- AC-1: sortKeys -----
+  function sortKeysRecursive(value) {
+    if (Array.isArray(value)) return value.map(sortKeysRecursive);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.keys(value).sort().map(function (k) { return [k, sortKeysRecursive(value[k])]; })
+      );
+    }
+    return value;
   }
 
+  // ----- Tree rendering -----
   function renderTree(value) {
     function render(val, key) {
       var k = '';
@@ -124,23 +184,29 @@
   }
 
   // ----- Actions -----
+  function buildOutput(parsed) {
+    var sorted = (sortKeys && sortKeys.checked) ? sortKeysRecursive(parsed) : parsed;
+    return JSON.stringify(sorted, null, 2);
+  }
 
   function doFormat() {
     var r = parseSafe();
     if (!r.ok) { setStatus('Invalid JSON: ' + r.error, 'error'); return; }
     lastParsed = r.parsed;
-    currentPretty = JSON.stringify(r.parsed, null, 2);
+    currentPretty = buildOutput(r.parsed);
     currentTree = false;
     out.classList.remove('tree');
     out.textContent = currentPretty;
-    setStatus('Formatted · ' + HT.formatNumber(currentPretty.length) + ' chars', 'success');
+    var note = sortKeys && sortKeys.checked ? 'Sorted · ' : 'Formatted · ';
+    setStatus(note + HT.formatNumber(currentPretty.length) + ' chars', 'success');
   }
 
   function doMinify() {
     var r = parseSafe();
     if (!r.ok) { setStatus('Invalid JSON: ' + r.error, 'error'); return; }
     lastParsed = r.parsed;
-    currentPretty = JSON.stringify(r.parsed);
+    var sorted = (sortKeys && sortKeys.checked) ? sortKeysRecursive(r.parsed) : r.parsed;
+    currentPretty = JSON.stringify(sorted);
     currentTree = false;
     out.classList.remove('tree');
     out.textContent = currentPretty;
@@ -158,10 +224,11 @@
     var r = parseSafe();
     if (!r.ok) { setStatus('Invalid JSON: ' + r.error, 'error'); return; }
     lastParsed = r.parsed;
-    currentPretty = JSON.stringify(r.parsed, null, 2);
+    var sorted = (sortKeys && sortKeys.checked) ? sortKeysRecursive(r.parsed) : r.parsed;
+    currentPretty = JSON.stringify(sorted, null, 2);
     currentTree = true;
     out.classList.add('tree');
-    out.innerHTML = renderTree(r.parsed);
+    out.innerHTML = renderTree(sorted);
     wireTreeToggles(out);
     setStatus('Tree view rendered.', 'success');
   }
@@ -170,11 +237,110 @@
     HT.copyToClipboard(currentPretty || (lastParsed ? JSON.stringify(lastParsed, null, 2) : ''));
   }
 
-  HT.$('#format').addEventListener('click', doFormat);
-  HT.$('#minify').addEventListener('click', doMinify);
-  HT.$('#validate').addEventListener('click', doValidate);
-  HT.$('#tree').addEventListener('click', doTree);
-  HT.$('#copy-out').addEventListener('click', copyOut);
+  // ----- AC-2: Schema validate -----
+  function doSchema() {
+    if (!schemaInput || !schemaErrors || !schemaOk) return;
+    schemaErrors.innerHTML = '';
+    schemaOk.hidden = true;
+    var raw = (schemaInput.value || '').trim();
+    if (!raw) {
+      // Empty schema is a no-op per spec (AC-2): no error, no success chip.
+      return;
+    }
+    var schema;
+    try {
+      schema = JSON.parse(raw);
+    } catch (e) {
+      renderSchemaErrors([{ path: '', message: 'Invalid schema JSON: ' + e.message }]);
+      return;
+    }
+    var r = parseSafe();
+    if (!r.ok) {
+      renderSchemaErrors([{ path: '', message: 'Input JSON is invalid; cannot validate against schema.' }]);
+      return;
+    }
+    lastParsed = r.parsed;
+    var result = HT.jsonSchema.validate(schema, r.parsed);
+    if (result.valid) {
+      schemaOk.hidden = false;
+    } else {
+      renderSchemaErrors(result.errors);
+    }
+  }
 
+  function renderSchemaErrors(errors) {
+    schemaErrors.innerHTML = '';
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < errors.length; i += 1) {
+      var err = errors[i];
+      var li = document.createElement('li');
+      var pathText = err.path && err.path.length > 0 ? err.path : '(root)';
+      li.innerHTML = '<code>' + escapeHtml(pathText) + '</code>: ' + escapeHtml(err.message);
+      li.setAttribute('data-path', pathText);
+      frag.appendChild(li);
+    }
+    schemaErrors.appendChild(frag);
+  }
+
+  // ----- AC-3: Diff -----
+  function doDiff() {
+    if (!diffOutput) return;
+    diffOutput.innerHTML = '';
+    var rawA = input.value;
+    var rawB = inputB ? inputB.value : '';
+    // Parse both; if either is unparseable, show inline error.
+    var parsedA, parsedB;
+    try { parsedA = JSON.parse(rawA); } catch (e) {
+      renderDiffMessage('JSON A is invalid: ' + e.message, true);
+      return;
+    }
+    try { parsedB = JSON.parse(rawB); } catch (e) {
+      renderDiffMessage('JSON B is invalid: ' + e.message, true);
+      return;
+    }
+    var textA = JSON.stringify(parsedA, null, 2);
+    var textB = JSON.stringify(parsedB, null, 2);
+    var linesA = HT.diff.splitLines(textA);
+    var linesB = HT.diff.splitLines(textB);
+    var ops = HT.diff.myersDiff(linesA, linesB);
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < ops.length; i += 1) {
+      var op = ops[i];
+      var div = document.createElement('div');
+      div.className = 'diff-line diff-' + op.op;
+      div.setAttribute('data-marker', op.op === 'equal' ? ' ' : (op.op === 'insert' ? '+' : '−'));
+      div.textContent = op.value;
+      frag.appendChild(div);
+    }
+    diffOutput.appendChild(frag);
+  }
+
+  function renderDiffMessage(text, isError) {
+    diffOutput.innerHTML = '';
+    var div = document.createElement('div');
+    div.className = 'diff-line diff-' + (isError ? 'delete' : 'equal');
+    div.setAttribute('data-marker', isError ? '!' : ' ');
+    div.textContent = text;
+    diffOutput.appendChild(div);
+  }
+
+  // ----- Wiring -----
+  function wireActions() {
+    HT.$('#format').addEventListener('click', doFormat);
+    HT.$('#minify').addEventListener('click', doMinify);
+    HT.$('#validate').addEventListener('click', doValidate);
+    HT.$('#tree').addEventListener('click', doTree);
+    HT.$('#copy-out').addEventListener('click', copyOut);
+    if (sortKeys) sortKeys.addEventListener('change', doFormat);
+    if (runSchema) runSchema.addEventListener('click', doSchema);
+    if (runDiff) runDiff.addEventListener('click', doDiff);
+  }
+
+  // ----- Boot -----
+  applyFeatureGating();
+  wireActions();
   doFormat();
+
+  // Re-apply gating on hashchange in case the user edits ?feature=...
+  window.addEventListener('hashchange', applyFeatureGating);
 })();
