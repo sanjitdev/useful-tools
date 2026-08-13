@@ -1842,12 +1842,26 @@
   // the function body (declared later, ~line 1830) can read these
   // bindings without hitting the temporal-dead-zone. wireViewSourceLink
   // is a hoisted function declaration, so the late-bound function
-  // reference inside boot() works fine; only the `let` bindings need
-  // to be initialized ahead of the boot call. (Bug fix: Story 3.8
-  // wrap-up found that boot() → wireViewSourceLink → read of
+  // reference inside boot() works fine; only the `let` bindings and
+  // constants need to be initialized ahead of the boot call.
+  //
+  // Bug fix (Story 3.8 wrap-up): boot() → wireViewSourceLink → read of
   // `_viewSourceEntryRetries` threw ReferenceError because the let
   // initializer was originally placed at line 1789, AFTER the boot
-  // invocation at line 1758.)
+  // invocation at line 1758.
+  //
+  // Bug fix (home redesign wrap-up): the constants
+  // `_VIEW_SOURCE_RETRY_BASE_MS` and `_VIEW_SOURCE_RETRY_BUDGET_MS` were
+  // declared at line ~1902 (just above `function resolveCurrentSlug()`),
+  // AFTER the boot invocation. When wireViewSourceLink ran synchronously
+  // inside boot(), the function body hit the TDZ and threw
+  // "Cannot access '_VIEW_SOURCE_RETRY_BASE_MS' before initialization"
+  // — even though wireViewSourceLink is itself a hoisted function
+  // declaration. Hoisting only applies to the binding, not to the
+  // const initialization. Moved both constants up here so the boot
+  // call sees initialized values.
+  const _VIEW_SOURCE_RETRY_BUDGET_MS = 2000;
+  const _VIEW_SOURCE_RETRY_BASE_MS = 50;
   let _viewSourceConfigRetries = 0;
   let _viewSourceEntryRetries = 0;
 
@@ -1894,13 +1908,13 @@
      page itself is the repo root, no View Source link is needed.
   */
   // The retry counters (`_viewSourceConfigRetries`, `_viewSourceEntryRetries`)
-  // are declared just above the boot invocation block (see the
-  // `Module-level view-source state` comment near line 1755) so that
-  // when boot() fires wireViewSourceLink() synchronously, the function
-  // body can read the bindings without hitting the TDZ. The constants
-  // live here because they belong with the function that uses them.
-  const _VIEW_SOURCE_RETRY_BUDGET_MS = 2000;
-  const _VIEW_SOURCE_RETRY_BASE_MS = 50;
+  // and the constants (`_VIEW_SOURCE_RETRY_BUDGET_MS`,
+  // `_VIEW_SOURCE_RETRY_BASE_MS`) are declared together just above the
+  // boot invocation block (see the `Module-level view-source state`
+  // comment near line 1840) so that when boot() fires
+  // wireViewSourceLink() synchronously, the function body can read
+  // every binding without hitting the TDZ. Live next to the function
+  // for proximity, but the actual values live above the boot call.
 
   function resolveCurrentSlug() {
     // 1. data-slug on <main> — preferred because it costs no parsing.
