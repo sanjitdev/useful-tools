@@ -35,9 +35,9 @@
   const VERSION = '1.0.0';
   const TOOLS_JSON_URL = '../tools.json';
   const INLINE_ID = 'ht-tools-json-inline';
-  const PACK_SLUGS = ['travel', 'finance', 'study', 'developer', 'household'];
+  const PACK_SLUGS = ['travel', 'finance', 'study', 'developer', 'household', 'fun'];
 
-  // 5 pack descriptors — taglines per EXPERIENCE.md §2.3. Duplicated from
+  // 6 pack descriptors — taglines per EXPERIENCE.md §2.3. Duplicated from
   // assets/js/pack-grid.js (intentional, see Story 6.2 Dev Notes).
   const PACK_DEFINITIONS = {
     travel: {
@@ -59,6 +59,10 @@
     household: {
       title: 'Household',
       tagline: 'For the math of daily life.'
+    },
+    fun: {
+      title: 'Fun',
+      tagline: 'For breaks, decisions, and color.'
     }
   };
 
@@ -155,9 +159,15 @@
   }
 
   function buildIconImg(iconSrc) {
+    // Pack pages live at /packs/<slug>.html, one level deep. Icon paths in
+    // tools.json are stored relative to the repo root ("assets/icons/..."),
+    // so we prefix "../" to resolve correctly from a depth-1 page.
+    const src = (typeof iconSrc === 'string' && iconSrc.charAt(0) !== '/')
+      ? '../' + iconSrc
+      : iconSrc;
     return (
       '<span class="tool-card-icon"><img alt="" src="' +
-      escapeAttr(iconSrc) +
+      escapeAttr(src) +
       '" /></span>'
     );
   }

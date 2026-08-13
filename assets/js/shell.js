@@ -773,18 +773,24 @@
     // via CSS, but the listener is still installed; defense in depth).
     if (isEmbedMode()) return;
 
-    // ⌘K (macOS) / Ctrl+K (others). Don't fire if a modifier other than
-    // shift is also pressed — Cmd+Shift+K, Ctrl+Alt+K, etc. are not
-    // reserved and shouldn't open the palette.
+    // ⌘K (macOS) / Ctrl+K (others). The chord must require the modifier
+    // that matches the platform — pressing plain "k" (no modifier) MUST
+    // NOT open palette, because that's how users type the letter into
+    // search inputs and any focused element on the page. The previous
+    // comparison (event.metaKey === isMacUser) inverted the intent: on
+    // non-Mac platforms it accepted metaKey === false (i.e. no modifier
+    // at all), so plain "k" fired the palette on every keypress.
+    //
+    // Don't fire if a modifier other than shift is also pressed —
+    // Cmd+Shift+K, Ctrl+Alt+K, etc. are not reserved and shouldn't open
+    // the palette.
+    const isMacUser = window.navigator && /Mac/i.test(window.navigator.platform);
     const isKChord =
       (event.key === 'k' || event.key === 'K') &&
-      event.metaKey === (window.navigator && /Mac/i.test(window.navigator.platform)) &&
-      !event.ctrlKey && !event.altKey;
-    const isCtrlKChord =
-      (event.key === 'k' || event.key === 'K') &&
-      event.ctrlKey &&
-      !event.metaKey && !event.altKey;
-    const chord = isKChord || isCtrlKChord;
+      (isMacUser ? event.metaKey : event.ctrlKey) &&
+      !(isMacUser ? event.ctrlKey : event.metaKey) &&
+      !event.altKey;
+    const chord = isKChord;
 
     // `/` from outside any text input. The chord only fires when the user
     // is not currently typing into a text-entry field.
