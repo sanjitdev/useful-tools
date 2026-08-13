@@ -287,36 +287,31 @@
     }
   }
 
-  // Story 3.12: pinned row markup. Renders the <ol class="pinned-row"> with
-  // one <li> per pinned slug, ordered most-recent-pin-first. The title is
-  // resolved from the liveEntries snapshot (tools.json) when available; a
-  // missing slug falls back to the slug itself (defensive — the home grid
-  // only renders seeds that already exist in tools.json today).
+  // Story 3.12: pinned row markup. Renders the pinned tools as full
+  // tool cards (reuse buildCard() so the icon, description, and pin
+  // button all match the rest of the home grid). Cards are wrapped in
+  // a .tool-grid container rather than an <ol> — <ol> of <div>s is
+  // invalid list semantics, and the cards are grid items, not list
+  // items. The aria-label carries the list semantics for screen
+  // readers.
   const PINNED_SECTION_ID = 'home-grid-pinned-section';
   const PINNED_HOST_ID = 'home-grid-pinned';
   function buildPinnedRow(slugs) {
     if (!Array.isArray(slugs) || slugs.length === 0) return '';
+    const lookupEntry = function (slug) {
+      return (Array.isArray(liveEntries) ? liveEntries : [])
+        .filter(function (e) { return e && e.slug === slug; })[0] || null;
+    };
     const items = slugs.map(function (slug) {
-      const title = (Array.isArray(liveEntries) ? liveEntries : [])
-        .filter(function (e) { return e && e.slug === slug; })
-        .map(function (e) { return e.title; })[0] || slug;
-      return (
-        '<li class="pinned-row-item" data-pin-slug="' +
-        escapeAttr(slug) +
-        '">' +
-        '<a class="pinned-row-link" href="tools/' +
-        escapeAttr(slug) +
-        '/index.html">' +
-        escapeAttr(title) +
-        '</a>' +
-        '</li>'
-      );
+      const entry = lookupEntry(slug);
+      if (!entry) return '';
+      return buildCard(entry);
     }).join('');
     return (
-      '<div class="category-header"><h2>Pinned</h2></div>' +
-      '<ol class="pinned-row" aria-label="Pinned tools">' +
+      '<div class="home-section-header"><h2>Pinned</h2></div>' +
+      '<div class="tool-grid pinned-grid" aria-label="Pinned tools">' +
       items +
-      '</ol>'
+      '</div>'
     );
   }
 

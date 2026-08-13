@@ -14,7 +14,7 @@
         "household",
         "study"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5 3 .8-1.3-4.3-2.6z' fill='%234f46e5'/%3E%3C/svg%3E",
+      "icon": "assets/icons/lifespan-simulator.svg",
       "keywords": [
         "lifespan",
         "life expectancy",
@@ -92,7 +92,7 @@
         "finance",
         "household"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 17l5-5 4 4 8-8' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M14 8h6v6' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
+      "icon": "assets/icons/inflation-calculator.svg",
       "keywords": [
         "inflation",
         "cpi",
@@ -206,7 +206,7 @@
       "pack": [
         "developer"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='7' height='7' fill='%234f46e5'/%3E%3Crect x='14' y='3' width='7' height='7' fill='%234f46e5'/%3E%3Crect x='3' y='14' width='7' height='7' fill='%234f46e5'/%3E%3Crect x='14' y='14' width='3' height='3' fill='%234f46e5'/%3E%3Crect x='18' y='14' width='3' height='3' fill='%234f46e5'/%3E%3Crect x='14' y='18' width='3' height='3' fill='%234f46e5'/%3E%3Crect x='18' y='18' width='3' height='3' fill='%234f46e5'/%3E%3C/svg%3E",
+      "icon": "assets/icons/qr-code-generator.svg",
       "keywords": [
         "qr",
         "qr code",
@@ -301,7 +301,7 @@
       "pack": [
         "finance"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/bd-tax-calculator.svg",
       "keywords": [
         "bangladesh",
         "tax",
@@ -464,9 +464,9 @@
       "description": "Pick racers and watch a frame-perfect animated race: cheetah, sloth, snail, lion, rabbit, and more — plus a customisable human runner.",
       "category": "Fun",
       "pack": [
-        "household"
+        "fun"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/animal-race.svg",
       "keywords": [
         "race",
         "animal",
@@ -630,7 +630,7 @@
       "pack": [
         "household"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/space-calculator.svg",
       "keywords": [
         "space",
         "area",
@@ -794,7 +794,7 @@
       "pack": [
         "household"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/age-calculator.svg",
       "keywords": [
         "age",
         "birthday",
@@ -957,7 +957,7 @@
       "pack": [
         "developer"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/random-tools.svg",
       "keywords": [
         "random",
         "picker",
@@ -1121,7 +1121,7 @@
       "pack": [
         "travel"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/world-clock.svg",
       "keywords": [
         "clock",
         "time",
@@ -1286,7 +1286,7 @@
       "pack": [
         "study"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/grade-calculator.svg",
       "keywords": [
         "grade",
         "score",
@@ -1448,9 +1448,9 @@
       "description": "Spin a colorful wheel to make a choice. Add options, one per line, and let the wheel decide.",
       "category": "Fun",
       "pack": [
-        "household"
+        "fun"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/decision-wheel.svg",
       "keywords": [
         "decision",
         "wheel",
@@ -1614,7 +1614,7 @@
       "pack": [
         "study"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/gpa-calculator.svg",
       "keywords": [
         "gpa",
         "grade",
@@ -1778,7 +1778,7 @@
       "pack": [
         "finance"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/loan-calculator.svg",
       "keywords": [
         "loan",
         "emi",
@@ -1942,7 +1942,7 @@
       "pack": [
         "travel"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/countdown-to-date.svg",
       "keywords": [
         "countdown",
         "date",
@@ -2106,7 +2106,7 @@
       "pack": [
         "developer"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/markdown-previewer.svg",
       "keywords": [
         "markdown",
         "md",
@@ -2198,7 +2198,7 @@
       "pack": [
         "household"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/calorie-estimator.svg",
       "keywords": [
         "calorie",
         "tdee",
@@ -2362,7 +2362,7 @@
       "pack": [
         "study"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/stopwatch.svg",
       "keywords": [
         "stopwatch",
         "timer",
@@ -2526,7 +2526,7 @@
       "pack": [
         "finance"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/compound-interest.svg",
       "keywords": [
         "compound",
         "interest",
@@ -2690,7 +2690,7 @@
       "pack": [
         "developer"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/json-formatter.svg",
       "keywords": [
         "json",
         "format",
@@ -2850,9 +2850,9 @@
       "description": "Pick colors and convert between HEX, RGB, and HSL. Random color generator with copy-to-clipboard.",
       "category": "Fun",
       "pack": [
-        "household"
+        "fun"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/color-tools.svg",
       "keywords": [
         "color",
         "picker",
@@ -3017,7 +3017,7 @@
       "pack": [
         "travel"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/date-difference.svg",
       "keywords": [
         "date",
         "difference",
@@ -3179,9 +3179,9 @@
       "description": "Generate placeholder text in paragraphs, sentences, or words — optionally wrapped as HTML and starting with the classic Lorem ipsum.",
       "category": "Fun",
       "pack": [
-        "study"
+        "fun"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/lorem-ipsum.svg",
       "keywords": [
         "lorem",
         "ipsum",
@@ -3344,9 +3344,9 @@
       "description": "Weigh the pros and cons of a decision with adjustable weights, a running score, and a verdict.",
       "category": "Fun",
       "pack": [
-        "household"
+        "fun"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/pros-cons.svg",
       "keywords": [
         "pros",
         "cons",
@@ -3511,7 +3511,7 @@
       "pack": [
         "developer"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/unit-converter.svg",
       "keywords": [
         "unit",
         "converter",
@@ -3676,7 +3676,7 @@
       "pack": [
         "developer"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/password-strength.svg",
       "keywords": [
         "password",
         "strength",
@@ -3840,7 +3840,7 @@
       "pack": [
         "study"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/pomodoro-timer.svg",
       "keywords": [
         "pomodoro",
         "timer",
@@ -4002,9 +4002,9 @@
       "description": "Track daily habits with a 30-day heatmap, current streak, and per-habit completions stored locally.",
       "category": "Fun",
       "pack": [
-        "household"
+        "fun"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/habit-tracker.svg",
       "keywords": [
         "habit",
         "tracker",
@@ -4120,7 +4120,7 @@
       "pack": [
         "developer"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/regex-tester.svg",
       "keywords": [
         "regex",
         "regular",
@@ -4283,9 +4283,9 @@
       "description": "Sort tasks into a 2x2 Eisenhower matrix by urgency and importance, reorder, mark done, or delete them.",
       "category": "Fun",
       "pack": [
-        "household"
+        "fun"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/eisenhower-matrix.svg",
       "keywords": [
         "eisenhower",
         "matrix",
@@ -4425,7 +4425,7 @@
       "pack": [
         "household"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/bmi-calculator.svg",
       "keywords": [
         "bmi",
         "body",
@@ -4590,7 +4590,7 @@
       "pack": [
         "study"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/word-counter.svg",
       "keywords": [
         "word",
         "counter",
@@ -4755,7 +4755,7 @@
       "pack": [
         "finance"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/percentage-calculator.svg",
       "keywords": [
         "percentage",
         "percent",
@@ -4919,7 +4919,7 @@
       "pack": [
         "developer"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/base64-codec.svg",
       "keywords": [
         "base64",
         "encode",
@@ -5071,7 +5071,7 @@
       "pack": [
         "finance"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/tip-calculator.svg",
       "keywords": [
         "tip",
         "calculator",
@@ -5235,7 +5235,7 @@
       "pack": [
         "developer"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/url-codec.svg",
       "keywords": [
         "url",
         "encode",
@@ -5400,7 +5400,7 @@
       "pack": [
         "developer"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4z' fill='none' stroke='%234f46e5' stroke-width='2'/%3E%3Cpath d='M9 9h6M9 12h6M9 15h4' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E",
+      "icon": "assets/icons/uuid-generator.svg",
       "keywords": [
         "uuid",
         "ulid",
@@ -5478,7 +5478,7 @@
       "pack": [
         "study"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EC%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/citation-formatter.svg",
       "keywords": [
         "citation",
         "apa",
@@ -5590,7 +5590,7 @@
       "pack": [
         "developer"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/diff-viewer.svg",
       "keywords": [
         "diff",
         "compare",
@@ -5692,7 +5692,7 @@
       "pack": [
         "developer"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EJ%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/jwt-inspector.svg",
       "keywords": [
         "jwt",
         "jsonwebtoken",
@@ -5769,7 +5769,7 @@
       "pack": [
         "developer"
       ],
-      "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3ET%3C/text%3E%3C/svg%3E",
+      "icon": "assets/icons/timestamp-converter.svg",
       "keywords": [
         "timestamp",
         "unix",

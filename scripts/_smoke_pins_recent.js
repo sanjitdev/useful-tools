@@ -328,8 +328,8 @@ check('home-grid.js has updatePinButton', gridSrc.indexOf('updatePinButton') !==
 check('home-grid.js has attachPinHandlers', gridSrc.indexOf('attachPinHandlers') !== -1);
 check('home-grid.js pin-toggle class',
   gridSrc.indexOf('class="pin-toggle"') !== -1);
-check('home-grid.js pinned-row class',
-  gridSrc.indexOf('class="pinned-row"') !== -1);
+check('home-grid.js pinned-grid class',
+  gridSrc.indexOf('class="tool-grid pinned-grid"') !== -1);
 check('home-grid.js pinned-row aria-label',
   gridSrc.indexOf('aria-label="Pinned tools"') !== -1);
 check('home-grid.js calls HT.pins.toggle in handler',

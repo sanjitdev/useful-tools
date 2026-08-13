@@ -45,13 +45,13 @@ WAVE_2_SLUGS = (
 # maps to exactly one primary pack per its domain.
 WAVE_2_PACKS: dict[str, list[str]] = {
     "bd-tax-calculator":   ["finance"],
-    "animal-race":         ["household"],
+    "animal-race":         ["fun"],
     "space-calculator":    ["household"],
     "age-calculator":      ["household"],
     "random-tools":        ["developer"],
     "world-clock":         ["travel"],
     "grade-calculator":    ["study"],
-    "decision-wheel":      ["household"],
+    "decision-wheel":      ["fun"],
     "gpa-calculator":      ["study"],
     "loan-calculator":     ["finance"],
     "countdown-to-date":   ["travel"],

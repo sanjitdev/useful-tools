@@ -86,6 +86,18 @@ PACKS = [
             "</svg>"
         ),
     },
+    {
+        "slug": "fun",
+        "title": "Fun",
+        "tagline": "For breaks, decisions, and color.",
+        "icon": (
+            '<svg viewBox="0 0 24 24" width="40" height="40" fill="none" '
+            'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" '
+            'stroke-linejoin="round" aria-hidden="true">'
+            '<path d="M12 2l2.4 5.6L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.6-1.4z"/>'
+            "</svg>"
+        ),
+    },
 ]
 
 # Markers expected in chrome.html (and its sub-parts). Mirrors the markers

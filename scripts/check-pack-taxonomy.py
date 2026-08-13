@@ -54,7 +54,7 @@ TOOLS_JSON_FILENAME = "tools.json"
 # Curated pack allowlist. Mirrored from tools.schema.json pack.items.enum.
 # Story 6.3 keeps this list colocated with the script for clarity —
 # any drift here vs. the schema is a PR review flag.
-PACK_ALLOWLIST = ("travel", "finance", "study", "developer", "household")
+PACK_ALLOWLIST = ("travel", "finance", "study", "developer", "household", "fun")
 
 # Hand-rolled keyword → pack map. Lowercase substring scan against each
 # tool's `category` + `keywords` fields. First match wins; the order
@@ -104,16 +104,23 @@ KEYWORD_TO_PACK: list[tuple[str, str]] = [
     # household
     ("bmi", "household"),
     ("calorie", "household"),
-    ("habit", "household"),
     ("age calculator", "household"),
-    ("decision", "household"),
-    ("eisenhower", "household"),
-    ("color", "household"),
     ("space calculator", "household"),
     ("paint", "household"),
     ("grocery", "household"),
     ("recipe", "household"),
-    ("animal", "household"),
+    # fun
+    ("habit", "fun"),
+    ("decision", "fun"),
+    ("eisenhower", "fun"),
+    ("color tools", "fun"),
+    ("lorem", "fun"),
+    ("pros cons", "fun"),
+    ("animal race", "fun"),
+    ("animal-race", "fun"),
+    ("decision wheel", "fun"),
+    ("spinner", "fun"),
+    ("race", "fun"),
 ]
 
 

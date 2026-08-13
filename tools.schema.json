@@ -89,7 +89,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["travel", "finance", "study", "developer", "household"]
+            "enum": ["travel", "finance", "study", "developer", "household", "fun"]
           },
           "minItems": 1,
           "uniqueItems": true

@@ -64,7 +64,8 @@ PACK_TITLE: dict[str, str] = {
     "finance":   "Money math — loans, interest, tax, percentages, tips.",
     "study":     "Learning aids — grades, focus, study timers, writing helpers.",
     "developer": "Tools developers reach for daily — formatting, encoding, regex.",
-    "household": "Everyday home + lifestyle tools — health, decisions, fun.",
+    "household": "Everyday home + lifestyle tools — health, decisions, daily life.",
+    "fun":       "Playful tools — spinners, races, color, and creative writing helpers.",
 }
 
 # 3–5 bullets per pack. The bullets are the canonical definition
@@ -99,7 +100,13 @@ INCLUSION_CRITERIA: dict[str, list[str]] = {
         "The tool helps with a household or personal-life task: health metrics, decisions, life math, or at-home organization.",
         "The tool's primary use case has the user at home or in their local context (e.g., \"I'm planning next week's meals\").",
         "The tool covers domestic, area, volume, recipe, or at-home life math.",
-        "The tool is useful for personal-life management (habits, age, color picking for a room, paint estimate for a wall).",
+        "The tool is useful for personal-life management (habits, age, paint estimate for a wall, room math).",
+    ],
+    "fun": [
+        "The tool's primary use case is play, a break, or a creative distraction.",
+        "The tool produces a random, decorative, or whimsical output (a spinner, a race result, a color picker, a paragraph generator).",
+        "The tool is useful for decisions where the user wants a 'pick for me' moment (decision wheel, weighted pros/cons).",
+        "The tool is not primarily about money, code, health, or study — it's about enjoyment or breaking a tie.",
     ],
 }
 
@@ -111,6 +118,7 @@ EXAMPLE_IN_PACK: dict[str, list[str]] = {
     "study":     ["grade-calculator", "pomodoro-timer"],
     "developer": ["json-formatter", "regex-tester"],
     "household": ["bmi-calculator", "habit-tracker"],
+    "fun":       ["decision-wheel", "animal-race"],
 }
 
 # 2 out-of-pack examples per pack — a (slug, reason) tuple. The slug is
@@ -149,10 +157,17 @@ EXAMPLE_OUT_OF_PACK: dict[str, list[tuple[str, str]]] = {
                               "wall-area math is domestic — but the tool is "
                               "not yet shipped."),
     ],
+    "fun": [
+        ("pomodoro-timer", "Lives in `study` (focus session, "
+                            "not a playful break)."),
+        ("meme-generator", "Epic 6 backlog: would belong in `fun` — "
+                            "humorous image overlay is a creative distraction — "
+                            "but the tool is not yet shipped."),
+    ],
 }
 
 # Order preserved for the rendered doc — matches PACK_DEFINITIONS order.
-PACK_ORDER: tuple[str, ...] = ("travel", "finance", "study", "developer", "household")
+PACK_ORDER: tuple[str, ...] = ("travel", "finance", "study", "developer", "household", "fun")
 
 # Legacy 3-tuple form, kept for backwards compatibility with
 # validate_roster() and existing callers. (slug, title, single-line

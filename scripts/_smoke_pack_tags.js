@@ -26,7 +26,7 @@ const TOOLS_JSON = path.join(REPO, 'tools.json');
 
 // Curated taxonomy — must match tools.schema.json#/$defs/.../pack/items/enum
 // and docs/pack-taxonomy.md.
-const VALID_PACKS = new Set(['travel', 'finance', 'study', 'developer', 'household']);
+const VALID_PACKS = new Set(['travel', 'finance', 'study', 'developer', 'household', 'fun']);
 const MIN_TOOLS_PER_PACK = 3;
 
 let pass = 0;

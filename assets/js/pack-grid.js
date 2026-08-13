@@ -71,6 +71,12 @@
       title: 'Household',
       description: 'For the math of daily life.',
       icon: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>'
+    },
+    {
+      slug: 'fun',
+      title: 'Fun',
+      description: 'For breaks, decisions, and color.',
+      icon: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l2.4 5.6L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.6-1.4z"/></svg>'
     }
   ];
 
@@ -189,6 +195,9 @@
       '<span class="pack-card-body">' +
       '<span class="pack-card-title">' +
       escapeAttr(pack.title) +
+      '</span>' +
+      '<span class="pack-card-desc">' +
+      escapeAttr(pack.description || '') +
       '</span>' +
       '<span class="pack-card-count">' +
       String(pack.toolCount) +
