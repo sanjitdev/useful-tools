@@ -70,7 +70,7 @@ EXPECTED_FIELDS_INTERNAL = (
 EXPECTED_FIELDS_PUBLIC = (
     "repoUrl", "blobBase", "defaultBranch", "brand", "defaultLocale",
 )
-EXPECTED_VERSION = "1.16.0"
+EXPECTED_VERSION = "1.17.0"  # Story 9.1 bumped 1.16.0 → 1.17.0 for HT.diff + HT.jsonSchema entries
 
 TOOL_SCRIPT_RE = re.compile(
     r'<script\s+src="\.\./\.\./assets/js/site-config\.js"></script>'

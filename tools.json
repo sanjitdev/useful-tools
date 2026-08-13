@@ -2709,6 +2709,7 @@
       "urlState": {
         "default": {
           "copy-out": "",
+          "feature": "",
           "format": "",
           "json-input": "",
           "main": "",
@@ -2724,6 +2725,10 @@
             "key": "copy-out",
             "type": "string",
             "from": "#copy-out"
+          },
+          {
+            "key": "feature",
+            "type": "string"
           },
           {
             "key": "format",
@@ -2776,6 +2781,10 @@
             "key": "copy-out",
             "type": "string",
             "to": "#copy-out"
+          },
+          {
+            "key": "feature",
+            "type": "string"
           },
           {
             "key": "format",

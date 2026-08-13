@@ -75,6 +75,7 @@
     <div class="panel" id="schema-panel" hidden>
       <div class="panel-title">JSON Schema (Draft-07 subset)</div>
       <p class="panel-hint">Supported keywords: <code>type</code>, <code>required</code>, <code>properties</code>, <code>items</code>, <code>enum</code>, <code>minimum</code>, <code>maximum</code>, <code>minLength</code>, <code>maxLength</code>, <code>pattern</code>.</p>
+      <label for="schema-input">JSON Schema (Draft-07 subset)</label>
       <textarea id="schema-input" name="schema-input" class="textarea" spellcheck="false" placeholder='{"type":"object","required":["name"],"properties":{"name":{"type":"string"}}}'></textarea>
       <div style="display:flex; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap;">
         <button id="run-schema" class="btn" type="button">Validate against schema</button>

@@ -341,6 +341,9 @@
   wireActions();
   doFormat();
 
-  // Re-apply gating on hashchange in case the user edits ?feature=...
-  window.addEventListener('hashchange', applyFeatureGating);
+  // Re-apply gating on history navigation. ?feature=… lives in
+  // location.search, so hashchange never fires for query-string
+  // edits — popstate covers back/forward, which is the supported
+  // way to revisit a different feature-set page.
+  window.addEventListener('popstate', applyFeatureGating);
 })();

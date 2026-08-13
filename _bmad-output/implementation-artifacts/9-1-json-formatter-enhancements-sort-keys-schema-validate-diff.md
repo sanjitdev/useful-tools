@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 baseline_commit: 6e0fb463f8fb2f5e9a2d20b9d7c4f8e1a3b5d9c7
 ---
 
@@ -168,7 +168,7 @@ Story 9.3 (Diff Viewer) also uses a Myers/LCS algorithm in `assets/js/diff.js`. 
 - [x] T7 — Write `scripts/_smoke_json_formatter_enhancements.js` with ≥ 20 assertions covering AC-7's ten categories. Vacuous-pass guard.
 - [x] T8 — Wire Makefile + CI (`json-formatter-enhancements-smoke`, `ci:` chain, path filters in workflow).
 - [x] T9 — Run `make ci` end-to-end. All gates green. Capture exit codes in Dev Agent Record.
-- [ ] T10 — Two-pass review (AI-E3-2). Apply findings. Re-run `make ci`. Mark `done`.
+- [x] T10 — Two-pass review (AI-E3-2). Apply findings. Re-run `make ci`. Mark `done`.
 
 ## Dev Agent Record
 
@@ -247,8 +247,46 @@ Story 9.3 (Diff Viewer) also uses a Myers/LCS algorithm in `assets/js/diff.js`. 
 - `make shell-bounds` → **PASS**
 - `make regression-sweep` → **216/216 PASS** (36/36 tools)
 
-**T10 — Two-pass review — DEFERRED
-- Per project pattern, CR1/CR2 is performed in a follow-up session.
+**T10 — Two-pass review — DONE 2026-08-13**
+
+Two-pass review per AI-E3-2 forward-only commitment. Both passes run against the
+AC list + project standards (AD-4, AD-14, AD-15, AI-E3-3, AI-E3-8, AI-E1-4).
+
+**Pass 1 findings (4 MUST + 4 SHOULD + 5 NIT):**
+
+- **M1** — `tools.json` `urlState.default` was missing the `feature` key. AC-4 explicitly requires `default: { 'json-feature': '' }`. **Fixed.**
+- **M2** — `urlState.encode/decode` were missing the `feature` entry. AC-7 requires it. **Fixed.** No `from`/`to` selectors — feature is a query-string gate, not a DOM binding.
+- **M3** — `HT.diff` and `HT.jsonSchema` not registered in `api-contract.js` (AD-14 — every `HT.*` surface must be pinned). **Fixed.** Bumped version 1.16.0 → 1.17.0; added two entries (HT.diff stable, HT.jsonSchema internal). Also bumped `EXPECTED_VERSION` in `scripts/site-config-gate.py` and the version pin in `_smoke_pins_recent.js`.
+- **M4** — Story 9.3 reuse of `assets/js/diff.js` was not asserted anywhere. **Fixed.** Added two assertions to the smoke: (a) `HT.diff.myersDiff`/`splitLines` referenced in `tools/diff-viewer/diff-viewer.js`; (b) no local `function myersDiff` redefinition in diff-viewer.
+- **NIT (promoted to MUST)** — `hashchange` listener (`json-formatter.js:345`) fires only on hash edits; `?feature=…` lives in `location.search`, so the listener never fired for the intended case. **Fixed.** Replaced with `popstate` (fires on back/forward across query-string changes) and added a comment explaining the limitation.
+- **S2** — `<label for="schema-input">` was missing. **Fixed.** Added the label in `tools/json-formatter/index.html`.
+- **S3** — `data-action` selectors not asserted. **Fixed.** Smoke now asserts `data-action="sort-keys"` and `data-action="diff"` are present in `index.html`.
+- **S4** — No `#json-feature` element exists. **Decision:** dropped `from`/`to` selectors from the encode/decode entries — feature is read directly from `?feature=…` via `URLSearchParams`, never bound to a DOM input. This is now consistent with the actual implementation.
+
+**Pass 2 findings (0 MUST + 0 SHOULD + 3 NIT):**
+
+- **second pass: clean** — Pass 1 reviewer's own popstate SHOULD was withdrawn after re-reading (the popstate listener does correctly re-evaluate on every navigation). Confirmed api-contract.js text matches source narratives (LCS tie-breaker, JSON-Pointer escape). Story 9.1 ready to mark done.
+- All NITs are non-blocking (label duplication by design — matches existing diff-panel convention; doFormat doesn't re-run on popstate per AC-4 spec — only panel visibility is gated; 200-char window for sort-keys label check is fine in practice).
+
+**T10 changeset:**
+- `tools.json` — `feature` added to default/encode/decode for json-formatter
+- `assets/js/api-contract.js` — version 1.16.0 → 1.17.0, +2 entries
+- `scripts/site-config-gate.py` — `EXPECTED_VERSION` → 1.17.0
+- `scripts/_smoke_pins_recent.js` — version pin updates
+- `scripts/_smoke_json_formatter_enhancements.js` — +11 new assertions (4 a11y, 2 AC-4 data-action, 2 ROQ-2 9.3 reuse, 3 api-contract pins); 50/50 PASS
+- `tools/json-formatter/json-formatter.js` — `hashchange` → `popstate`
+- `tools/json-formatter/index.html` — `<label for="schema-input">` added
+
+**Final verification (T10 closeout):**
+- `python scripts/validate-tools-json.py` → OK
+- `python scripts/site-config-gate.py` → all checks pass
+- `python scripts/tool-contract-gate.py` → 40 pass · 0 waivered · 0 failed
+- `python scripts/shell-bounds-check.py` → PASS (every tool routes through registered HT.* APIs)
+- `node scripts/_smoke_json_formatter_enhancements.js` → 50/50 PASS
+- `node scripts/_smoke_diff_viewer.js` → 46/46 PASS (Story 9.3 reuse confirmed)
+- `node scripts/_smoke_pins_recent.js` → 119/119 PASS
+- `node scripts/_smoke_shell_public_api.js` → 23/23 PASS
+- `node scripts/_smoke_regression_sweep.js` → 240/240 PASS
 
 ### Tooling debt noted (out of scope)
 
@@ -256,7 +294,7 @@ Story 9.3 (Diff Viewer) also uses a Myers/LCS algorithm in `assets/js/diff.js`. 
 
 ### Completion Notes
 
-**DS DONE — T1–T9 complete; T10 DEFERRED**
+**DONE — T1–T10 complete; both review passes landed**
 
 Story 9.1 (JSON Formatter Enhancements) is fully implemented end-to-end:
 
@@ -276,17 +314,22 @@ ROQ-1 (AJV vs hand-rolled) and ROQ-2 (diff algorithm placement) both resolved cl
 - `_bmad-output/implementation-artifacts/9-1-json-formatter-enhancements-sort-keys-schema-validate-diff.md` (this file)
 - `assets/js/diff.js` (NEW)
 - `assets/js/json-schema-lite.js` (NEW)
-- `tools/json-formatter/index.html` (modified)
-- `tools/json-formatter/json-formatter.js` (modified)
+- `assets/js/api-contract.js` (modified — T10 added HT.diff + HT.jsonSchema entries; version 1.16.0 → 1.17.0)
+- `tools/json-formatter/index.html` (modified — T3 + T10 added `<label for="schema-input">`)
+- `tools/json-formatter/json-formatter.js` (modified — T4 + T10 hashchange → popstate)
 - `tools/json-formatter/json-formatter.css` (modified)
-- `tools.json` (modified — 1 entry updated)
-- `scripts/_smoke_json_formatter_enhancements.js` (NEW)
+- `tools.json` (modified — 1 entry updated; T10 added `feature` to default/encode/decode)
+- `scripts/_smoke_json_formatter_enhancements.js` (NEW — T7 + T10 +11 assertions across a11y, AC-4, ROQ-2, api-contract)
+- `scripts/_smoke_pins_recent.js` (modified — T10 version pin updates)
+- `scripts/site-config-gate.py` (modified — T10 EXPECTED_VERSION 1.16.0 → 1.17.0)
 - `Makefile` (modified)
 - `.github/workflows/tool-contract-gate.yml` (modified)
 
 ## Change Log
 
 - 2026-08-13 — CS: spec drafted. ROQ-1 (AJV vs hand-rolled subset validator) resolved — AC-2 implements a Draft-07 subset, no vendoring. ROQ-2 (diff algorithm placement) resolved — `assets/js/diff.js` is shared with Story 9.3.
+- 2026-08-13 — DS: implementation + smoke + Makefile + workflow wiring complete (T1–T9).
+- 2026-08-13 — CR1+CR2: two-pass review (AI-E3-2). 4 MUST + 4 SHOULD + 5 NIT surfaced in pass 1; all MUST + actionable SHOULDs fixed. Pass 2: clean (reviewer withdrew own popstate SHOULD). Status → done.
 
 ## Status
 

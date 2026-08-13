@@ -16,6 +16,9 @@ const path = require('path');
 const DIFF_PATH = path.resolve(__dirname, '../assets/js/diff.js');
 const SCHEMA_PATH = path.resolve(__dirname, '../assets/js/json-schema-lite.js');
 const TOOL_JS_PATH = path.resolve(__dirname, '../tools/json-formatter/json-formatter.js');
+const TOOL_HTML_PATH = path.resolve(__dirname, '../tools/json-formatter/index.html');
+const DIFF_VIEWER_JS_PATH = path.resolve(__dirname, '../tools/diff-viewer/diff-viewer.js');
+const API_CONTRACT_PATH = path.resolve(__dirname, '../assets/js/api-contract.js');
 const UTILS_JS_PATH = path.resolve(__dirname, '../assets/js/utils.js');
 
 const diffLib = require(DIFF_PATH);
@@ -471,7 +474,75 @@ console.log('JSON Formatter Enhancements smoke (Story 9.1):');
 }
 
 // ============================================================
-// (xvii) Vacuous-pass guard
+// (xvii) AC-5 a11y: structural HTML invariants
+// Schema-errors list must carry aria-live="polite" so screen
+// readers announce the validation result. Every enhancement
+// control must have an associated <label for="..."> or be wrapped
+// in a <label class="field-inline">. Catches regressions to
+// remove the live region or strip labels.
+// ============================================================
+{
+  const htmlSrc = fs.readFileSync(TOOL_HTML_PATH, 'utf8');
+  check(/id="schema-errors"[^>]*aria-live="polite"/.test(htmlSrc) ||
+        /aria-live="polite"[^>]*id="schema-errors"/.test(htmlSrc) ||
+        /<ul id="schema-errors"[^>]*aria-live="polite"/.test(htmlSrc),
+    'a11y: #schema-errors carries aria-live="polite"');
+  check(/<label for="json-input-b">/.test(htmlSrc),
+    'a11y: #json-input-b has a <label for="json-input-b">');
+  check(/<label for="schema-input">/.test(htmlSrc),
+    'a11y: #schema-input has a <label for="schema-input">');
+  check(/<input type="checkbox" id="sort-keys"/.test(htmlSrc) &&
+        /class="field-inline"/.test(htmlSrc.slice(htmlSrc.indexOf('id="sort-keys"') - 200, htmlSrc.indexOf('id="sort-keys"'))),
+    'a11y: #sort-keys is wrapped in a <label class="field-inline">');
+}
+
+// ============================================================
+// (xviii) AC-4 data-action selectors
+// data-action hooks are the convention across the codebase —
+// future regressions that strip them break the global action
+// dispatcher wiring. Pin the contract.
+// ============================================================
+{
+  const htmlSrc = fs.readFileSync(TOOL_HTML_PATH, 'utf8');
+  check(/data-action="sort-keys"/.test(htmlSrc),
+    'AC-4: data-action="sort-keys" present on #sort-keys checkbox');
+  check(/data-action="diff"/.test(htmlSrc),
+    'AC-4: data-action="diff" present on #run-diff button');
+}
+
+// ============================================================
+// (xix) ROQ-2: Story 9.3 reuse of assets/js/diff.js
+// Per Story 9.1 ROQ-2 + Story 9.3 AC-3, the diff-viewer tool must
+// consume the same HT.diff library. A drift would duplicate the
+// Myers implementation and break the share-by-design promise.
+// ============================================================
+{
+  const dvSrc = fs.readFileSync(DIFF_VIEWER_JS_PATH, 'utf8');
+  check(/HT\.diff\.myersDiff/.test(dvSrc) || /HT\.diff\.splitLines/.test(dvSrc),
+    'ROQ-2: tools/diff-viewer/diff-viewer.js imports HT.diff (no duplicate Myers impl)');
+  check(!/function\s+myersDiff\s*\(/.test(dvSrc),
+    'ROQ-2: tools/diff-viewer/diff-viewer.js does not redefine myersDiff locally');
+}
+
+// ============================================================
+// (xx) api-contract.js: HT.diff + HT.jsonSchema pinned at 1.17.0
+// AD-14: every public HT.* surface must be in the contract. Both
+// HT.diff (stable) and HT.jsonSchema (internal) were added in
+// Story 9.1; their absence from api-contract.js would let future
+// refactors silently break the surface.
+// ============================================================
+{
+  const acSrc = fs.readFileSync(API_CONTRACT_PATH, 'utf8');
+  check(/name:\s*'HT\.diff'/.test(acSrc),
+    'api-contract.js: HT.diff entry present');
+  check(/name:\s*'HT\.jsonSchema'/.test(acSrc),
+    'api-contract.js: HT.jsonSchema entry present');
+  check(/version:\s*'1\.17\.0'/.test(acSrc),
+    'api-contract.js: version bumped to 1.17.0 (Story 9.1 surface additions)');
+}
+
+// ============================================================
+// Vacuous-pass guard
 // ============================================================
 console.log('');
 console.log(`self-test: ${pass} passed, ${fail} failed`);

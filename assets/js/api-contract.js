@@ -10,8 +10,8 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.16.0',
-  generated: '2026-08-12',
+  version: '1.17.0',
+  generated: '2026-08-13',
   entries: Object.freeze([
     Object.freeze({
       name: 'HT.boot',
@@ -607,6 +607,20 @@ window.HT.__apiContract = Object.freeze({
       stability: 'internal',
       module: 'assets/js/vendor/zip-store.js',
       notes: 'Story 3.11 PKZIP STORE-only (no compression) ZIP builder. Implements the local-file-header + central-directory + end-of-central-directory record format per APPNOTE.TXT sections 4.3.7 / 4.3.12 / 4.3.16. CRC-32 with polynomial 0xEDB88320. UTF-8 filenames (general-purpose bit 11 set). Internal because no compression / no encryption / single-volume — if a future Story needs DEFLATE or AES, expose a new module (HT.zipStoreDeflate or HT.zipStoreAes) rather than expanding this one. Smoke harness: scripts/_smoke_view_source.js verifies the byte layout.',
+    }),
+    Object.freeze({
+      name: 'HT.diff',
+      signature: 'Object.freeze({myersDiff: (a: readonly string[], b: readonly string[], eq?: (x: string, y: string) => boolean) => readonly Array<{op: \'equal\'|\'insert\'|\'delete\', value: string}>, splitLines: (s: string) => string[], splitWords: (s: string) => string[], splitChars: (s: string) => string[]})',
+      stability: 'stable',
+      module: 'assets/js/diff.js',
+      notes: 'Story 9.1 + Story 9.3. Hand-rolled Myers O(ND) algorithm with linear-space LCS fallback for non-trivial D. Shared between the JSON Formatter (?feature=diff) and the Diff Viewer tool (line/word/char granularity via splitWords / splitChars). myersDiff returns frozen ops in unified-diff order (delete-before-insert per line). Split helpers split on \\n / non-emoji whitespace / graphemes-naive (Intl.Segmenter out of scope per Story 9.3 ROQ-2). Read-only (Object.defineProperties, writable:false).',
+    }),
+    Object.freeze({
+      name: 'HT.jsonSchema',
+      signature: 'Object.freeze({validate: (schema: object, data: unknown) => {valid: boolean, errors: ReadonlyArray<{path: string, message: string}>}})',
+      stability: 'internal',
+      module: 'assets/js/json-schema-lite.js',
+      notes: 'Story 9.1. Hand-rolled Draft-07 subset validator. Supports type (with integer ⊂ number per Draft-07 §6.1.1), required, properties, items, enum, minimum, maximum, minLength, maxLength, pattern. $ref, oneOf/anyOf/allOf, format, additionalProperties are intentionally NOT supported — Story 9.1 ROQ-1 resolution. validate returns frozen {valid, errors} with JSON-Pointer-style instancePath (/foo/bar with ~0/~1 escape per RFC 6901). Invalid/unknown types silently ignored. Read-only (Object.defineProperties, writable:false). Internal because the keyword coverage is a subset; if a future Story needs Draft-07 parity, vendor AJV and expose a separate HT.ajv surface rather than expanding this one.',
     }),
   ]),
 });
