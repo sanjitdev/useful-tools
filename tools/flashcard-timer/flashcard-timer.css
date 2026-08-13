@@ -1,0 +1,170 @@
+/* ============================================
+   Flashcard Timer — Story 9.7
+   Tool-specific styles for the alternating
+   recall/break timer. Reuses shared tokens
+   from assets/css/components.css. The .result-card
+   shell + .grid-2 layout come from the shared
+   stylesheet; this file adds the timer display,
+   progress ring, phase tag, and reduced-motion
+   variants for the visual cue.
+   ============================================ */
+
+.ft-row {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.ft-row .field {
+  flex: 1 1 180px;
+  max-width: 240px;
+}
+
+.ft-display-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--space-5) auto;
+  width: 240px;
+  height: 240px;
+}
+
+/* Progress ring centered behind the display */
+.ft-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ft-ring-bg {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 6;
+}
+
+.ft-ring-fg {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 6;
+  stroke-linecap: round;
+  /* Smooth drain by default; the JS sets stroke-dashoffset on each tick. */
+  transition: stroke-dashoffset 0.95s linear;
+}
+
+/* Display: MM:SS centered, large, monospaced for stable width. */
+.ft-display {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+  font-size: 56px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--color-text);
+  text-align: center;
+  background: var(--color-surface);
+  border-radius: 50%;
+  width: 180px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 2px var(--color-border);
+  transition: border-color 200ms ease, color 200ms ease;
+}
+
+/* Phase tag sits above the ring */
+.ft-phase-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  margin-bottom: var(--space-3);
+}
+
+.ft-phase-tag--break {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  color: var(--color-accent);
+}
+
+/* Cycle count row */
+.ft-cycles {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-3);
+  text-align: center;
+}
+
+/* Controls row */
+.ft-controls {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: center;
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
+}
+
+/* Visual cue (red border flash) when AudioContext is unavailable */
+.ft-flash {
+  border-color: var(--color-danger, #dc2626) !important;
+  color: var(--color-danger, #dc2626) !important;
+}
+
+/* ============================================
+   Reduced motion: drop ring transition + flash
+   so the timer updates discretely without
+   any animation. The MM:SS display still
+   updates every 1000 ms.
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .ft-ring-fg {
+    transition: none;
+  }
+  .ft-display {
+    transition: none;
+  }
+  /* Skip the red-flash class entirely under reduced motion:
+     a static color swap would be a no-op anyway, and a
+     flashing border would be the exact motion the user
+     opted out of. The cue under reduced motion is the
+     MM:SS display snapping to 00:00 + phase-tag change. */
+  .ft-flash {
+    border-color: var(--color-border) !important;
+    color: var(--color-text) !important;
+  }
+}
+
+:root:where([data-reduced-motion="true"]) .ft-ring-fg {
+  transition: none;
+}
+:root:where([data-reduced-motion="true"]) .ft-display {
+  transition: none;
+}
+:root:where([data-reduced-motion="true"]) .ft-flash {
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+/* Print stylesheet: drop the ring + controls, keep the display */
+@media print {
+  .ft-controls,
+  .ft-ring {
+    display: none;
+  }
+  .ft-display {
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    box-shadow: none;
+    font-size: 32px;
+  }
+}

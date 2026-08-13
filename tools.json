@@ -5895,6 +5895,110 @@
         "#ts-human-utc",
         "#ts-human-local"
       ]
+    },
+    {
+      "id": "flashcard-timer",
+      "slug": "flashcard-timer",
+      "title": "Flashcard Timer",
+      "description": "Alternating recall and break timer for flashcard study sessions. Hand-rolled audio cue, progress ring, keyboard-complete.",
+      "category": "Time",
+      "pack": [
+        "study"
+      ],
+      "icon": "assets/icons/flashcard-timer.svg",
+      "keywords": [
+        "flashcard",
+        "recall",
+        "interval",
+        "pomodoro",
+        "study",
+        "timer",
+        "break"
+      ],
+      "last-updated": "2026-08-13T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "ft-recall": "25",
+          "ft-break": "5"
+        },
+        "encode": [
+          {
+            "key": "recall",
+            "type": "number",
+            "from": "#ft-recall"
+          },
+          {
+            "key": "break",
+            "type": "number",
+            "from": "#ft-break"
+          }
+        ],
+        "decode": [
+          {
+            "key": "recall",
+            "type": "number",
+            "to": "#ft-recall"
+          },
+          {
+            "key": "break",
+            "type": "number",
+            "to": "#ft-break"
+          }
+        ]
+      },
+      "shortcuts": [
+        {
+          "key": "s",
+          "label": "Start / Pause",
+          "action": "sample"
+        },
+        {
+          "key": "r",
+          "label": "Reset",
+          "action": "reset"
+        },
+        {
+          "key": "1",
+          "label": "Focus recall",
+          "action": "embed"
+        },
+        {
+          "key": "2",
+          "label": "Focus break",
+          "action": "embed"
+        }
+      ],
+      "history-keys": [
+        "ft-recall",
+        "ft-break"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/flashcard-timer/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 280
+      },
+      "search-priority": 6,
+      "tab-order-canonical": [
+        "#shell-skip",
+        "a.back-link",
+        "#ft-recall",
+        "#ft-break",
+        "#ft-start",
+        "#ft-pause",
+        "#ft-stop",
+        "#ft-reset",
+        "#ft-display",
+        "#ft-ring",
+        "#ft-phase",
+        "#ft-cycles"
+      ]
     }
   ]
 }

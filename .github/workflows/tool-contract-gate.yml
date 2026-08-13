@@ -61,6 +61,7 @@ on:
       - "scripts/fixtures/jwt-test-keypair.pem"
       - "scripts/_smoke_jwt_inspector.js"
       - "scripts/_smoke_timestamp_converter.js"
+      - "scripts/_smoke_flashcard_timer.js"
       - "assets/js/diff.js"
       - "assets/js/json-schema-lite.js"
       - "assets/js/recent.js"
@@ -142,6 +143,7 @@ on:
       - "scripts/fixtures/jwt-test-keypair.pem"
       - "scripts/_smoke_jwt_inspector.js"
       - "scripts/_smoke_timestamp_converter.js"
+      - "scripts/_smoke_flashcard_timer.js"
       - "assets/js/diff.js"
       - "assets/js/json-schema-lite.js"
       - "assets/js/recent.js"
@@ -610,6 +612,21 @@ jobs:
         # populates 10-digit epoch, negative epoch rejected. Vacuous-
         # pass guard catches hollow runs.
         run: make timestamp-converter-smoke
+
+      - name: Smoke Flashcard Timer (Story 9.7)
+        # Story 9.7: verifies the Flashcard Timer tool's recall/break
+        # state machine. Loads tools/flashcard-timer/flashcard-timer.js
+        # in a vm context with stub DOM + AudioContext stubs. Asserts
+        # duration clamping (recall 1-180, break 1-60), MM:SS format
+        # helpers, phase cycling (recall → break → recall), cycle
+        # counter increments only on break → recall, URL state
+        # (?recall=&break=&state=&cycles=), prefers-reduced-motion
+        # fallback, audio path with both available + unavailable
+        # AudioContext scenarios (no throw on unavailable),
+        # no fetch / XHR asserted, tab-order-canonical carries every
+        # AC-7 selector, no console.error across boot sequences.
+        # 54 PASS expected. Vacuous-pass guard catches hollow runs.
+        run: make flashcard-timer-smoke
 
       - name: AST gates negative-test battery (Story 1.17 AC-4)
         # Story 1.17 AC-4: proves the AST migration didn't regress
