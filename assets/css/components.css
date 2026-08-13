@@ -332,12 +332,12 @@
 }
 
 .home-grid-section {
-  margin-top: var(--space-7);
+  margin-top: var(--space-6);
 }
 
 /* Wider gap between grid sections — modern minimal breathing room. */
 .home-grid-section + .home-grid-section {
-  margin-top: var(--space-7);
+  margin-top: var(--space-6);
 }
 
 .home-section-header {
@@ -442,38 +442,44 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-5);
+  padding: var(--space-4);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: 14px;
   color: var(--color-text);
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
   position: relative;
   min-block-size: 100%;
+  box-shadow: var(--shadow-sm);
 }
 
 .tool-card:hover {
   text-decoration: none;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-  border-color: color-mix(in srgb, var(--color-accent) 22%, var(--color-border));
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 18, 33, 0.10), 0 12px 32px rgba(15, 18, 33, 0.08);
+  border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
 }
 
 .tool-card-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   background: var(--color-accent-soft);
   color: var(--color-accent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: transform 0.18s ease, background-color 0.18s ease;
 }
 
 .tool-card-icon svg {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
+}
+
+.tool-card:hover .tool-card-icon {
+  transform: scale(1.08);
 }
 
 .tool-card-title {
@@ -492,16 +498,32 @@
 .tool-card-featured {
   grid-column: span 2;
   background: linear-gradient(135deg,
-    color-mix(in srgb, var(--color-accent) 8%, var(--color-surface)),
+    color-mix(in srgb, var(--color-accent) 18%, var(--color-surface)),
     var(--color-surface));
-  border-color: color-mix(in srgb, var(--color-accent) 25%, var(--color-border));
+  border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
 }
 
 .tool-card-featured .tool-card-icon {
   background: var(--color-accent);
   color: white;
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
+}
+
+/* "Editor's pick" badge — top-left, complements the top-right badge. */
+.tool-card-featured::before {
+  content: "Editor's pick";
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: white;
 }
 
 .tool-card-badge {
@@ -753,9 +775,10 @@
    own line via the .hero-title-accent block. */
 
 .hero {
-  padding-block: var(--space-7) var(--space-6);
+  padding-block: var(--space-5) var(--space-4);
   display: grid;
   gap: var(--space-4);
+  position: relative;
 }
 
 .hero-title {
@@ -877,6 +900,56 @@
   }
 }
 
+/* Hero floating tool icons — decorative background. Inline SVG keeps
+   currentColor resolution so a single wrapper color tints all icons.
+   The radial mask melts them into the surface so the title stays
+   legible. Reduced-motion gates the drift and rotation. */
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, #000 35%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, #000 35%, transparent 85%);
+}
+
+.hero-bg-icon {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  color: color-mix(in srgb, var(--color-accent) 32%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: hero-bg-drift 8s ease-in-out infinite alternate;
+}
+
+.hero-bg-icon svg { width: 100%; height: 100%; }
+
+.hero-bg-icon--a { top: 8%;  left: 6%;   transform: rotate(-12deg); animation-delay: -1s; }
+.hero-bg-icon--b { top: 16%; right: 10%; transform: rotate(8deg);   animation-delay: -3s; }
+.hero-bg-icon--c { top: 52%; left: 4%;   transform: rotate(6deg);   animation-delay: -5s; }
+.hero-bg-icon--d { top: 62%; right: 6%;  transform: rotate(-10deg); animation-delay: -2s; }
+.hero-bg-icon--e { top: 28%; left: 24%;  transform: rotate(15deg);  animation-delay: -7s; }
+.hero-bg-icon--f { top: 38%; right: 30%; transform: rotate(-8deg);  animation-delay: -4s; }
+
+@keyframes hero-bg-drift {
+  from { translate: 0 0; }
+  to   { translate: 0 -6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-bg-icon {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+:root:where([data-reduced-motion="true"]) .hero-bg-icon {
+  animation: none !important;
+  transform: none !important;
+}
+
 /* ---------- Button base + variants ---------- */
 
 /* Reusable .btn primitives used across the shell. The .hero-search-btn
@@ -952,7 +1025,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
   flex-wrap: wrap;
 }
 
@@ -963,6 +1036,16 @@
   text-transform: none;
   color: var(--color-text);
   margin: 0;
+}
+
+.home-section-eyebrow {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: var(--space-2);
 }
 
 .home-section-sub {

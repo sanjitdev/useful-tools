@@ -202,11 +202,15 @@
         '</div>'
       );
     }
+    const isFeatured = featuredSlugs.indexOf(entry.slug) !== -1;
+    const cardClass = isFeatured ? 'tool-card tool-card-featured' : 'tool-card';
     return (
       '<div class="tool-card-wrap" data-tool-slug="' +
       escapeAttr(entry.slug) +
-      '">' +
-      '<a class="tool-card" href="tools/' +
+      '"' +
+      (isFeatured ? ' data-featured="true"' : '') +
+      '>' +
+      '<a class="' + cardClass + '" href="tools/' +
       escapeAttr(entry.slug) +
       '/index.html">' +
       buildIconSpan(entry.icon) +
@@ -308,7 +312,7 @@
       return buildCard(entry);
     }).join('');
     return (
-      '<div class="home-section-header"><h2>Pinned</h2></div>' +
+      '<div class="home-section-header"><div><span class="home-section-eyebrow">Pin</span><h2>Pinned</h2></div></div>' +
       '<div class="tool-grid pinned-grid" aria-label="Pinned tools">' +
       items +
       '</div>'
@@ -435,13 +439,33 @@
     } catch (_) { /* no DOM access in non-DOM contexts */ }
   }
 
+  // Top-N ready tools get the .tool-card-featured treatment on the home
+  // grid. Score first, alphabetical slug tiebreaker. Computed once per
+  // render so the spotlight is stable across the page lifetime.
+  let featuredSlugs = [];
+  function computeFeaturedSlugs() {
+    if (!Array.isArray(liveEntries)) { featuredSlugs = []; return; }
+    const ready = liveEntries.filter(function (e) {
+      return e && e.ready === true;
+    });
+    const sorted = ready.slice().sort(function (a, b) {
+      const sa = Number(a.score) || 0;
+      const sb = Number(b.score) || 0;
+      if (sb !== sa) return sb - sa;
+      return String(a.slug).localeCompare(String(b.slug));
+    });
+    featuredSlugs = sorted.slice(0, 3).map(function (e) { return e.slug; });
+  }
+
   function render() {
     if (isEmbedMode()) return Promise.resolve(null);
     return loadTools().then(function (data) {
       if (data && Array.isArray(data.tools)) {
         liveEntries = data.tools.filter(isValidEntry);
+        computeFeaturedSlugs();
       } else {
         liveEntries = null;
+        featuredSlugs = [];
       }
       mount(data);
       publishApi();
