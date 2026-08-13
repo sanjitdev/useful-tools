@@ -658,11 +658,11 @@
     b.type = 'button';
     b.dataset.htAction = 'history';
     if (variant === 'icon') {
-      b.className = 'btn--ghost history-toggle';
+      b.className = 'btn btn--ghost history-toggle';
     } else if (variant === 'ghost') {
-      b.className = 'btn--ghost';
+      b.className = 'btn btn--ghost';
     } else {
-      b.className = 'btn--link';
+      b.className = 'btn btn--link';
     }
     if (embed) {
       // Hidden + inert. aria-hidden=true so AT skips it; tabIndex=-1
@@ -701,14 +701,28 @@
         return;
       }
       const mounted = panel(slug, main);
-      // Re-derive: panel() returns {teardown}; we wrap it so
-      // subsequent clicks can open/close without re-mounting.
+      // Re-derive: panel() returns {teardown, open, close, isOpen, refresh}.
+      // We wrap it so subsequent clicks can open/close without re-mounting.
+      // The wrap MUST delegate to mounted.open/close so the backdrop toggles
+      // (otherwise the backdrop stays hidden permanently, which is fine for
+      // closing but means it never shows on open). Mirrors the lazy-mount
+      // pattern in sample-data.js.
       let open = true;
       const wrap = {
         teardown: mounted.teardown,
         get isOpen() { return open; },
-        open: function () { open = true; },
-        close: function () { open = false; },
+        open: function () {
+          open = true;
+          if (typeof mounted.open === 'function') {
+            try { mounted.open(); } catch (_) { /* no-op */ }
+          }
+        },
+        close: function () {
+          open = false;
+          if (typeof mounted.close === 'function') {
+            try { mounted.close(); } catch (_) { /* no-op */ }
+          }
+        },
         destroy: function () { try { mounted.teardown(); } catch (_) {} },
       };
       const state = _panelState();
@@ -938,7 +952,7 @@
     header.appendChild(h);
     const clearBtn = document.createElement('button');
     clearBtn.type = 'button';
-    clearBtn.className = 'btn--destructive history-clear';
+    clearBtn.className = 'btn btn--destructive history-clear';
     clearBtn.dataset.htAction = 'history-clear';
     clearBtn.textContent = 'Clear';
     clearBtn.setAttribute('aria-label', 'Clear history for this tool');
@@ -965,10 +979,19 @@
 
     // Story 3.6 — desktop backdrop (same pattern as Settings modal
     // backdrop, Story 1.8). Click-to-dismiss.
+    //
+    // BUG FIX: the backdrop was previously created with no `hidden`
+    // attribute and no JS to toggle it, so it permanently covered
+    // the page on every tool load (blocking all clicks). Now we
+    // mark it `hidden` at creation and toggle alongside the panel's
+    // open/close state. The CSS honors [hidden] via the explicit
+    // rule `.history-panel__backdrop[hidden] { display: none }` in
+    // assets/css/base.css.
     if (desktop) {
       backdrop = document.createElement('div');
       backdrop.className = 'history-panel__backdrop';
       backdrop.setAttribute('aria-hidden', 'true');
+      backdrop.hidden = true;
       backdrop.dataset.htAction = 'history-backdrop';
       rootEl.appendChild(backdrop);
     }
@@ -1103,16 +1126,37 @@
     });
 
     panelObj.open = function () {
-      if (!panelObj._isSheet) return;
-      aside.hidden = false;
-      aside.setAttribute('aria-hidden', 'false');
+      // Mobile sheet: standard hidden→visible toggle.
+      if (panelObj._isSheet) {
+        aside.hidden = false;
+        aside.setAttribute('aria-hidden', 'false');
+      }
+      // Desktop drawer: show the backdrop alongside the panel.
+      // BUG FIX: the backdrop used to be permanently visible (no
+      // [hidden] attribute, no toggle), blocking every click on
+      // every tool. Now both the backdrop and the panel are
+      // gated on `panelObj.isOpen` — the JS in button() flips
+      // isOpen via the lazy-mount wrapper.
       panelObj.isOpen = true;
+      if (backdrop) {
+        backdrop.hidden = false;
+        backdrop.setAttribute('aria-hidden', 'false');
+      }
     };
     panelObj.close = function () {
-      if (!panelObj._isSheet) return;
-      aside.hidden = true;
-      aside.setAttribute('aria-hidden', 'true');
+      // Mobile sheet: standard visible→hidden toggle.
+      if (panelObj._isSheet) {
+        aside.hidden = true;
+        aside.setAttribute('aria-hidden', 'true');
+      }
+      // Desktop drawer: hide the backdrop so the page is interactive
+      // again. The aside is always visible (sidebar pattern), but the
+      // backdrop must release pointer-events + dimming.
       panelObj.isOpen = false;
+      if (backdrop) {
+        backdrop.hidden = true;
+        backdrop.setAttribute('aria-hidden', 'true');
+      }
     };
     panelObj.refresh = function () {
       // Re-render the rows from the current storage snapshot. Cheap
@@ -1343,14 +1387,14 @@
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.value = 'cancel';
-    cancelBtn.className = 'btn--ghost';
+    cancelBtn.className = 'btn btn--ghost';
     cancelBtn.setAttribute('data-ht-action', 'history-confirm-cancel');
     cancelBtn.textContent = 'Cancel';
 
     const confirmBtn = document.createElement('button');
     confirmBtn.type = 'button';
     confirmBtn.value = 'confirm';
-    confirmBtn.className = 'btn--destructive';
+    confirmBtn.className = 'btn btn--destructive';
     confirmBtn.setAttribute('data-ht-action', 'history-confirm-ok');
     confirmBtn.textContent = opts.confirmLabel || 'Confirm';
 

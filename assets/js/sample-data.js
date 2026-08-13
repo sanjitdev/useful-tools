@@ -95,13 +95,24 @@
     const label = (opts && typeof opts.label === 'string' && opts.label.length)
       ? opts.label
       : 'Try an example';
-    const variant = (opts && (opts.variant === 'link' || opts.variant === 'ghost'))
+    // Default variant is `link` (a discreet underlined text) so the
+    // row of affordances doesn't compete with the tool's primary
+    // CTA at the top of the page. Callers can opt back into the
+    // solid ghost/destructive style via opts.variant.
+    const variant = (opts && (opts.variant === 'ghost' || opts.variant === 'link'))
       ? opts.variant
-      : 'ghost';
+      : 'link';
     const b = document.createElement('button');
     b.type = 'button';
     b.dataset.htAction = 'sample';
-    b.className = variant === 'link' ? 'btn--link' : 'btn--ghost';
+    // BEM button variants + the .btn base class so the button picks
+    // up the shared .btn sizing / focus / hover rules from
+    // assets/css/components.css. Without .btn, the button rendered
+    // as UA-default chrome that read as a plain link at the top of
+    // the page.
+    b.className = 'btn ' + (
+      variant === 'ghost' ? 'btn--ghost' : 'btn--link'
+    );
     b.textContent = label;
     // aria-label surfaces the shortcut key per EXPERIENCE.md §6.5.
     // The actual key-binding lands in Story 3.3.
@@ -176,11 +187,23 @@
     const label = (opts && typeof opts.label === 'string' && opts.label.length)
       ? opts.label
       : 'Reset to sample';
-    const variant = (opts && opts.variant === 'ghost') ? 'ghost' : 'destructive';
+    // Default variant is `link` (a discreet underlined text) so the
+    // destructive action doesn't compete with the tool's primary CTA
+    // at the top of the page. Callers can opt back into the solid
+    // destructive style via opts.variant === 'destructive'.
+    const variant = (opts && (opts.variant === 'destructive' || opts.variant === 'ghost'))
+      ? opts.variant
+      : 'link';
     const b = document.createElement('button');
     b.type = 'button';
     b.dataset.htAction = 'reset';
-    b.className = variant === 'ghost' ? 'btn--ghost' : 'btn--destructive';
+    // BEM button variants + the .btn base class so the button picks
+    // up the shared .btn sizing / focus / hover rules.
+    b.className = 'btn ' + (
+      variant === 'destructive' ? 'btn--destructive' :
+      variant === 'ghost' ? 'btn--ghost' :
+      'btn--link'
+    );
     b.textContent = label;
     // aria-label is canonical ("Reset to sample (r)") regardless
     // of opts.label override (which only changes visible text).
@@ -212,12 +235,37 @@
     if (!row) {
       row = document.createElement('div');
       row.className = 'tool-actions';
-      // Insert before the first form, if any, else append.
+      // Placement policy (Story 2.2 + recent reset-button placement
+      // fix): the .tool-actions row always renders next to (or just
+      // below) the tool title — never ABOVE the back-link.
+      //
+      //   1. If the page declares a `.tool-actions` slot (e.g. via
+      //      `assets/shell/template.html`'s `<div class="tool-actions">`),
+      //      use it. The Shell-mounted slot lives at the top of the
+      //      tool area and already has the correct styling.
+      //   2. Else if `<form>` exists, insert before the form (the
+      //      action buttons sit just above the user's inputs).
+      //   3. Else insert AFTER the `<header class="tool-header">` if
+      //      present, so the buttons sit underneath the back-link +
+      //      h1 — never pushed to the very top where they read as a
+      //      broken back-link.
+      //   4. Else fall back to append at the end of rootEl.
+      const toolHeader = rootEl.querySelector('.tool-header');
       const firstForm = rootEl.querySelector('form');
       if (firstForm && firstForm.parentNode === rootEl) {
         rootEl.insertBefore(row, firstForm);
+      } else if (toolHeader && toolHeader.parentNode === rootEl) {
+        if (toolHeader.nextSibling) {
+          rootEl.insertBefore(row, toolHeader.nextSibling);
+        } else {
+          rootEl.appendChild(row);
+        }
       } else {
-        rootEl.insertBefore(row, rootEl.firstChild);
+        // No structural anchor — append. (The earlier code inserted
+        // before rootEl.firstChild, which put the row ABOVE the
+        // back-link and made it read as a duplicate link / leftover
+        // chrome — a real UX bug.)
+        rootEl.appendChild(row);
       }
     }
 
@@ -410,8 +458,8 @@
         '<h2 id="' + titleId + '" class="ht-confirm-title">Reset to sample?</h2>' +
         '<p class="ht-confirm-body">Your current inputs differ from the sample values. This will discard them.</p>' +
         '<div class="ht-confirm-actions">' +
-          '<button type="button" value="cancel" class="btn--ghost" data-ht-action="reset-cancel">Cancel</button>' +
-          '<button type="button" value="confirm" class="btn--destructive" data-ht-action="reset-confirm">Reset</button>' +
+          '<button type="button" value="cancel" class="btn btn--ghost" data-ht-action="reset-cancel">Cancel</button>' +
+          '<button type="button" value="confirm" class="btn btn--destructive" data-ht-action="reset-confirm">Reset to sample</button>' +
         '</div>' +
       '</form>';
     dlg.querySelector('[aria-labelledby]') &&

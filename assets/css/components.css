@@ -132,6 +132,104 @@
   border-color: transparent;
   color: var(--color-muted);
 }
+
+/* BEM-style button variants used by Shell-mounted chrome
+   (sample / reset / share / history buttons in sample-data.js,
+    share.js, history.js). These mirror the legacy single-dash
+   .btn-primary / .btn-ghost variants but use the double-dash
+   BEM convention so the button factories in the Shell modules
+   stay decoupled from the tool-page .btn class. They build on
+   top of .btn so all the base sizing, hover, and focus styles
+   are inherited — only the visual variant differs. */
+
+.btn--destructive {
+  background: var(--color-danger, #dc2626);
+  color: var(--color-on-danger, #ffffff);
+  border-color: transparent;
+}
+.btn--destructive:hover {
+  background: var(--color-danger-hover, #b91c1c);
+}
+.btn--destructive:active {
+  transform: translateY(1px);
+}
+
+.btn--ghost {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+.btn--ghost:hover {
+  background: var(--color-surface-2);
+}
+
+.btn--link {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-primary);
+  padding: 6px 8px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.btn--link:hover {
+  color: var(--color-primary-hover);
+}
+
+.btn--primary {
+  background: var(--color-accent);
+  color: white;
+  border-color: transparent;
+}
+.btn--primary:hover {
+  background: var(--color-accent-hover);
+}
+
+/* When the Shell mounts sample / reset / share / history buttons
+   into a .tool-actions container, lay them out as a horizontal
+   flex row that visually belongs to the tool header (small gap,
+   right-aligned, doesn't push other content down). Falls back to
+   block layout if .tool-actions is empty or the page has no flex
+   container — keeps the buttons accessible. */
+
+.tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  margin-block: var(--space-3, 12px);
+  align-items: center;
+}
+
+.tool-actions .btn--destructive,
+.tool-actions .btn--ghost,
+.tool-actions .btn--link {
+  /* The Shell-mounted buttons are smaller than full-size tool
+     buttons — they share the page chrome scale. */
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  border-radius: var(--radius-sm, 8px);
+}
+
+/* Forced-colors: keep the destructive button visible in Windows
+   High Contrast by mapping to the system danger color and
+   inverting the foreground. */
+
+@media (forced-colors: active) {
+  .btn--destructive {
+    background: Mark;
+    color: MarkText;
+    border-color: MarkText;
+  }
+  .btn--ghost {
+    background: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+  }
+  .btn--link {
+    background: transparent;
+    color: LinkText;
+    text-decoration: underline;
+  }
+}
 .btn-ghost:hover { background: var(--color-surface-2); color: var(--color-text); }
 
 .btn-danger {
@@ -1573,6 +1671,386 @@
     background-color: Canvas;
     color: CanvasText;
     border-color: CanvasText;
+  }
+}
+
+/* ============================================
+   Native <dialog> confirm + share modals
+   (Story 2.2 sample-data + Story 2.3 history +
+    Story 2.5 share)
+   ============================================
+   These three callers all build a real <dialog>
+   and call showModal() — which gives them free
+   focus-trap + Esc-cancel + ::backdrop. Without
+   explicit CSS, the browser UA stylesheet paints
+   them with a tiny white box and an invisible
+   backdrop, so the dialog appears as ghost text
+   over the underlying page while the focus trap
+   is still active. The page is "blocked" but the
+   dialog is hard to see and the buttons look
+   broken — a real UX bug.
+
+   These rules style the dialog surface (panel,
+   form, header/body/actions), the backdrop (dim
+   + blur matching .shell-settings-modal), and
+   honor the cobalt palette + dark-mode surface
+   tokens. Forced-colors is also covered so the
+   dialog remains visible when the OS flips
+   Windows High Contrast on. */
+
+/* --- Shared surface (panel + form) --- */
+
+dialog.ht-confirm-dialog,
+dialog.share-dialog {
+  /* Reset the UA stylesheet defaults so our panel
+     truly looks like a panel. */
+  width: min(420px, calc(100vw - 32px));
+  max-width: var(--modal-width, 560px);
+  max-height: calc(100vh - 32px);
+  margin: auto;
+
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 12px 48px rgba(15, 17, 23, 0.25);
+
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+dialog.ht-confirm-dialog[open],
+dialog.share-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Confirm dialog (Story 2.2 + Story 2.3 + Story 3.6) --- */
+
+dialog.ht-confirm-dialog .ht-confirm-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  padding: var(--space-5, 24px) var(--space-5, 24px) var(--space-4, 16px);
+  margin: 0;
+}
+
+dialog.ht-confirm-dialog .ht-confirm-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+dialog.ht-confirm-dialog .ht-confirm-body {
+  margin: 0;
+  color: var(--color-text);
+  opacity: 0.85;
+  font-size: 0.95rem;
+}
+
+dialog.ht-confirm-dialog .ht-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  justify-content: flex-end;
+  margin-top: var(--space-2, 8px);
+}
+
+/* --- Share dialog (Story 2.5) --- */
+
+dialog.share-dialog .share-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  padding: var(--space-5, 24px);
+  margin: 0;
+  min-width: 0;
+}
+
+dialog.share-dialog .share-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+}
+
+dialog.share-dialog .share-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+dialog.share-dialog .share-header button[data-ht-action="share-close"] {
+  /* The close "×" button uses UA button styling by default —
+     give it the ghost button look so it reads as a dismiss
+     action. */
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+dialog.share-dialog .share-header button[data-ht-action="share-close"]:hover {
+  background: var(--color-surface-2, rgba(0, 0, 0, 0.05));
+}
+
+dialog.share-dialog .share-desc {
+  margin: 0;
+  color: var(--color-text);
+  opacity: 0.8;
+  font-size: 0.95rem;
+}
+
+dialog.share-dialog .share-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+dialog.share-dialog .share-section label {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
+dialog.share-dialog .share-section p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  opacity: 0.8;
+}
+
+dialog.share-dialog #share-url-input,
+dialog.share-dialog #share-embed-input {
+  width: 100%;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-2, rgba(0, 0, 0, 0.05));
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+dialog.share-dialog #share-embed-input {
+  resize: vertical;
+  min-height: 4.5em;
+}
+
+/* --- Backdrop (the page-dim layer) --- */
+
+dialog.ht-confirm-dialog::backdrop,
+dialog.share-dialog::backdrop {
+  background-color: rgba(15, 17, 23, 0.45);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+/* --- Dark mode surface --- */
+
+:root[data-theme="dark"] dialog.ht-confirm-dialog,
+:root[data-theme="dark"] dialog.share-dialog {
+  background: var(--color-surface, #181b24);
+  border-color: var(--color-border, #2a2f3c);
+  color: var(--color-text, #e8eaf0);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="dark"] dialog.ht-confirm-dialog::backdrop,
+:root[data-theme="dark"] dialog.share-dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.55);
+}
+
+/* --- Forced-colors (Story 1.6 / WCAG 1.4.3 + 2.4.7) --- */
+
+@media (forced-colors: active) {
+  dialog.ht-confirm-dialog,
+  dialog.share-dialog {
+    background: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+    box-shadow: none;
+  }
+  dialog.ht-confirm-dialog::backdrop,
+  dialog.share-dialog::backdrop {
+    background-color: Canvas;
+  }
+  dialog.ht-confirm-dialog .ht-confirm-actions button,
+  dialog.share-dialog .share-section button,
+  dialog.share-dialog .share-header button {
+    border-color: CanvasText;
+    color: CanvasText;
+    background: Canvas;
+  }
+}
+
+/* --- Mobile (≤600px) — full-width sheet, matching settings modal --- */
+
+@media (max-width: 600px) {
+  dialog.ht-confirm-dialog,
+  dialog.share-dialog {
+    width: calc(100vw - 16px);
+    max-width: none;
+  }
+}
+
+/* ============================================
+   Story 3.6 — History panel + sheet
+   The Shell renders the panel as a sibling of
+   the tool body (desktop: always visible below;
+   mobile: hidden sheet toggled by History button).
+   Without this CSS the rows collapse into a single
+   wall of inline text — see the "30 seconds ago30,
+   male — 83.4 years…" rendering in the screenshot
+   review. The styling here matches the share
+   dialog surface + uses the cobalt accent for
+   row hover so it reads as the canonical
+   per-tool affordance.
+   ============================================ */
+
+aside.history-panel,
+aside.history-sheet {
+  margin-top: var(--space-6, 32px);
+  padding: var(--space-4, 16px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 10px);
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  margin-bottom: var(--space-3, 12px);
+  padding-bottom: var(--space-3, 12px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.history-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.history-clear {
+  padding: 4px 10px !important;
+  font-size: 0.8125rem !important;
+  border-radius: var(--radius-sm, 6px) !important;
+  /* Toned-down destructive — small ghost with hover hint.
+     The full destructive style would compete with the
+     tool's primary CTA. */
+  background: transparent !important;
+  color: var(--color-danger, #dc2626) !important;
+  border: 1px solid var(--color-border) !important;
+}
+.history-clear:hover,
+.history-clear:focus-visible {
+  background: var(--color-danger, #dc2626) !important;
+  color: #fff !important;
+  border-color: var(--color-danger, #dc2626) !important;
+}
+
+.history-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+button.history-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  width: 100%;
+  padding: var(--space-3, 12px);
+  background: var(--color-surface-2, #f1f3f8);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 6px);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+button.history-row:hover,
+button.history-row:focus-visible {
+  background: var(--color-primary-soft, #E5ECFF);
+  border-color: var(--color-primary-soft-strong, #C7D4FF);
+  outline: none;
+}
+button.history-row:focus-visible {
+  outline: 2px solid var(--color-primary, #2F5BFF);
+  outline-offset: 2px;
+}
+
+.history-row-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.history-row-ts {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.history-row-body {
+  font-size: 0.9rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-row-body--empty {
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+/* Mobile sheet — full-width pinned to viewport bottom */
+@media (max-width: 767px) {
+  aside.history-sheet {
+    margin-top: var(--space-4, 16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.history-row,
+  .history-clear {
+    transition: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  button.history-row,
+  .history-clear,
+  aside.history-panel,
+  aside.history-sheet {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+  button.history-row:focus-visible,
+  .history-clear:focus-visible {
+    outline: 3px solid Highlight;
   }
 }
 

@@ -169,20 +169,20 @@
         '<section class="share-section" aria-labelledby="share-url-label">' +
           '<label id="share-url-label" for="share-url-input">Canonical URL</label>' +
           '<input type="url" id="share-url-input" readonly value="' + _escapeAttr(urlValue) + '">' +
-          '<button type="button" data-ht-action="share-copy-url" class="btn--ghost">Copy URL</button>' +
+          '<button type="button" data-ht-action="share-copy-url" class="btn btn--ghost">Copy URL</button>' +
         '</section>' +
 
         '<section class="share-section" aria-labelledby="share-print-label">' +
           '<label id="share-print-label">Print</label>' +
           '<p>Print this tool with the chrome hidden (no nav, no footer).</p>' +
-          '<button type="button" data-ht-action="share-print" class="btn--primary">Print</button>' +
+          '<button type="button" data-ht-action="share-print" class="btn btn--primary">Print</button>' +
         '</section>' +
 
         '<section class="share-section" aria-labelledby="share-embed-label"' +
           (hasEmbed ? '' : ' hidden') + '>' +
           '<label id="share-embed-label" for="share-embed-input">Embed Code</label>' +
           '<textarea id="share-embed-input" readonly rows="3">' + _escapeAttr(embedValue) + '</textarea>' +
-          '<button type="button" data-ht-action="share-copy-embed" class="btn--ghost">Copy embed code</button>' +
+          '<button type="button" data-ht-action="share-copy-embed" class="btn btn--ghost">Copy embed code</button>' +
         '</section>' +
       '</form>';
 

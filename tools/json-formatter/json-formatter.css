@@ -20,6 +20,136 @@
 .tree .meta { color: var(--color-muted); margin-left: 4px; }
 
 /* ============================================
+   Story 9.1 — Sort keys panel (AC-1)
+   ============================================ */
+#sort-panel .field-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+#sort-panel input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  cursor: pointer;
+}
+
+/* ============================================
+   Story 9.1 — Schema validate panel (AC-2)
+   ============================================ */
+.panel-hint {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  margin: 0 0 var(--space-2) 0;
+}
+.panel-hint code {
+  font-family: var(--font-mono);
+  background: var(--color-surface-alt);
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 0.8rem;
+}
+.schema-errors {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+.schema-errors li {
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  background: rgba(220, 53, 69, 0.08);
+  border-left: 3px solid #dc3545;
+  border-radius: 3px;
+  color: var(--color-text);
+}
+.schema-errors li code {
+  background: var(--color-surface-alt);
+  padding: 0 4px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+.schema-ok {
+  display: inline-block;
+  margin-top: var(--space-2);
+  padding: 4px 10px;
+  background: rgba(40, 167, 69, 0.12);
+  color: #28a745;
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* ============================================
+   Story 9.1 — Diff panel (AC-3)
+   ============================================ */
+#diff-panel label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+#json-input-b {
+  min-height: 120px;
+}
+.json-diff-output {
+  margin-top: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: var(--space-2);
+  max-height: 400px;
+  overflow: auto;
+}
+.json-diff-output:empty {
+  display: none;
+}
+.diff-line {
+  padding: 2px 8px;
+  border-radius: 2px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.5;
+}
+.diff-equal {
+  color: var(--color-text);
+  border-left: 3px solid transparent;
+  margin-left: 3px;
+}
+.diff-insert {
+  background: rgba(40, 167, 69, 0.12);
+  color: #28a745;
+  border-left: 3px solid #28a745;
+  border-right: 3px solid transparent;
+  margin: 1px 3px 1px 0;
+}
+.diff-delete {
+  background: rgba(220, 53, 69, 0.10);
+  color: #dc3545;
+  border-left: 3px solid #dc3545;
+  border-right: 3px solid transparent;
+  margin: 1px 3px 1px 0;
+  text-decoration: line-through;
+  text-decoration-color: rgba(220, 53, 69, 0.5);
+}
+.diff-line::before {
+  content: attr(data-marker);
+  display: inline-block;
+  width: 1.2em;
+  margin-right: 6px;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+.diff-equal::before { content: ' '; }
+.diff-insert::before { content: '+'; }
+.diff-delete::before { content: '−'; }
+
+
+/* ============================================
    Story 2.7 / Story 2.8 — @media print block (rubric #5 Printable).
    Idempotent — added by scripts/_print_css_bootstrap.py.
    Hides Shell chrome (header, footer, dialogs) and forces

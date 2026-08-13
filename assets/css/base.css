@@ -344,6 +344,17 @@ a:hover {
   cursor: pointer;
 }
 
+/* Story 3.6 — backdrop is hidden by default. It only blocks the page
+   when the history panel is OPEN (treated like a drawer). Until the
+   History button is clicked, the backdrop must be a no-op overlay —
+   otherwise it dims + traps the page on every tool load, blocking
+   all clicks. The JS in assets/js/history.js toggles the [hidden]
+   attribute on open()/close(); the CSS honors it via the
+   [hidden] default and the explicit rule below. */
+.history-panel__backdrop[hidden] {
+  display: none !important;
+}
+
 @media (forced-colors: active) {
   .theme-toggle {
     display: none !important;
@@ -425,5 +436,12 @@ h4 { font-size: 1rem; }
   h1 { font-size: 1.625rem; }
   h2 { font-size: 1.25rem; }
 }
+
+/* Print-only elements — hidden on screen, shown in print.
+   assets/css/print.css overrides `.print-only { display: block !important; }`
+   inside the @media print block. Without this default the print-only
+   footer (URL + last-updated) renders at the bottom of every page
+   during normal browsing. */
+.print-only { display: none; }
 
 /* Print stylesheet moved to assets/css/print.css (Story 3.10) */
