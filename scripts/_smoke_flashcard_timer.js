@@ -116,7 +116,7 @@ function makeStub(initial, opts) {
 
 function buildAndLoad(search, opts) {
   const o = opts || {};
-  const audioState = { created: false, started: false, type: null, freq: null, stopCalled: false, threw: false };
+  const audioState = { created: false, started: false, type: null, freq: null, stopCalled: false };
   const elements = {
     '#ft-recall': makeStub('25'),
     '#ft-break': makeStub('5'),

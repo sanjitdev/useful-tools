@@ -15,7 +15,6 @@
 
   // -------- Constants --------
   var DEFAULTS = { recall: 25, breakMin: 5 };
-  var STORAGE_KEY = 'handy-tools.flashcard-timer.audio';
   var RING_RADIUS = 45;        // matches <circle r="45"> in index.html
   var RING_CIRCUM = 2 * Math.PI * RING_RADIUS; // ~282.74
   var AUDIO_FREQ = 880;        // Hz (per AC-3)
