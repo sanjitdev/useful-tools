@@ -628,6 +628,22 @@ jobs:
         # 54 PASS expected. Vacuous-pass guard catches hollow runs.
         run: make flashcard-timer-smoke
 
+      - name: Smoke Exam Countdown (Story 9.8)
+        # Story 9.8: verifies the Exam Countdown tool's tick logic.
+        # Loads tools/exam-countdown/exam-countdown.js in a vm context
+        # with stub DOM + localStorage + URLSearchParams stubs. Asserts
+        # date parsing, day/hour/minute/second diff math, past-date
+        # handling (no negative numbers, past-notice shown), empty-state
+        # rendering, localStorage write/read round-trip (including
+        # unparseable value cleared), URL state precedence over
+        # localStorage, malformed URL target fallback, keyboard 't' and
+        # 'c' shortcuts, keyboard shortcuts scoped to inputs (no fire
+        # when typing inside the input), privacy (no fetch / XHR),
+        # tab-order-canonical selector coverage, no console.error
+        # across boot + change sequences.
+        # 43 PASS expected. Vacuous-pass guard catches hollow runs.
+        run: make exam-countdown-smoke
+
       - name: AST gates negative-test battery (Story 1.17 AC-4)
         # Story 1.17 AC-4: proves the AST migration didn't regress
         # either gate's behavior. Builds a temp repo with three

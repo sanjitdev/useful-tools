@@ -5999,6 +5999,88 @@
         "#ft-phase",
         "#ft-cycles"
       ]
+    },
+    {
+      "id": "exam-countdown",
+      "slug": "exam-countdown",
+      "title": "Exam Countdown",
+      "description": "Count down to an exam date with a live days / hours / minutes / seconds display. Persists the target across sessions.",
+      "category": "Time",
+      "pack": [
+        "travel"
+      ],
+      "icon": "assets/icons/exam-countdown.svg",
+      "keywords": [
+        "exam",
+        "countdown",
+        "date",
+        "timer",
+        "days",
+        "test",
+        "study",
+        "travel",
+        "schedule",
+        "appointment"
+      ],
+      "last-updated": "2026-08-13T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "ec-target": ""
+        },
+        "encode": [
+          {
+            "key": "target",
+            "type": "string",
+            "from": "#ec-target"
+          }
+        ],
+        "decode": [
+          {
+            "key": "target",
+            "type": "string",
+            "to": "#ec-target"
+          }
+        ]
+      },
+      "shortcuts": [
+        {
+          "key": "t",
+          "label": "Focus target",
+          "action": "embed"
+        },
+        {
+          "key": "c",
+          "label": "Clear target",
+          "action": "reset"
+        }
+      ],
+      "history-keys": [
+        "ec-target"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/exam-countdown/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 240
+      },
+      "search-priority": 6,
+      "tab-order-canonical": [
+        "#shell-skip",
+        "a.back-link",
+        "#ec-target",
+        "#ec-clear",
+        "#ec-past-notice",
+        "#ec-days",
+        "#ec-hours",
+        "#ec-minutes",
+        "#ec-seconds"
+      ]
     }
   ]
 }

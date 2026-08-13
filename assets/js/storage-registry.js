@@ -547,6 +547,12 @@
     schema: 'string',
     owner: 'shell.js',
   });
+  register('ht.exam-countdown.target', {
+    purpose: 'Picked datetime-local target for the Exam Countdown tool — Story 9.8',
+    lifetime: 'persistent',
+    schema: 'string',
+    owner: 'exam-countdown.js',
+  });
 
   // handy-tools.* user-data keys owned by shell.js. Story 3.12 will
   // populate recent/pins; Epic 6 favorites/dashboard. The registry
