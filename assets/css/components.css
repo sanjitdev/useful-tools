@@ -486,19 +486,19 @@
 /* ---------- Pack cards (home grid, Story 6.1) ----------
    Rendered by assets/js/pack-grid.js into #home-grid-packs. Each card
    is a real <a> to /packs/<slug>.html (Story 6.2's destination).
-   Compact square tile: 5 across on desktop, each tile is a true 1:1
-   square (~180px on the 1100px container). Icon + title + count
-   only — descriptions live on the dedicated pack page, not on the
-   home grid where space is tight. Cobalt-aware tokens only. */
+   Compact horizontal tile: 5 across on desktop, each tile is wide
+   and short — a "row of links" feel rather than "stack of cards".
+   Height is determined by content (icon + title + count), not by
+   aspect ratio, so the section stays compact instead of dominating
+   the page. Cobalt-aware tokens only. */
 
 .pack-section {
   margin-top: var(--space-6);
 }
 
-/* Five columns on desktop. 1100px container / 5 ≈ 200px per card.
-   With aspect-ratio: 1/1 each card is a ~200px square — small but
-   readable. Drops to 4 / 3 / 2 / 1 columns at smaller viewports so
-   the squares stay a reasonable size. */
+/* Five columns on desktop. With natural height, each tile is wide
+   (~200px) and short (~80px). The row reads as a horizontal
+   scannable index, not a stack of squares taking the whole page. */
 .pack-section > div {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -518,22 +518,20 @@
   .pack-section > div { grid-template-columns: 1fr; }
 }
 
+/* Horizontal tile — icon on the left, title + count stacked on the
+   right. Compact padding, no aspect-ratio constraint. */
 .pack-card {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   color: var(--color-text);
   text-decoration: none;
-  text-align: center;
-  /* Hard 1:1 square — every tile in the row is the same size
-     regardless of content. */
-  aspect-ratio: 1 / 1;
+  /* Natural height — content drives the row height. */
+  min-block-size: 64px;
   transition: border-color 180ms ease, background-color 180ms ease;
 }
 
@@ -548,11 +546,12 @@
   outline-offset: 2px;
 }
 
-/* Compact 36px icon — fits cleanly inside the small square. */
+/* Compact 32px icon — sized to fit the 64px-tall tile without
+   dominating it. */
 .pack-card-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
   background: var(--color-accent-soft);
   color: var(--color-accent);
   display: inline-flex;
@@ -567,29 +566,43 @@
 }
 
 .pack-card-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+}
+
+/* Right-side text block: title above, count below. Both inline, no
+   meta row separator — keeps the tile compact. */
+.pack-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .pack-card-title {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
   letter-spacing: -0.01em;
-  line-height: 1.2;
+  line-height: 1.25;
   color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Count sits below the title — small, muted, with tabular-nums so
-   "13 tools" and "3 tools" align across the row. */
 .pack-card-count {
   color: var(--color-muted);
   font-size: 0.75rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
-/* Hide the description + meta row inside compact tiles — there's no
-   room. The full description + count live on the dedicated pack page. */
+/* Description is hidden on the home grid — there isn't horizontal
+   room for a tagline inside the 200px-wide tile without it wrapping
+   to 3 lines and breaking the row's visual rhythm. The full
+   description lives on the dedicated /packs/<slug>.html page. */
 .pack-card-desc,
 .pack-card-meta {
   display: none;
