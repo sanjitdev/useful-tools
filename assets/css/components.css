@@ -323,7 +323,9 @@
    The .tool-card-wrap class is appended by home-grid.js around the
    anchor + pin button — both rules below support both the static
    <a class="tool-card"> (rare; used for legacy surfaces) and the
-   home-grid wrapped form. */
+   home-grid wrapped form. The wrap is the positioning context so
+   the pin button (sibling, can't be nested in <a>) can absolute-
+   position inside the card's top-right corner. */
 
 .category-section {
   margin-top: var(--space-6);
@@ -340,6 +342,71 @@
 
 .home-section-header {
   margin-bottom: var(--space-4);
+}
+
+/* Wrap is the positioning context for the absolutely-positioned
+   pin button. Stretch to fill the grid cell so the anchor card
+   can use height: 100% and the cards line up at the same height. */
+.tool-card-wrap {
+  position: relative;
+  display: flex;
+}
+
+.tool-card-wrap > .tool-card {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+/* Pin toggle (favorite star) — absolutely positioned in the top-right
+   corner of the card. Visible inside the card area (not floating off
+   to the side). The button itself stays a sibling of the anchor
+   because nested interactive elements are not allowed in HTML. */
+.pin-toggle {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-muted);
+  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.pin-toggle:hover {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: var(--color-accent);
+  transform: scale(1.05);
+}
+
+.pin-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.pin-toggle[aria-pressed="true"] {
+  color: var(--color-accent);
+}
+
+.pin-toggle-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-toggle {
+    transition: none !important;
+  }
+  .pin-toggle:hover {
+    transform: none;
+  }
 }
 
 /* Legacy category-header kept for tool-internal use (tool pages still
