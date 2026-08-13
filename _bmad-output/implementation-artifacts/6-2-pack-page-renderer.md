@@ -250,9 +250,9 @@ The shell-a11y-check scans all `*.html` in the project (let me verify by re-read
 
 ### Migration order
 
-Story 6.2 lands after Story 6.1 (pack cards). Story 6.2's 5 pack pages un-404 the pack card links. Story 6.3 (Pack Taxonomy Documentation) follows naturally. Story 6.4-6.18 (new tools) populate the 5 packs with more tools — at which point the per-pack counts grow beyond the 1-2 tools they have today.
+Story 6.2 lands after Story 6.1 (pack cards). Story 6.2's 5 pack pages un-404 the pack card links. Story 6.3 (Pack Taxonomy Documentation) follows naturally. Stories 9.1-9.15 (the new gap tools, split from Epic 6 into Epic 9 on 2026-08-13) populate the 5 packs with more tools — at which point the per-pack counts grow beyond the 1-2 tools they have today.
 
-The Travel pack is empty today (no tools). Story 6.18 (Currency Converter) and Story 6.11 (Exam Countdown, possibly travel-tagged) and Story 6.19 (Travel Pack Composition) will populate it.
+The Travel pack is empty today (no tools). Story 9.15 (Currency Converter) and Story 9.8 (Exam Countdown, possibly travel-tagged) and Story 9.16 (Travel Pack Composition) will populate it.
 
 ### Brownfield flag handling
 

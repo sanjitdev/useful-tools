@@ -1,5 +1,5 @@
 # generated: 2026-07-31
-# last_updated: 2026-08-11T33:00:00Z
+# last_updated: 2026-08-13T18:30:00Z
 # project: useful-tools
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-31
-last_updated: 2026-08-12T38:00:00Z
+last_updated: 2026-08-13T18:30:00Z
 project: useful-tools
 project_key: NOKEY
 tracking_system: file-system
@@ -81,7 +81,6 @@ development_status:
   # ADs: AD-2, AD-3, AD-15 (staged rollout)
   # =========================================================================
   epic-2: done
-  epic-6: in-progress
   2-1-per-tool-url-state-codec-wiring: done
   2-2-per-tool-sample-data-and-reset-button: done
   2-3-per-tool-history-panel: done
@@ -153,39 +152,18 @@ development_status:
   epic-5-retrospective: optional
 
   # =========================================================================
-  # Epic 6: Packs and New Tools — 5 Packs Live + 12–15 New Tools
-  # FRs: FR-6, FR-19, FR-20, FR-21 (15 new tools)
-  # ADs: AD-9 (cross-Tool via Site Data only), AD-5 (pack defaults under Tool state)
-  # UX-DRs: UX-DR-2 (Pack Card), UX-DR-9 (pack composition), UX-DR-7 (pack page surface)
+  # Epic 6: Pack Discovery — Pack Cards, Pack Pages, Taxonomy Doc
+  # Split on 2026-08-13 from the original 27-story "Packs and New Tools"
+  # epic. The 15 gap tools moved to Epic 9; the Fun Pack moved to Epic 8.
+  # This epic now contains only the pack-DISCOVERY layer.
+  # FRs: FR-6, FR-19, FR-20
+  # ADs: AD-9 (cross-Tool via Site Data only), AD-5 (pack defaults)
+  # UX-DRs: UX-DR-2 (Pack Card), UX-DR-7 (pack page surface)
   # =========================================================================
-  epic-6: backlog
+  epic-6: done  # all 3 stories done 2026-08-13 (6.1, 6.2, 6.3)
   6-1-pack-card-component-on-home-grid: done
   6-2-pack-page-renderer: done
-  6-3-pack-taxonomy-documentation: backlog  # Fun Pack doc (`docs/packs/fun.md`) lands here; all 6.21–6.27 tools depend on this story
-  6-4-json-formatter-enhancements-sort-keys-schema-validate-diff: backlog
-  6-5-citation-formatter-apa-mla-chicago: backlog
-  6-6-diff-viewer-text-line-word-char: backlog
-  6-7-uuid-generator-v1-v4-v7-ulid: backlog
-  6-8-jwt-inspector-decode-verify-signature-offline-capable: backlog
-  6-9-timestamp-converter-unix-iso-rfc-human: backlog
-  6-10-flashcard-timer-pomodoro-variant: backlog
-  6-11-exam-countdown: backlog
-  6-12-recipe-scaler-n-unit-conversion: backlog
-  6-13-grocery-list-builder-categorized-shareable: backlog
-  6-14-paint-calculator-walls-doors-windows: backlog
-  6-15-area-and-volume-calculator-rooms-irregular-shapes: backlog
-  6-16-budget-planner-income-expenses-savings-rate: backlog
-  6-17-savings-goal-target-months-monthly-contribution: backlog
-  6-18-currency-converter-live-rates-offline-fallback: backlog
-  6-19-travel-pack-composition: backlog
-  6-20-finance-study-developer-household-pack-composition: backlog
-  6-21-fun-pack-love-chemistry: backlog
-  6-22-fun-pack-marriage-probability: backlog
-  6-23-fun-pack-superpower-fit: backlog
-  6-24-fun-pack-pet-personality: backlog
-  6-25-fun-pack-main-character-era: backlog
-  6-26-fun-pack-age-capsule: backlog
-  6-27-fun-pack-what-if-time-warp: backlog
+  6-3-pack-taxonomy-documentation: done  # spec 2026-08-12; implementation 2026-08-13 — extended scripts/_pack_tags.py with INCLUSION_CRITERIA + EXAMPLE_IN_PACK + EXAMPLE_OUT_OF_PACK constants (3-4 bullets + 2 in-pack + 2 out-of-pack per pack; resolves PRD Open Q1 Travel vs Household); wrote scripts/check-pack-taxonomy.py (pure-stdlib Python, KEYWORD_TO_PACK map with 38 keywords, suggestion output format matches spec verbatim, exit codes 0/2/3 — never 1, vacuous-pass guard exits 3); wrote CONTRIBUTING.md (## Pack taxonomy section with verbatim bullets); wired Makefile (target body + .PHONY + help text + ci chain) + tool-contract-gate.yml (pr + push paths + new step); pack-tags-smoke 111 PASS; regression sweep 210/210 PASS
   epic-6-retrospective: optional
 
   # =========================================================================
@@ -203,6 +181,59 @@ development_status:
   7-7-locale-picker-and-url-state-locale-preservation: backlog
   7-8-locale-fallback-chain: backlog
   epic-7-retrospective: optional
+
+  # =========================================================================
+  # Epic 8: Fun Pack — 7 Personality / Lifestyle Calculators (optional)
+  # Split from Epic 6 on 2026-08-13 — these stories were never authored
+  # (no AC sections in epics.md; only sprint-status placeholders). The
+  # Epic 6 goal covers "12-15 gap tools" identified in market research;
+  # the Fun Pack is a separate bet on lighthearted personality content
+  # that doesn't fit the gap-tools framing. Each story would need a full
+  # spec pass before development. Pack taxonomy may need to allow a 6th
+  # pack ("fun") — currently schema enum has 5 entries; this is a
+  # blocking dependency for any 8.x story.
+  # =========================================================================
+  epic-8: backlog
+  8-1-fun-pack-love-chemistry: backlog
+  8-2-fun-pack-marriage-probability: backlog
+  8-3-fun-pack-superpower-fit: backlog
+  8-4-fun-pack-pet-personality: backlog
+  8-5-fun-pack-main-character-era: backlog
+  8-6-fun-pack-age-capsule: backlog
+  8-7-fun-pack-what-if-time-warp: backlog
+  epic-8-retrospective: optional
+
+  # =========================================================================
+  # Epic 9: Gap Tools — 15 New Tools + Pack Composition (split from Epic 6)
+  # Split on 2026-08-13. Originally Stories 6.4–6.20 in the "Packs and New
+  # Tools" epic; renumbered to 9.1–9.17 to give the gap-tools layer its own
+  # scope and review load. The two pack-composition stories (originally
+  # 6.19/6.20, now 9.16/9.17) depend on the gap tools landing first, so they
+  # ship with this epic, not Epic 6. Closes the original Epic 6 goal of
+  # "12–15 new tools" + pack composition.
+  # FRs: FR-21 (15 new tools), FR-6/FR-19 (pack composition)
+  # ADs: AD-9 (cross-Tool via Site Data only), AD-5 (pack defaults)
+  # UX-DRs: UX-DR-9 (pack composition)
+  # =========================================================================
+  epic-9: backlog
+  9-1-json-formatter-enhancements-sort-keys-schema-validate-diff: in-progress  # CS done 2026-08-13 (8 ACs, 2 ROQs resolved); ROQ-1 — AJV vendoring conflict with project-context.md §1 resolved (hand-rolled Draft-07 subset in assets/js/json-schema-lite.js); ROQ-2 — diff algorithm placement resolved (assets/js/diff.js shared with 9.3); VS done — no further findings; DS T1–T9 done 2026-08-13 (assets/js/diff.js + assets/js/json-schema-lite.js + tools/json-formatter/{index.html,js,css} + tools.json + scripts/_smoke_json_formatter_enhancements.js [39 asserts] + Makefile + CI); CI subset gates PASS (json-formatter-enhancements-smoke 39/39, validate OK, shell-bounds PASS, regression-sweep 216/216, uuid-generator-smoke 133/133); T10 (two-pass review) DEFERRED
+  9-2-citation-formatter-apa-mla-chicago: ready-for-dev  # CS done 2026-08-13 (9 ACs, 3 ROQs resolved); ROQ-1 — pack placement: study; ROQ-2 — CrossRef DOI lookup out of scope (manual DOI metadata only); ROQ-3 — Open Library fetch is user-initiated button click only; VS done — no further findings; DS/CR/ER deferred
+  9-3-diff-viewer-text-line-word-char: ready-for-dev  # CS done 2026-08-13 (8 ACs, 3 ROQs resolved); ROQ-1 — assets/js/diff.js shared with 9.1; ROQ-2 — grapheme-naive char split (Intl.Segmenter out of scope); ROQ-3 — no hard perf budget; VS done — no further findings; DS/CR/ER deferred
+  9-4-uuid-generator-v1-v4-v7-ulid: in-progress  # CS done (2026-08-13); VS done (7 findings resolved); DS done (2026-08-13) — algorithmic core (23/23 self-test) + tool implementation (uuid-generator.js + index.html + uuid-generator.css) + tools.json entry + scripts/_smoke_uuid_generator.js (133/133 PASS) + Makefile/CI wiring; CI subset gates PASS (validate, gate 36/36, shell-bounds, regression-sweep 216/216, shell-drift 36/36, pack-tags-smoke 114/114, chrome-dom-smoke 8/8, shell-public-api-smoke 23/23, pins-recent-smoke 119/119, wave-3-smoke 392/392, uuid-generator-smoke 133/133, regression-sweep-negative 6/6); pre-existing api-contract drift + print-smoke 35-tool hardcode documented as out-of-scope tech debt; CR1+CR2 (T10) deferred to next session
+  9-5-jwt-inspector-decode-verify-signature-offline-capable: done  # CS done 2026-08-13 (8 ACs, 3 ROQs resolved); ROQ-1 — token in URL state but excluded in embed mode + not in history-keys; ROQ-2 — PEM parsing via base64-decode body before crypto.subtle.importKey; ROQ-3 — HS256 + RS256 + ES256 only; VS done — no further findings; DS done 2026-08-13 (assets/js/jwt-codec.js + tools/jwt-inspector/{index.html,js,css} + scripts/fixtures/jwt-test-keypair.pem + scripts/_smoke_jwt_inspector.js [47/47 PASS] + tools.json + Makefile + CI); CI subset gates PASS (validate, gate 39/39, shell-bounds, regression-sweep 234/234, shell-drift, pack-tags-smoke 114/114, chrome-dom-smoke 8/8, jwt-inspector-smoke 47/47); pre-existing tech-debt side-fixes: api-contract pin bumps 1.14.0→1.16.0 across 8 smokes, FOUC IIFE splicing on citation-formatter + diff-viewer, dead #json-feature urlState cleanup on json-formatter, main attribute reorder on jwt-inspector, print-smoke + view-source-smoke 35→39 tools bumps; CR1+CR2 (T10) deferred per sprint pattern
+  9-6-timestamp-converter-unix-iso-rfc-human: done  # CS done 2026-08-13 (8 ACs, 3 ROQs resolved); ROQ-1 — epoch magnitude auto-detect (1-10 digits seconds, 11-16 digits ms); ROQ-2 — ISO naive datetimes interpreted as UTC with inline warning; ROQ-3 — human-local format locale-dependent (smoke verifies round-trip, not exact string); VS done 2026-08-13 (1 SHOULD-FIX: AC-1 wording "four" → "six"); DS done 2026-08-13 — tools/timestamp-converter/{index.html,js,css} + tools.json + scripts/_smoke_timestamp_converter.js (53/53 PASS, 24 categories) + Makefile + CI + shell-template + home page regeneration; CI subset gates PASS (validate, regression-sweep 40/40 240/240, shell-bounds, shell-drift, pack-tags-smoke 126/126, chrome-dom-smoke 8/8, timestamp-converter-smoke 53/53); CR1+CR2 applied: 2 SHOULD-FIX (escapeHtml single-quote, history-push only on successful decode) + 1 NIT (RFC 2822 weekday-of-week validation skipped); ER done 2026-08-13 (validate, smoke, regression-sweep, pack-tags, chrome-dom, shell-bounds, shell-drift all green)
+  9-7-flashcard-timer-pomodoro-variant: backlog
+  9-8-exam-countdown: backlog
+  9-9-recipe-scaler-n-unit-conversion: backlog
+  9-10-grocery-list-builder-categorized-shareable: backlog
+  9-11-paint-calculator-walls-doors-windows: backlog
+  9-12-area-and-volume-calculator-rooms-irregular-shapes: backlog
+  9-13-budget-planner-income-expenses-savings-rate: backlog
+  9-14-savings-goal-target-months-monthly-contribution: backlog
+  9-15-currency-converter-live-rates-offline-fallback: backlog
+  9-16-travel-pack-composition: backlog
+  9-17-finance-study-developer-household-pack-composition: backlog
+  epic-9-retrospective: optional
 
   # =========================================================================
   # Cross-Epic Verification Stories (X.1, X.2, X.3)
@@ -243,13 +274,14 @@ action_items:
 
   - id: AI-3
     title: "Close PRD Open Q1 — Travel vs Household pack taxonomy"
-    description: "PRD §8 Open Q1 unresolved. PRD §4.2 Note proposes orthogonal split. Adopt the Note as authoritative OR defer to Story 6.3's docs/pack-taxonomy.md."
+    description: "PRD §8 Open Q1 unresolved. PRD §4.2 Note proposes orthogonal split. Resolved 2026-08-12 in Story 6.3 spec (`_bmad-output/implementation-artifacts/6-3-pack-taxonomy-documentation.md`): Travel = mobility/timezone/currency/on-the-road logistics; Household = domestic/area/volume/recipe/at-home life math. Decision rule: 'physically away from home' = travel; 'at home or local context' = household. Currency conversion = travel; paint/area/volume calculators = household. No tool re-tagging required."
     severity: low
-    status: open
-    owner: PRD author or Story 6.3
+    status: done
+    owner: Story 6.3 (Sanjit, 2026-08-12)
     epic: 6
     story: 6-3
-    revisit_condition: "When Story 6.3 is pulled into first sprint"
+    revisit_condition: null
+    completed_in: "Story 6.3 spec (2026-08-12)"
 
   - id: AI-4
     title: "Extend Story 3.3 AC to include non-tool pages for `?` overlay"
@@ -550,7 +582,7 @@ action_items:
     owner: future dev
     epic: 2
     story: null
-    revisit_condition: "Before adding a Wave-4 cohort (e.g., Epic 6's 12-15 new tools)"
+    revisit_condition: "Before adding a Wave-4 cohort (e.g., Epic 9's 15 new tools)"
 
   - id: AI-E2-4
     title: "Generate docs/shell-public-api.md §5 from api-contract.js"
@@ -820,6 +852,8 @@ action_items:
 #   Epic 5 → depends on Epic 1 (manifest/SW) + Epic 2 (per-Tool cache)
 #   Epic 6 → depends on Epic 1 (Site Data) + Epic 2 (existing-tool pack tags)
 #   Epic 7 → depends on Epic 1 (catalogs keyed off Shell strings)
+#   Epic 8 → optional, depends on Epic 6 (6-pack taxonomy — schema enum bump)
+#   Epic 9 → depends on Epic 6 (pack taxonomy) + Epic 2 (35 tools already promoted)
 #   Cross-Epic X.* → after Epic 5 (need SW + embed mode for E2E tests)
 #
 # INSIDE EPIC 1 (recommended first sprint)

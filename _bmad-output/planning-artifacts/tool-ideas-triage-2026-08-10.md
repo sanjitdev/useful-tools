@@ -146,7 +146,7 @@ Recommendation: leave them in `docs/tool-ideas.md` but add a header comment expl
    - `6-22-pantry-meal-planner` (from #9)
    - `6-23-social-bio-generator` (from #11)
    - `6-24-document-generator` (from #15, scoped to HTML/print output, not PDF)
-   - `6-25-color-palette-generator` (from #7) **or** extend Story 6.4 with image-extraction
+   - `6-25-color-palette-generator` (from #7) **or** extend Story 9.1 with image-extraction
    - `6-26-branching-story-editor` (from #17)
 2. **Decide on the deferred backlog** — move parked ideas (#10 ML half, #12 photo-ID, #17 ePub, #15 PDF) to `docs/future-ideas.md` with vendor-blocking notes.
 3. **Decide on rejected file** — keep `docs/tool-ideas.md` as-is for posterity, OR move rejected ideas to `docs/rejected-ideas.md` with rationale.

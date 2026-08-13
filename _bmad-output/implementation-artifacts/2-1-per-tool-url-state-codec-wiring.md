@@ -56,7 +56,7 @@ The new module implements:
 - **Defaults omission** — values that equal the schema's `default[key]` are dropped from the output.
 - **`_v` versioning** — when the schema's `schemaVersion` is set on the tool entry, `HT.urlState.encode` writes `_v=<schemaVersion>` first. `HT.urlState.decode` reads it (if present), records it on the returned object as `__v`, and a future migration helper (out of scope for this story) can branch on it.
 - **Type coercion** — `number`, `boolean`, `date` are serialized as their canonical strings per the AD-5 grammar (numbers as decimal, booleans as `1`/`0`, dates as ISO-8601 `YYYY-MM-DD`). On decode, each value is coerced back through its schema-declared type. Bad coercion throws `UrlStateDecodeError`.
-- **Pack defaults** — pack pages may set Tool defaults via `?defaults=<base64-json>` per AD-5. `HT.urlState.decode` merges pack defaults **under** the schema's own `default` block (so schema defaults win on conflict). Pack default injection is wired in Story 6.4 (Pack Page Renderer); this story provides the merge primitive only — it does NOT yet read `?defaults=` from `location.search` (that lands in 6.4 with the pack-page boot sequence). The `decode` function accepts an optional `prefill` argument so future callers can pass pack defaults in.
+- **Pack defaults** — pack pages may set Tool defaults via `?defaults=<base64-json>` per AD-5. `HT.urlState.decode` merges pack defaults **under** the schema's own `default` block (so schema defaults win on conflict). Pack default injection is wired in Story 6.2 (Pack Page Renderer); this story provides the merge primitive only — it does NOT yet read `?defaults=` from `location.search` (that lands in 6.2 with the pack-page boot sequence). The `decode` function accepts an optional `prefill` argument so future callers can pass pack defaults in.
 - **Errors** — `UrlStateDecodeError` and `UrlStateSchemaError` are **factory functions** (not ES6 classes). Each constructs a plain `Error` and tags it with `name`, `code`, and (for the decode variant) `field` and optional `cause`. Consumers dispatch on `err.name` or `err.code` — **never `instanceof`**, which would silently misclassify (see the `instanceof` warning in `docs/shell-public-api.md` §5a). Unknown keys are ignored silently (no throw).
 
 The module is pure: no DOM access at parse time. It depends only on `assets/js/utils.js` (`HT.debounce`) and is loaded before `assets/js/shell.js` so `HT.urlState` is available at `HT.boot()` time.
@@ -210,7 +210,7 @@ These two exemplars prove the binding works for both shapes: a from-scratch addi
 Implementation executed in 4 phases, each gated by the existing test surface:
 
 **Phase 1 — codec + public surface (AC-1, AC-2, AC-3, AC-6):**
-- `assets/js/url.js` (~410 lines): implements AD-5 grammar with `HT.urlState.encode/decode/subscribe/bindForm/bindDomTarget/_loadSchema`. UTF-8 percent-encoding, sorted keys, defaults omission, `_v` versioning, typed `UrlStateDecodeError` / `UrlStateSchemaError`, prefill merge primitive (Story 6.4 future use).
+- `assets/js/url.js` (~410 lines): implements AD-5 grammar with `HT.urlState.encode/decode/subscribe/bindForm/bindDomTarget/_loadSchema`. UTF-8 percent-encoding, sorted keys, defaults omission, `_v` versioning, typed `UrlStateDecodeError` / `UrlStateSchemaError`, prefill merge primitive (Story 9.1 future use).
 - `assets/js/api-contract.js`: 6 stable + 1 internal entry added; version bumped `1.4.0` → `1.5.0`.
 - All public methods frozen via `Object.defineProperties(HT, { urlState: ... })` per AD-14.
 

@@ -1243,13 +1243,15 @@ So that the suite's 23-surface contract (UX-DR-7) is honored and the trust signa
 
 ---
 
-## Epic 6: Packs and New Tools — 5 Packs Live + 12–15 New Tools
+## Epic 6: Pack Discovery — Pack Cards, Pack Pages, Taxonomy Doc
 
-**Epic goal:** The suite is discoverable through five themed pack pages (Travel, Finance, Study, Developer, Household). Each pack ships with ≥ 3 promoted tools and ≥ 2 new tools. The 12–15 new tools cover the gap tools identified in market research (JSON Formatter enhancements, Citation formatter, Diff viewer, UUID generator, JWT inspector, Timestamp converter, Flashcard timer, Exam countdown, Recipe scaler, Grocery list builder, Paint calculator, Area/volume calculator, Budget planner, Savings goal, Currency converter).
+> **Split on 2026-08-13.** Originally a 27-story epic ("Packs and New Tools — 5 Packs Live + 12–15 New Tools"). The 15 gap tools moved to **Epic 9 (Gap Tools)**. The 7 Fun Pack entries moved to **Epic 8 (Fun Pack, optional)**. What remains here is the pack-discovery layer: pack cards on the home grid, the pack-page renderer, and the taxonomy doc that defines the inclusion criteria.
 
-**FRs covered:** FR-6, FR-19, FR-20, FR-21
+**Epic goal:** The suite is discoverable through five themed pack pages (Travel, Finance, Study, Developer, Household). The discovery layer — pack cards on `/`, dedicated `/packs/<slug>` pages, and an explicit taxonomy doc — lands in this epic. The new tools that populate each pack land in Epic 9; the pack composition story (which pack contains which tool) lands at the end of Epic 9.
+
+**FRs covered:** FR-6, FR-19, FR-20
 **Architecture ADs:** AD-9 (cross-Tool via Site Data only), AD-5 (pack defaults under Tool state)
-**UX-DRs:** UX-DR-2 (Pack Card), UX-DR-9 (pack composition), UX-DR-7 (pack page surface)
+**UX-DRs:** UX-DR-2 (Pack Card), UX-DR-7 (pack page surface)
 
 ### Story 6.1: Pack Card Component on Home Grid
 
@@ -1296,7 +1298,23 @@ So that the taxonomy is explicit and not vibes-based.
 **And** the criteria are enforced at PR review via `scripts/check-pack-taxonomy.py` (invoked by `make ci`); the script reads `tools.json`, finds any tool whose `pack` field is missing or not in the allowlist, and posts a CI comment suggesting a pack based on the tool's `category` and `keywords` fields using a hand-rolled keyword-to-pack map
 **And** the taxonomy is referenced from the contributing guide; `CONTRIBUTING.md` includes a section `## Pack taxonomy` that links to `docs/pack-taxonomy.md` and quotes the inclusion criteria verbatim
 
-### Story 6.4: JSON Formatter Enhancements (sort keys, schema validate, diff)
+---
+
+> **Note on the Epic 6 / Epic 9 split (2026-08-13):** The 17 stories immediately below (Stories 9.1–9.17) were split from Epic 6 into a new **Epic 9 (Gap Tools)** the same day. Their prose content stays in this file for diff-stability and because moving ~600 lines of acceptance-criteria prose between sections in one edit risks copy-paste errors. **Sprint-status.yaml is the canonical source for which stories belong to which epic** — `epic-6: backlog` owns only 6.1, 6.2, 6.3; `epic-9: backlog` owns 9.1–9.17. The story HEADINGS (### Story 9.X: ...) are correct as written; the Epic 9 header section below is inserted before Story 9.1 to make the logical ownership explicit when reading this file.
+
+---
+
+## Epic 9: Gap Tools — 15 New Tools + Pack Composition
+
+**Epic goal:** Land the 15 gap tools identified by market research, then assemble them into the 5 pack pages via the two pack-composition stories. Closes the original Epic 6 goal of "12–15 new tools" + "≥ 3 promoted + ≥ 2 new tools per pack".
+
+**FRs covered:** FR-6 (pack composition), FR-19, FR-21 (15 new tools)
+**Architecture ADs:** AD-9 (cross-Tool via Site Data only), AD-5 (pack defaults)
+**UX-DRs:** UX-DR-9 (pack composition)
+
+> **File-layout caveat:** The 17 stories that follow were originally part of Epic 6. On 2026-08-13, the sprint-status split moved them to Epic 9 and renumbered them from `6.X` to `9.(X-3)`. The prose is still in this section. **Sprint-status.yaml is the source of truth for current epic ownership.** A future cleanup pass (not blocking) can move the prose to its own file.
+
+### Story 9.1: JSON Formatter Enhancements (sort keys, schema validate, diff)
 
 As a developer wanting more from the JSON formatter,
 I want options to sort keys, validate against a JSON Schema, and diff two JSONs,
@@ -1311,7 +1329,7 @@ So that the tool is competitive with CyberChef's JSON operations.
 **And** when the user pastes two JSONs (input A + input B into the two textareas) and clicks "Diff" (`<button data-action="diff">`), the tool renders a unified diff with line-level highlights using a hand-rolled Myers/LCS algorithm in `assets/js/diff.js`; each diff line is rendered as `<div class="diff-line diff-<op>">` where `op` is `equal | insert | delete`
 **And** each enhancement is gated behind a `?feature=sort|schema|diff` URL state key (comma-separated, e.g., `?feature=sort,schema` enables both; default state hides all three enhancements)
 
-### Story 6.5: Citation Formatter (APA, MLA, Chicago)
+### Story 9.2: Citation Formatter (APA, MLA, Chicago)
 
 As a student writing a paper,
 I want to paste a book URL or ISBN and get a citation in APA, MLA, or Chicago format,
@@ -1327,7 +1345,7 @@ So that I don't have to remember the punctuation rules.
 **And** the metadata fetch uses a single network request to a public CORS-enabled API (Open Library or CrossRef) — the privacy claim still holds because the request is initiated by the user; the URL is logged in the Privacy wire log (Story 5.7)
 **And** if the fetch fails, the tool falls back to manual-field entry and shows the notice `Metadata fetch failed — please fill in fields manually`
 
-### Story 6.6: Diff Viewer (text, line/word/char)
+### Story 9.3: Diff Viewer (text, line/word/char)
 
 As a developer wanting to see what changed,
 I want a diff viewer with line/word/char granularity,
@@ -1344,7 +1362,7 @@ So that I can review edits at the right level.
 **And** the URL state encodes both texts and the granularity (`?a=<base64>&b=<base64>&granularity=line&view=side-by-side`); the texts are base64-encoded to avoid URL-encoding issues with newlines
 **And** line numbers are rendered in a sticky `<th class="diff-line-num">` column
 
-### Story 6.7: UUID Generator (v1, v4, v7, ULID)
+### Story 9.4: UUID Generator (v1, v4, v7, ULID)
 
 As a developer generating identifiers,
 I want a UUID generator supporting v1, v4, v7, and ULID,
@@ -1363,7 +1381,7 @@ So that I can pick the format my system requires.
 **And** the URL state encodes the version and bulk count (`?version=v4&count=5`)
 **And** every identifier is verified against its spec regex before display: v1/v4/v7 use `/^[0-9a-f]{8}-[0-9a-f]{4}-[1-7][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i`, ULID uses `/^[0-9A-HJKMNP-TV-Z]{26}$/`; failed identifiers are flagged red and excluded
 
-### Story 6.8: JWT Inspector (decode, verify signature offline-capable)
+### Story 9.5: JWT Inspector (decode, verify signature offline-capable)
 
 As a developer debugging an auth flow,
 I want to paste a JWT and see the decoded header/payload/signature with offline signature verification for HS256,
@@ -1383,7 +1401,7 @@ So that I can debug without sending the token to a server.
 **And** the tool never makes a network request (privacy claim holds); all operations use Web Crypto APIs only
 **And** the URL state encodes the token only if `?embed` is NOT set (`?token=<jwt>` when no embed, omitted when `?embed` is present); embed mode is documented as not for token sharing because tokens are sensitive
 
-### Story 6.9: Timestamp Converter (Unix, ISO, RFC, human)
+### Story 9.6: Timestamp Converter (Unix, ISO, RFC, human)
 
 As a developer debugging logs,
 I want a timestamp converter supporting Unix epoch (s/ms), ISO 8601, RFC 2822, and human-readable,
@@ -1403,7 +1421,7 @@ So that I can switch formats without leaving the page.
 **And** the human-readable format uses `new Intl.DateTimeFormat(locale, { dateStyle: 'full', timeStyle: 'long' }).format(date)` where `locale` is read from `localStorage['handy-tools.settings'].language` (Story 3.5)
 **And** the "Now" button (`<button data-action="now">`) fills the input with `Date.now()` and triggers detection; pressing `Enter` in the input also triggers detection
 
-### Story 6.10: Flashcard Timer (Pomodoro variant)
+### Story 9.7: Flashcard Timer (Pomodoro variant)
 
 As a student studying for an exam,
 I want a flashcard timer that alternates recall and break intervals,
@@ -1419,7 +1437,7 @@ So that I can stay in flow without managing time manually.
 **And** the URL state encodes both durations and the current state (`?recall=25&break=5&state=running|paused|idle&cycles=<n>`)
 **And** the timer respects `prefers-reduced-motion` (Story 5.9): the SVG progress ring is rendered as a static ring (no animation); the timer still updates the numeric MM:SS display
 
-### Story 6.11: Exam Countdown
+### Story 9.8: Exam Countdown
 
 As a student preparing for a test,
 I want a countdown to a future date showing days/hours/minutes/seconds,
@@ -1434,7 +1452,7 @@ So that I can pace my study.
 **And** the URL state encodes the target date/time (`?target=<ISO 8601>`)
 **And** if the target is in the past (`targetDate < new Date()`), the tool shows `<p class="countdown-past">Exam date has passed — pick a new date</p>` and the countdown renders as zeros (no negative numbers)
 
-### Story 6.12: Recipe Scaler (×N, unit conversion)
+### Story 9.9: Recipe Scaler (×N, unit conversion)
 
 As a cook wanting to scale a recipe,
 I want to multiply ingredient quantities by N and convert between metric/imperial,
@@ -1444,13 +1462,13 @@ So that I can cook for a different group size or use a different unit system.
 
 **Given** the user opens the Recipe scaler (`tools/recipe-scaler/index.html`)
 **When** they paste a recipe into `<textarea name="recipe">` (free-text, one ingredient per line in the format `<quantity> <unit> <ingredient>`, e.g., `1/2 cup flour`) and set a multiplier `<input type="number" name="multiplier" min="0.1" max="100" step="0.1" value="2">`
-**Then** the tool parses each line via the regex `/^([0-9]+(?:\s+[0-9]+\/[0-9]+)?|[0-9]*\.[0-9]+|[0-9]+\/[0-9]+)\s+(\w+)?\s+(.+)$/` (note: the unit group requires at least one whitespace before it, so `2eggs` is parsed as `2` (quantity) + `eggs` (ingredient), not `2` + `eggs` as a unit); this matches `1/2`, `1 1/2`, `0.5`, `2` followed by an optional unit token (from the Story 6.12 unit allowlist) and a required ingredient string; fractions are parsed via a hand-rolled `parseFraction(s)` that returns a decimal number; lines that fail to match the regex (no quantity found) are rendered as `<li class="recipe-line-unparsed"><code>{line}</code> (could not parse — please check format)</li>` and skipped from the scaling calculation
+**Then** the tool parses each line via the regex `/^([0-9]+(?:\s+[0-9]+\/[0-9]+)?|[0-9]*\.[0-9]+|[0-9]+\/[0-9]+)\s+(\w+)?\s+(.+)$/` (note: the unit group requires at least one whitespace before it, so `2eggs` is parsed as `2` (quantity) + `eggs` (ingredient), not `2` + `eggs` as a unit); this matches `1/2`, `1 1/2`, `0.5`, `2` followed by an optional unit token (from the Story 9.9 unit allowlist) and a required ingredient string; fractions are parsed via a hand-rolled `parseFraction(s)` that returns a decimal number; lines that fail to match the regex (no quantity found) are rendered as `<li class="recipe-line-unparsed"><code>{line}</code> (could not parse — please check format)</li>` and skipped from the scaling calculation
 **And** scales each quantity by the multiplier using `scaledQty = originalQty * multiplier`
 **And** the unit toggle (`<select name="system">` with options `metric | imperial`) converts the allowlisted units below; conversion factors live in `assets/data/unit-conversion.json` and each factor is exact to 6 decimals. Volume: `cup <-> ml` (1 cup = 236.588 ml), `tbsp <-> ml` (1 tbsp = 14.787 ml), `tsp <-> ml` (1 tsp = 4.929 ml), `floz <-> ml` (1 fl oz = 29.574 ml), `liter <-> ml` (1 L = 1000 ml), `pint <-> ml` (1 pint = 473.176 ml), `quart <-> ml` (1 qt = 946.353 ml), `gallon <-> ml` (1 gal = 3785.41 ml). Mass: `oz <-> g` (1 oz = 28.3495 g), `lb <-> g` (1 lb = 453.592 g), `kg <-> g` (1 kg = 1000 g). Temperature: `°F <-> °C` (`C = (F - 32) * 5/9`). Unknown units (any token not in the allowlist) are passed through verbatim with a warning chip `<span class="unit-warning" title="Unknown unit: <unit>">` appended next to the scaled line
 **And** the URL state encodes the recipe (base64), multiplier, and unit system (`?recipe=<base64>&multiplier=2&system=metric`)
 **And** fractions round to a readable format: `formatFraction(n)` returns `1/2` for 0.5, `1 1/4` for 1.25, `2` for 2.0 (uses continued-fraction approximation with a denominator cap of 16)
 
-### Story 6.13: Grocery List Builder (categorized, shareable)
+### Story 9.10: Grocery List Builder (categorized, shareable)
 
 As a household planning meals,
 I want to compose a categorized grocery list and share it via URL,
@@ -1465,7 +1483,7 @@ So that my partner can see what we need without signing up.
 **And** items can be checked off (`<input type="checkbox">` toggles the `checked` field and updates the URL via `history.replaceState`); checked items render with `text-decoration: line-through`
 **And** a Print button (`<button data-action="print">`) calls `window.print()`; the print stylesheet from Story 3.10 hides all chrome and renders only `<section class="grocery-category">` elements as a clean shopping list (no checkboxes, plain text)
 
-### Story 6.14: Paint Calculator (walls, doors, windows)
+### Story 9.11: Paint Calculator (walls, doors, windows)
 
 As a homeowner painting a room,
 I want to compute paint quantity given wall dimensions, doors, and windows,
@@ -1479,7 +1497,7 @@ So that I buy the right amount.
 **And** the URL state encodes all dimensions (`?walls=<base64 JSON of [{w,h}, ...]>&doors=1&windows=2`); each wall is `{ w: <feet>, h: <feet> }`
 **And** the result is rendered as `<p class="paint-result">Recommended: <strong><n></strong> gallons (covers <area> sq ft after subtracting openings)</p>`; the gallon count is always rounded UP via `Math.ceil` so the user never under-buys
 
-### Story 6.15: Area and Volume Calculator (rooms, irregular shapes)
+### Story 9.12: Area and Volume Calculator (rooms, irregular shapes)
 
 As a homeowner measuring a room,
 I want an area/volume calculator with rectangle, triangle, circle, and irregular polygon (L-shape),
@@ -1500,7 +1518,7 @@ So that I can compute flooring, paint, or fill material needs.
 **And** the L-shape calculator accepts two rectangles: `<input name="r1-w">`, `<input name="r1-h">`, `<input name="r2-w">`, `<input name="r2-h">`; if the rectangles overlap, a checkbox `<input name="subtract-overlap">` enables overlap subtraction
 **And** the URL state encodes shape, dimensions, and unit (`?shape=l-shape&r1w=10&r1h=8&r2w=6&r2h=4&unit=m%c2%b2`)
 
-### Story 6.16: Budget Planner (income, expenses, savings rate)
+### Story 9.13: Budget Planner (income, expenses, savings rate)
 
 As a household planning finances,
 I want a budget planner that computes savings rate and discretionary income,
@@ -1515,7 +1533,7 @@ So that I can see where I stand.
 **And** the URL state encodes all values as base64-encoded JSON (`?budget=<base64>`); the exact JSON shape is `{ income: number, categories: [{ id: string, name: string, amount: number }, ...] }` where `id` is a UUIDv4 generated when the category is created (preserved across edits so URL state stays stable when categories are reordered)
 **And** the result table (`<table class="budget-results">`) is print-friendly: it has `class="no-print"` removed and uses Story 3.10 print stylesheet (chrome hidden, table borders forced to black, monospace font for numbers)
 
-### Story 6.17: Savings Goal (target, months, monthly contribution)
+### Story 9.14: Savings Goal (target, months, monthly contribution)
 
 As a saver working toward a goal,
 I want to enter a target amount, a deadline, and a starting balance,
@@ -1531,7 +1549,7 @@ So that I see the required monthly contribution.
 **And** the URL state encodes all values (`?target=10000&months=24&starting=1000&rate=2.5`)
 **And** the tool validates: deadline must be > 0 (shows `Deadline must be at least 1 month` if invalid); target must be > starting balance (shows `Target must exceed starting balance` if invalid); validations block computation and render the error inline
 
-### Story 6.18: Currency Converter (live rates, offline fallback)
+### Story 9.15: Currency Converter (live rates, offline fallback)
 
 As a traveler wanting to convert currencies,
 I want to convert with up-to-date rates and a fallback to cached rates offline,
@@ -1548,7 +1566,7 @@ So that I can use the tool on a flight.
 **And** the tool respects the user's default currency from Settings (`localStorage['handy-tools.settings'].defaultCurrency`); on first load, the `from` select is pre-populated with the default currency
 **And** the rate refresh is debounced to one fetch per currency pair per 60 minutes (using `fetchedAt` from cache)
 
-### Story 6.19: Travel Pack Composition
+### Story 9.16: Travel Pack Composition
 
 As a traveler landing on `/packs/travel`,
 I want to see the Travel pack description and a curated grid of travel-relevant tools,
@@ -1559,9 +1577,9 @@ So that I can find what I need without browsing the full grid.
 **Given** the user visits `/packs/travel`
 **When** the page renders
 **Then** it shows the Travel pack description `Split bills, convert currencies, scale recipes abroad, handle time zones` and a grid of travel-relevant tools rendered by filtering `tools.json` for `pack === 'travel' && ready === true`
-**And** the pack has at least 3 promoted tools (existing: `currency-converter`, `tip-calculator`, `unit-converter`) plus at least 2 new tools from Stories 6.10-6.18 (specifically: `recipe-scaler` (Story 6.12) and `exam-countdown` (Story 6.11) — these are the two new travel-relevant tools whose description involves travel scenarios; `time-zone-converter` is NOT a Story 6.10-6.18 deliverable and is not required for this pack); the CI test `scripts/check-pack-composition.py` asserts exactly that the Travel pack contains the 5 specific tools listed above (`currency-converter`, `tip-calculator`, `unit-converter`, `recipe-scaler`, `exam-countdown`) and fails if any is missing or if any tool not in this list has `pack === 'travel'`
+**And** the pack has at least 3 promoted tools (existing: `currency-converter`, `tip-calculator`, `unit-converter`) plus at least 2 new tools from Stories 9.7-9.15 (specifically: `recipe-scaler` (Story 9.9) and `exam-countdown` (Story 9.8) — these are the two new travel-relevant tools whose description involves travel scenarios; `time-zone-converter` is NOT a Story 9.7-9.15 deliverable and is not required for this pack); the CI test `scripts/check-pack-composition.py` asserts exactly that the Travel pack contains the 5 specific tools listed above (`currency-converter`, `tip-calculator`, `unit-converter`, `recipe-scaler`, `exam-countdown`) and fails if any is missing or if any tool not in this list has `pack === 'travel'`
 
-### Story 6.20: Finance, Study, Developer, Household Pack Composition
+### Story 9.17: Finance, Study, Developer, Household Pack Composition
 
 As a user landing on any other pack page,
 I want the same curated experience for Finance, Study, Developer, and Household packs,
