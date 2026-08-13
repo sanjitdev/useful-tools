@@ -1,5 +1,5 @@
 /* ============================================
-   Diff Viewer
+   Diff Viewer — Story 9.3
    Compare two texts side-by-side or unified,
    with line / word / char granularity. Uses
    the shared `HT.diff` library in assets/js/

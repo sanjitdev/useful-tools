@@ -229,7 +229,6 @@
 
   // -------------------------------------------------------------
   // Self-test (runs only in Node — guard on `typeof module`).
-  // ============================================================ */
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
