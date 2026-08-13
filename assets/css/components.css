@@ -494,15 +494,23 @@
   margin-top: var(--space-6);
 }
 
+/* Square-ish pack cards. Use `auto-fill` (not `auto-fit`) so empty
+   tracks stay empty at wide viewports rather than stretching the
+   existing cards to fill the row. `minmax(200px, 240px)` pins each
+   card to a fixed-ish width; `1fr` lets the row grow but constrains
+   each card to its column. The cap (240px) keeps cards close to
+   square so the layout reads as a tidy grid of tiles instead of
+   stretched horizontal stripes. */
 .pack-section > div {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 240px));
   gap: var(--space-3);
+  justify-content: start;
 }
 
 .pack-card {
-  display: grid;
-  grid-template-rows: auto auto auto auto auto;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-4);
   background: var(--color-surface);
@@ -511,13 +519,14 @@
   color: var(--color-text);
   text-decoration: none;
   transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  min-block-size: 200px;
 }
 
 .pack-card:hover {
   text-decoration: none;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-md);
-  border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
+  border-color: color-mix(in srgb, var(--color-accent) 22%, var(--color-border));
 }
 
 .pack-card:focus-visible {
@@ -542,7 +551,7 @@
 }
 
 .pack-card-title {
-  font-weight: 700;
+  font-weight: 600;
   font-size: 1rem;
   letter-spacing: -0.01em;
 }
@@ -550,7 +559,10 @@
 .pack-card-desc {
   color: var(--color-muted);
   font-size: 0.875rem;
-  line-height: 1.4;
+  line-height: 1.45;
+  /* Allow the description to grow vertically inside the square card
+     — this is what balances the layout and keeps cards near-square. */
+  flex: 1 1 auto;
 }
 
 .pack-card-count {
