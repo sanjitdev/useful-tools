@@ -46,3 +46,8 @@ _bmad/render/
 # Diff scratch from ad-hoc analysis (e.g. earlier story wrap-ups).
 diff-unique.txt
 
+# Browser/CDP debug artifacts (transient; recreated on every debugging
+# session by the smoke harness and ad-hoc CDP scripts).
+.test-output/
+.chrome-dom-diff.json
+
