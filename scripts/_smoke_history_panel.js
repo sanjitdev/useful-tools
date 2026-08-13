@@ -499,8 +499,8 @@ for (const name of requiredEntries) {
 }
 check('api-contract.js: all 10 HT.history.* entries registered (9 stable + 1 internal)',
   allEntriesFound);
-check('api-contract.js: version bumped to 1.14.0 (Story 3.7 + 3.8 — HT.export + HT.import added; Story 3.6 — history panel shape migration + cap 50)',
-  /version:\s*['"]1\.14\.0['"]/.test(CONTRACT_SRC));
+check('api-contract.js: version bumped to 1.16.0 (Story 3.12 + 3.11 — HT.recent + HT.pins + HT.homeSidebar + HT.viewSource + HT.highlight + HT.zipStore added; Story 3.7 + 3.8 — HT.export + HT.import added; Story 3.6 — history panel shape migration + cap 50)',
+  /version:\s*['"]1\.16\.0['"]/.test(CONTRACT_SRC));
 
 // === Vacuous-pass guard (assertion 31) ===
 
@@ -1322,9 +1322,9 @@ for (const name of requiredEntries) {
 check('F.38 api-contract.js: all 11 HT.history.* entries registered (9 stable + 2 internal)',
   allEntriesFoundF);
 
-// F.39 — api-contract.js version is 1.14.0 (Story 3.7 bumped 1.12.0 → 1.14.0 for HT.export)
-check('F.39 api-contract.js: version bumped to 1.14.0',
-  /version:\s*['"]1\.14\.0['"]/.test(CONTRACT_SRC));
+// F.39 — api-contract.js version is 1.16.0 (Story 3.12 bumped 1.15.0 → 1.16.0 for HT.recent + HT.pins + HT.homeSidebar; Story 3.11 bumped 1.14.0 → 1.15.0 for HT.viewSource + HT.highlight + HT.zipStore; Story 3.7 bumped 1.12.0 → 1.14.0 for HT.export)
+check('F.39 api-contract.js: version bumped to 1.16.0',
+  /version:\s*['"]1\.16\.0['"]/.test(CONTRACT_SRC));
 
 // F.40 — api-contract.js HT.history.push notes mention Story 3.6 + cap 50 + new shape
 const pushNotesMatch = CONTRACT_SRC.match(/HT\.history\.push[\s\S]*?(?=name:\s*'HT\.history\.)/);

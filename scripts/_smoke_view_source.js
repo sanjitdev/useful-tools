@@ -343,7 +343,7 @@ const toolsJsonPath = path.join(root, 'tools.json');
 check('tools.json exists', fs.existsSync(toolsJsonPath));
 const tj = JSON.parse(fs.readFileSync(toolsJsonPath, 'utf8'));
 const tools = Array.isArray(tj) ? tj : (tj.tools || []);
-check('tools.json has 35 tools', tools.length === 35, 'got: ' + tools.length);
+check('tools.json has 39 tools', tools.length === 39, 'got: ' + tools.length);
 
 let allHaveVS = true;
 let allPathConventionsHold = true;
@@ -415,7 +415,7 @@ console.log('\n# (i) api-contract.js');
 const acPath = path.join(root, 'assets/js/api-contract.js');
 const acSrc = fs.readFileSync(acPath, 'utf8');
 check('api-contract.js exposes HT.__apiContract', acSrc.indexOf('HT.__apiContract') !== -1);
-check('api-contract.js version 1.15.0', /version:\s*'1\.15\.0'/.test(acSrc));
+check('api-contract.js version 1.16.0', /version:\s*'1\.16\.0'/.test(acSrc));
 check('api-contract.js has HT.viewSource entry',
   acSrc.indexOf("name: 'HT.viewSource'") !== -1);
 check('api-contract.js has HT.highlight entry',

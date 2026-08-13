@@ -351,8 +351,9 @@ check('reset.button: aria-label "Reset to sample (r)"',
   resetBtn.getAttribute('aria-label') === 'Reset to sample (r)');
 check('reset.button: text content "Reset to sample"',
   resetBtn.textContent === 'Reset to sample');
-check('reset.button: has destructive class',
-  /btn--destructive/.test(resetBtn.className) === true);
+check('reset.button: has .btn + .btn--link class (default variant)',
+  /\bbtn\b/.test(resetBtn.className) === true &&
+  /btn--link/.test(resetBtn.className) === true);
 
 // === Assertion 6: mount round-trip + teardown ===
 
@@ -500,8 +501,8 @@ const contractSrc = fs.readFileSync(
   path.resolve(__dirname, '../assets/js/api-contract.js'),
   'utf8'
 );
-check('api-contract: version bumped to 1.14.0 (Story 3.7: 1.12.0 → 1.14.0 for HT.export; Story 3.6: 1.11.0 → 1.12.0 for HT_HISTORY_INIT bootstrap handle + history entry-shape migration)',
-  /version:\s*['"]1\.14\.0['"]/.test(contractSrc));
+check('api-contract: version bumped to 1.16.0 (Story 3.12: 1.15.0 → 1.16.0 for HT.recent + HT.pins + HT.homeSidebar; Story 3.7: 1.12.0 → 1.14.0 for HT.export; Story 3.6: 1.11.0 → 1.12.0 for HT_HISTORY_INIT bootstrap handle + history entry-shape migration)',
+  /version:\s*['"]1\.16\.0['"]/.test(contractSrc));
 check('api-contract: HT.sampleData.fill entry present',
   /HT\.sampleData\.fill/.test(contractSrc));
 check('api-contract: HT.sampleData.button entry present',

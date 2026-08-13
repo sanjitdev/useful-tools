@@ -49,40 +49,117 @@ PROMOTE_SCRIPTS = (
 )
 
 # Pack taxonomy. Order = display order on the pack cards page (matches
-# tools.schema.json pack.items.enum). Inclusion criterion = one-line
-# heuristic for "does this tool belong in this pack?".
+# tools.schema.json pack.items.enum).
+#
+# Story 6.3 expands the inclusion criterion from a single one-line
+# heuristic to a structured block per pack:
+#   INCLUSION_CRITERIA[pack]   — list of 3–5 bullets
+#   EXAMPLE_IN_PACK[pack]      — 2 slugs from tools.json currently in this pack
+#   EXAMPLE_OUT_OF_PACK[pack]  — list of (slug, reason) tuples; the slug
+#                                may live in another pack today OR be a
+#                                known Epic 6 backlog candidate (then
+#                                the reason line begins "Epic 6 backlog:").
+PACK_TITLE: dict[str, str] = {
+    "travel":    "Trip planning, time zones, and date math for travel.",
+    "finance":   "Money math — loans, interest, tax, percentages, tips.",
+    "study":     "Learning aids — grades, focus, study timers, writing helpers.",
+    "developer": "Tools developers reach for daily — formatting, encoding, regex.",
+    "household": "Everyday home + lifestyle tools — health, decisions, fun.",
+}
+
+# 3–5 bullets per pack. The bullets are the canonical definition
+# (verbatim-quoted in CONTRIBUTING.md per Story 6.3 AC-4); keep them
+# concise and decision-oriented.
+INCLUSION_CRITERIA: dict[str, list[str]] = {
+    "travel": [
+        "The tool's primary user is in transit or coordinating across timezones.",
+        "The tool does mobility, timezone, currency, or on-the-road logistics.",
+        "The tool's primary use case has the user physically away from home (e.g., \"I'm in Bangkok and want to call my team in Berlin\").",
+        "Date math across boundaries (countdowns, date differences between distant points) is part of the core surface.",
+    ],
+    "finance": [
+        "The tool produces a numeric money result: income, EMI, growth, tip, discount, tax, or similar monetary calculation.",
+        "The tool's primary use case is a financial decision (saving, borrowing, paying, budgeting).",
+        "The tool's inputs are denominated in a currency or interest rate.",
+        "The tool's output is denominated in a currency or yield percentage.",
+    ],
+    "study": [
+        "The tool supports an academic or learning workflow: grading, GPA, focus sessions, or text generation.",
+        "The tool's primary user is a student, teacher, or self-learner.",
+        "The tool measures learning progress (sessions, grades, study time) or generates learning material (prompts, flashcards, summaries).",
+        "The tool's outputs are useful for homework, classroom, or independent study.",
+    ],
+    "developer": [
+        "The tool manipulates structured text or developer-facing data: JSON, regex, encoding, URL, base64, IDs, or random.",
+        "The tool's primary user is a software developer or technical writer.",
+        "The tool's inputs are code, structured data, or developer-oriented text (URLs, secrets, tokens).",
+        "The tool's outputs are code-shaped, machine-readable, or useful in a code review / debugging workflow.",
+    ],
+    "household": [
+        "The tool helps with a household or personal-life task: health metrics, decisions, life math, or at-home organization.",
+        "The tool's primary use case has the user at home or in their local context (e.g., \"I'm planning next week's meals\").",
+        "The tool covers domestic, area, volume, recipe, or at-home life math.",
+        "The tool is useful for personal-life management (habits, age, color picking for a room, paint estimate for a wall).",
+    ],
+}
+
+# 2 in-pack examples per pack — slugs currently in tools.json under
+# this pack. Verified mechanically against tools.json's ready:true set.
+EXAMPLE_IN_PACK: dict[str, list[str]] = {
+    "travel":    ["world-clock", "countdown-to-date"],
+    "finance":   ["loan-calculator", "tip-calculator"],
+    "study":     ["grade-calculator", "pomodoro-timer"],
+    "developer": ["json-formatter", "regex-tester"],
+    "household": ["bmi-calculator", "habit-tracker"],
+}
+
+# 2 out-of-pack examples per pack — a (slug, reason) tuple. The slug is
+# either a real tool from a different pack OR a known Epic 6 backlog
+# candidate (then reason begins "Epic 6 backlog: …"). NEVER invented.
+# Each example pairs a different pack with a one-line reason the tool
+# does NOT belong in *this* pack.
+EXAMPLE_OUT_OF_PACK: dict[str, list[tuple[str, str]]] = {
+    "travel": [
+        ("compound-interest", "Lives in `finance` (money math, not on-the-road logistics)."),
+        ("currency-converter", "Epic 6 backlog: would belong in `travel` — "
+                               "currency conversion is on-the-road logistics — "
+                               "but the tool is not yet shipped."),
+    ],
+    "finance": [
+        ("pomodoro-timer", "Lives in `study` (focus session, not a money result)."),
+        ("grocery-list-builder", "Epic 6 backlog: would belong in `household` — "
+                                  "domestic shopping list, not a money-decision tool."),
+    ],
+    "study": [
+        ("loan-calculator", "Lives in `finance` (EMI result, not a learning workflow)."),
+        ("flashcard-timer", "Epic 6 backlog: would belong in `study` — timed recall "
+                            "drill — but the tool is not yet shipped."),
+    ],
+    "developer": [
+        ("word-counter", "Lives in `study` (word count is a learning aid, "
+                         "not developer-facing data manipulation)."),
+        ("jwt-inspector", "Epic 6 backlog: would belong in `developer` — "
+                           "JWT decoding is structured-text manipulation — "
+                           "but the tool is not yet shipped."),
+    ],
+    "household": [
+        ("world-clock", "Lives in `travel` (timezone is on-the-road "
+                        "logistics, not at-home life math)."),
+        ("paint-calculator", "Epic 6 backlog: would belong in `household` — "
+                              "wall-area math is domestic — but the tool is "
+                              "not yet shipped."),
+    ],
+}
+
+# Order preserved for the rendered doc — matches PACK_DEFINITIONS order.
+PACK_ORDER: tuple[str, ...] = ("travel", "finance", "study", "developer", "household")
+
+# Legacy 3-tuple form, kept for backwards compatibility with
+# validate_roster() and existing callers. (slug, title, single-line
+# criterion). New code should reference INCLUSION_CRITERIA /
+# EXAMPLE_IN_PACK / EXAMPLE_OUT_OF_PACK directly.
 PACK_DEFINITIONS: list[tuple[str, str, str]] = [
-    (
-        "travel",
-        "Trip planning, time zones, and date math for travel.",
-        "A tool helps with travel logistics: clocks across regions, "
-        "countdown to an event, or date difference calculations.",
-    ),
-    (
-        "finance",
-        "Money math — loans, interest, tax, percentages, tips.",
-        "A tool produces a numeric money result: income, EMI, growth, "
-        "tip, discount, or similar monetary calculation.",
-    ),
-    (
-        "study",
-        "Learning aids — grades, focus, study timers, writing helpers.",
-        "A tool supports academic or learning workflows: grading, "
-        "GPA, focus sessions, or text generation.",
-    ),
-    (
-        "developer",
-        "Tools developers reach for daily — formatting, encoding, regex.",
-        "A tool manipulates structured text or developer-facing data: "
-        "JSON, regex, encoding, URL, base64, or random.",
-    ),
-    (
-        "household",
-        "Everyday home + lifestyle tools — health, decisions, fun.",
-        "A tool helps with a household or personal-life task: "
-        "health metrics, animal fun, decisions, color picking, or "
-        "general life math.",
-    ),
+    (p, PACK_TITLE[p], INCLUSION_CRITERIA[p][0]) for p in PACK_ORDER
 ]
 
 MIN_TOOLS_PER_PACK = 3
@@ -197,20 +274,76 @@ def emit_taxonomy(roster: dict[str, list[str]], today: str) -> str:
         "rejects any value not in this set."
     )
     lines.append("")
+    lines.append("## Resolved definitions (PRD Open Q1)")
+    lines.append("")
+    lines.append(
+        "**Travel vs. Household** — the two packs overlap in life-math surface area. "
+        "Story 6.3 adopts orthogonal definitions:"
+    )
+    lines.append("")
+    lines.append(
+        "- **`travel`** = *mobility / timezone / currency / on-the-road logistics.* "
+        "The primary user is in transit or coordinating across timezones. "
+        "Decision rule: if the primary use case has the user *physically away from home*, "
+        "it is `travel`."
+    )
+    lines.append(
+        "- **`household`** = *domestic / area / volume / recipe / at-home life math.* "
+        "The primary user is at home managing personal-life tasks. "
+        "Decision rule: if the primary use case has the user *at home or in their local "
+        "context*, it is `household`."
+    )
+    lines.append("")
+    lines.append(
+        "Currency conversion is `travel` (away from home base); budgeting the household "
+        "grocery bill is `household` (in-place). Paint / area / volume calculators land in "
+        "`household`."
+    )
+    lines.append("")
     lines.append("## Inclusion Criteria")
     lines.append("")
-    lines.append("A tool lands in a pack when its primary use case matches the "
-                 "one-line criterion below. Multi-pack tools (e.g., a calculator "
-                 "useful both at home and in finance) appear in both lists.")
+    lines.append(
+        "A tool lands in a pack when its primary use case matches **at least one** of "
+        "the bullets below (per-pack). Multi-pack tools (e.g., a calculator useful both "
+        "at home and in finance) appear in both lists."
+    )
     lines.append("")
-    for pack_slug, title, criterion in PACK_DEFINITIONS:
-        lines.append(f"- **{pack_slug}** — {criterion}")
+    for pack_slug in PACK_ORDER:
+        lines.append(f"### `{pack_slug}`")
+        lines.append("")
+        for bullet in INCLUSION_CRITERIA[pack_slug]:
+            lines.append(f"- {bullet}")
+        lines.append("")
+    lines.append("## In-pack examples")
+    lines.append("")
+    lines.append(
+        "Two tools currently assigned to each pack in `tools.json`. Verified "
+        "mechanically — every slug below resolves to a `ready:true` entry whose `pack` "
+        "array includes this pack."
+    )
+    lines.append("")
+    for pack_slug in PACK_ORDER:
+        lines.append(f"- **`{pack_slug}`**: `{EXAMPLE_IN_PACK[pack_slug][0]}`, "
+                     f"`{EXAMPLE_IN_PACK[pack_slug][1]}`")
+    lines.append("")
+    lines.append("## Out-of-pack examples (and why)")
+    lines.append("")
+    lines.append(
+        "For each pack, two concrete counter-examples — tools that *might* belong "
+        "there but actually live in another pack, or known Epic 6 backlog candidates. "
+        "Hypothetical slugs are tagged `Epic 6 backlog`; real slugs resolve to "
+        "`tools.json` today."
+    )
+    lines.append("")
+    for pack_slug in PACK_ORDER:
+        for slug, reason in EXAMPLE_OUT_OF_PACK[pack_slug]:
+            lines.append(f"- **`{pack_slug}`** &rarr; `{slug}` — {reason}")
     lines.append("")
     lines.append("## Per-pack Tool Lists")
     lines.append("")
-    for pack_slug, title, _crit in PACK_DEFINITIONS:
+    for pack_slug in PACK_ORDER:
         tools = sorted(set(by_pack.get(pack_slug, [])))
-        lines.append(f"### `{pack_slug}` — {title}")
+        lines.append(f"### `{pack_slug}` — {PACK_TITLE[pack_slug]}")
         lines.append("")
         lines.append(f"_{len(tools)} tools._")
         lines.append("")
@@ -227,7 +360,11 @@ def emit_taxonomy(roster: dict[str, list[str]], today: str) -> str:
         "tool's `pack` field is missing or contains a value not in the enum, "
         "or if any pack drops below the 3-tool minimum. "
         "`make pack-tags-smoke` runs the Node-side static smoke that "
-        "verifies every `ready:true` entry has ≥ 1 valid pack value."
+        "verifies every `ready:true` entry has ≥ 1 valid pack value. "
+        "`make check-pack-taxonomy` (Story 6.3) reads `tools.json` and posts a "
+        "*suggestion* per missing/invalid pack entry using a hand-rolled "
+        "keyword-to-pack map; it is not a gate (the schema is) and exits 0 on "
+        "clean, 2 on repo-layout issues, 3 on I/O failure."
     )
     lines.append("")
     return "\n".join(lines)

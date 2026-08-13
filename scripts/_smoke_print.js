@@ -179,8 +179,8 @@ const toolSlugs = fs.readdirSync(TOOLS_DIR).filter(function (n) {
   return fs.statSync(full).isDirectory();
 });
 check(
-  'exactly 35 tools present',
-  toolSlugs.length === 35,
+  'exactly 39 tools present',
+  toolSlugs.length === 39,
   'got ' + toolSlugs.length
 );
 

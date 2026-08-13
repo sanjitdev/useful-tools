@@ -1083,7 +1083,10 @@ assert(
 );
 
 // -------------------------------------------------------------
-// AC-1: api-contract.js HT.settings entry exists and pins version 1.14.0
+// AC-1: api-contract.js HT.settings entry exists and pins version 1.16.0
+// (Story 3.12 + 3.11 bumped from 1.14.0 → 1.16.0 for HT.recent + HT.pins +
+//  HT.homeSidebar + HT.viewSource + HT.highlight + HT.zipStore; Story 3.5
+//  originally bumped to 1.14.0 for HT.settings.)
 // (Story 3.7 supersedes Story 3.6's 1.12.0 with the HT.export addition;
 // Story 3.6 superseded Story 3.5's 1.11.0 with the history migration bump;
 // HT.settings entry itself is unchanged — see the notes block).
@@ -1101,8 +1104,8 @@ assert(
   /HT\.settings[\s\S]{0,400}Story 3\.5/.test(apiContract)
 );
 assert(
-  'api-contract.js: version = 1.14.0',
-  /version:\s*'1\.14\.0'/.test(apiContract)
+  'api-contract.js: version = 1.16.0',
+  /version:\s*'1\.16\.0'/.test(apiContract)
 );
 
 // -------------------------------------------------------------
