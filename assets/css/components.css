@@ -340,6 +340,18 @@
   margin-top: var(--space-6);
 }
 
+/* Category groups inside the Library section (rendered by home-grid.js
+   as <div class="home-grid-group" data-category="…">). Each group holds
+   a .category-header + .tool-grid. Without spacing, the 6+ categories
+   run together on the home page. :first-child exemption keeps the
+   first group flush under the section header — only sibling groups
+   get the gap. Matches the rhythm of the rest of the page
+   (var(--space-6) = 32px, the same as the .home-grid-section
+   margin-top). */
+.home-grid-group + .home-grid-group {
+  margin-top: var(--space-6);
+}
+
 .home-section-header {
   margin-bottom: var(--space-4);
 }
