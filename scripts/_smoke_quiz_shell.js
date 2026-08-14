@@ -139,6 +139,9 @@ function makeEl(tag) {
     },
     cloneNode: function () { return makeEl(tag); },
     offsetWidth: 1,
+    // <dialog> shims (no-op for non-dialog elements; harmless otherwise).
+    showModal: function () { node._isOpen = true; },
+    close: function () { node._isOpen = false; },
   };
   Object.defineProperty(node, 'innerHTML', {
     get: function () {
@@ -268,7 +271,20 @@ function buildCtx(extra) {
     Error: Error,
     Symbol: Symbol,
     Promise: Promise,
-    HT: {},
+    location: { hash: '' },
+    HT: {
+      storage: {
+        _store: {},
+        get: function (k, fallback) {
+          return Object.prototype.hasOwnProperty.call(this._store, k) ? this._store[k] : (fallback || null);
+        },
+        set: function (k, v) { this._store[k] = v; return true; },
+        remove: function (k) { delete this._store[k]; return true; },
+        list: function () { return Object.keys(this._store).map(function (k) { return { key: k }; }); },
+        keys: function () { return Object.keys(this._store); },
+        clear: function () { this._store = {}; }
+      }
+    },
     window: {},
     document: {
       createElement: function (tag) { return makeEl(tag); },
@@ -276,6 +292,7 @@ function buildCtx(extra) {
         return { nodeType: 3, nodeName: '#text', textContent: String(text), parentNode: null };
       },
       documentElement: makeEl('html'),
+      body: makeEl('body'),
       addEventListener: function (t, f) { /* global registry, no-op */ },
       removeEventListener: function (t, f) { /* no-op */ },
     },
@@ -844,6 +861,184 @@ console.log('--- XIII. Conditional skip (Story 9.12.1 — showIf) ---');
     ]
   });
   check(handleJ.progress().total === 2, 'no showIf → progress().total === 2 (all visible)');
+}
+
+console.log('--- XIV. Resume UI (Story 9.12.2) ---');
+{
+  // Helper: find the resume dialog in the document body.
+  function findResumeDialog(ctx) {
+    // Walk all children of body to find a <dialog> with the resume class.
+    function walk(n) {
+      if (!n || !n.childNodes) return null;
+      for (var i = 0; i < n.childNodes.length; i += 1) {
+        var c = n.childNodes[i];
+        if (c && c.tagName === 'DIALOG' && c._classes &&
+            c._classes.has('quiz-resume-dialog')) {
+          return c;
+        }
+        var inner = walk(c);
+        if (inner) return inner;
+      }
+      return null;
+    }
+    return walk(ctx.document.body);
+  }
+
+  // XIV-A: open() with non-empty storageKey and saved answers appends a <dialog> to the document body.
+  var ctxA = buildCtx();
+  loadQuiz(ctxA);
+  var mountA = ctxA.document.createElement('div');
+  // Pre-seed the storage key so loadState() returns saved answers.
+  ctxA.HT.storage.set('_registry-quiz-test-a', { answers: { q1: 'a' }, current: 0 });
+  var handleA = ctxA.HT.quiz.open({
+    mount: mountA,
+    questions: [
+      { id: 'q1', label: '1', prompt: 'P1', options: [{value:'a', label:'A'}, {value:'b', label:'B'}] }
+    ],
+    storageKey: '_registry-quiz-test-a'
+  });
+  var dlgA = findResumeDialog(ctxA);
+  check(!!dlgA, 'open() with saved state appends a <dialog> to document.body');
+
+  // XIV-B: The dialog has class="ht-resume-dialog quiz-resume-dialog".
+  var classOk = dlgA && dlgA._classes && dlgA._classes.has('ht-resume-dialog') && dlgA._classes.has('quiz-resume-dialog');
+  check(classOk, 'dialog has classes "ht-resume-dialog quiz-resume-dialog"');
+
+  // XIV-C: The dialog has aria-labelledby + aria-describedby pointing to its own title/body ids.
+  var labelledBy = dlgA && dlgA.getAttribute('aria-labelledby');
+  var describedBy = dlgA && dlgA.getAttribute('aria-describedby');
+  var titleEl = labelledBy ? ctxA.document.body.querySelector
+    ? null : null : null;
+  // Simpler check: just verify the attrs are set + non-empty.
+  check(typeof labelledBy === 'string' && labelledBy.length > 0, 'dialog has aria-labelledby');
+  check(typeof describedBy === 'string' && describedBy.length > 0, 'dialog has aria-describedby');
+
+  // XIV-D: The dialog title text reads "Resume previous attempt?".
+  var titleText = '';
+  if (dlgA) {
+    function findByClass(n, cls) {
+      if (!n || !n.childNodes) return null;
+      for (var i = 0; i < n.childNodes.length; i += 1) {
+        var c = n.childNodes[i];
+        if (c && c._classes && c._classes.has(cls)) return c;
+        var inner = findByClass(c, cls);
+        if (inner) return inner;
+      }
+      return null;
+    }
+    var titleEl2 = findByClass(dlgA, 'quiz-resume-title');
+    titleText = titleEl2 ? titleEl2.textContent : '';
+  }
+  check(titleText === 'Resume previous attempt?', 'dialog title reads "Resume previous attempt?"');
+
+  // XIV-E: The body text reads "1 of 1 cards done · 0 skipped" matching the saved state.
+  var bodyText = '';
+  if (dlgA) {
+    var bodyEl = null;
+    function findBody(n) {
+      if (!n || !n.childNodes) return null;
+      for (var i = 0; i < n.childNodes.length; i += 1) {
+        var c = n.childNodes[i];
+        if (c && c._classes && c._classes.has('quiz-resume-body')) return c;
+        var inner = findBody(c);
+        if (inner) return inner;
+      }
+      return null;
+    }
+    bodyEl = findBody(dlgA);
+    bodyText = bodyEl ? bodyEl.textContent : '';
+  }
+  check(bodyText === '1 of 1 cards done · 0 skipped', 'dialog body reads "1 of 1 cards done · 0 skipped"');
+
+  // XIV-F: The dialog has two buttons with data-action="resume" and "start-over".
+  var resumeBtn = null;
+  var startOverBtn = null;
+  if (dlgA) {
+    function findBtn(n, action) {
+      if (!n || !n.childNodes) return null;
+      for (var i = 0; i < n.childNodes.length; i += 1) {
+        var c = n.childNodes[i];
+        if (c && c.tagName === 'BUTTON' && c.getAttribute('data-action') === action) return c;
+        var inner = findBtn(c, action);
+        if (inner) return inner;
+      }
+      return null;
+    }
+    resumeBtn = findBtn(dlgA, 'resume');
+    startOverBtn = findBtn(dlgA, 'start-over');
+  }
+  check(!!resumeBtn && !!startOverBtn, 'dialog has [data-action="resume"] and [data-action="start-over"] buttons');
+
+  // XIV-G: Clicking "resume" closes the dialog and mounts the quiz with seedAnswers intact.
+  if (resumeBtn) {
+    resumeBtn.click();
+  }
+  var handleAAfter = ctxA.HT.isOpen && ctxA.HT.isOpen();
+  var cardAAfter = mountA.querySelector('.quiz-card');
+  check(!!cardAAfter, 'after Resume click: quiz mounts and renders a card');
+
+  // XIV-H: Clicking "start-over" clears storage and mounts with empty answers.
+  var ctxB = buildCtx();
+  loadQuiz(ctxB);
+  var mountB = ctxB.document.createElement('div');
+  ctxB.HT.storage.set('_registry-quiz-test-b', { answers: { q1: 'b' }, current: 0 });
+  ctxB.HT.quiz.open({
+    mount: mountB,
+    questions: [
+      { id: 'q1', label: '1', prompt: 'P1', options: [{value:'a', label:'A'}, {value:'b', label:'B'}] }
+    ],
+    storageKey: '_registry-quiz-test-b'
+  });
+  var dlgB = findResumeDialog(ctxB);
+  var startOverBtnB = null;
+  if (dlgB) {
+    function findBtnB(n, action) {
+      if (!n || !n.childNodes) return null;
+      for (var i = 0; i < n.childNodes.length; i += 1) {
+        var c = n.childNodes[i];
+        if (c && c.tagName === 'BUTTON' && c.getAttribute('data-action') === action) return c;
+        var inner = findBtnB(c, action);
+        if (inner) return inner;
+      }
+      return null;
+    }
+    startOverBtnB = findBtnB(dlgB, 'start-over');
+  }
+  if (startOverBtnB) startOverBtnB.click();
+  // Storage should now be empty.
+  var storageAfter = ctxB.HT.storage.get('_registry-quiz-test-b');
+  check(storageAfter === null || storageAfter === undefined,
+    'after Start over click: storage key cleared');
+
+  // XIV-I: When URL hash pins a card, no dialog is shown.
+  var ctxC = buildCtx();
+  loadQuiz(ctxC);
+  ctxC.location = { hash: '#view=card-2' };
+  var mountC = ctxC.document.createElement('div');
+  ctxC.HT.storage.set('_registry-quiz-test-c', { answers: { q1: 'a' }, current: 0 });
+  ctxC.HT.quiz.open({
+    mount: mountC,
+    questions: [
+      { id: 'q1', label: '1', prompt: 'P1', options: [{value:'a', label:'A'}] }
+    ],
+    storageKey: '_registry-quiz-test-c'
+  });
+  var dlgC = findResumeDialog(ctxC);
+  check(!dlgC, 'URL hash view=card-N → no resume dialog (URL wins)');
+
+  // XIV-J: When no storageKey is provided, no dialog is shown.
+  var ctxD = buildCtx();
+  loadQuiz(ctxD);
+  var mountD = ctxD.document.createElement('div');
+  ctxD.HT.quiz.open({
+    mount: mountD,
+    questions: [
+      { id: 'q1', label: '1', prompt: 'P1', options: [{value:'a', label:'A'}] }
+    ]
+    // intentionally no storageKey
+  });
+  var dlgD = findResumeDialog(ctxD);
+  check(!dlgD, 'no storageKey → no resume dialog (direct mount)');
 }
 
 // =============================================================

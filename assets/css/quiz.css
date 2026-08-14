@@ -387,7 +387,8 @@
 @media print {
   .quiz-card-stack,
   .quiz-footer,
-  .quiz-skip {
+  .quiz-skip,
+  .quiz-resume-dialog {
     display: none !important;
   }
   .quiz-reveal[data-print="result"] {
@@ -398,4 +399,46 @@
     border-bottom: 1px solid #ccc;
     padding-bottom: 8px;
   }
+}
+
+/* ============================================
+   Resume dialog (Story 9.12.2)
+   ============================================
+   Inline <dialog> + showModal() pattern (mirrors _confirmDestructive
+   in assets/js/history.js). Base dialog styles come from
+   .ht-confirm-dialog in assets/css/components.css; this block adds
+   the quiz-specific tweaks and the pop-in animation. */
+
+.quiz-resume-dialog .quiz-resume-form {
+  /* match .ht-confirm-form — extends it without duplicating rules */
+}
+
+.quiz-resume-dialog .quiz-resume-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.quiz-resume-dialog .quiz-resume-resume,
+.quiz-resume-dialog .quiz-resume-start-over {
+  /* inherits .btn .btn-primary / .btn .btn-ghost */
+}
+
+@keyframes quiz-resume-pop {
+  from { transform: scale(0.95); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+.quiz-resume-dialog[open] {
+  animation: quiz-resume-pop 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quiz-resume-dialog[open] {
+    animation: none;
+  }
+}
+
+:root:where([data-reduced-motion="true"]) .quiz-resume-dialog[open] {
+  animation: none;
 }

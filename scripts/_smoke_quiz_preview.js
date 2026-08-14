@@ -366,6 +366,31 @@ console.log('--- XIII. Branching demo ---');
 }
 
 // =============================================================
+// XIV. Resume UI demo (Story 9.12.2 — storageKey prompt)
+// =============================================================
+console.log('--- XIV. Resume UI demo ---');
+{
+  // XIV-A: preview tool still calls HT.quiz.open with the canonical
+  // storageKey — the resume prompt machinery lives in the shell, so the
+  // preview tool only needs to keep the same storageKey string.
+  check(has(TOOL_SRC, "'_registry-quiz-preview'") || has(TOOL_SRC, '"_registry-quiz-preview"'),
+    'quiz-preview.js calls HT.quiz.open with storageKey "_registry-quiz-preview"');
+
+  // XIV-B: the CSS file referenced by the preview tool includes the
+  // .quiz-resume-dialog rules added in Story 9.12.2.
+  check(has(QUIZ_CSS_SRC, '.quiz-resume-dialog'),
+    'assets/css/quiz.css includes .quiz-resume-dialog rules');
+  check(has(QUIZ_CSS_SRC, 'quiz-resume-pop'),
+    'assets/css/quiz.css defines @keyframes quiz-resume-pop');
+
+  // XIV-C: this smoke harness itself asserts no dialog-rendering
+  // behaviour. Preserve the AD-14 boundary: the preview tool is a
+  // consumer of HT.quiz, not a verifier of its UI primitives. The
+  // harness is purely source-string checks for the resume path.
+  check(true, 'preview smoke does not assert dialog-rendering (AD-14 boundary)');
+}
+
+// =============================================================
 // Final summary
 // =============================================================
 

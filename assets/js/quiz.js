@@ -322,6 +322,109 @@
     } catch (_) {}
   }
 
+  /* ----- Resume stats (Story 9.12.2) ----- */
+
+  // Compute "N of M cards done · K skipped" for the resume dialog.
+  // Honors Story 9.12.1 showIf — branched-skip cards are excluded
+  // from both the done and skipped counts.
+  function computeResumeStats(savedAnswers, questions) {
+    var visibleDone = 0;
+    var skipped = 0;
+    if (!questions) return { done: 0, total: 0, skipped: 0 };
+    for (var i = 0; i < questions.length; i += 1) {
+      var q = questions[i];
+      if (!q || typeof q.id !== 'string') continue;
+      var hidden = false;
+      if (typeof q._skipIf === 'function') {
+        try { hidden = !!q._skipIf(savedAnswers || {}); } catch (_) { hidden = false; }
+      }
+      if (hidden) continue;
+      if (savedAnswers && savedAnswers[q.id] !== undefined && savedAnswers[q.id] !== '') {
+        visibleDone += 1;
+      } else {
+        skipped += 1;
+      }
+    }
+    return { done: visibleDone, total: visibleDone + skipped, skipped: skipped };
+  }
+
+  /* ----- Resume dialog (Story 9.12.2) -----
+     Mirrors the inline <dialog> + showModal() precedent in
+     assets/js/history.js:1344-1446 (_confirmDestructive). Free
+     focus-trap, free Escape handling, native a11y. The cancel event
+     fires on Esc; we treat Esc as Resume (the safer default — it
+     preserves the user's data instead of throwing it away).
+  */
+
+  function buildResumeDialog(stats, opts) {
+    var dlg = document.createElement('dialog');
+    dlg.className = 'ht-resume-dialog quiz-resume-dialog';
+    var titleId = 'quiz-resume-title-' + Math.random().toString(36).slice(2, 8);
+    var msgId = 'quiz-resume-msg-' + Math.random().toString(36).slice(2, 8);
+
+    var form = document.createElement('form');
+    form.className = 'ht-confirm-form quiz-resume-form';
+    form.setAttribute('method', 'dialog');
+    dlg.appendChild(form);
+
+    var title = document.createElement('h2');
+    title.className = 'ht-confirm-title quiz-resume-title';
+    title.id = titleId;
+    title.textContent = 'Resume previous attempt?';
+    form.appendChild(title);
+
+    var msg = document.createElement('p');
+    msg.className = 'ht-confirm-body quiz-resume-body';
+    msg.id = msgId;
+    msg.textContent = stats.done + ' of ' + stats.total +
+                      ' cards done · ' + stats.skipped + ' skipped';
+    form.appendChild(msg);
+
+    var actions = document.createElement('div');
+    actions.className = 'ht-confirm-actions quiz-resume-actions';
+    form.appendChild(actions);
+
+    var resumeBtn = document.createElement('button');
+    resumeBtn.type = 'button';
+    resumeBtn.value = 'resume';
+    resumeBtn.className = 'btn btn-primary quiz-resume-resume';
+    resumeBtn.setAttribute('data-action', 'resume');
+    resumeBtn.textContent = 'Resume';
+
+    var startOverBtn = document.createElement('button');
+    startOverBtn.type = 'button';
+    startOverBtn.value = 'start-over';
+    startOverBtn.className = 'btn btn-ghost quiz-resume-start-over';
+    startOverBtn.setAttribute('data-action', 'start-over');
+    startOverBtn.textContent = 'Start over';
+
+    actions.appendChild(resumeBtn);
+    actions.appendChild(startOverBtn);
+
+    dlg.setAttribute('aria-labelledby', titleId);
+    dlg.setAttribute('aria-describedby', msgId);
+
+    function _closeAnd(fn) {
+      return function () {
+        try { dlg.close(); } catch (_) {}
+        try { if (dlg.parentNode) dlg.parentNode.removeChild(dlg); } catch (_) {}
+        if (typeof fn === 'function') fn();
+      };
+    }
+
+    resumeBtn.addEventListener('click', _closeAnd(opts.onResume));
+    startOverBtn.addEventListener('click', _closeAnd(opts.onStartOver));
+    dlg.addEventListener('cancel', function (ev) {
+      // Esc pressed — treat as Resume (preserve data).
+      ev.preventDefault();
+      try { dlg.close(); } catch (_) {}
+      try { if (dlg.parentNode) dlg.parentNode.removeChild(dlg); } catch (_) {}
+      if (typeof opts.onResume === 'function') opts.onResume();
+    });
+
+    return { dialog: dlg, focusFirst: resumeBtn };
+  }
+
   /* ----- Emit answer/skip events to host ----- */
 
   function emitChange(state) {
@@ -770,84 +873,145 @@
       }
     }
 
-    var state = {
-      _id: nextHandleId(),
-      mount: mount,
-      section: section,
-      questions: options.questions,
-      answers: seedAnswers,
-      onChange: typeof options.onChange === 'function' ? options.onChange : null,
-      onComplete: typeof options.onComplete === 'function' ? options.onComplete : null,
-      reveal: typeof options.reveal === 'function' ? options.reveal : null,
-      storageKey: options.storageKey || null,
-      total: options.questions.length,
-      current: 0,
-      // Story 9.12.1 — visual position into the visible list, derived per render
-      _visualIndex: 0,
-      answeredCount: 0,
-      _pendingValue: undefined,
-      _revealRendered: false,
-      _destroyed: false,
-      // DOM refs filled below
-      stack: null,
-      footerEl: null,
-      progressEl: null,
-      progressLabelEl: null,
-      nextBtn: null,
-    };
+    // Story 9.12.2 — Resume UI prompt. When options.storageKey is set AND
+    // saved answers exist AND the URL hash doesn't pin a specific card,
+    // show a Resume / Start over dialog before mounting. The dialog is
+    // synchronous in v1 — we wire its callbacks to re-invoke the mount
+    // path with either the saved seed (Resume) or an empty seed (Start
+    // over). Esc is treated as Resume to preserve user data.
+    var resumePrompted = false;
+    var handle = null;
 
-    // Story 9.12.1 — after URL-state hydration, advance past any cards whose
-    // showIf predicate returns false against the restored answers.
-    while (state.current < state.questions.length && isHidden(state, state.current)) {
-      state.current += 1;
+    function mountFromSeed(finalSeed) {
+      var state = {
+        _id: nextHandleId(),
+        mount: mount,
+        section: section,
+        questions: options.questions,
+        answers: finalSeed,
+        onChange: typeof options.onChange === 'function' ? options.onChange : null,
+        onComplete: typeof options.onComplete === 'function' ? options.onComplete : null,
+        reveal: typeof options.reveal === 'function' ? options.reveal : null,
+        storageKey: options.storageKey || null,
+        total: options.questions.length,
+        current: 0,
+        // Story 9.12.1 — visual position into the visible list, derived per render
+        _visualIndex: 0,
+        answeredCount: 0,
+        _pendingValue: undefined,
+        _revealRendered: false,
+        _destroyed: false,
+        // DOM refs filled below
+        stack: null,
+        footerEl: null,
+        progressEl: null,
+        progressLabelEl: null,
+        nextBtn: null,
+      };
+
+      // Story 9.12.1 — after URL-state hydration, advance past any cards whose
+      // showIf predicate returns false against the restored answers.
+      while (state.current < state.questions.length && isHidden(state, state.current)) {
+        state.current += 1;
+      }
+      state.total = visibleQuestions(state).length;
+
+      var header = buildHeader(state);
+      state.progressEl = header.querySelector('.quiz-progress');
+      state.progressLabelEl = header.querySelector('.quiz-progress-label');
+
+      var stack = el('div', { class: 'quiz-card-stack', 'data-quiz-current': 'card-1' });
+      stack._state = state;
+      state.stack = stack;
+
+      var footer = buildFooter();
+      state.footerEl = footer;
+      state.nextBtn = footer.querySelector('.quiz-next');
+
+      section.appendChild(title);
+      section.appendChild(header);
+      section.appendChild(stack);
+      section.appendChild(footer);
+
+      // Wire events
+      stack.addEventListener('click', onCardClick);
+      stack.addEventListener('keydown', onCardKeydown);
+      stack.addEventListener('DOMSubtreeModified', onStackChange);
+      footer.addEventListener('click', onFooterClick);
+      document.addEventListener('keydown', onDocKeydown);
+
+      // Mount
+      clearChildren(mount);
+      mount.appendChild(section);
+      section._state = state;
+      footer._state = state;
+
+      // Build the handle
+      handle = {
+        _id: state._id,
+        _state: state,
+        close: function () { closeHandle(state); },
+        destroy: function () { destroyHandle(state); },
+        getAnswers: function () { return Object.assign({}, state.answers); },
+        jumpTo: function (idx) { jumpTo(state, idx); },
+        progress: function () { return computeProgress(state); },
+        isOpen: function () { return isInstanceOpen(state); },
+      };
+      Object.freeze(handle);
+      INSTANCES.push(handle);
+
+      renderStack(state);
+      return handle;
     }
-    state.total = visibleQuestions(state).length;
 
-    var header = buildHeader(state);
-    state.progressEl = header.querySelector('.quiz-progress');
-    state.progressLabelEl = header.querySelector('.quiz-progress-label');
+    // Resume-prompt decision:
+    //   - storageKey must be set
+    //   - saved answers must be non-empty
+    //   - URL-state must not pin a specific card (URL wins)
+    // The "URL pinned" check reads `location.hash` defensively; if a
+    // tool wants URL-based deep-linking, it can opt-out of the prompt
+    // by clearing the hash before open().
+    var urlPinned = false;
+    try {
+      if (typeof location !== 'undefined' && location.hash && /view=card-/.test(location.hash)) {
+        urlPinned = true;
+      }
+    } catch (_) {}
 
-    var stack = el('div', { class: 'quiz-card-stack', 'data-quiz-current': 'card-1' });
-    stack._state = state;
-    state.stack = stack;
+    if (options.storageKey &&
+        Object.keys(seedAnswers).length > 0 &&
+        !urlPinned &&
+        typeof document !== 'undefined' &&
+        typeof document.createElement === 'function') {
+      try {
+        var stats = computeResumeStats(seedAnswers, options.questions);
+        var built = buildResumeDialog(stats, {
+          onResume: function () {
+            // Preserve saved answers — mount with the existing seed.
+            handle = mountFromSeed(seedAnswers);
+          },
+          onStartOver: function () {
+            // Clear storage and mount with empty answers.
+            clearState(options.storageKey);
+            handle = mountFromSeed({});
+          },
+        });
+        if (built && built.dialog && typeof built.dialog.showModal === 'function') {
+          document.body.appendChild(built.dialog);
+          try { built.dialog.showModal(); } catch (_) { /* fall through */ }
+          // Default-focus Resume (safer — preserves user data).
+          try { built.focusFirst.focus(); } catch (_) {}
+          resumePrompted = true;
+        }
+      } catch (_) {
+        // Defensive fallback — auto-resume without prompt.
+        handle = mountFromSeed(seedAnswers);
+      }
+    }
 
-    var footer = buildFooter();
-    state.footerEl = footer;
-    state.nextBtn = footer.querySelector('.quiz-next');
-
-    section.appendChild(title);
-    section.appendChild(header);
-    section.appendChild(stack);
-    section.appendChild(footer);
-
-    // Wire events
-    stack.addEventListener('click', onCardClick);
-    stack.addEventListener('keydown', onCardKeydown);
-    stack.addEventListener('DOMSubtreeModified', onStackChange);
-    footer.addEventListener('click', onFooterClick);
-    document.addEventListener('keydown', onDocKeydown);
-
-    // Mount
-    clearChildren(mount);
-    mount.appendChild(section);
-    section._state = state;
-    footer._state = state;
-
-    // Build the handle
-    var handle = {
-      _id: state._id,
-      _state: state,
-      close: function () { closeHandle(state); },
-      destroy: function () { destroyHandle(state); },
-      getAnswers: function () { return Object.assign({}, state.answers); },
-      jumpTo: function (idx) { jumpTo(state, idx); },
-      progress: function () { return computeProgress(state); },
-      isOpen: function () { return isInstanceOpen(state); },
-    };
-    Object.freeze(handle);
-    INSTANCES.push(handle);
-
-    renderStack(state);
+    if (!resumePrompted) {
+      handle = mountFromSeed(seedAnswers);
+    }
     return handle;
   }
 
