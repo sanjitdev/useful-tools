@@ -1,0 +1,47 @@
+{
+  "$schema": "unit-conversion.schema.json",
+  "version": 1,
+  "generated": "2026-08-14T00:00:00Z",
+  "description": "Hand-rolled unit conversion factors used by the Recipe Scaler tool (Story 9.9). All factors are exact to 6 decimals; temperature is non-linear (formula). Volume + mass factors are linear and normalized to a single base unit (ml for volume, g for mass) so any-to-any conversion is a simple ratio.",
+  "volume": {
+    "base": "ml",
+    "toBase": {
+      "cup": 236.588,
+      "tbsp": 14.787,
+      "tsp": 4.929,
+      "floz": 29.574,
+      "ml": 1,
+      "liter": 1000,
+      "l": 1000,
+      "pint": 473.176,
+      "quart": 946.353,
+      "gallon": 3785.41
+    },
+    "metric": ["ml", "liter", "l"],
+    "imperial": ["cup", "tbsp", "tsp", "floz", "pint", "quart", "gallon"]
+  },
+  "mass": {
+    "base": "g",
+    "toBase": {
+      "oz": 28.3495,
+      "lb": 453.592,
+      "g": 1,
+      "kg": 1000
+    },
+    "metric": ["g", "kg"],
+    "imperial": ["oz", "lb"]
+  },
+  "temperature": {
+    "units": ["°F", "°C"],
+    "imperial": ["°F"],
+    "metric": ["°C"],
+    "toCelsius": {
+      "°F": "sub32_mul5div9",
+      "°C": "identity"
+    },
+    "fromCelsius": {
+      "°F": "mul9div5_add32",
+      "°C": "identity"
+    }
+  }
+}

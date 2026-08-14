@@ -6081,6 +6081,146 @@
         "#ec-minutes",
         "#ec-seconds"
       ]
+    },
+    {
+      "id": "recipe-scaler",
+      "slug": "recipe-scaler",
+      "title": "Recipe Scaler",
+      "description": "Multiply ingredient quantities by N and convert between metric and imperial units. Hand-rolled parser, fraction-aware, unit-allowlist safe.",
+      "category": "Cooking",
+      "pack": ["travel"],
+      "icon": "assets/icons/recipe-scaler.svg",
+      "keywords": [
+        "recipe",
+        "scaler",
+        "cooking",
+        "ingredient",
+        "metric",
+        "imperial",
+        "unit",
+        "conversion",
+        "fraction",
+        "kitchen",
+        "baking"
+      ],
+      "last-updated": "2026-08-14T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "rs-recipe": "",
+          "rs-multiplier": "2",
+          "rs-system": "metric"
+        },
+        "encode": [
+          { "key": "recipe", "type": "string", "from": "#rs-recipe" },
+          { "key": "multiplier", "type": "number", "from": "#rs-multiplier" },
+          { "key": "system", "type": "string", "from": "#rs-system" }
+        ],
+        "decode": [
+          { "key": "recipe", "type": "string", "to": "#rs-recipe" },
+          { "key": "multiplier", "type": "number", "to": "#rs-multiplier" },
+          { "key": "system", "type": "string", "to": "#rs-system" }
+        ],
+        "sample": {
+          "rs-recipe": "1/2 cup flour\n2 tbsp sugar\n3 eggs\n350 °F oven",
+          "rs-multiplier": "2",
+          "rs-system": "metric"
+        }
+      },
+      "shortcuts": [
+        { "key": "s", "label": "Load sample recipe", "action": "sample" },
+        { "key": "r", "label": "Reset", "action": "reset" },
+        { "key": "p", "label": "Print", "action": "embed" },
+        { "key": "c", "label": "Copy share URL", "action": "copy" }
+      ],
+      "history-keys": ["rs-recipe", "rs-multiplier", "rs-system"],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/recipe-scaler/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 360,
+        "min-height": 320
+      },
+      "search-priority": 7,
+      "tab-order-canonical": [
+        "#shell-skip",
+        "a.back-link",
+        "#rs-recipe",
+        "#rs-multiplier",
+        "#rs-system",
+        "[data-action=\"sample\"]",
+        "[data-action=\"reset\"]",
+        "[data-action=\"print\"]",
+        "[data-action=\"share\"]",
+        "#rs-output"
+      ]
+    },
+    {
+      "id": "grocery-list",
+      "slug": "grocery-list",
+      "title": "Grocery List",
+      "description": "Compose a categorized grocery list and share it via URL. Items grouped by category, hand-rolled base64 URL state, printable clean layout.",
+      "category": "Household",
+      "pack": ["household"],
+      "icon": "assets/icons/grocery-list.svg",
+      "keywords": [
+        "grocery",
+        "list",
+        "shopping",
+        "meal",
+        "planner",
+        "categorized",
+        "share",
+        "household"
+      ],
+      "last-updated": "2026-08-14T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "gl-list": ""
+        },
+        "encode": [
+          { "key": "list", "type": "string", "from": "#gl-list" }
+        ],
+        "decode": [
+          { "key": "list", "type": "string", "to": "#gl-list" }
+        ],
+        "sample": {
+          "gl-list": "W10="
+        }
+      },
+      "shortcuts": [
+        { "key": "/", "label": "Focus item input", "action": "embed" },
+        { "key": "p", "label": "Print list", "action": "embed" }
+      ],
+      "history-keys": ["gl-list"],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/grocery-list/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 360,
+        "min-height": 320
+      },
+      "search-priority": 7,
+      "tab-order-canonical": [
+        "#shell-skip",
+        "a.back-link",
+        "#gl-item",
+        "#gl-category",
+        "#gl-add",
+        "#gl-print",
+        "#gl-share",
+        "#gl-reset",
+        "#gl-output"
+      ]
     }
   ]
 }

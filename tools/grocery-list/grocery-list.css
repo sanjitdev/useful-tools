@@ -1,0 +1,198 @@
+/* ============================================
+   Grocery List — Story 9.10
+   Tool-specific styles for the categorized
+   grocery list tool. Reuses shared tokens
+   from assets/css/components.css. The
+   .shell-main + .panel + .result-card shell
+   come from the shared stylesheet; this file
+   adds the input grid, output list, category
+   section, item row variants (checked / empty),
+   and the print rules that hide controls
+   and checkboxes on paper.
+
+   The .grocery-output is the top-level <main>
+   inside the result card; sections (.grocery-
+   category) are appended inside it. The print
+   stylesheet in assets/css/print.css already
+   hides chrome + buttons; we add a tool-level
+   rule to hide checkboxes per AC-5.
+   ============================================ */
+
+.grocery-input-grid {
+  display: grid;
+  grid-template-columns: 1fr 160px 110px;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+@media (max-width: 720px) {
+  .grocery-input-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.grocery-input-grid .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.grocery-input-grid .input,
+.grocery-input-grid select.input {
+  width: 100%;
+  min-width: 0;
+}
+
+.grocery-field-item {
+  grid-column: 1 / 2;
+}
+
+.grocery-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+
+.grocery-output {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+}
+
+.grocery-empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-size: 14px;
+  padding: 12px 0;
+  margin: 0;
+}
+
+.grocery-category {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-surface);
+  padding: 12px 16px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.grocery-category h3 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.grocery-category ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.grocery-category li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.grocery-category li input[type="checkbox"] {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.grocery-category .item-name {
+  flex: 1;
+  min-width: 0;
+}
+
+/* When checked, line-through the item name (AC-4) */
+.grocery-category li[data-checked="true"] .item-name {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+}
+
+/* ============================================
+   Reduced motion: no transitions on the
+   checked toggles or category re-render.
+   The active state stays a static style swap.
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .grocery-category,
+  .grocery-category li {
+    transition: none;
+  }
+}
+
+:root:where([data-reduced-motion="true"]) .grocery-category,
+:root:where([data-reduced-motion="true"]) .grocery-category li {
+  transition: none;
+}
+
+/* ============================================
+   Force-colors (high-contrast) — make the
+   checkbox + category border visibly solid
+   under forced-colors mode. Per Story 5.9
+   the system colors override the cobalt
+   palette; we use CanvasText/Canvas to
+   stay legible.
+   ============================================ */
+@media (forced-colors: active) {
+  .grocery-category {
+    border-color: CanvasText;
+  }
+  .grocery-category li input[type="checkbox"] {
+    border: 1px solid CanvasText;
+    forced-color-adjust: auto;
+  }
+}
+
+/* ============================================
+   Print: drop the input/buttons, hide the
+   empty state, hide checkboxes, render the
+   list as plain text sorted under per-
+   category headings. assets/css/print.css
+   already hides the buttons and the chrome;
+   the two rules below are tool-specific.
+   ============================================ */
+@media print {
+  .grocery-input-grid,
+  .grocery-actions {
+    display: none;
+  }
+  .grocery-empty {
+    display: none;
+  }
+  .grocery-category li input[type="checkbox"] {
+    display: none;
+  }
+  .grocery-category {
+    border: none;
+    border-top: 1px solid #000;
+    border-radius: 0;
+    background: transparent;
+    padding: 4px 0;
+  }
+  .grocery-category h3 {
+    color: #000 !important;
+  }
+  .grocery-category li[data-checked="true"] .item-name {
+    color: #000 !important;
+    text-decoration: line-through;
+  }
+}

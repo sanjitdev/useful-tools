@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta http-equiv="Permissions-Policy" content="unload=(*)">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Multiply ingredient quantities by N and convert between metric and imperial units. Hand-rolled parser, fraction-aware, fully offline.">
+  <title>Recipe Scaler · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
+  <script> (function(){try{var t=localStorage.getItem("ht.theme");var mqd=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)");t=t==="light"||t==="dark"?t:(mqd&&mqd.matches?"dark":"light");var d=document.documentElement;d.setAttribute("data-theme",t);d.style.backgroundColor=t==="dark"?"#0f1117":"#f7f8fb";d.style.color=t==="dark"?"#e8eaf0":"#1a1d29";try{if(/[?&]embed=1(?:&|$)/.test(location.search)){d.setAttribute("data-embed","1");}}catch(_){}try{var po=window.PerformanceObserver?new PerformanceObserver(function(list){try{var e=list.getEntries().find(function(x){return x.name==="first-paint"});if(e){d.dispatchEvent(new CustomEvent("ht:fouc-resolved",{detail:{elapsedMs:e.startTime}}));po.disconnect();}}catch(_){}}):null;if(po){po.observe({type:"paint",buffered:true});}}catch(_){}}catch(e){document.documentElement.setAttribute("data-theme","light")}})(); </script>
+<!-- /shell:head-snippet -->
+
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/components.css">
+  <link rel="stylesheet" href="../../assets/css/tools.css">
+  <link rel="stylesheet" href="./recipe-scaler.css">
+  <link rel="stylesheet" href="../../assets/css/print.css" media="print">
+</head>
+<body>
+  <a class="shell-skip" href="#main">Skip to main content</a>
+
+  <header class="site-header" role="banner" aria-label="Handy Tools">
+  <div class="container">
+    <a class="shell-brand" href="../../index.html">
+      <span class="shell-brand-mark">H</span>
+      <span>Handy Tools</span>
+    </a>
+    <nav class="shell-header-nav" aria-label="Primary">
+      <button class="shell-search-trigger" type="button" aria-label="Search tools">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span>Search</span>
+      </button>
+      <button class="theme-toggle" type="button" aria-label="Toggle theme">
+        <svg class="moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l-1.41-1.41"/></svg>
+      </button>
+      <button class="shell-locale" type="button" aria-label="Change language" data-locale="en" disabled>EN</button>
+      <button class="shell-settings" type="button" aria-label="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+  <main id="main" class="shell-main" data-slug="recipe-scaler" aria-label="Recipe Scaler" tabindex="-1">
+    <div id="top"></div>
+    <header class="tool-header">
+      <a href="../../index.html" class="back-link">← All tools</a>
+      <h1>Recipe Scaler</h1>
+      <p class="tool-subtitle">Multiply ingredient quantities by N and convert between metric and imperial units.</p>
+    </header>
+
+    <div class="panel">
+      <div class="panel-title">Recipe</div>
+      <div class="recipe-input-grid">
+        <div class="field recipe-field-recipe">
+          <label class="field-label" for="rs-recipe">Ingredients (one per line)</label>
+          <textarea id="rs-recipe" class="input" rows="8" placeholder="1/2 cup flour&#10;2 tbsp sugar&#10;3 eggs" spellcheck="false"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label" for="rs-multiplier">Multiplier (×)</label>
+          <input id="rs-multiplier" class="input" type="number" min="0.1" max="100" step="0.5" value="2">
+        </div>
+        <div class="field">
+          <label class="field-label" for="rs-system">Unit system</label>
+          <select id="rs-system" class="input">
+            <option value="metric">Metric</option>
+            <option value="imperial">Imperial</option>
+          </select>
+        </div>
+      </div>
+      <div class="recipe-actions">
+        <button type="button" class="btn btn-primary" data-action="sample">Load sample</button>
+        <button type="button" class="btn" data-action="reset">Reset</button>
+        <button type="button" class="btn" data-action="print">Print</button>
+        <button type="button" class="btn" data-action="share">Copy share URL</button>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-card-title">Scaled recipe</div>
+      <div class="recipe-summary" id="rs-summary" aria-live="polite"></div>
+      <ul class="recipe-output" id="rs-output" aria-live="polite"></ul>
+    </div>
+  </main>
+  <!-- shell:print-footer (Story 3.10) -->
+<footer class="print-only print-footer" aria-hidden="true">
+  <p class="print-url"><span class="print-url-label">URL:</span> <span class="print-url-value"></span></p>
+  <p class="print-meta">Last updated: <time class="print-last-updated" datetime=""></time></p>
+</footer>
+<script class="print-footer-populate">(function(){try{var url=document.querySelector("footer.print-only .print-url-value");if(url){url.textContent=location.href;}var ts=document.querySelector("footer.print-only .print-last-updated");if(ts){var slug="";var main=document.getElementById("main");if(main&&main.dataset&&main.dataset.slug){slug=main.dataset.slug;}var inline=document.getElementById("ht-tools-json-inline");if(inline){try{var tools=JSON.parse(inline.textContent||"[]");if(Array.isArray(tools)){for(var i=0;i<tools.length;i+=1){var t=tools[i];if(t&&t.slug===slug&&t["last-updated"]){ts.textContent=t["last-updated"];ts.setAttribute("datetime",t["last-updated"]);break;}}}}catch(_e){}}}}catch(_e){}})();</script>
+<!-- /shell:print-footer -->
+
+  <footer class="site-footer" role="contentinfo" aria-label="Site information">
+  <div class="container">
+    <nav class="shell-footer-nav" aria-label="Footer">
+      <a href="/privacy">Privacy</a>
+      <a href="/quality">Quality</a>
+      <a href="/view-source?tool=" data-view-source-link>View source</a>
+      <a href="" rel="noopener noreferrer" data-view-source-github hidden>View on GitHub</a>
+      <a href="https://github.com/sanjitdev/useful-tools" rel="noopener noreferrer">GitHub</a>
+    </nav>
+    <small class="shell-footer-copy">&copy; <span id="ht-footer-year">2026</span> Handy Tools. Built with vanilla JS.</small>
+  </div>
+</footer>
+
+  <!-- Canonical source for the command palette overlay.
+     Mounted as a static include in every page by `scripts/shell-template.py`
+     (mirrors the chrome.html header/footer convention). The drift check
+     (`scripts/shell-drift-check.py`) extracts the region between the marker
+     comments and byte-matches every page.
+
+     ARIA pattern: WAI-ARIA 1.1 combobox + listbox (UX-DR-19). The wrapper is
+     role="combobox" with aria-haspopup="listbox" + aria-owns pointing to the
+     listbox id. The input is role="searchbox" with aria-controls pointing to
+     the same listbox. Hidden + aria-hidden="true" in the static state —
+     `assets/js/shell.js` toggles aria-expanded, [hidden], and aria-hidden
+     when openPalette() / closePalette() run.
+
+     The live region announces the result count on every result-set change
+     (UX-DR-18 + EXPERIENCE.md line 486). The footer carries the chord hints
+     and is meaningful AT content (aria-hidden removed when populated). -->
+<div class="shell-palette" id="palette" role="combobox" aria-haspopup="listbox" aria-owns="palette-listbox" aria-expanded="false" aria-label="Command palette" hidden>
+  <div class="shell-palette-panel">
+    <input class="shell-palette-input" id="palette-input" type="search" role="searchbox" aria-controls="palette-listbox" aria-activedescendant="" aria-autocomplete="list" placeholder="Search tools…" autocomplete="off" spellcheck="false" />
+    <ul class="shell-palette-list" id="palette-listbox" role="listbox" aria-label="Tools">
+      <li class="shell-palette-empty" role="presentation">No recent tools yet</li>
+    </ul>
+    <div id="palette-live" class="shell-sr-only" aria-live="polite" aria-atomic="true"></div>
+    <div class="shell-palette-footer">↑↓ Navigate · Enter Open · Esc Close · ? Help</div>
+  </div>
+</div>
+
+  <!-- Canonical source for the Settings modal overlay (Story 1.8).
+     Mounted as a static include in every page by `scripts/shell-template.py`
+     (mirrors the palette.html convention). The drift check
+     (`scripts/shell-drift-check.py`) extracts the region between the marker
+     comments and byte-matches every page.
+
+     ARIA pattern: WAI-ARIA 1.2 modal dialog. role="dialog", aria-modal="true",
+     aria-labelledby points at the heading id. Hidden + aria-hidden="true" in
+     the static state — `assets/js/shell.js` toggles [hidden] / aria-hidden
+     when openSettings() / closeSettings() run.
+
+     Settings fields:
+       1. Theme          (LIVE — Story 1.8 wires; mirror of header toggle)
+       2. Language       (LIVE — plain-string persistence; Story 7.7 wires translations)
+       3. Reduced motion (LIVE — sets <html data-reduced-motion>)
+       4. Default units  (LIVE — Story 3.5 wires; metric/imperial select)
+       5. Default currency (LIVE — Story 3.5 wires; ISO-4217 select)
+       6. Font scale     (LIVE — Story 3.5 wires; 0.85–1.4 range, 0.05 step)
+       7. Clear all local data (LIVE — only consumer of SETTINGS_KEYS)
+
+     Per AD-4 the settings UI never renders inside a tool page; the cog is
+     hidden in ?embed=1 mode (AD-7). The modal opens via openSettings() from
+     the header cog click handler at assets/js/shell.js. -->
+<div id="shell-settings-modal" class="shell-settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" aria-hidden="true" hidden>
+  <div class="shell-settings-modal__backdrop" data-settings-dismiss></div>
+  <div class="shell-settings-modal__panel" tabindex="-1">
+    <header class="shell-settings-modal__header">
+      <h2 id="settings-modal-title" class="shell-settings-modal__title">Settings</h2>
+      <button type="button" class="shell-settings-modal__close" aria-label="Close settings" data-settings-dismiss>×</button>
+    </header>
+
+    <form class="shell-settings-modal__body" id="shell-settings-form" onsubmit="return false;">
+
+      <!-- 1. Theme (LIVE — single <select> per Story 3.5 AC-1) -->
+      <div class="shell-settings-field" data-setting-key="ht.theme">
+        <label class="shell-settings-label" for="ht-theme">Theme</label>
+        <div class="shell-settings-control">
+          <select id="ht-theme" name="ht.theme" class="shell-settings-select">
+            <option value="auto">Auto (follow system)</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 2. Language (LIVE read+write — JS populates from navigator.languages) -->
+      <div class="shell-settings-field" data-setting-key="ht.locale">
+        <label class="shell-settings-label" for="ht-locale">Language</label>
+        <div class="shell-settings-control">
+          <select id="ht-locale" name="ht.locale" class="shell-settings-select">
+            <option value="en">English</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 3. Reduced motion (LIVE) -->
+      <div class="shell-settings-field" data-setting-key="ht.reducedMotion">
+        <label class="shell-settings-label" for="ht-reducedMotion">Reduce motion</label>
+        <div class="shell-settings-control">
+          <label class="shell-settings-checkbox"><input id="ht-reducedMotion" type="checkbox" name="ht.reducedMotion" value="1"> Disable animations and transitions</label>
+        </div>
+      </div>
+
+      <!-- 4. Default units (LIVE — Story 3.5) -->
+      <div class="shell-settings-field" data-setting-key="ht.units">
+        <label class="shell-settings-label" for="ht-units">Default units</label>
+        <div class="shell-settings-control">
+          <select id="ht-units" name="ht.units" class="shell-settings-select">
+            <option value="metric">Metric</option>
+            <option value="imperial">Imperial</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 5. Default currency (LIVE — Story 3.5, ISO-4217 select) -->
+      <div class="shell-settings-field" data-setting-key="ht.currency">
+        <label class="shell-settings-label" for="ht-currency">Default currency</label>
+        <div class="shell-settings-control">
+          <select id="ht-currency" name="ht.currency" class="shell-settings-select">
+            <option value="USD">USD — US Dollar</option>
+            <option value="EUR">EUR — Euro</option>
+            <option value="GBP">GBP — British Pound</option>
+            <option value="JPY">JPY — Japanese Yen</option>
+            <option value="CAD">CAD — Canadian Dollar</option>
+            <option value="AUD">AUD — Australian Dollar</option>
+            <option value="INR">INR — Indian Rupee</option>
+            <option value="CNY">CNY — Chinese Yuan</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 6. Font scale (LIVE — Story 3.5, 0.85–1.4 step 0.05) -->
+      <div class="shell-settings-field" data-setting-key="ht.fontScale">
+        <label class="shell-settings-label" for="ht-fontScale">Font scale</label>
+        <div class="shell-settings-control">
+          <input id="ht-fontScale" type="range" name="ht.fontScale" min="0.85" max="1.4" step="0.05" value="1" aria-describedby="ht-fontScale-output">
+          <output id="ht-fontScale-output" aria-live="polite">100%</output>
+        </div>
+      </div>
+
+      <!-- 7. Data — Export (Story 3.7) + Import (Story 3.8) — FR-13 export/import pair -->
+      <div class="shell-settings-field shell-settings-field--data">
+        <h3 class="shell-settings-section-title">Data</h3>
+        <div class="shell-settings-control">
+          <button type="button" id="shell-settings-export" class="shell-settings-modal__export"
+                  aria-label="Export your settings, history, and saved tools as a JSON file"
+                  data-ht-action="export-data">Export my data…</button>
+          <button type="button" id="shell-settings-import" class="shell-settings-modal__import"
+                  aria-label="Import a previously exported JSON file and merge it into your settings, history, and saved tools"
+                  data-ht-action="import-data">Import…</button>
+        </div>
+      </div>
+
+      <!-- 8. Clear all local data (LIVE — only consumer of SETTINGS_KEYS) -->
+      <div class="shell-settings-field shell-settings-field--danger">
+        <div class="shell-settings-control">
+          <button type="button" id="shell-settings-clear" class="shell-settings-modal__danger">Clear all local data…</button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+  <!-- Canonical source for the keyboard shortcuts help overlay.
+     Mounted as a static include in every page by `scripts/shell-template.py`
+     (mirrors the chrome.html header/footer + palette.html convention). The
+     drift check (`scripts/shell-drift-check.py`) extracts the region between
+     the marker comments and byte-matches every page.
+
+     ARIA pattern: non-modal overlay (UX-DR-3 + EXPERIENCE.md:422). The
+     wrapper is role="region" with aria-label="Keyboard shortcuts" and is
+     NOT aria-modal — Tab must move focus out of the overlay into the page
+     beneath. The keyboard help overlay is reachable from any tool without
+     first opening the palette (epics.md:734-748 AC #4).
+
+     Hidden + aria-hidden="true" in the static state — `assets/js/help-overlay.js`
+     toggles [hidden] / aria-hidden when openHelp() / closeHelp() run. The
+     renderer populates the per-tool section on tool pages by reading
+     `tools.json` shortcuts (re-using shell.js's findToolEntry helper).
+
+     The search input is debounced 50ms; the live region announces the
+     visible-row count on every filter change so SR users hear "N shortcuts
+     shown" without the focus pulling them out of the search box. -->
+
+<div class="shell-help" id="help" role="region" aria-label="Keyboard shortcuts" hidden>
+  <div class="shell-help-panel">
+    <header class="shell-help-header">
+      <h2 id="help-title" tabindex="-1">Keyboard shortcuts</h2>
+      <button class="help-close" type="button" aria-label="Close keyboard shortcuts">×</button>
+    </header>
+    <input class="shell-help-search" id="help-search" type="search" aria-label="Filter shortcuts" placeholder="Type to filter…" autocomplete="off" spellcheck="false" />
+    <div id="help-live" class="shell-sr-only" aria-live="polite" aria-atomic="true"></div>
+    <section id="help-tool" class="shell-help-section" aria-labelledby="help-tool-heading" hidden>
+      <h3 id="help-tool-heading">Per-tool shortcuts</h3>
+      <ul class="shell-help-list" id="help-tool-list" role="list"></ul>
+    </section>
+    <section id="help-global" class="shell-help-section" aria-labelledby="help-global-heading">
+      <h3 id="help-global-heading">Global shortcuts</h3>
+      <ul class="shell-help-list" id="help-global-list" role="list"></ul>
+    </section>
+    <p class="shell-help-empty" id="help-empty" role="presentation" hidden>No shortcuts match.</p>
+    <p class="shell-help-foot">Press <kbd>?</kbd> to close · <kbd>/</kbd> to filter · <kbd>Esc</kbd> to leave the filter</p>
+  </div>
+</div>
+
+  
+
+  <!-- Canonical source for the command palette overlay.
+     Mounted as a static include in every page by `scripts/shell-template.py`
+     (mirrors the chrome.html header/footer convention). The drift check
+     (`scripts/shell-drift-check.py`) extracts the region between the marker
+     comments and byte-matches every page.
+
+     ARIA pattern: WAI-ARIA 1.1 combobox + listbox (UX-DR-19). The wrapper is
+     role="combobox" with aria-haspopup="listbox" + aria-owns pointing to the
+     listbox id. The input is role="searchbox" with aria-controls pointing to
+     the same listbox. Hidden + aria-hidden="true" in the static state —
+     `assets/js/shell.js` toggles aria-expanded, [hidden], and aria-hidden
+     when openPalette() / closePalette() run.
+
+     The live region announces the result count on every result-set change
+     (UX-DR-18 + EXPERIENCE.md line 486). The footer carries the chord hints
+     and is meaningful AT content (aria-hidden removed when populated). -->
+  <!-- ht:tools-json-inline-start -->
+  <script type="application/json" id="ht-tools-json-inline">{"$schema":"tools.schema.json","schemaVersion":"1","releaseVersion":"0.0.0","generated":"2026-08-14T00:00:00Z","tools":[{"id":"recipe-scaler","slug":"recipe-scaler","title":"Recipe Scaler","description":"Multiply ingredient quantities by N and convert between metric and imperial units. Hand-rolled parser, fraction-aware, unit-allowlist safe.","category":"Cooking","pack":["travel"],"icon":"assets/icons/recipe-scaler.svg","keywords":["recipe","scaler","cooking","ingredient","metric","imperial","unit","conversion","fraction","kitchen","baking"],"last-updated":"2026-08-14T00:00:00Z","ready":true,"score":8,"urlState":{"default":{"rs-recipe":"","rs-multiplier":"2","rs-system":"metric"},"encode":[{"key":"recipe","type":"string","from":"#rs-recipe"},{"key":"multiplier","type":"number","from":"#rs-multiplier"},{"key":"system","type":"string","from":"#rs-system"}],"decode":[{"key":"recipe","type":"string","to":"#rs-recipe"},{"key":"multiplier","type":"number","to":"#rs-multiplier"},{"key":"system","type":"string","to":"#rs-system"}],"sample":{"rs-recipe":"1/2 cup flour\n2 tbsp sugar\n3 eggs\n350 °F oven","rs-multiplier":"2","rs-system":"metric"}},"shortcuts":[{"key":"s","label":"Load sample recipe","action":"sample"},{"key":"r","label":"Reset","action":"reset"},{"key":"p","label":"Print","action":"embed"},{"key":"c","label":"Copy share URL","action":"copy"}],"history-keys":["rs-recipe","rs-multiplier","rs-system"],"view-source":{"enabled":true,"path":"tools/recipe-scaler/index.html"},"embed-snippet":{"enabled":true,"badge-default":true,"min-width":360,"min-height":320},"search-priority":7,"tab-order-canonical":["#shell-skip","a.back-link","#rs-recipe","#rs-multiplier","#rs-system","[data-action=\"sample\"]","[data-action=\"reset\"]","[data-action=\"print\"]","[data-action=\"share\"]","#rs-output"]}]}</script>
+  <!-- ht:tools-json-inline-end -->
+  <script src="../../assets/js/site-config.js"></script>
+  <script src="../../assets/js/storage-registry.js"></script>
+  <script src="../../assets/js/utils.js"></script>
+  <script src="../../assets/js/url.js"></script>
+  <script src="../../assets/js/history.js"></script>
+  <script src="../../assets/js/sample-data.js"></script>
+  <script src="../../assets/js/share.js"></script>
+  <script src="../../assets/js/export.js"></script>
+  <script src="../../assets/js/import.js"></script>
+  <script src="../../assets/js/a11y.js"></script>
+  <script src="../../assets/js/palette-actions.js"></script>
+  <script src="../../assets/js/shell.js" defer></script>
+  <script src="../../assets/js/search.js" defer></script>
+  <script src="../../assets/js/help-overlay.js" defer></script>
+  <script src="../../assets/js/global-chords.js" defer></script>
+  <script src="./recipe-scaler.js"></script>
+</body>
+</html>

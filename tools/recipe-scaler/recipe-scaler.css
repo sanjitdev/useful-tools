@@ -1,0 +1,188 @@
+/* ============================================
+   Recipe Scaler — Story 9.9
+   Tool-specific styles for the recipe parsing +
+   scaling + unit conversion tool. Reuses shared
+   tokens from assets/css/components.css. The
+   .shell-main + .panel + .result-card + .grid-2
+   shell come from the shared stylesheet; this
+   file adds the input grid, output list, line
+   variants (parsed/unparsed), and the unknown-
+   unit warning chip, plus reduced-motion.
+   ============================================ */
+
+.recipe-input-grid {
+  display: grid;
+  grid-template-columns: 1fr 120px 160px;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+@media (max-width: 720px) {
+  .recipe-input-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.recipe-input-grid .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.recipe-input-grid .input,
+.recipe-input-grid select.input {
+  width: 100%;
+  min-width: 0;
+}
+
+.recipe-field-recipe {
+  grid-column: 1 / -1;
+}
+
+.recipe-field-recipe textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  font-family: var(--font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.recipe-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+
+.recipe-output {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recipe-line {
+  display: grid;
+  grid-template-columns: 110px 110px 1fr;
+  gap: var(--space-3);
+  padding: 8px 12px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-family: var(--font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+  font-size: 14px;
+  line-height: 1.4;
+  align-items: baseline;
+}
+
+.recipe-line .recipe-line-qty {
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.recipe-line .recipe-line-unit {
+  color: var(--color-text-muted);
+  text-transform: lowercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.recipe-line .recipe-line-ingredient {
+  color: var(--color-text);
+}
+
+.recipe-line-unparsed {
+  list-style: none;
+  padding: 8px 12px;
+  border-radius: var(--radius-md, 8px);
+  background: color-mix(in srgb, var(--color-warning, #d97706) 8%, transparent);
+  border: 1px dashed var(--color-warning, #d97706);
+  color: var(--color-text);
+  font-size: 13px;
+  font-family: var(--font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+}
+
+.recipe-line-unparsed code {
+  background: var(--color-surface);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.recipe-line-unparsed-explain {
+  color: var(--color-text-muted);
+  margin-left: 6px;
+  font-family: var(--font-system, system-ui, -apple-system, "Segoe UI", sans-serif);
+}
+
+/* Unknown-unit warning chip: small inline pill */
+.unit-warning {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-warning, #d97706) 18%, transparent);
+  color: var(--color-warning, #d97706);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: lowercase;
+  border: 1px solid color-mix(in srgb, var(--color-warning, #d97706) 40%, transparent);
+  cursor: help;
+}
+
+.recipe-output-empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-size: 14px;
+  padding: 12px 0;
+}
+
+.recipe-summary {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* ============================================
+   Reduced motion: no transitions on the
+   unparsed-line flash or output re-render.
+   The flash class stays a static color swap.
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .recipe-line,
+  .recipe-line-unparsed {
+    transition: none;
+  }
+}
+
+:root:where([data-reduced-motion="true"]) .recipe-line,
+:root:where([data-reduced-motion="true"]) .recipe-line-unparsed {
+  transition: none;
+}
+
+/* ============================================
+   Print: drop the input/buttons, keep the
+   output list clean for a printed recipe.
+   ============================================ */
+@media print {
+  .recipe-input-grid,
+  .recipe-actions,
+  .recipe-summary {
+    display: none;
+  }
+  .recipe-line {
+    grid-template-columns: 90px 90px 1fr;
+    border-color: #ccc;
+    background: transparent;
+    break-inside: avoid;
+  }
+  .recipe-line-unparsed {
+    background: transparent;
+    border-color: #999;
+  }
+}

@@ -644,6 +644,37 @@ jobs:
         # 43 PASS expected. Vacuous-pass guard catches hollow runs.
         run: make exam-countdown-smoke
 
+      - name: Recipe Scaler smoke (Story 9.9)
+        # Story 9.9: hand-rolled fraction parser + Stern-Brocot
+        # formatter with cap 16, parseLine canonical regex (fraction
+        # first), metric/imperial conversion with temperature formula,
+        # 0.1..100 multiplier clamp, unparseable-line exclusion (2
+        # parsed + 1 unparsed), unknown-unit warning chip,
+        # base64 URL state with unicode safety (btoa(unescape(
+        # encodeURIComponent()))), debounced 120ms render, reduced
+        # motion, keyboard shortcuts s/r/p/c, privacy (one
+        # sanctioned fetch for unit-conversion.json), tab-order-
+        # canonical selector coverage, no console.error across
+        # boot + change sequences.
+        # 67 PASS expected. Vacuous-pass guard catches hollow runs.
+        run: make recipe-scaler-smoke
+
+      - name: Grocery List smoke (Story 9.10)
+        # Story 9.10: categorized grocery list tool. Verifies addItem
+        # (input + category select + Add button), category grouping
+        # (8 categories, sections rendered only for non-empty),
+        # URL state round-trip via base64 JSON ({items:[{id,name,
+        # category,checked}]}), unicode-safe encoding (cafe au lait),
+        # checkbox toggle with line-through + data-checked,
+        # empty state rendering, 100-item id uniqueness (crypto
+        # randomUUID + Math.random fallback), print button calls
+        # window.print, reset clears array + URL state, privacy
+        # (no fetch / XHR / console.error on happy path), tab-order-
+        # canonical including skip-link + back-link + 9 selectors,
+        # keyboard shortcuts (/ focus item, p print, Enter add).
+        # 30+ PASS expected. Vacuous-pass guard catches hollow runs.
+        run: make grocery-list-smoke
+
       - name: AST gates negative-test battery (Story 1.17 AC-4)
         # Story 1.17 AC-4: proves the AST migration didn't regress
         # either gate's behavior. Builds a temp repo with three
