@@ -340,6 +340,32 @@ console.log('--- XII. Vacuous-pass guard ---');
 }
 
 // =============================================================
+// XIII. Branching demo (Story 9.12.1 — showIf)
+// =============================================================
+console.log('--- XIII. Branching demo ---');
+{
+  // XIII-A: preview tool declares showIf on at least one of its demo cards
+  var hasShowIf = /showIf\s*[:=]/.test(TOOL_SRC);
+  check(hasShowIf, 'quiz-preview.js declares showIf on at least one demo card');
+
+  // XIII-B: the conditional-skip demo card references an earlier question's id
+  // (look for q1-vibe or another question id inside a showIf predicate)
+  var referencesEarlier = /showIf[^]*q1-vibe/.test(TOOL_SRC)
+    || /showIf[^]*q[1-9]/.test(TOOL_SRC);
+  check(referencesEarlier, 'conditional-skip demo references an earlier question id');
+
+  // XIII-C: the reveal panel still works for the branched case (string-search
+  // for the quiz-reveal-custom class)
+  check(has(TOOL_SRC, 'quiz-reveal-custom'),
+    'reveal panel renders for branched case (quiz-reveal-custom present)');
+
+  // XIII-D: preserve the AD-14 boundary from Story 9.12 — no
+  // navigator.clipboard.writeText in this tool's source.
+  var hasBareClip = /navigator\.clipboard\.writeText\s*\(/.test(TOOL_SRC);
+  check(!hasBareClip, 'no bare navigator.clipboard.writeText (AD-14 boundary)');
+}
+
+// =============================================================
 // Final summary
 // =============================================================
 

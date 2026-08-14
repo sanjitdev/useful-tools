@@ -1,7 +1,8 @@
 /* ============================================
    quiz-preview.js — Story 9.12 preview tool
-   Mounts HT.quiz with five demo questions and a
-   reveal panel that has Share / Print / Reset.
+   Mounts HT.quiz with six demo questions (one is
+   conditionally skipped — Story 9.12.1 branching)
+   and a reveal panel that has Share / Print / Reset.
 
    Listens for the 'shell:ready' event published
    by assets/js/shell.js after storage/url/init
@@ -58,6 +59,19 @@
       label: 'Deploy?',
       prompt: 'When are you shipping?',
       input: 'date'
+    },
+    {
+      // Story 9.12.1 — branching demo: skipped when the user picked
+      // 'calm' on q1-vibe (i.e. coffee + silence).
+      id: 'q6-coffee-strength',
+      label: 'Coffee strength',
+      prompt: 'How strong do you like your coffee?',
+      options: [
+        { value: 'mild',    label: 'Mild — barely there' },
+        { value: 'medium',  label: 'Medium' },
+        { value: 'strong',  label: 'Strong — wake me up' }
+      ],
+      showIf: function (answers) { return answers['q1-vibe'] !== 'calm'; }
     }
   ];
 

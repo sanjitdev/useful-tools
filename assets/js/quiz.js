@@ -21,6 +21,12 @@
      HT.quiz.destroy(handle)
      HT.quiz.isOpen(handle?) → boolean
 
+   Question spec (additive, Story 9.12.1):
+     { id, label, prompt, options?, input?, min?, max?, step?, helpText?,
+       showIf?: ((answers) => boolean) | { skipIf?: (answers) => boolean } }
+     showIf defaults to "always visible" — predicates that throw are treated
+     as "visible" so a broken predicate never blocks the user.
+
    Handle API:
      { close, destroy, getAnswers, jumpTo, progress, isOpen }
 
@@ -212,16 +218,19 @@
   /* ----- Render header + footer ----- */
 
   function buildHeader(state) {
+    // Story 9.12.1 — visual position is the index into the visible list,
+    // not the logical question index.
+    var visual = (typeof state._visualIndex === 'number') ? state._visualIndex : 0;
     var progress = el('progress', {
       class: 'quiz-progress',
       max: String(state.total),
-      value: String(state.current + 1),
+      value: String(visual + 1),
       'aria-label': 'Quiz progress',
     });
     var label = el('p', {
       class: 'quiz-progress-label',
       id: 'quiz-progress-label',
-      text: 'Question ' + (state.current + 1) + ' of ' + state.total,
+      text: 'Question ' + (visual + 1) + ' of ' + state.total,
     });
     return el('header', { class: 'quiz-header' }, [progress, label]);
   }
@@ -324,6 +333,47 @@
 
   /* ----- Render card-stack + footer ----- */
 
+  // Story 9.12.1 — branching helpers
+  function isHidden(state, logicalIndex) {
+    if (!state || !state.questions[logicalIndex]) return true;
+    var q = state.questions[logicalIndex];
+    if (typeof q._skipIf !== 'function') return false;
+    try { return !!q._skipIf(state.answers); } catch (_) { return false; }
+  }
+
+  function visibleQuestions(state) {
+    var out = [];
+    if (!state || !state.questions) return out;
+    for (var i = 0; i < state.questions.length; i += 1) {
+      if (!isHidden(state, i)) out.push({ q: state.questions[i], index: i });
+    }
+    return out;
+  }
+
+  function visibleIndexOf(state, logicalIndex) {
+    var list = visibleQuestions(state);
+    for (var i = 0; i < list.length; i += 1) {
+      if (list[i].index === logicalIndex) return i;
+    }
+    return -1;
+  }
+
+  // Recompute the visible list after every emitChange. If the current logical
+  // card is now hidden, advance forward over hidden siblings and re-render.
+  // Sticky for past, dynamic for future — never rewinds the user.
+  function reevaluateAndAdvanceIfHidden(state) {
+    if (!state) return;
+    if (state.current >= state.questions.length) {
+      // Already in reveal territory — nothing to do.
+      state.total = visibleQuestions(state).length;
+      return;
+    }
+    while (state.current < state.questions.length && isHidden(state, state.current)) {
+      state.current += 1;
+    }
+    state.total = visibleQuestions(state).length;
+  }
+
   function renderStack(state) {
     if (!state.stack) return;
     clearChildren(state.stack);
@@ -331,9 +381,19 @@
       // Reveal territory — handled elsewhere
       return;
     }
-    var card = buildCard(state.questions[state.current], state.current, state.total);
+    // Story 9.12.1 — recompute visible list and visual index every render
+    var list = visibleQuestions(state);
+    state.total = list.length;
+    var visual = visibleIndexOf(state, state.current);
+    if (visual < 0) {
+      // Current logical card is hidden — renderReveal path took over
+      return;
+    }
+    state._visualIndex = visual;
+
+    var card = buildCard(state.questions[state.current], visual, state.total);
     state.stack.appendChild(card);
-    state.stack.setAttribute('data-quiz-current', 'card-' + (state.current + 1));
+    state.stack.setAttribute('data-quiz-current', 'card-' + (visual + 1));
     card._state = state;
     state._lastRenderedCard = card;
 
@@ -342,16 +402,16 @@
 
     // Update progress
     if (state.progressEl) {
-      try { state.progressEl.setAttribute('value', String(state.current + 1)); } catch (_) {}
+      try { state.progressEl.setAttribute('value', String(visual + 1)); } catch (_) {}
     }
     if (state.progressLabelEl) {
       try { state.progressLabelEl.textContent =
-        'Question ' + (state.current + 1) + ' of ' + state.total; } catch (_) {}
+        'Question ' + (visual + 1) + ' of ' + state.total; } catch (_) {}
     }
 
     // Last card? Change Next button text to "Finish"
     if (state.nextBtn) {
-      if (state.current === state.questions.length - 1) {
+      if (visual === state.total - 1) {
         try { state.nextBtn.textContent = 'Finish ✓'; } catch (_) {}
       } else {
         try { state.nextBtn.textContent = 'Next →'; } catch (_) {}
@@ -405,11 +465,18 @@
 
   function advance(state, wroteAnswer) {
     if (!state) return;
-    state.answeredCount = wroteAnswer ? state.answeredCount : state.answeredCount;
     if (wroteAnswer) state.answeredCount += 1;
+    // Snap forward over any newly-hidden siblings (Story 9.12.1)
     if (state.current < state.questions.length - 1) {
       state.current += 1;
-      renderStack(state);
+      while (state.current < state.questions.length && isHidden(state, state.current)) {
+        state.current += 1;
+      }
+      if (state.current < state.questions.length) {
+        renderStack(state);
+      } else {
+        renderReveal(state);
+      }
       emitChange(state);
     } else {
       // Last question — go to reveal
@@ -423,8 +490,10 @@
     if (!state) return;
     if (state.current <= 0) return;
     state.current -= 1;
-    // If we rewound past an answered question, decrement answeredCount? No — answers
-    // persist; we only decrement when the user picks "none of the above" (not in v1).
+    // Story 9.12.1 — snap backward over any hidden siblings
+    while (state.current > 0 && isHidden(state, state.current)) {
+      state.current -= 1;
+    }
     if (state._revealRendered) {
       // Re-show footer
       state._revealRendered = false;
@@ -538,11 +607,17 @@
     var state = footer && footer._state;
     if (!state) return;
     if (action === 'skip') {
-      // Advance without writing
-      state.answeredCount = state.answeredCount;
+      // Advance without writing — snap over hidden siblings (Story 9.12.1)
       if (state.current < state.questions.length - 1) {
         state.current += 1;
-        renderStack(state);
+        while (state.current < state.questions.length && isHidden(state, state.current)) {
+          state.current += 1;
+        }
+        if (state.current < state.questions.length) {
+          renderStack(state);
+        } else {
+          renderReveal(state);
+        }
         emitChange(state);
       } else {
         state.current = state.questions.length;
@@ -584,8 +659,10 @@
     for (var i = INSTANCES.length - 1; i >= 0; i -= 1) {
       var inst = INSTANCES[i];
       if (inst && inst._state && inst._state.section && inst._state.section.contains(document.activeElement)) {
-        // Pop one card if not on first; else close
-        if (inst._state._revealRendered || inst._state.current === 0) {
+        // Pop one card if not on first visible card; else close.
+        // Story 9.12.1 — use the visual index, not the logical question index.
+        var visual = (typeof inst._state._visualIndex === 'number') ? inst._state._visualIndex : 0;
+        if (inst._state._revealRendered || visual === 0) {
           inst.close();
         } else {
           rewind(inst._state);
@@ -630,7 +707,7 @@
       } catch (_) {}
     }
 
-    // Validate question IDs are unique
+    // Validate question IDs are unique + normalize showIf
     var seen = {};
     for (var i = 0; i < options.questions.length; i += 1) {
       var q = options.questions[i];
@@ -641,6 +718,25 @@
         throw new Error('HT.quiz.open: duplicate question id "' + q.id + '"');
       }
       seen[q.id] = true;
+      // Story 9.12.1 — normalize showIf → _skipIf.
+      // Capture q in a per-iteration IIFE so the closure doesn't leak
+      // the loop's function-scoped `q` (which always references the
+      // last question by the time _skipIf fires).
+      if (q.showIf !== undefined) {
+        (function (qq) {
+          if (typeof qq.showIf === 'function') {
+            qq._skipIf = function (answers) {
+              try { return !qq.showIf(answers); } catch (_) { return false; }
+            };
+          } else if (qq.showIf && typeof qq.showIf.skipIf === 'function') {
+            qq._skipIf = function (answers) {
+              try { return !!qq.showIf.skipIf(answers); } catch (_) { return false; }
+            };
+          } else {
+            throw new Error('HT.quiz.open: questions[i].showIf must be a function or { skipIf: function }');
+          }
+        })(q);
+      }
     }
 
     var sectionId = 'quiz-' + Math.random().toString(36).slice(2, 10);
@@ -686,6 +782,8 @@
       storageKey: options.storageKey || null,
       total: options.questions.length,
       current: 0,
+      // Story 9.12.1 — visual position into the visible list, derived per render
+      _visualIndex: 0,
       answeredCount: 0,
       _pendingValue: undefined,
       _revealRendered: false,
@@ -697,6 +795,13 @@
       progressLabelEl: null,
       nextBtn: null,
     };
+
+    // Story 9.12.1 — after URL-state hydration, advance past any cards whose
+    // showIf predicate returns false against the restored answers.
+    while (state.current < state.questions.length && isHidden(state, state.current)) {
+      state.current += 1;
+    }
+    state.total = visibleQuestions(state).length;
 
     var header = buildHeader(state);
     state.progressEl = header.querySelector('.quiz-progress');
@@ -767,6 +872,12 @@
     if (typeof idx !== 'number' || isNaN(idx)) return;
     if (idx < 0 || idx >= state.questions.length) return;
     state.current = idx;
+    // Story 9.12.1 — if the target is hidden, snap to the next visible card.
+    if (isHidden(state, idx)) {
+      while (state.current < state.questions.length && isHidden(state, state.current)) {
+        state.current += 1;
+      }
+    }
     if (state._revealRendered) {
       // Re-show footer
       state._revealRendered = false;
@@ -774,14 +885,28 @@
         state.section.appendChild(state.footerEl);
       }
     }
-    renderStack(state);
+    if (state.current < state.questions.length) {
+      renderStack(state);
+    } else {
+      renderReveal(state);
+    }
     emitChange(state);
   }
 
   function computeProgress(state) {
     if (!state) return { current: 0, total: 0, answered: 0 };
+    // Story 9.12.1 — when in reveal territory, mirror the legacy semantics
+    // (current past the last visible card) so existing tests + callers work.
+    // Mid-quiz, `current` reflects the visual position; `total` reflects the
+    // visible-card count. Both are 0-based.
+    var cur;
+    if (state.current >= state.questions.length) {
+      cur = state.total; // past last visible card
+    } else {
+      cur = (typeof state._visualIndex === 'number') ? state._visualIndex : 0;
+    }
     return {
-      current: state.current,
+      current: cur,
       total: state.total,
       answered: Object.keys(state.answers).length,
     };
@@ -807,7 +932,15 @@
       var s = h._state;
       if (s.current < s.questions.length - 1) {
         s.current += 1;
-        renderStack(s);
+        // Story 9.12.1 — snap over hidden siblings
+        while (s.current < s.questions.length && isHidden(s, s.current)) {
+          s.current += 1;
+        }
+        if (s.current < s.questions.length) {
+          renderStack(s);
+        } else {
+          renderReveal(s);
+        }
         emitChange(s);
       } else {
         s.current = s.questions.length;
@@ -826,7 +959,15 @@
       var s = h._state;
       if (s.current < s.questions.length - 1) {
         s.current += 1;
-        renderStack(s);
+        // Story 9.12.1 — snap over hidden siblings
+        while (s.current < s.questions.length && isHidden(s, s.current)) {
+          s.current += 1;
+        }
+        if (s.current < s.questions.length) {
+          renderStack(s);
+        } else {
+          renderReveal(s);
+        }
         emitChange(s);
       } else {
         s.current = s.questions.length;
@@ -851,6 +992,11 @@
         if (match) opts[i].classList.add('is-selected');
         else opts[i].classList.remove('is-selected');
       }
+      // Story 9.12.1 — recompute visible list. If the user just hid a
+      // downstream card, the card stack stays put; re-evaluation runs
+      // on advance/next/jumpTo. (Calling reevaluateAndAdvanceIfHidden here
+      // would yank the user off the card they just answered.)
+      s.total = visibleQuestions(s).length;
       emitChange(s);
     },
     progress: function (handle) {

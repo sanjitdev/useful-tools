@@ -692,6 +692,160 @@ console.log('--- XII. Validation: open() rejects bad inputs ---');
   check(frozenCheck, 'HT.quiz is frozen — open is still a function after attempted mutation');
 }
 
+console.log('--- XIII. Conditional skip (Story 9.12.1 — showIf) ---');
+{
+  var ctx = buildCtx();
+  loadQuiz(ctx);
+
+  // XIII-A: open() accepts showIf as a function
+  var mountA = ctx.document.createElement('div');
+  var handleA = null;
+  var openA = false;
+  try {
+    handleA = ctx.HT.quiz.open({
+      mount: mountA,
+      questions: [
+        { id: 'q1', label: '1', prompt: 'P1', options: [{value:'a', label:'A'}] },
+        { id: 'q2', label: '2', prompt: 'P2', options: [{value:'b', label:'B'}], showIf: function (a) { return a.q1 === 'show'; } }
+      ]
+    });
+    openA = true;
+  } catch (_) { openA = false; }
+  check(openA, 'open() accepts showIf as a function');
+
+  // XIII-B: open() accepts showIf as { skipIf }
+  var mountB = ctx.document.createElement('div');
+  var handleB = null;
+  var openB = false;
+  try {
+    handleB = ctx.HT.quiz.open({
+      mount: mountB,
+      questions: [
+        { id: 'q1', label: '1', prompt: 'P1', options: [{value:'a', label:'A'}] },
+        { id: 'q2', label: '2', prompt: 'P2', options: [{value:'b', label:'B'}],
+          showIf: { skipIf: function (a) { return a.q1 === 'hide'; } } }
+      ]
+    });
+    openB = true;
+  } catch (_) { openB = false; }
+  check(openB, 'open() accepts showIf as { skipIf }');
+
+  // XIII-C: open() rejects showIf that is neither function nor { skipIf }
+  var mountC = ctx.document.createElement('div');
+  var threwC = false;
+  try {
+    ctx.HT.quiz.open({
+      mount: mountC,
+      questions: [
+        { id: 'q1', label: '1', prompt: 'P1', options: [{value:'a', label:'A'}] },
+        { id: 'q2', label: '2', prompt: 'P2', showIf: 42 }
+      ]
+    });
+  } catch (_) { threwC = true; }
+  check(threwC, 'open() rejects showIf: 42');
+
+  // XIII-D: a showIf: () => false question is omitted from progress().total
+  var mountD = ctx.document.createElement('div');
+  var handleD = ctx.HT.quiz.open({
+    mount: mountD,
+    questions: [
+      { id: 'q1', label: '1', prompt: 'P1', options: [{value:'a', label:'A'}] },
+      { id: 'q2', label: '2', prompt: 'P2', options: [{value:'b', label:'B'}], showIf: function () { return false; } }
+    ]
+  });
+  check(handleD.progress().total === 1, 'showIf: () => false → progress().total === 1 (q2 hidden)');
+
+  // XIII-E: after answering a question that hides a downstream card, next() lands on the next visible card
+  var mountE = ctx.document.createElement('div');
+  var handleE = ctx.HT.quiz.open({
+    mount: mountE,
+    questions: [
+      { id: 'q1', label: '1', prompt: 'P1', options: [{value:'a', label:'A'}, {value:'b', label:'B'}] },
+      { id: 'q2', label: '2', prompt: 'P2', options: [{value:'c', label:'C'}], showIf: function (a) { return a.q1 === 'b'; } },
+      { id: 'q3', label: '3', prompt: 'P3', options: [{value:'d', label:'D'}] }
+    ]
+  });
+  ctx.HT.quiz.answer(handleE, 'a');
+  ctx.HT.quiz.next(handleE);
+  // q1 was 'a', q2 hidden, so we should land on q3 (visual index 1).
+  var cardE = mountE.querySelector('.quiz-card');
+  check(!!cardE && cardE.getAttribute('data-card-id') === 'q3', 'next() skips hidden q2 and lands on q3');
+
+  // XIII-F: progress().total decreases when a question is branched-skipped
+  // q2 starts visible (q1='show' satisfies its predicate), then becomes hidden
+  // after the user answers q1 with a different value.
+  var mountF = ctx.document.createElement('div');
+  var handleF = ctx.HT.quiz.open({
+    mount: mountF,
+    questions: [
+      { id: 'q1', label: '1', prompt: 'P1', options: [{value:'show', label:'Show'}, {value:'hide', label:'Hide'}] },
+      { id: 'q2', label: '2', prompt: 'P2', options: [{value:'b', label:'B'}], showIf: function (a) { return a.q1 === 'show'; } },
+      { id: 'q3', label: '3', prompt: 'P3', options: [{value:'c', label:'C'}] }
+    ],
+    answers: { q1: 'show' }
+  });
+  var totalBefore = handleF.progress().total;
+  ctx.HT.quiz.answer(handleF, 'hide');
+  var totalAfter = handleF.progress().total;
+  check(totalBefore === 3 && totalAfter === 2, 'progress().total decreases from 3 → 2 after hiding q2');
+
+  // XIII-G: jumpTo(0) from reveal honors showIf
+  var mountG = ctx.document.createElement('div');
+  var handleG = ctx.HT.quiz.open({
+    mount: mountG,
+    questions: [
+      { id: 'q1', label: '1', prompt: 'P1', options: [{value:'a', label:'A'}] },
+      { id: 'q2', label: '2', prompt: 'P2', options: [{value:'b', label:'B'}], showIf: function () { return false; } }
+    ]
+  });
+  ctx.HT.quiz.answer(handleG, 'a');
+  ctx.HT.quiz.next(handleG);
+  ctx.HT.quiz.next(handleG); // → reveal
+  handleG.jumpTo(0);
+  var cardG = mountG.querySelector('.quiz-card');
+  check(!!cardG && cardG.getAttribute('data-card-id') === 'q1', 'jumpTo(0) lands on q1 (q2 hidden)');
+
+  // XIII-H: URL-seeded answers that hide a card reduce progress().total
+  var mountH = ctx.document.createElement('div');
+  var handleH = ctx.HT.quiz.open({
+    mount: mountH,
+    questions: [
+      { id: 'q1', label: '1', prompt: 'P1', options: [{value:'a', label:'A'}] },
+      { id: 'q2', label: '2', prompt: 'P2', options: [{value:'b', label:'B'}], showIf: function (a) { return a.q1 === 'show'; } }
+    ],
+    answers: { q1: 'hide' }
+  });
+  check(handleH.progress().total === 1, 'URL-seeded answers hide q2 → progress().total === 1');
+
+  // XIII-I: reveal callback receives only visible-card answers (hidden id absent)
+  var mountI = ctx.document.createElement('div');
+  var captured = null;
+  var handleI = ctx.HT.quiz.open({
+    mount: mountI,
+    questions: [
+      { id: 'q1', label: '1', prompt: 'P1', options: [{value:'a', label:'A'}] },
+      { id: 'q2', label: '2', prompt: 'P2', options: [{value:'b', label:'B'}], showIf: function (a) { return a.q1 === 'show'; } }
+    ],
+    reveal: function (answers) { captured = answers; return null; }
+  });
+  ctx.HT.quiz.answer(handleI, 'hide');
+  ctx.HT.quiz.next(handleI);
+  ctx.HT.quiz.next(handleI);
+  check(captured && captured.q1 === 'hide' && captured.q2 === undefined,
+    'reveal() callback excludes hidden q2 from answers map');
+
+  // XIII-J: missing showIf preserves existing behavior — no card hidden
+  var mountJ = ctx.document.createElement('div');
+  var handleJ = ctx.HT.quiz.open({
+    mount: mountJ,
+    questions: [
+      { id: 'q1', label: '1', prompt: 'P1', options: [{value:'a', label:'A'}] },
+      { id: 'q2', label: '2', prompt: 'P2', options: [{value:'b', label:'B'}] }
+    ]
+  });
+  check(handleJ.progress().total === 2, 'no showIf → progress().total === 2 (all visible)');
+}
+
 // =============================================================
 // Vacuous-pass guard
 // =============================================================

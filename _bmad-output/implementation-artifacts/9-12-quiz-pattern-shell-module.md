@@ -71,9 +71,10 @@ Skip advances without writing to the answer map. Next advances; if no option is 
 
 ## Out-of-scope (deferred)
 
+- **Story 9.12.1** — Branching / conditional skip (`Question.showIf`) — done, see `_bmad-output/implementation-artifacts/9-12-1-quiz-pattern-branching-conditional-skip.md`.
+- **Story 9.12.2** — Resume UI via `storageKey`: "Resume previous attempt? N cards done · M skipped" overlay.
+- **Story 9.12.3** — Multi-select questions: `multiSelect: true` renders checkboxes; answer is an array.
 - **Story 9.13+** — Lifespan Simulator, Calorie Estimator, BMI Calculator, Pros & Cons, Space Calculator, BD-Tax all adopt `HT.quiz`.
-- Multi-select questions, branching, conditional skip — wait for v2 tool feedback.
-- `localStorage` resume via `storageKey` — wired in API but resume UI is future work.
 
 ---
 
