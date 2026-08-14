@@ -481,6 +481,26 @@ function buildHtFacade({ urlState, historyApi, storageApi, fetchUrls, errorSink,
     run: function () {},
     button: function () { return makeElement('button'); },
   };
+  HT.quiz = {
+    open: function () {
+      return {
+        close: function () {},
+        destroy: function () {},
+        getAnswers: function () { return Object.freeze({}); },
+        jumpTo: function () {},
+        progress: function () { return { current: 0, total: 0, answered: 0 }; },
+        isOpen: function () { return true; },
+      };
+    },
+    close: function () {},
+    next: function () {},
+    prev: function () {},
+    skip: function () {},
+    answer: function () {},
+    progress: function () { return { current: 0, total: 0, answered: 0 }; },
+    destroy: function () {},
+    isOpen: function () { return false; },
+  };
 
   HT.__slug = null;
   HT.__main = null;

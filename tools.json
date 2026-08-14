@@ -2,8 +2,37 @@
   "$schema": "tools.schema.json",
   "schemaVersion": "1",
   "releaseVersion": "0.0.0",
-  "generated": "2026-08-13T00:00:00Z",
+  "generated": "2026-08-14T00:00:00Z",
   "tools": [
+    {
+      "id": "quiz-preview",
+      "slug": "quiz-preview",
+      "title": "Quiz Pattern Preview",
+      "description": "Reference implementation of the HT.quiz shell module: one-question-per-card with Skip, progress bar, and a reveal panel.",
+      "category": "Developer",
+      "pack": ["developer"],
+      "icon": "assets/icons/quiz-preview.svg",
+      "keywords": ["quiz", "pattern", "shell", "card", "demo", "developer"],
+      "last-updated": "2026-08-14T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {},
+        "encode": [
+          { "key": "view", "type": "string", "from": "#quiz-mount" }
+        ],
+        "decode": [
+          { "key": "view", "type": "string", "to": "#quiz-mount" }
+        ]
+      },
+      "shortcuts": [
+        { "key": "r", "label": "Reset quiz", "action": "reset" }
+      ],
+      "history-keys": ["quiz-mount"],
+      "view-source": { "enabled": true, "path": "tools/quiz-preview/index.html" },
+      "embed-snippet": { "enabled": false, "badge-default": false, "min-width": 320, "min-height": 280 },
+      "search-priority": 3
+    },
     {
       "id": "lifespan-simulator",
       "slug": "lifespan-simulator",

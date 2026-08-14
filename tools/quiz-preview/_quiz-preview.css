@@ -1,0 +1,27 @@
+/* Quiz Preview — tool-specific layout.
+   Shared card / progress / reveal styles live in ../../assets/css/quiz.css */
+
+.quiz-mount {
+  margin-top: var(--space-3);
+  /* Let the card stack breathe inside the panel */
+}
+
+.quiz-mount .quiz {
+  margin: 0 auto;
+}
+
+/* "About this demo" panel — second paragraph a little looser */
+.panel-sub {
+  margin-top: 0;
+  color: var(--text-muted, #6b7280);
+  font-size: 0.95rem;
+}
+
+/* Make sure the reveal panel prints cleanly (the shared rule in
+   quiz.css handles footer/stack; we just give the reveal a bit of
+   breathing room when printed). */
+@media print {
+  .quiz-mount {
+    margin-top: 0;
+  }
+}

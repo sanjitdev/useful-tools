@@ -675,6 +675,24 @@ jobs:
         # 30+ PASS expected. Vacuous-pass guard catches hollow runs.
         run: make grocery-list-smoke
 
+      - name: Quiz shell smoke (Story 9.12)
+        # Story 9.12 — HT.quiz shell module. Loads assets/js/quiz.js
+        # in a vm with Style B DOM stub and asserts: open() handle
+        # shape, first-card render, keyboard nav (Tab/Enter/1-9/Arrow),
+        # skip semantics, next/prev/jumpTo math, reveal callback,
+        # destroy cleanup, URL state round-trip, reduced-motion flag,
+        # validation rejects bad inputs. 70+ PASS expected.
+        run: make quiz-smoke
+
+      - name: Quiz preview tool smoke (Story 9.12)
+        # Story 9.12 — quiz-preview canary tool. Loads the preview
+        # HTML/JS/CSS in vm and asserts the tool calls HT.quiz.open
+        # with mount/questions/reveal/storageKey, has 5 demo cards
+        # (q1-vibe..q5-deploy), wires share/print/reset buttons, uses
+        # HT.urlState + jumpTo, and ships accessibility landmarks.
+        # 30+ PASS expected.
+        run: make quiz-preview-smoke
+
       - name: AST gates negative-test battery (Story 1.17 AC-4)
         # Story 1.17 AC-4: proves the AST migration didn't regress
         # either gate's behavior. Builds a temp repo with three

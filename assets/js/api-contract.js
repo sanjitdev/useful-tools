@@ -10,8 +10,8 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.18.0',
-  generated: '2026-08-13',
+  version: '1.19.0',
+  generated: '2026-08-14',
   entries: Object.freeze([
     Object.freeze({
       name: 'HT.boot',
@@ -628,6 +628,13 @@ window.HT.__apiContract = Object.freeze({
       stability: 'internal',
       module: 'assets/js/json-schema-lite.js',
       notes: 'Story 9.1. Hand-rolled Draft-07 subset validator. Supports type (with integer ⊂ number per Draft-07 §6.1.1), required, properties, items, enum, minimum, maximum, minLength, maxLength, pattern. $ref, oneOf/anyOf/allOf, format, additionalProperties are intentionally NOT supported — Story 9.1 ROQ-1 resolution. validate returns frozen {valid, errors} with JSON-Pointer-style instancePath (/foo/bar with ~0/~1 escape per RFC 6901). Invalid/unknown types silently ignored. Read-only (Object.defineProperties, writable:false). Internal because the keyword coverage is a subset; if a future Story needs Draft-07 parity, vendor AJV and expose a separate HT.ajv surface rather than expanding this one.',
+    }),
+    Object.freeze({
+      name: 'HT.quiz',
+      signature: 'Readonly<{open: (options: {mount: HTMLElement, questions: ReadonlyArray<{id: string, label: string, prompt: string, options?: ReadonlyArray<{value: string|number, label: string}>, input?: "number"|"text"|"date", min?: number, max?: number, step?: number, helpText?: string}>, answers?: object, onChange?: (answers: object) => void, onComplete?: (answers: object) => void, reveal?: (answers: object) => HTMLElement|string, animations?: boolean, storageKey?: string}) => Readonly<{close: () => void, destroy: () => void, getAnswers: () => object, jumpTo: (index: number) => void, progress: () => {current: number, total: number, answered: number}, isOpen: () => boolean}>, close: (handle?: object) => void, next: (handle: object) => void, prev: (handle: object) => void, skip: (handle: object) => void, answer: (handle: object, value: any) => void, progress: (handle: object) => {current: number, total: number, answered: number}, destroy: (handle: object) => void, isOpen: (handle?: object) => boolean}>',
+      stability: 'stable',
+      module: 'assets/js/quiz.js',
+      notes: 'Story 9.12 Quiz Pattern shell module. Cards render one-question-at-a-time inside a host mount element with Skip / Next / jumpTo navigation. Skip advances without writing to the answers map. Next on a question with a selected option writes the answer and advances; Next without a selection behaves like Skip. URL state round-trips via HT.urlState — tools declare keys in tools.json urlState.encode[] / decode[]. Reduced-motion respected under both @media (prefers-reduced-motion: reduce) and :root:where([data-reduced-motion="true"]). All animations are CSS-only (no requestAnimationFrame). Keyboard: Tab cycles within card, 1-9 picks option N, Arrow keys move within radiogroup, Enter advances, Esc pops one card. Focus is trapped per-card via the active-card scope. Read-only (Object.defineProperty writable:false configurable:false). Smoke harness: scripts/_smoke_quiz_shell.js.',
     }),
   ]),
 });

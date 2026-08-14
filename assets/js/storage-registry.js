@@ -553,6 +553,12 @@
     schema: 'string',
     owner: 'exam-countdown.js',
   });
+  register('ht.quiz-preview.state', {
+    purpose: 'Persisted quiz state (answers + current card) for the Quiz Pattern Preview — Story 9.12',
+    lifetime: 'persistent',
+    schema: 'object',
+    owner: 'quiz-preview.js',
+  });
 
   // handy-tools.* user-data keys owned by shell.js. Story 3.12 will
   // populate recent/pins; Epic 6 favorites/dashboard. The registry
