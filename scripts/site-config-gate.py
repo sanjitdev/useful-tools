@@ -70,7 +70,7 @@ EXPECTED_FIELDS_INTERNAL = (
 EXPECTED_FIELDS_PUBLIC = (
     "repoUrl", "blobBase", "defaultBranch", "brand", "defaultLocale",
 )
-EXPECTED_VERSION = "1.18.0"  # Story 9.2 bumped 1.17.0 → 1.18.0 for HT.citation entry (APA 7 / MLA 9 / Chicago 17 formatters + parseAuthor / validateIsbn / validateDoi / isUrl helpers)
+EXPECTED_VERSION = "1.23.0"  # Story 1.11 follow-up (2026-08-15) bumped 1.22.0 → 1.23.0 for the 11 utils.js helpers promoted to HT.* (HT.qs, HT.$, HT.qsa, HT.fetch, HT.formatNumber, HT.formatDuration, HT.formatDurationHMS, HT.debounce, HT.toast, HT.copyToClipboard, etc.)
 
 TOOL_SCRIPT_RE = re.compile(
     r'<script\s+src="\.\./\.\./assets/js/site-config\.js"></script>'
@@ -231,7 +231,7 @@ def check_api_contract(path: Path) -> list[str]:
     elif version_match.group(1) != EXPECTED_VERSION:
         violations.append(
             f"api-contract.js version is {version_match.group(1)!r}; "
-            f"Story 3.8 requires {EXPECTED_VERSION!r}"
+            f"api-contract.js cross-pin requires {EXPECTED_VERSION!r}"
         )
     if "HT.siteConfig" not in text:
         violations.append(

@@ -163,13 +163,15 @@ Draft `NFR-1-REVISION.md` with the tiered budget proposal. Circulate to PRD owne
 6. [ ] **Task 6 — Capture per-Story baseline data** — walk the existing Epics 1-3 Stories and record their declared vs actual bundle deltas. Feeds the AC-6 drift detection.
 7. [x] **Task 7 — Add `bundle-size` row to `docs/README.md`** index so the budget doc is discoverable. (shipped 2026-08-15 — index row added with companion-artifact description; footer `Updated 2026-08-15` line added)
 8. [x] **Task 8 — Story 2.10 cleanup** (follow-up to AC-4 reduction candidate #2): deleted `assets/js/layout.js` (898 gz) + `assets/js/theme.js` (842 gz). Bumped baseline DOWN 162,915 → 161,175 (-1,740 bytes gz actual). Re-owned `ht.theme` to `shell.js` in storage-registry.js + all 9 chrome manifests. Removed two `<script>`-strip regex blocks from shell-template.py. Updated _es5_grep.py docstring + MIGRATED list notes. Verified all 7+ gates pass post-cleanup. (shipped 2026-08-15 — see "Cleanup (2026-08-15)" section in `_bmad-output/implementation-artifacts/2-10-shared-layout-theme-utils-migration-to-modern-js.md`)
+9. [x] **Task 9 — api-contract.js reclassification** (inverts AC-4 reduction candidate #1 from a planned refactor into a measurement correction): `assets/js/api-contract.js` (18,772 gz) was never chrome to begin with — only `view-source.html` + `quality.html` load it. The bundle-size gate had been over-counting since it shipped 2026-08-15. Reclassified to the view-source/quality bundle alongside `vendor/highlight.min.js` + `vendor/zip-store.js`. Bumped baseline DOWN 161,175 → 142,420 (-18,755 bytes gz actual). **NFR-1 gap drops from 5.4× to 4.7× over** — larger reduction than the Story 2.10 cleanup, with zero code changes. (shipped 2026-08-15 — see candidate #1 in `docs/bundle-size-budget.md` for the full discovery + reclassification log)
 
 ## Verification (so far)
 
-- ✅ `make bundle-size` exits 0 on the current main (baseline 162,915 = measured, delta +0).
+- ✅ `make bundle-size` exits 0 on the current main (baseline 142,420 = measured, delta +0, after Task 9 api-contract reclassification).
 - ✅ `make ci` chain includes `bundle-size`; runs alongside the existing 30+ gates.
-- ✅ Gate fails on artificially-low baseline (`--baseline 150000` → exit 1 with clear message).
+- ✅ Gate fails on artificially-low baseline (`--baseline 140000` → exit 1 with clear message).
 - ✅ `docs/bundle-size-budget.md` reachable from `docs/README.md` index.
+- ✅ `api-contract.js` reclassification landed 2026-08-15 (Task 9); baseline re-baselined to actual chrome total (142,420 bytes gz, 24 modules).
 - ⏳ PR-comment annotation (Task 3) — pending GitHub Actions workflow update.
 - ⏳ Per-Story baseline data (Task 6) — pending per-Story walkthrough.
 - ⏳ NFR-1 revision approved by PRD owner (Task 5 proposal is `draft`).

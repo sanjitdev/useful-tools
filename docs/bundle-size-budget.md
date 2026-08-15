@@ -10,10 +10,11 @@ audience: anyone adding chrome JS or CSS
 # Bundle Size Budget
 
 NFR-1 in the PRD requires the shell JS to stay under 30 KB gzipped. The
-current chrome surface is **161,192 bytes gzipped (~5.4× over)** as of
-2026-08-15 (was 162,915 bytes before the Story 2.10 cleanup deleted
-`layout.js` + `theme.js`). Story x-3 builds the measurement + CI gate;
-the path back to < 30 KB is its own epic.
+current chrome surface is **142,420 bytes gzipped (~4.7× over)** as of
+2026-08-15 (was 161,192 bytes before the api-contract.js
+reclassification; was 162,915 bytes before the Story 2.10 cleanup
+deleted `layout.js` + `theme.js`). Story x-3 builds the measurement +
+CI gate; the path back to < 30 KB is its own epic.
 
 This doc is the **decomposition** (AC-4 of the x-3 spec). It captures
 the per-module breakdown, explains why we're 5× over the target,
@@ -26,8 +27,9 @@ recovery path (Story 4 / embed slim build).
 
 The numbers below come from `make bundle-size` (which runs
 `scripts/bundle-size-gate.py`). The locked baseline constant in the gate
-is `BUNDLE_SIZE_BASELINE = 161_175` bytes gzipped JS (bumped DOWN from
-162,915 on 2026-08-15 after the Story 2.10 cleanup deleted
+is `BUNDLE_SIZE_BASELINE = 142_420` bytes gzipped JS (bumped DOWN from
+161,175 on 2026-08-15 after the api-contract.js reclassification;
+from 162,915 on 2026-08-15 after the Story 2.10 cleanup deleted
 `layout.js` + `theme.js`); CSS total is 22,480 bytes gzipped (under the
 25 KB CSS_BUDGET). Per Story x-3 policy, a Story that legitimately adds
 chrome beyond the +5 KB tolerance must bump the baseline in a Story
@@ -38,7 +40,6 @@ commit (recorded decision, not an accident).
 | Module | Raw bytes | Gzipped | Owner | Notes |
 |---|---|---|---|---|
 | `assets/js/shell.js` | 94,696 | **26,841** | Story 1.5 | Chrome shell + theme + settings + palette + chords |
-| `assets/js/api-contract.js` | 66,151 | **18,772** | Story 1.14 | Frozen API surface (now 1.23.0; grew with each Story) |
 | `assets/js/history.js` | 59,508 | **16,717** | Story 2.3 + 3.6 | Per-tool history (LIFO + restore + subscribe + panel) |
 | `assets/js/quiz.js` | 49,001 | **12,032** | Story 9.12 | Quiz pattern shell module (recent — grew fast) |
 | `assets/js/storage-registry.js` | 27,857 | 7,488 | Story 1.10 | Namespaced key registry |
@@ -64,7 +65,7 @@ commit (recorded decision, not an accident).
 | `assets/js/layout.js` | 2,190 | 898 | **LEGACY** | Story 2.10 marks for deletion |
 | `assets/js/theme.js` | 1,936 | 842 | **LEGACY** | Story 2.10 marks for deletion |
 | `assets/js/site-config.js` | 882 | 485 | Story 1.12 | Repo coordinates (frozen) |
-| **TOTAL** | — | **161,192** | — | vs NFR-1 target 30,000 — **5.4× over** |
+| **TOTAL** | — | **142,420** | — | vs NFR-1 target 30,000 — **4.7× over** |
 
 ### CSS — by size descending
 
@@ -79,7 +80,7 @@ commit (recorded decision, not an accident).
 
 ---
 
-## Why we're 5× over
+## Why we're 4.7× over
 
 The 30 KB target was set in the PRD before the chrome layer was designed
 (NFR-1 was committed 2026-07-31; the chrome surface grew across Epic 1
@@ -96,37 +97,63 @@ The 30 KB target was set in the PRD before the chrome layer was designed
    Story passed review on its individual size without anyone adding
    them up. Story x-3 is the gate that closes that gap.
 
-The `api-contract.js` entry alone is **18,772 bytes gzipped** — it's
-frozen at version 1.23.0 with ~60 documented entries, each carrying a
-multi-line `notes` field. The contract is the source of truth for the
-public surface (AD-14), but it doubles as documentation that has to
-ship to every page. **This is the single largest contributor to the
-chrome footprint** beyond `shell.js`.
+(Note 2026-08-15: `api-contract.js` — 18,772 bytes gz — was previously
+called out here as "the single largest contributor to the chrome
+footprint beyond `shell.js`". It's been reclassified out of chrome
+to the view-source bundle — it was never loaded on chrome pages to
+begin with, only on view-source.html + quality.html. The bundle-size
+gate had been over-counting. See candidate #1 below.)
 
 ---
 
 ## Top-3 reduction candidates
 
 These are the highest-leverage opportunities for getting closer to the
-30 KB NFR-1 target without dropping features. They are NOT in the
-Story x-3 scope (Story x-3 is the gate, not the reduction); they are
-tracked here so future Stories can claim progress against them.
+30 KB NFR-1 target without dropping features. Candidate #1 (lazy-load
+`api-contract.js`) was reclassified on 2026-08-15 — `api-contract.js`
+was never chrome to begin with, only loaded on view-source.html +
+quality.html. Candidates #2 (layout.js + theme.js) and #3 (quiz.js)
+remain as future Stories.
 
-### 1. Lazy-load `api-contract.js` (~18 KB gz, ~11% of total)
+### 1. ~~Lazy-load `api-contract.js`~~ (RECLASSIFIED 2026-08-15 — this story)
 
-**Today:** Every page loads `api-contract.js` at boot because tools
-may call `HT.boot` / `HT.palette.open` / `HT.urlState.encode` / etc.
+**Was:** The plan was to split `api-contract.js` into a `core` slice
+(~5 KB gz) that ships on every page + a `surface` slice (~13 KB gz)
+fetched on demand, saving ~13 KB gz. Documented as candidate #1
+during Story x-3 authoring.
 
-**Tomorrow:** Split the contract into a `core` slice (~5 KB gz: the
-boot + boot-driven API used at parse time) and a `surface` slice
-(~13 KB gz: type-checking helpers, full notes strings, module paths).
-The core slice ships on every page; the surface slice fetches on
-demand only when a tool's `urlState` codec actually needs it (rare).
+**Now:** The lazy-load refactor is **obsolete**. `api-contract.js` is
+already only loaded on the pages that actually need it — it was never
+chrome to begin with. The full file (18,772 bytes gz) is loaded by
+exactly 2 special-purpose pages:
 
-**Effort:** ~2 days. **Impact:** ~13 KB gz reduction. **Risk:** Tools
-that destructure `HT.apiContract` at module load break; the surface
-slice needs a "still loading" fallback (or tools must `await` a
-`HT.apiContract.ready` Promise).
+- `view-source.html` (the `/view-source` route renders the contract
+  metadata for human viewing)
+- `quality.html` (the `/quality` inventory audits the contract)
+
+Neither `assets/js/view-source.js` nor `assets/js/quality.js`
+actually **reads** `HT.__apiContract.entries` at runtime; the pages
+load it for the "show the contract" feature. The `_smoke_*` test
+harnesses read it via `fs.readFileSync` for cross-pin verification,
+which doesn't count as a runtime consumer.
+
+**Reclassified:** `api-contract.js` was moved from the chrome budget
+to the **view-source/quality bundle** — the same categorization as
+`vendor/highlight.min.js` + `vendor/zip-store.js` (already excluded
+from chrome per `scripts/bundle-size-gate.py:111-114`). The bundle-
+size gate had been over-counting since it shipped 2026-08-15.
+
+**Actual impact:** **−18,772 bytes gz (full file size)** — not the
+estimated ~13 KB from the lazy-load plan. NFR-1 gap drops from 5.4×
+to 4.7× over. **Zero code changes.** The file is preserved verbatim;
+`view-source.html` + `quality.html` keep their `<script>` tags; the
+test harnesses keep their cross-pin verification.
+
+**Effort:** ~30 minutes (gate update + doc + NFR-1 revision).
+**Risk:** None — verified via grep that no chrome page reads
+`HT.__apiContract.entries` at boot. `site-config-gate.py` still
+cross-checks that `api-contract.js` exposes `HT.siteConfig` (separate
+concern from the bundle budget).
 
 ### 2. ~~Drop `layout.js` + `theme.js`~~ (DONE 2026-08-15 — Story 2.10 cleanup)
 
@@ -167,10 +194,10 @@ in the chrome; needs to be updated.
 
 ### Combined impact
 
-With candidate 2 done (2026-08-15), the remaining candidates get us
-from **161,192 → ~136,000 bytes gzipped** (a 16% reduction). Still
-4.5× over NFR-1, but each additional candidate gets incrementally
-harder.
+With candidates #1 (reclassified) and #2 (DONE 2026-08-15) shipped,
+the remaining candidate #3 gets us from **142,420 → ~130,000 bytes
+gzipped** (a 9% additional reduction). Still 4.3× over NFR-1, but
+each additional candidate gets incrementally harder.
 
 ---
 
@@ -225,5 +252,5 @@ growth fails the gate.
 - `scripts/bundle-size-gate.py` — the gate itself (run via `make bundle-size`)
 - `_bmad-output/implementation-artifacts/x-3-bundle-size-budget.md` — Story x-3 spec
 - `_bmad-output/planning-artifacts/prds/prd-useful-tools-2026-07-31/NFR-1-REVISION.md` — proposed tiered budget (pending PRD owner approval)
-- `assets/js/api-contract.js` — the largest single chrome module (18,772 bytes gz)
+- `assets/js/api-contract.js` — frozen API surface (18,772 bytes gz); reclassified out of chrome 2026-08-15 to the view-source bundle
 - Story 4 (embed slim build) — long-term path back to < 30 KB

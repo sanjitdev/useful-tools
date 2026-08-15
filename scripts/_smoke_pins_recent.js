@@ -285,8 +285,8 @@ check('api-contract.js exists', fs.existsSync(apiPath));
 const apiSrc = fs.readFileSync(apiPath, 'utf8');
 const verMatch = apiSrc.match(/version:\s*['"]([\d.]+)['"]/);
 check('api-contract.js has version field', !!verMatch);
-check('api-contract.js version = 1.18.0 (Story 9.2 bumped 1.17.0 → 1.18.0 for HT.citation)',
-  verMatch && verMatch[1] === '1.18.0',
+check('api-contract.js version = 1.23.0 (Story 1.11 follow-up bumped 1.22.0 → 1.23.0 for the 11 utils.js helpers promoted to HT.*; Story 9.2 bumped 1.17.0 → 1.18.0 for HT.citation)',
+  verMatch && verMatch[1] === '1.23.0',
   'got: ' + (verMatch ? verMatch[1] : 'n/a'));
 check('api-contract.js lists HT.recent entry', apiSrc.indexOf("'HT.recent'") !== -1);
 check('api-contract.js lists HT.pins entry', apiSrc.indexOf("'HT.pins'") !== -1);
@@ -452,9 +452,9 @@ console.log('\n# (m) site-config-gate.py');
 const scgPath = path.join(root, 'scripts/site-config-gate.py');
 check('site-config-gate.py exists', fs.existsSync(scgPath));
 const scgSrc = fs.readFileSync(scgPath, 'utf8');
-check('site-config-gate.py EXPECTED_VERSION = "1.18.0" (Story 9.2 bumped 1.17.0 → 1.18.0 for HT.citation)',
-  /EXPECTED_VERSION\s*=\s*["']1\.18\.0["']/.test(scgSrc),
-  'expected "1.18.0"');
+check('site-config-gate.py EXPECTED_VERSION = "1.23.0" (Story 1.11 follow-up bumped 1.22.0 → 1.23.0 for the 11 utils.js helpers promoted to HT.*; Story 9.2 originally bumped to 1.18.0 for HT.citation)',
+  /EXPECTED_VERSION\s*=\s*["']1\.23\.0["']/.test(scgSrc),
+  'expected "1.23.0"');
 
 // ------------------------------------------------------------------
 // Done

@@ -663,8 +663,8 @@ setTimeout(function () {
                                     confirmCalls.length === 0);
 
                                   // ===== L. api-contract pin =====
-                                  check('L.1 api-contract.js version === 1.16.0 (Story 3.12 + 3.11 bumped to 1.16.0; Story 3.8 originally bumped 1.13.0 → 1.14.0 for HT.import)',
-                                    /version:\s*['"]1\.16\.0['"]/.test(CONTRACT_SRC));
+                                  check('L.1 api-contract.js version === 1.23.0 (Story 1.11 follow-up bumped 1.22.0 → 1.23.0 for the 11 utils.js helpers promoted to HT.*; Story 3.12 + 3.11 bumped to 1.16.0; Story 3.8 originally bumped 1.13.0 → 1.14.0 for HT.import)',
+                                    /version:\s*['"]1\.23\.0['"]/.test(CONTRACT_SRC));
                                   check('L.2 api-contract.js lists HT.import entry',
                                     /name:\s*'HT\.import'/.test(CONTRACT_SRC));
                                   check('L.3 api-contract.js lists HT_IMPORT_DIALOG_VERSION entry',

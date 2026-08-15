@@ -304,8 +304,8 @@ check(
   /HT\.urlState\.bindDomTarget/.test(contractSrc)
 );
 check(
-  'api-contract.js: version bumped to 1.14.0 (Story 3.7 + 3.8 — HT.export + HT.import added; Story 3.6 — history panel shape migration + cap 50; Story 3.3 superseded)',
-  /version:\s*['"]1\.14\.0['"]/.test(contractSrc)
+  'api-contract.js: version bumped to 1.23.0 (Story 1.11 follow-up bumped 1.22.0 → 1.23.0 for the 11 utils.js helpers promoted to HT.*; Story 3.7 + 3.8 — HT.export + HT.import added; Story 3.6 — history panel shape migration + cap 50; Story 3.3 superseded)',
+  /version:\s*['"]1\.23\.0['"]/.test(contractSrc)
 );
 
 // 16. The _smoke_shell_public_api harness registry-match extension lands here too.

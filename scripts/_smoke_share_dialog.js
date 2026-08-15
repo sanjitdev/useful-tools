@@ -637,8 +637,8 @@ for (const name of requiredEntries) {
 }
 check('api-contract.js: all 10 HT.share.* entries registered (9 stable + 1 internal)',
   allEntriesFound);
-check('api-contract.js: version bumped to 1.16.0 (Story 3.12 + 3.11 — HT.recent + HT.pins + HT.homeSidebar + HT.viewSource + HT.highlight + HT.zipStore added; Story 3.7 + 3.8 — HT.export + HT.import added; Story 3.6 — history panel shape migration + cap 50; Story 3.3 superseded)',
-  /version:\s*['"]1\.16\.0['"]/.test(CONTRACT_SRC));
+check('api-contract.js: version bumped to 1.23.0 (Story 1.11 follow-up bumped 1.22.0 → 1.23.0 for the 11 utils.js helpers promoted to HT.*; Story 3.12 + 3.11 — HT.recent + HT.pins + HT.homeSidebar + HT.viewSource + HT.highlight + HT.zipStore added; Story 3.7 + 3.8 — HT.export + HT.import added; Story 3.6 — history panel shape migration + cap 50; Story 3.3 superseded)',
+  /version:\s*['"]1\.23\.0['"]/.test(CONTRACT_SRC));
 
 // === Vacuous-pass guard ===
 

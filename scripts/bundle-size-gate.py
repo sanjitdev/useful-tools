@@ -79,7 +79,6 @@ SCHEMA_ANCHOR = "tools.schema.json"
 # Why each module is here (defensive — a future Story that legitimately
 # removes one should update this table in the same commit):
 #   shell.js              Story 1.5  — chrome shell + theme + settings + palette + chords
-#   api-contract.js       Story 1.14 — frozen API surface
 #   search.js             Story 1.11 — search engine + ranking
 #   home-grid.js          Story 1.9  — tools.json → home grid renderer
 #   home-sidebar.js       Story 3.12 — recent list sidebar
@@ -108,6 +107,20 @@ SCHEMA_ANCHOR = "tools.schema.json"
 # header/footer injector + legacy theme toggle; chrome is now static
 # HTML (chrome.html) and shell.js owns the theme API.
 #
+# Removed 2026-08-15 (api-contract reclassification): api-contract.js —
+# was never chrome to begin with; only loaded by view-source.html +
+# quality.html (special-purpose pages, not chrome). Now counted under
+# the view-source bundle alongside vendor/highlight.min.js +
+# vendor/zip-store.js. Baseline bumped DOWN 161,175 → 142,420 (-18,755
+# bytes gz actual delta after gz recompression of the smaller list).
+#
+# view-source/quality bundle (not counted in the chrome budget):
+#   vendor/highlight.min.js  Story 3.11 — syntax highlighter for /view-source
+#   vendor/zip-store.js      Story 3.11 — zip download for /view-source
+#   api-contract.js          Story 1.14 — frozen API surface (only used
+#                              by view-source.html for the contract
+#                              viewer + quality.html for the audit)
+#
 # vendor/highlight.min.js and vendor/zip-store.js are Story 3.11
 # view-source dependencies — only loaded on /view-source.html, not on
 # every page. They are NOT counted in the chrome budget; they have
@@ -133,7 +146,6 @@ SPEC_JS_MODULES = [
     "assets/js/quality.js",
     "assets/js/view-source.js",
     "assets/js/quiz.js",
-    "assets/js/api-contract.js",
     "assets/js/search.js",
     "assets/js/home-grid.js",
     "assets/js/home-sidebar.js",
@@ -165,13 +177,22 @@ SPEC_CSS_MODULES = [
 # Actual measured sum at landing (post-Epic 3 chrome surface): 162,915
 # bytes gzipped. The spec's initial estimate of ~115 KB was optimistic
 # (it excluded several Epic-2/Epic-3 modules); this baseline captures
-# the real chrome footprint as of 2026-08-15. Bumped DOWN to 161,175
-# on 2026-08-15 (Story 2.10 cleanup) after deleting the dead-code
-# layout.js (898 gz) + theme.js (842 gz) = 1,740 bytes gz removed.
+# the real chrome footprint as of 2026-08-15. Three baseline bumps so
+# far:
+#   1. DOWN to 161,175 on 2026-08-15 (Story 2.10 cleanup) — deleted
+#      dead-code layout.js (898 gz) + theme.js (842 gz) = 1,740 bytes
+#      gz removed.
+#   2. DOWN to 142,420 on 2026-08-15 (api-contract reclassification) —
+#      api-contract.js (18,772 gz) reclassified from chrome to
+#      view-source bundle. The file was never chrome; only view-
+#      source.html + quality.html load it. The bundle-size gate had
+#      been over-counting since it shipped 2026-08-15. Actual delta
+#      -18,755 bytes gz (gz recompression of the smaller list absorbs
+#      17 bytes of the 18,772 estimate).
 # The path back to the 30 KB NFR-1 target is Story 4 (embed slim build)
 # + per-Tool lazy loading — see docs/bundle-size-budget.md for the
 # AC-4 decomposition.
-BUNDLE_SIZE_BASELINE = 161_175
+BUNDLE_SIZE_BASELINE = 142_420
 BUNDLE_SIZE_TOLERANCE = 5_000
 
 # NFR-1 target for the CSS budget (also aspirational — see the

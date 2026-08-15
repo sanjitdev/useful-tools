@@ -1104,8 +1104,8 @@ assert(
   /HT\.settings[\s\S]{0,400}Story 3\.5/.test(apiContract)
 );
 assert(
-  'api-contract.js: version = 1.16.0',
-  /version:\s*'1\.16\.0'/.test(apiContract)
+  'api-contract.js: version = 1.23.0',
+  /version:\s*'1\.23\.0'/.test(apiContract)
 );
 
 // -------------------------------------------------------------

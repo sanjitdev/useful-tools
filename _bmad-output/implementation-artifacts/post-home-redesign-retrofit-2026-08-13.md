@@ -230,6 +230,21 @@ CSS, F2 shell.js TDZ, F3 HT.$ is not a function, F4 doc gap, F5 doc
 index) and all four follow-up items are now resolved. The bug class
 that motivated this retrofit is no longer shippable.
 
+### Additional reclassification (later same day, 2026-08-15)
+
+- **api-contract.js reclassified from chrome to view-source bundle.**
+  Discovery during the Story x-3 / Story 2.10 cleanup sweep:
+  `api-contract.js` (18,772 bytes gz) was never chrome to begin with —
+  only loaded by `view-source.html` + `quality.html` (special-purpose
+  pages). The bundle-size gate had been over-counting since it shipped
+  earlier the same day. Reclassified to the view-source/quality bundle
+  alongside `vendor/highlight.min.js` + `vendor/zip-store.js` (which
+  already had the same carve-out). Baseline bumped DOWN 161,175 →
+  142,420 (-18,755 bytes gz actual). NFR-1 gap drops from 5.4× to
+  4.7× over. **Zero code changes** — the file is preserved verbatim.
+  See candidate #1 in `docs/bundle-size-budget.md` for the full
+  reclassification log.
+
 ---
 
 ## Files changed in this round

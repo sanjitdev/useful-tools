@@ -450,8 +450,8 @@ const contractSrc = fs.readFileSync(
   path.resolve(__dirname, '../assets/js/api-contract.js'),
   'utf8'
 );
-check('api-contract: version === 1.16.0 (Story 3.12: 1.15.0 → 1.16.0 for HT.recent + HT.pins + HT.homeSidebar; Story 3.11: 1.14.0 → 1.15.0 for HT.viewSource + HT.highlight + HT.zipStore; Story 3.7: 1.12.0 → 1.14.0 for HT.export; Story 3.6: 1.11.0 → 1.12.0 for HT_HISTORY_INIT bootstrap handle + history entry-shape migration)',
-  /version:\s*['"]1\.16\.0['"]/.test(contractSrc));
+check('api-contract: version === 1.23.0 (Story 1.11 follow-up: 1.22.0 → 1.23.0 for the 11 utils.js helpers promoted to HT.*; Story 3.12: 1.15.0 → 1.16.0 for HT.recent + HT.pins + HT.homeSidebar; Story 3.11: 1.14.0 → 1.15.0 for HT.viewSource + HT.highlight + HT.zipStore; Story 3.7: 1.12.0 → 1.14.0 for HT.export; Story 3.6: 1.11.0 → 1.12.0 for HT_HISTORY_INIT bootstrap handle + history entry-shape migration)',
+  /version:\s*['"]1\.23\.0['"]/.test(contractSrc));
 const matches = contractSrc.match(/name:\s*['"]HT\.a11y\.[\w.]+['"]/g) || [];
 const names = matches.map(function (m) {
   return /['"](HT\.a11y\.[\w.]+)['"]/.exec(m)[1];

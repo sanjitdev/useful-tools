@@ -296,7 +296,7 @@ check('G.2 qr-code history error path starts with "history.qr-code-generator"',
   lastToast && /^Export validation failed: history\.qr-code-generator$/.test(lastToast.msg));
 
 // H. api-contract pin
-check('H.1 api-contract.js version === 1.16.0 (Story 3.12 + 3.11 bumped to 1.16.0; Story 3.7 originally bumped 1.12.0 → 1.14.0 for HT.export)', /version:\s*['"]1\.16\.0['"]/.test(CONTRACT_SRC));
+check('H.1 api-contract.js version === 1.23.0 (Story 1.11 follow-up bumped 1.22.0 → 1.23.0 for the 11 utils.js helpers promoted to HT.*; Story 3.12 + 3.11 bumped to 1.16.0; Story 3.7 originally bumped 1.12.0 → 1.14.0 for HT.export)', /version:\s*['"]1\.23\.0['"]/.test(CONTRACT_SRC));
 check('H.2 api-contract.js lists HT.export entry', /name:\s*'HT\.export'/.test(CONTRACT_SRC));
 
 // === Vacuous-pass guard ===

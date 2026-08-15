@@ -31,9 +31,21 @@ project to delete features.
 
 | Tier | Measured (gzipped) | NFR-1 target | Overshoot |
 |---|---|---|---|
-| JS chrome | 162,915 bytes | 30,000 bytes | **5.4×** |
+| JS chrome | 142,420 bytes | 30,000 bytes | **4.7×** |
 | CSS chrome | 22,480 bytes | 30,000 bytes | under by 7.5 KB |
 | Per-tool first-load | varies (tool-specific) | 30,000 bytes over shell | varies |
+
+**Note 2026-08-15:** Chrome total dropped from 162,915 → 142,420 bytes
+gzipped due to two reclassifications on the same day:
+
+1. **Story 2.10 cleanup** (−1,740 bytes gz): deleted dead-code
+   `layout.js` (898 gz) + `theme.js` (842 gz).
+2. **api-contract.js reclassification** (−18,755 bytes gz): the file
+   was never chrome to begin with — only loaded by `view-source.html`
+   + `quality.html` (special-purpose pages, not chrome). Reclassified
+   to the view-source/quality bundle alongside
+   `vendor/highlight.min.js` + `vendor/zip-store.js`. The bundle-size
+   gate had been over-counting since it shipped earlier today.
 
 The JS overshoot is driven by three structural factors:
 
@@ -82,8 +94,9 @@ For the project today, **nothing changes operationally**. Story x-3's
 gate (`scripts/bundle-size-gate.py`) already implements the tiered
 structure in code — it measures every chrome module, sums the JS, and
 fails when the sum exceeds `BUNDLE_SIZE_BASELINE + BUNDLE_SIZE_TOLERANCE`
-(currently 162,915 + 5,000 = 167,915). The gate just needs the PRD
-language to match.
+(currently 142,420 + 5,000 = 147,420, as of 2026-08-15 after the
+api-contract.js reclassification + Story 2.10 cleanup). The gate just
+needs the PRD language to match.
 
 For the project after Story 4 (embed slim build) lands, **the Tier 1
 < 30 KB budget becomes the new contract for the slim chrome**. The
