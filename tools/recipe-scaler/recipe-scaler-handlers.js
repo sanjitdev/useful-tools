@@ -1,66 +1,39 @@
 /* ============================================
-   Recipe Scaler — Story 9.9
-   Hand-rolled fraction parser + unit conversion +
-   metric/imperial conversion. All parsing / scaling
-   is in this single ES2018 vanilla file. NO third-
-   party libraries. ONE sanctioned fetch on boot for
-   assets/data/unit-conversion.json (with a hardcoded
-   fallback baked in for offline / file://).
+   Recipe Scaler — recipe-scaler-handlers.js (Story 4b Phase 3)
+   Lazy chunk: DOM refs, render, URL state, actions, wire.
+   Loaded via HT.lazyLoadTool('recipe-scaler', './recipe-scaler-handlers.js')
+   on DOMContentLoaded by core.js.
 
-   AD-1  — Zero runtime third-party libraries.
-   AD-12 — ES2018 vanilla; no SSR; no build step.
-   AD-14 — Frozen public surface (uses HT.$ / HT.debounce /
-           HT.toast; no new exports).
+   Read-only access to math/data via HT.recipeScalerCore.
 
-   Pipeline:
-     parseFraction(s)        → Number
-     parseLine(line)         → {qty, unit, ingredient} | null
-     tryConvert(qty, from, toSystem, factors)
-                            → {qty, unit} | null
-     formatFraction(n)       → String (Stern-Brocot greedy)
-     render()                → DOM update
+   Story 4b — see _bmad-output/implementation-artifacts/
+   story-4b-per-tool-code-splitting.md
    ============================================ */
 
 (function () {
   'use strict';
 
-  // -------- Constants --------
-  var DEFAULTS = {
-    multiplier: 2,
-    system: 'metric',
-  };
-  var MULT_MIN = 0.1;
-  var MULT_MAX = 100;
-  var FRAC_CAP = 16;          // denominator cap per AC-5
-  var SAMPLE_RECIPE = '1/2 cup flour\n2 tbsp sugar\n3 eggs\n350 °F oven\n1 pinch salt\nsalt to taste';
+  if (typeof window === 'undefined' || !window.HT) return;
+  if (!window.HT.recipeScalerCore) {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('recipe-scaler-handlers: HT.recipeScalerCore missing — recipe-scaler-core.js must load first.');
+    }
+    return;
+  }
+  var HT = window.HT;
+  var core = HT.recipeScalerCore;
+  var DEFAULTS = core.getDefaults();
+  var FALLBACK_FACTORS = core.getFactors();
+  var SAMPLE_RECIPE = core.getSampleRecipe();
+  var parseFraction = core.parseFraction;
+  var formatFraction = core.formatFraction;
+  var parseLine = core.parseLine;
+  var tryConvertCore = core.tryConvert;
+  var clampMultiplier = core.clampMultiplier;
 
-  // -------- Hardcoded fallback (offline / file:// safe) --------
-  // MUST stay byte-equivalent to assets/data/unit-conversion.json.
-  // See AC-3 / Known Limitations.
-  var FALLBACK_FACTORS = {
-    volume: {
-      base: 'ml',
-      toBase: {
-        cup: 236.588, tbsp: 14.787, tsp: 4.929, floz: 29.574,
-        ml: 1, liter: 1000, l: 1000, pint: 473.176, quart: 946.353, gallon: 3785.41,
-      },
-      metric: ['ml', 'liter', 'l'],
-      imperial: ['cup', 'tbsp', 'tsp', 'floz', 'pint', 'quart', 'gallon'],
-    },
-    mass: {
-      base: 'g',
-      toBase: { oz: 28.3495, lb: 453.592, g: 1, kg: 1000 },
-      metric: ['g', 'kg'],
-      imperial: ['oz', 'lb'],
-    },
-    temperature: {
-      units: ['°F', '°C'],
-      metric: ['°C'],
-      imperial: ['°F'],
-    },
-  };
-
-  // -------- DOM refs --------
+  // -------------------------------------------------------------
+  // DOM refs
+  // -------------------------------------------------------------
   var recipeEl = HT.$('#rs-recipe');
   var multEl = HT.$('#rs-multiplier');
   var sysEl = HT.$('#rs-system');
@@ -71,162 +44,23 @@
   var btnPrint = HT.$('[data-action="print"]');
   var btnShare = HT.$('[data-action="share"]');
 
-  // -------- State --------
-  // factors: the unit-conversion.json content (or fallback).
-  // factorsLoaded: 'fetched' | 'fallback'
+  // -------------------------------------------------------------
+  // State — factors (embedded) + factorsLoaded marker.
+  // -------------------------------------------------------------
   var factors = null;
   var factorsLoaded = 'fallback';
 
-  // -------- parseFraction (AC-1) --------
-  // Accepts: '1/2', '1 1/2', '0.5', '2', '3/4', '1 3/4'.
-  // Returns Number.
-  function parseFraction(s) {
-    if (s == null) return NaN;
-    var str = String(s).trim();
-    if (!str) return NaN;
-    // Mixed number: "1 1/2"
-    var mixed = str.match(/^(\d+)\s+(\d+)\/(\d+)$/);
-    if (mixed) {
-      var whole = parseInt(mixed[1], 10);
-      var num = parseInt(mixed[2], 10);
-      var den = parseInt(mixed[3], 10);
-      if (den === 0) return NaN;
-      return whole + num / den;
-    }
-    // Pure fraction: "1/2", "3/4"
-    var frac = str.match(/^(\d+)\/(\d+)$/);
-    if (frac) {
-      var n = parseInt(frac[1], 10);
-      var d = parseInt(frac[2], 10);
-      if (d === 0) return NaN;
-      return n / d;
-    }
-    // Decimal: "0.5", "1.25"
-    if (/^\d*\.\d+$/.test(str)) {
-      return parseFloat(str);
-    }
-    // Integer: "2"
-    if (/^\d+$/.test(str)) {
-      return parseInt(str, 10);
-    }
-    return NaN;
-  }
-
-  // -------- formatFraction (AC-5) --------
-  // Stern-Brocot / greedy continued-fraction approximation
-  // with denominator cap 16. Returns strings like
-  // "1/2", "1 1/4", "2", "1/3", "1/8".
-  function formatFraction(n) {
-    if (!Number.isFinite(n)) return String(n);
-    var EPS = 1e-9;
-    if (Math.abs(n) < EPS) return '0';
-    var sign = n < 0 ? '-' : '';
-    var x = Math.abs(n);
-    var whole = Math.floor(x);
-    var frac = x - whole;
-    if (frac < EPS) return sign + String(whole);
-    // Greedy CF approximation with cap FRAC_CAP.
-    var bestNum = 1;
-    var bestDen = FRAC_CAP;
-    var bestErr = Math.abs(frac - bestNum / bestDen);
-    for (var d = 1; d <= FRAC_CAP; d += 1) {
-      var n2 = Math.round(frac * d);
-      if (n2 < 1) n2 = 1;
-      if (n2 > d) n2 = d;
-      var err = Math.abs(frac - n2 / d);
-      if (err < bestErr) {
-        bestErr = err;
-        bestNum = n2;
-        bestDen = d;
-        if (err < EPS) break;
-      }
-    }
-    if (whole === 0) return sign + bestNum + '/' + bestDen;
-    return sign + whole + ' ' + bestNum + '/' + bestDen;
-  }
-
-  // -------- parseLine (AC-1 regex) --------
-  // Matches: "<qty> [<unit>] <ingredient>"
-  // Returns {qty: Number, unit: String|'', ingredient: String} or null.
-  function parseLine(line) {
-    if (line == null) return null;
-    var trimmed = String(line).trim();
-    if (!trimmed) return null;
-    // Canonical regex per AC-1.
-    var re = /^([0-9]+\/[0-9]+|[0-9]+(?:\s+[0-9]+\/[0-9]+)?|[0-9]*\.[0-9]+)(?:\s+(\S+))?\s*(.*)$/;
-    var m = trimmed.match(re);
-    if (!m) return null;
-    var qty = parseFraction(m[1]);
-    if (!Number.isFinite(qty)) return null;
-    var unit = m[2] ? String(m[2]) : '';
-    var ingredient = m[3] ? String(m[3]).trim() : '';
-    if (!ingredient) return null;
-    return { qty: qty, unit: unit, ingredient: ingredient };
-  }
-
-  // -------- tryConvert (AC-3 / AC-4) --------
-  // Returns {qty: Number, unit: String} if the unit is known
-  // and a conversion is possible. Returns null otherwise
-  // (caller should render the unit-warning chip).
-  function tryConvert(qty, fromUnit, toSystem) {
-    if (!factors) return null;
-    if (!fromUnit) return null;  // unitless ingredients don't convert
-    // Temperature: special case (formula, not linear factor).
-    var tempUnits = factors.temperature && factors.temperature.units;
-    if (tempUnits && tempUnits.indexOf(fromUnit) >= 0) {
-      var toUnit = toSystem === 'metric' ? '°C' : '°F';
-      if (fromUnit === toUnit) return { qty: qty, unit: fromUnit };
-      if (fromUnit === '°F' && toUnit === '°C') {
-        return { qty: (qty - 32) * 5 / 9, unit: '°C' };
-      }
-      if (fromUnit === '°C' && toUnit === '°F') {
-        return { qty: qty * 9 / 5 + 32, unit: '°F' };
-      }
-      return null;
-    }
-    // Volume
-    if (factors.volume && factors.volume.toBase[fromUnit] != null) {
-      var list = toSystem === 'metric' ? factors.volume.metric : factors.volume.imperial;
-      // Pick the first metric/imperial unit that's NOT the source unit.
-      // If source is already in target system, keep it.
-      var isAlready = list.indexOf(fromUnit) >= 0;
-      var targetUnit;
-      if (isAlready) {
-        targetUnit = fromUnit;
-      } else {
-        targetUnit = list[0];
-      }
-      var baseQty = qty * factors.volume.toBase[fromUnit];
-      var newQty = baseQty / factors.volume.toBase[targetUnit];
-      return { qty: newQty, unit: targetUnit };
-    }
-    // Mass
-    if (factors.mass && factors.mass.toBase[fromUnit] != null) {
-      var mlist = toSystem === 'metric' ? factors.mass.metric : factors.mass.imperial;
-      var misAlready = mlist.indexOf(fromUnit) >= 0;
-      var mTarget;
-      if (misAlready) {
-        mTarget = fromUnit;
-      } else {
-        mTarget = mlist[0];
-      }
-      var baseG = qty * factors.mass.toBase[fromUnit];
-      var mNew = baseG / factors.mass.toBase[mTarget];
-      return { qty: mNew, unit: mTarget };
-    }
-    return null;
-  }
-
-  // -------- Clamp + read multiplier --------
-  function clampMultiplier(v) {
-    if (!Number.isFinite(v)) return DEFAULTS.multiplier;
-    return Math.max(MULT_MIN, Math.min(MULT_MAX, v));
-  }
+  // -------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------
   function readMultiplier() {
     return clampMultiplier(parseFloat(multEl && multEl.value));
   }
 
-  // -------- Render (AC-2 / AC-3 / AC-4) --------
+  function tryConvert(qty, fromUnit, toSystem) {
+    return tryConvertCore(qty, fromUnit, toSystem, factors);
+  }
+
   function escapeHtml(s) {
     return String(s)
       .replace(/&/g, '&amp;')
@@ -236,6 +70,9 @@
       .replace(/'/g, '&#39;');
   }
 
+  // -------------------------------------------------------------
+  // Render (AC-2 / AC-3 / AC-4)
+  // -------------------------------------------------------------
   function render() {
     if (!outEl) return;
     var text = recipeEl ? String(recipeEl.value || '') : '';
@@ -254,7 +91,6 @@
         var line = lines[i];
         var parsed = parseLine(line);
         if (parsed === null) {
-          // AC-1 / ROQ-5: render unparsed marker AND exclude from scaling.
           unparsedCount += 1;
           htmlParts.push(
             '<li class="recipe-line-unparsed">' +
@@ -272,7 +108,6 @@
           finalQty = scaledQty * (conv.qty / parsed.qty);
           finalUnit = conv.unit;
         } else {
-          // Unknown unit: pass through with warning chip.
           finalQty = scaledQty;
           finalUnit = parsed.unit;
           warningUnit = parsed.unit;
@@ -308,7 +143,9 @@
     writeUrlState();
   }
 
-  // -------- URL state (AC-4) --------
+  // -------------------------------------------------------------
+  // URL state (AC-4)
+  // -------------------------------------------------------------
   function encodeBase64(text) {
     try {
       return btoa(unescape(encodeURIComponent(text)));
@@ -372,7 +209,9 @@
     }
   }
 
-  // -------- Actions (AC-6) --------
+  // -------------------------------------------------------------
+  // Actions (AC-6)
+  // -------------------------------------------------------------
   function actionSample() {
     if (recipeEl) recipeEl.value = SAMPLE_RECIPE;
     if (multEl) multEl.value = String(DEFAULTS.multiplier);
@@ -413,7 +252,9 @@
     }
   }
 
-  // -------- Wire events (AC-6 / AC-7) --------
+  // -------------------------------------------------------------
+  // Wire events (AC-6 / AC-7)
+  // -------------------------------------------------------------
   var onInput = HT.debounce(function () { render(); }, 120);
   function wire() {
     if (recipeEl) recipeEl.addEventListener('input', onInput);
@@ -447,14 +288,16 @@
     });
   }
 
-  // -------- Init --------
-  // AD-14: no direct fetch from tool scripts. The unit-conversion data is
-  // embedded as FALLBACK_FACTORS at the top of this file (kept byte-equivalent
-  // to assets/data/unit-conversion.json). The data file exists for documentation
-  // / future tooling but is NOT loaded at runtime.
-  factors = FALLBACK_FACTORS;
-  factorsLoaded = 'fallback';
-  applyUrlState();
-  wire();
-  render();
+  // -------------------------------------------------------------
+  // Init
+  // -------------------------------------------------------------
+  function init() {
+    factors = FALLBACK_FACTORS;
+    factorsLoaded = 'fallback';
+    applyUrlState();
+    wire();
+    render();
+  }
+
+  window.recipeScalerInit = init;
 })();

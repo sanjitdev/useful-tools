@@ -20,10 +20,17 @@ const vm = require('vm');
 const path = require('path');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
-const TOOL_SRC = fs.readFileSync(
-  path.join(REPO_ROOT, 'tools/recipe-scaler/recipe-scaler.js'),
+// Story 4b Phase 3 — recipe-scaler split into core + handlers.
+// Substring assertions search both files; sandbox loads both.
+const CORE_SRC = fs.readFileSync(
+  path.join(REPO_ROOT, 'tools/recipe-scaler/recipe-scaler-core.js'),
   'utf8'
 );
+const HANDLERS_SRC = fs.readFileSync(
+  path.join(REPO_ROOT, 'tools/recipe-scaler/recipe-scaler-handlers.js'),
+  'utf8'
+);
+const TOOL_SRC = CORE_SRC + '\n' + HANDLERS_SRC;
 const CSS_SRC = fs.readFileSync(
   path.join(REPO_ROOT, 'tools/recipe-scaler/recipe-scaler.css'),
   'utf8'
@@ -181,6 +188,11 @@ function buildAndLoad(search, opts) {
       // shell — but in our isolated vm context, we collapse to fn => fn.
       debounce: function (fn) { return fn; },
       toast: function () { /* stub */ },
+      // Story 4b Phase 3 — recipe-scaler is now split. Provide a stub
+      // lazyLoadTool so the core can boot end-to-end without async work.
+      // We don't actually lazy-load — the caller loads HANDLERS_SRC
+      // explicitly after CORE_SRC and then calls window.recipeScalerInit().
+      lazyLoadTool: function () { return Promise.resolve(); },
     },
     document: {
       addEventListener: () => {},
@@ -197,7 +209,12 @@ function buildAndLoad(search, opts) {
   ctx.window.HT_SHELL_EMBED = undefined;
 
   vm.createContext(ctx);
-  vm.runInContext(TOOL_SRC, ctx, { filename: 'recipe-scaler.js' });
+  // Story 4b Phase 3 — load CORE then HANDLERS then call init().
+  vm.runInContext(CORE_SRC, ctx, { filename: 'recipe-scaler-core.js' });
+  vm.runInContext(HANDLERS_SRC, ctx, { filename: 'recipe-scaler-handlers.js' });
+  if (typeof ctx.window.recipeScalerInit === 'function') {
+    ctx.window.recipeScalerInit();
+  }
 
   return { ctx, elements, fetchCalls, xhrCalls, consoleErrors, consoleInfos };
 }
@@ -231,7 +248,8 @@ check(/Math\.floor\(x\)/.test(TOOL_SRC), 'formatFraction: extracts integer part 
 // ---------------------------------------------------------------
 
 // Verify the canonical regex shape is present in source
-const regexSrcMatch = TOOL_SRC.match(/var re = (\/.+\/);/);
+// (Story 4b Phase 3 — renamed `re` → `PARSE_LINE_RE` in core split.)
+const regexSrcMatch = TOOL_SRC.match(/var PARSE_LINE_RE = (\/.+\/);/);
 check(regexSrcMatch !== null &&
   regexSrcMatch[1].indexOf('[0-9]+') >= 0 &&
   regexSrcMatch[1].indexOf('[0-9]+') >= 0 &&
