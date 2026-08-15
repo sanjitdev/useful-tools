@@ -1,11 +1,19 @@
 /* ============================================
-   Handy Tools — ht-lazy.js (Story 4, Phase 1 + Phase 5)
+   Handy Tools — ht-lazy.js (Story 4 + Story 4b Phase 2)
    Tier 2 chrome lazy loader. Phase 1 shipped
    `HT.lazyLoad(url)`. Phase 5 adds the CSS
    injection primitive `HT.lazyLoadCss(url)` so
    shell-thin.js's Proxy stubs can lazy-load both
    the JS module and its CSS chunk together,
    keeping chrome CSS out of first-paint.
+
+   Story 4b Phase 2 adds `HT.lazyLoadTool(slug, url)`
+   — sugar on top of `HT.lazyLoad` that gives each
+   tool's <slug>-core.js a single "load handlers on
+   first user interaction" primitive. Per-tool
+   <slug>-handlers.js loads via `HT.lazyLoad`, but
+   the slug-keyed dedup lets multiple tools share
+   the same loader without cross-talk.
 
    Loaded once on every chrome page, immediately
    after utils.js. Sits in Tier 1 of the slim
@@ -30,6 +38,17 @@
        don't fire load for stylesheet <link>, so
        a 200ms timeout fallback is used). Rejects
        on `error`.
+
+     HT.lazyLoadTool(slug, url) → Promise<void>  (Story 4b)
+       Sugar for per-tool <slug>-core.js scripts.
+       Loads `url` (the tool's <slug>-handlers.js)
+       exactly once, keyed by `slug` so multiple
+       tools on the same page (rare — embed mode)
+       don't cross-talk. Returns the underlying
+       `HT.lazyLoad(url)` Promise. Second call
+       with the same slug resolves immediately
+       even if the script is still in flight (the
+       Promise dedup handles that case).
 
    ES2018. AD-14 frozen public API.
 
@@ -151,4 +170,38 @@
 
   HT.lazyLoad = lazyLoad;
   HT.lazyLoadCss = lazyLoadCss;
+
+  // ------------------------------------------------------------------
+  // Per-tool handler lazy-load (Story 4b Phase 2).
+  //
+  // Tools that ship a <slug>-core.js (parse-time data + boot wiring)
+  // and a <slug>-handlers.js (lazy chunk loaded on first user input)
+  // call `HT.lazyLoadTool(slug, './<slug>-handlers.js')` from inside
+  // their IIFE. This wraps `HT.lazyLoad` with a slug-keyed flag so
+  // tools on the same page (embed mode embeds of multiple tools) can't
+  // cross-trigger each other's handlers. The Promise dedup in
+  // `lazyLoad` handles concurrent calls to the same URL; the
+  // slug-keyed flag is for the rare case where two tools reference
+  // the same handler URL (we never want tool A's first interaction to
+  // resolve tool B's pending Promise).
+  //
+  // Returns the lazyLoad Promise so callers can `.then(init)` for
+  // post-load wiring. If the URL is empty, rejects with a clear error.
+  // ------------------------------------------------------------------
+  const toolHandlersLoaded = new Set();
+  function lazyLoadTool(slug, url) {
+    if (typeof slug !== 'string' || slug.length === 0) {
+      return Promise.reject(new Error('ht-lazy: lazyLoadTool slug must be a non-empty string'));
+    }
+    if (typeof url !== 'string' || url.length === 0) {
+      return Promise.reject(new Error('ht-lazy: lazyLoadTool url must be a non-empty string'));
+    }
+    if (toolHandlersLoaded.has(slug)) return Promise.resolve();
+    const p = lazyLoad(url);
+    // Mark the slug as loaded before the Promise resolves so
+    // synchronous re-entry from a handler's setup fn doesn't re-fire.
+    toolHandlersLoaded.add(slug);
+    return p;
+  }
+  HT.lazyLoadTool = lazyLoadTool;
 })();
