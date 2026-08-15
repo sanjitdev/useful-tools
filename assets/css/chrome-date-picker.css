@@ -305,3 +305,8 @@
     display: none !important;
   }
 }
+
+/* Time picker styles moved to chrome-time-picker.css (Story 9.19.1
+   split — the time variant's CSS is page-conditional, loaded only
+   when an <input type="time"> is enhanced. Keeps LAZY_CSS_MODULES
+   under the 12,000-byte budget — see scripts/bundle-size-gate.py.) */

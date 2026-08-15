@@ -201,10 +201,11 @@
   });
 
   // Story 9.19 — opt the date input into HT.datePicker (lazy via
-  // shell-thin Proxy). Quick-pick buttons write to .value directly
-  // and call persistFromInputs() — no interaction with the popover.
+  // shell-thin Proxy). Story 9.19.1 — also includes the time input.
+  // Quick-pick buttons write to .value directly and call
+  // persistFromInputs() — no interaction with the popover.
   if (HT.datePicker && typeof HT.datePicker.enhance === 'function') {
-    HT.qsa('.js-date-picker').forEach(function (el) {
+    HT.qsa('.js-date-picker, .js-time-picker').forEach(function (el) {
       HT.datePicker.enhance(el, {});
     });
   }

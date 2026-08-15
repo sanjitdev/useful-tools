@@ -244,13 +244,13 @@
   HT.$('#wc-mtg-time').addEventListener('input', renderMeeting);
 
   // Story 9.19 — opt the meeting-date input into HT.datePicker (lazy
-  // via shell-thin Proxy). The picker's onSelect writes back to the
-  // input.value via the standard change event flow, so renderMeeting()
-  // picks it up transparently. The "Now" button writes to .value
-  // directly and calls renderMeeting() — no interaction with the
-  // popover.
+  // via shell-thin Proxy). Story 9.19.1 — also includes the meeting
+  // time input. The picker's onSelect writes back to the input.value
+  // via the standard change event flow, so renderMeeting() picks it
+  // up transparently. The "Now" button writes to .value directly and
+  // calls renderMeeting() — no interaction with the popover.
   if (HT.datePicker && typeof HT.datePicker.enhance === 'function') {
-    HT.qsa('.js-date-picker').forEach(function (el) {
+    HT.qsa('.js-date-picker, .js-time-picker').forEach(function (el) {
       HT.datePicker.enhance(el, {});
     });
   }

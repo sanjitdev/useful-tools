@@ -350,7 +350,7 @@ console.log('--- III. After lazy-load resolves, real API surface is exposed ---'
 }
 
 // =============================================================
-// IV. enhance() rejects non-<input type="date"> inputs
+// IV. enhance() rejects non-supported inputs; accepts date + time
 // =============================================================
 console.log('--- IV. enhance() input contract enforcement ---');
 {
@@ -364,19 +364,41 @@ console.log('--- IV. enhance() input contract enforcement ---');
     ctx.HT.datePicker.enhance({ tagName: 'DIV', type: 'date' }, {});
   } catch (e) {
     threw = true;
-    check(/input type="date"/.test(e.message), 'enhance(<div>) threw a clear error mentioning input type="date"');
+    check(/must be <input>/.test(e.message), 'enhance(<div>) threw a clear error mentioning <input>');
   }
   check(threw, 'enhance() threw on non-INPUT element');
 
-  // Wrong type.
+  // Wrong type — text. Story 9.19.1: time is accepted; date is
+  // accepted; anything else (e.g., text) is rejected with a clear
+  // error mentioning the accepted types.
   threw = false;
   try {
     ctx.HT.datePicker.enhance({ tagName: 'INPUT', type: 'text' }, {});
   } catch (e) {
     threw = true;
-    check(/input type="date"/.test(e.message), 'enhance(<input type="text">) threw a clear error mentioning input type="date"');
+    check(/type must be/.test(e.message) && /date/.test(e.message) && /time/.test(e.message),
+      'enhance(<input type="text">) threw a clear error mentioning accepted types');
   }
   check(threw, 'enhance() threw on <input type="text">');
+
+  // time is accepted (Story 9.19.1).
+  let accepted = false;
+  try {
+    const stubTimeInput = {
+      tagName: 'INPUT', nodeName: 'INPUT', type: 'time',
+      id: 'wc-mtg-time', name: 'mtg-time', value: '',
+      min: '', max: '', className: 'input js-time-picker',
+      attributes: { type: 'time', class: 'input js-time-picker' },
+      setAttribute: function () {}, getAttribute: function () { return null; },
+      addEventListener: function () {}, removeEventListener: function () {},
+      focus: function () {}, dispatchEvent: function () { return true; },
+      classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+      getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+    };
+    const h = ctx.HT.datePicker.enhance(stubTimeInput, {});
+    if (h && typeof h.open === 'function') accepted = true;
+  } catch (e) { /* should not throw */ }
+  check(accepted, 'enhance(<input type="time">) does NOT throw and returns a handle');
 
   // null/undefined.
   threw = false;
@@ -430,6 +452,7 @@ console.log('--- V. eager-tag strip + 7-tool opt-in ---');
     check(/HT\.datePicker\.enhance/.test(src),
       fx.slug + '/' + fx.handlersFile + ' calls HT.datePicker.enhance()');
     check(/HT\.qsa\(['"]\.js-date-picker['"]\)/.test(src) ||
+          /HT\.qsa\(['"][^'"]*\.js-date-picker[^'"]*['"]\)/.test(src) ||
           /HT\.\$\$\(['"]\.js-date-picker['"]\)/.test(src) ||
           /qsaAll|querySelectorAll.*\.js-date-picker/.test(src),
       fx.slug + '/' + fx.handlersFile + ' uses HT.qsa / querySelectorAll over .js-date-picker');
@@ -455,6 +478,7 @@ console.log('--- VI. bundle-size-gate.py spec movement ---');
   check(!!lazyMatch, 'LAZY_CSS_MODULES list found in gate');
   if (lazyMatch) {
     check(/["']assets\/css\/chrome-date-picker\.css["']/.test(lazyMatch[1]), 'chrome-date-picker.css IS in LAZY_CSS_MODULES');
+    check(/["']assets\/css\/chrome-time-picker\.css["']/.test(lazyMatch[1]), 'chrome-time-picker.css IS in LAZY_CSS_MODULES (Story 9.19.1)');
   }
 
   // Baseline unchanged — page-conditional modules don't feed the
@@ -867,6 +891,572 @@ console.log('--- XIII. Esc closes + focus returns ---');
     'source input received focus() after close (count: ' + (stubInput._focusCalled || 0) + ')');
 
   handle.destroy();
+}
+
+// =============================================================
+// XIV. time grid renders 24 hour cells + 12 minute cells
+// =============================================================
+console.log('--- XIV. time grid renders 24 + 12 cells ---');
+{
+  const ctx = buildCtx();
+  loadInto(ctx, SHELL_THIN_SRC, 'shell-thin.js (for XIV)');
+  loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XIV)');
+
+  const stubInput = {
+    tagName: 'INPUT', nodeName: 'INPUT', type: 'time',
+    id: 'wc-mtg-time', name: 'mtg-time', value: '12:00',
+    min: '', max: '', className: 'input js-time-picker',
+    attributes: { type: 'time', class: 'input js-time-picker', id: 'wc-mtg-time', name: 'mtg-time', value: '12:00' },
+    setAttribute: function (k, v) { this.attributes[k] = String(v); },
+    getAttribute: function (k) { return this.attributes[k] || null; },
+    addEventListener: function () {}, removeEventListener: function () {},
+    focus: function () {}, dispatchEvent: function () { return true; },
+    classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+    getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+  };
+  const handle = ctx.HT.datePicker.enhance(stubInput, {});
+  check(handle && handle._state && handle._state.type === 'time',
+    'enhance() produces a state with type="time"');
+
+  handle.open();
+  const state = handle._state;
+  check(state && state.dlg && state.dlg.hourCol && state.dlg.minuteCol,
+    'time dialog exposes hourCol + minuteCol refs');
+
+  const hourCells = state.dlg.hourCol.childNodes.filter(function (n) {
+    return n && n.nodeType === 1 && (n.className || '').indexOf('time-picker-cell--hour') >= 0;
+  });
+  check(hourCells.length === 24,
+    'hour column renders 24 cells (got ' + hourCells.length + ')');
+
+  const minuteCells = state.dlg.minuteCol.childNodes.filter(function (n) {
+    return n && n.nodeType === 1 && (n.className || '').indexOf('time-picker-cell--minute') >= 0;
+  });
+  check(minuteCells.length === 12,
+    'minute column renders 12 cells (5-min granularity, got ' + minuteCells.length + ')');
+
+  // Every hour cell carries a 0-23 data-hour attribute.
+  let allHoursValid = true;
+  for (let i = 0; i < hourCells.length; i += 1) {
+    const h = parseInt(hourCells[i].attributes['data-hour'], 10);
+    if (!(h >= 0 && h <= 23)) { allHoursValid = false; break; }
+  }
+  check(allHoursValid, 'every hour cell has data-hour in [0..23]');
+
+  // Every minute cell carries a 0,5,10,...,55 data-minute attribute.
+  let allMinsValid = true;
+  const expectedMins = [0,5,10,15,20,25,30,35,40,45,50,55];
+  for (let i = 0; i < minuteCells.length; i += 1) {
+    const mn = parseInt(minuteCells[i].attributes['data-minute'], 10);
+    if (expectedMins.indexOf(mn) < 0) { allMinsValid = false; break; }
+  }
+  check(allMinsValid, 'every minute cell has data-minute in {0,5,…,55}');
+
+  // Selected cell reflects the input value '12:00' → hour=12, minute=0.
+  const selectedHour = hourCells.filter(function (c) {
+    return (c.className || '').indexOf('time-picker-cell--selected') >= 0;
+  });
+  check(selectedHour.length === 1 && selectedHour[0].attributes['data-hour'] === '12',
+    'hour 12 is selected (matches input value 12:00)');
+  const selectedMin = minuteCells.filter(function (c) {
+    return (c.className || '').indexOf('time-picker-cell--selected') >= 0;
+  });
+  check(selectedMin.length === 1 && selectedMin[0].attributes['data-minute'] === '0',
+    'minute 0 is selected (snapped from 12:00)');
+
+  handle.destroy();
+}
+
+// =============================================================
+// XV. HH:MM round-trip — time cells are timezone-safe
+// =============================================================
+console.log('--- XV. HH:MM round-trip ---');
+{
+  const ctx = buildCtx();
+  loadInto(ctx, SHELL_THIN_SRC, 'shell-thin.js (for XV)');
+  loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XV)');
+
+  const stubInput = {
+    tagName: 'INPUT', nodeName: 'INPUT', type: 'time',
+    id: 'cd-time', name: 'cd-time', value: '23:59',
+    min: '', max: '', className: 'input js-time-picker',
+    attributes: { type: 'time', class: 'input js-time-picker', id: 'cd-time', name: 'cd-time', value: '23:59' },
+    setAttribute: function (k, v) { this.attributes[k] = String(v); },
+    getAttribute: function (k) { return this.attributes[k] || null; },
+    addEventListener: function () {}, removeEventListener: function () {},
+    focus: function () {}, dispatchEvent: function () { return true; },
+    classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+    getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+  };
+  const handle = ctx.HT.datePicker.enhance(stubInput, {});
+  handle.open();
+  const state = handle._state;
+  const title = state.dlg.title && state.dlg.title.textContent;
+  check(/^\d{2}:\d{2}$/.test(title),
+    'title shows valid HH:MM (got "' + title + '")');
+  check(title === '23:59' || /^(23:55|23:59|23:5\d)$/.test(title),
+    'title shows 23:xx range (got "' + title + '")');
+  handle.destroy();
+}
+
+// =============================================================
+// XVI. time selection writes input.value + fires events
+// =============================================================
+console.log('--- XVI. time selection writes input.value + fires events ---');
+{
+  const ctx = buildCtx();
+  loadInto(ctx, SHELL_THIN_SRC, 'shell-thin.js (for XVI)');
+  loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XVI)');
+
+  let inputFired = 0;
+  let changeFired = 0;
+  const stubInput = {
+    tagName: 'INPUT', nodeName: 'INPUT', type: 'time',
+    id: 'wc-mtg-time', name: 'mtg-time', value: '',
+    min: '', max: '', className: 'input js-time-picker',
+    attributes: { type: 'time', class: 'input js-time-picker', id: 'wc-mtg-time', name: 'mtg-time' },
+    _listeners: {},
+    setAttribute: function (k, v) { this.attributes[k] = String(v); },
+    getAttribute: function (k) { return this.attributes[k] || null; },
+    addEventListener: function (type, handler) {
+      (this._listeners[type] = this._listeners[type] || []).push(handler);
+    },
+    removeEventListener: function (type, handler) {
+      if (this._listeners[type]) {
+        this._listeners[type] = this._listeners[type].filter(function (h) { return h !== handler; });
+      }
+    },
+    dispatchEvent: function (ev) {
+      const handlers = this._listeners[ev.type] || [];
+      for (let i = 0; i < handlers.length; i += 1) {
+        try { handlers[i](ev); } catch (_) {}
+      }
+      if (ev && ev.type === 'input')  inputFired += 1;
+      if (ev && ev.type === 'change') changeFired += 1;
+      return true;
+    },
+    focus: function () {},
+    classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+    getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+  };
+  const handle = ctx.HT.datePicker.enhance(stubInput, {});
+  handle.open();
+  const state = handle._state;
+
+  // Click hour=14, then minute=30. Each click updates state.selected.
+  // After both, call Enter to commit.
+  const hourCell = state.dlg.hourCol.childNodes.filter(function (n) {
+    return n && n.nodeType === 1 && n.attributes['data-hour'] === '14';
+  })[0];
+  hourCell.closest = function (sel) {
+    if (sel === '.time-picker-cell--hour') return hourCell;
+    return null;
+  };
+  state.dlg.hourCol.dispatchEvent({ type: 'click', target: hourCell });
+
+  const minuteCell = state.dlg.minuteCol.childNodes.filter(function (n) {
+    return n && n.nodeType === 1 && n.attributes['data-minute'] === '30';
+  })[0];
+  minuteCell.closest = function (sel) {
+    if (sel === '.time-picker-cell--minute') return minuteCell;
+    return null;
+  };
+  state.dlg.minuteCol.dispatchEvent({ type: 'click', target: minuteCell });
+
+  check(state.selectedHour === 14 && state.selectedMinute === 30,
+    'clicking hour 14 + minute 30 updates state (got h=' + state.selectedHour + ' m=' + state.selectedMinute + ')');
+
+  // Commit via Enter key.
+  state.dlg.dlg.dispatchEvent({ type: 'keydown', key: 'Enter', preventDefault: function () {}, shiftKey: false });
+  check(stubInput.value === '14:30',
+    'Enter commits input.value = "14:30" (got "' + stubInput.value + '")');
+  check(inputFired >= 1,
+    'input event fired after Enter (got ' + inputFired + ')');
+  check(changeFired >= 1,
+    'change event fired after Enter (got ' + changeFired + ')');
+  check(handle.isOpen() === false,
+    'dialog closes after Enter commits the selection');
+  check(stubInput.id === 'wc-mtg-time', 'id preserved on input');
+  check(stubInput.name === 'mtg-time', 'name preserved on input');
+  check(stubInput.className.indexOf('js-time-picker') >= 0,
+    'class preserved on input');
+
+  handle.destroy();
+}
+
+// =============================================================
+// XVII. time keyboard navigation
+// =============================================================
+console.log('--- XVII. time keyboard navigation ---');
+{
+  const ctx = buildCtx();
+  loadInto(ctx, SHELL_THIN_SRC, 'shell-thin.js (for XVII)');
+  loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XVII)');
+
+  const stubInput = {
+    tagName: 'INPUT', nodeName: 'INPUT', type: 'time',
+    id: 'wc-mtg-time', name: 'mtg-time', value: '12:00',
+    min: '', max: '', className: 'input js-time-picker',
+    attributes: { type: 'time', class: 'input js-time-picker', id: 'wc-mtg-time', name: 'mtg-time', value: '12:00' },
+    setAttribute: function (k, v) { this.attributes[k] = String(v); },
+    getAttribute: function (k) { return this.attributes[k] || null; },
+    addEventListener: function () {}, removeEventListener: function () {},
+    focus: function () {}, dispatchEvent: function () { return true; },
+    classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+    getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+  };
+  const handle = ctx.HT.datePicker.enhance(stubInput, {});
+  handle.open();
+  const state = handle._state;
+  check(state.selectedHour === 12 && state.selectedMinute === 0,
+    'starts at 12:00 (snapped from input value)');
+
+  // ArrowDown → hour -1.
+  state.dlg.dlg.dispatchEvent({ type: 'keydown', key: 'ArrowDown', preventDefault: function () {}, shiftKey: false });
+  check(state.selectedHour === 11 && state.selectedMinute === 0,
+    'ArrowDown shifts hour -1 (got ' + state.selectedHour + ':' + state.selectedMinute + ')');
+
+  // ArrowUp → hour +1.
+  state.dlg.dlg.dispatchEvent({ type: 'keydown', key: 'ArrowUp', preventDefault: function () {}, shiftKey: false });
+  check(state.selectedHour === 12, 'ArrowUp shifts hour +1');
+
+  // ArrowRight → minute +1.
+  state.dlg.dlg.dispatchEvent({ type: 'keydown', key: 'ArrowRight', preventDefault: function () {}, shiftKey: false });
+  check(state.selectedHour === 12 && state.selectedMinute === 1,
+    'ArrowRight fine-tunes minute +1 (got ' + state.selectedHour + ':' + state.selectedMinute + ')');
+
+  // Shift+ArrowRight → minute +5.
+  state.dlg.dlg.dispatchEvent({ type: 'keydown', key: 'ArrowRight', preventDefault: function () {}, shiftKey: true });
+  check(state.selectedMinute === 6,
+    'Shift+ArrowRight jumps minute +5 (got ' + state.selectedMinute + ')');
+
+  // Home → minute = 0.
+  state.dlg.dlg.dispatchEvent({ type: 'keydown', key: 'Home', preventDefault: function () {}, shiftKey: false });
+  check(state.selectedMinute === 0, 'Home jumps minute to 0');
+
+  // End → minute = 55.
+  state.dlg.dlg.dispatchEvent({ type: 'keydown', key: 'End', preventDefault: function () {}, shiftKey: false });
+  check(state.selectedMinute === 55, 'End jumps minute to 55');
+
+  // PageUp → hour +12.
+  state.dlg.dlg.dispatchEvent({ type: 'keydown', key: 'PageUp', preventDefault: function () {}, shiftKey: false });
+  check(state.selectedHour === 0,
+    'PageUp wraps hour +12 from 12 → 0 (got ' + state.selectedHour + ')');
+
+  handle.destroy();
+}
+
+// =============================================================
+// XVIII. Now button writes current HH:MM
+// =============================================================
+console.log('--- XVIII. Now button writes current HH:MM ---');
+{
+  const ctx = buildCtx();
+  loadInto(ctx, SHELL_THIN_SRC, 'shell-thin.js (for XVIII)');
+  loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XVIII)');
+
+  let inputFired = 0;
+  let changeFired = 0;
+  const stubInput = {
+    tagName: 'INPUT', nodeName: 'INPUT', type: 'time',
+    id: 'wc-mtg-time', name: 'mtg-time', value: '',
+    min: '', max: '', className: 'input js-time-picker',
+    attributes: { type: 'time', class: 'input js-time-picker', id: 'wc-mtg-time', name: 'mtg-time' },
+    _listeners: {},
+    setAttribute: function (k, v) { this.attributes[k] = String(v); },
+    getAttribute: function (k) { return this.attributes[k] || null; },
+    addEventListener: function (type, handler) {
+      (this._listeners[type] = this._listeners[type] || []).push(handler);
+    },
+    removeEventListener: function (type, handler) {
+      if (this._listeners[type]) {
+        this._listeners[type] = this._listeners[type].filter(function (h) { return h !== handler; });
+      }
+    },
+    dispatchEvent: function (ev) {
+      const handlers = this._listeners[ev.type] || [];
+      for (let i = 0; i < handlers.length; i += 1) {
+        try { handlers[i](ev); } catch (_) {}
+      }
+      if (ev && ev.type === 'input')  inputFired += 1;
+      if (ev && ev.type === 'change') changeFired += 1;
+      return true;
+    },
+    focus: function () {},
+    classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+    getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+  };
+  const handle = ctx.HT.datePicker.enhance(stubInput, {});
+  handle.open();
+
+  // Click the Now button.
+  const nowBtn = handle._state.dlg.nowBtn;
+  check(!!nowBtn, 'time dialog exposes a Now button');
+  nowBtn.dispatchEvent({ type: 'click' });
+
+  check(handle._state.selectedHour === (new Date()).getHours() &&
+        Math.abs(handle._state.selectedMinute - Math.round((new Date()).getMinutes() / 5) * 5) <= 5,
+    'Now button sets selectedHour/Minute to current local time (h=' +
+      handle._state.selectedHour + ' m=' + handle._state.selectedMinute + ')');
+
+  handle.destroy();
+}
+
+// =============================================================
+// XVIII-a. datetime-local: enhance accepts the type
+// =============================================================
+console.log('--- XVIII-a. datetime-local: enhance accepts the type ---');
+{
+  const ctx = buildCtx();
+  loadInto(ctx, SHELL_THIN_SRC, 'shell-thin.js (for XVIII-a)');
+  loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XVIII-a)');
+
+  const stubInput = {
+    tagName: 'INPUT', nodeName: 'INPUT', type: 'datetime-local',
+    id: 'ec-target', name: 'target', value: '',
+    min: '', max: '', className: 'input js-date-time-picker',
+    attributes: { type: 'datetime-local', class: 'input js-date-time-picker', id: 'ec-target', name: 'target' },
+    setAttribute: function (k, v) { this.attributes[k] = String(v); },
+    getAttribute: function (k) { return this.attributes[k] || null; },
+    addEventListener: function () {}, removeEventListener: function () {},
+    focus: function () {}, dispatchEvent: function () { return true; },
+    classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+    getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+  };
+  const handle = ctx.HT.datePicker.enhance(stubInput, {});
+  check(handle && handle._state && handle._state.type === 'datetime-local',
+    'enhance() returns datetime-local handle (got type="' + (handle && handle._state && handle._state.type) + '")');
+  check(handle && typeof handle.open === 'function' &&
+        typeof handle.close === 'function' && typeof handle.destroy === 'function' &&
+        typeof handle.isOpen === 'function',
+    'datetime-local handle exposes {open, close, destroy, isOpen}');
+
+  // Verify the unsupported type still throws.
+  let threw = false;
+  try {
+    ctx.HT.datePicker.enhance({
+      tagName: 'INPUT', type: 'month',
+      addEventListener: function () {}, removeEventListener: function () {},
+    }, {});
+  } catch (e) { threw = true; }
+  check(threw, 'enhance() throws for unsupported input.type="month"');
+
+  handle.destroy();
+}
+
+// =============================================================
+// XVIII-b. datetime-local: open() builds a tab strip + 2 panes
+// =============================================================
+console.log('--- XVIII-b. datetime-local: open() builds a tab strip + 2 panes ---');
+{
+  const ctx = buildCtx();
+  loadInto(ctx, SHELL_THIN_SRC, 'shell-thin.js (for XVIII-b)');
+  loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XVIII-b)');
+
+  const stubInput = {
+    tagName: 'INPUT', nodeName: 'INPUT', type: 'datetime-local',
+    id: 'ec-target', name: 'target', value: '',
+    min: '', max: '', className: 'input js-date-time-picker',
+    attributes: { type: 'datetime-local', class: 'input js-date-time-picker', id: 'ec-target', name: 'target' },
+    setAttribute: function (k, v) { this.attributes[k] = String(v); },
+    getAttribute: function (k) { return this.attributes[k] || null; },
+    addEventListener: function () {}, removeEventListener: function () {},
+    focus: function () {}, dispatchEvent: function () { return true; },
+    classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+    getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+  };
+  const handle = ctx.HT.datePicker.enhance(stubInput, {});
+  handle.open();
+
+  const d = handle._state.dlg;
+  check(!!(d && d.dateTab && d.timeTab),
+    'date-time dialog exposes dateTab + timeTab buttons');
+  check(!!(d && d.okBtn && d.nowBtn && d.clearBtn),
+    'date-time dialog exposes {ok, now, clear} buttons');
+  check(!!(d && d.grid && d.hourCol && d.minuteCol),
+    'date-time dialog exposes grid (date) + hourCol + minuteCol (time)');
+
+  // Date tab is selected by default.
+  check(d.dateTab.getAttribute('aria-selected') === 'true',
+    'date tab is selected by default');
+
+  handle.destroy();
+}
+
+// =============================================================
+// XVIII-c. datetime-local: tab strip swap + Alt+Right
+// =============================================================
+console.log('--- XVIII-c. datetime-local: tab strip swap ---');
+{
+  const ctx = buildCtx();
+  loadInto(ctx, SHELL_THIN_SRC, 'shell-thin.js (for XVIII-c)');
+  loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XVIII-c)');
+
+  const stubInput = {
+    tagName: 'INPUT', nodeName: 'INPUT', type: 'datetime-local',
+    id: 'ec-target', name: 'target', value: '2026-08-15T14:30',
+    min: '', max: '', className: 'input js-date-time-picker',
+    attributes: { type: 'datetime-local', class: 'input js-date-time-picker', id: 'ec-target', name: 'target' },
+    setAttribute: function (k, v) { this.attributes[k] = String(v); },
+    getAttribute: function (k) { return this.attributes[k] || null; },
+    addEventListener: function () {}, removeEventListener: function () {},
+    focus: function () {}, dispatchEvent: function () { return true; },
+    classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+    getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+  };
+  const handle = ctx.HT.datePicker.enhance(stubInput, {});
+  handle.open();
+
+  // Switch to Time tab.
+  handle._state.dlg.timeTab.dispatchEvent({ type: 'click' });
+  check(handle._state.tab === 'time',
+    'clicking Time tab sets state.tab = "time" (got "' + handle._state.tab + '")');
+  check(handle._state.dlg.timeTab.getAttribute('aria-selected') === 'true',
+    'Time tab is now aria-selected');
+  check(handle._state.dlg.dateTab.getAttribute('aria-selected') === 'false',
+    'Date tab is now aria-selected=false');
+
+  // Switch back.
+  handle._state.dlg.dateTab.dispatchEvent({ type: 'click' });
+  check(handle._state.tab === 'date',
+    'clicking Date tab sets state.tab = "date"');
+
+  handle.destroy();
+}
+
+// =============================================================
+// XVIII-d. datetime-local: OK composes YYYY-MM-DDTHH:MM
+// =============================================================
+console.log('--- XVIII-d. datetime-local: OK commits YYYY-MM-DDTHH:MM ---');
+{
+  const ctx = buildCtx();
+  loadInto(ctx, SHELL_THIN_SRC, 'shell-thin.js (for XVIII-d)');
+  loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XVIII-d)');
+
+  let inputFired = 0;
+  let changeFired = 0;
+  const stubInput = {
+    tagName: 'INPUT', nodeName: 'INPUT', type: 'datetime-local',
+    id: 'ec-target', name: 'target', value: '2026-08-15T14:30',
+    min: '', max: '', className: 'input js-date-time-picker',
+    attributes: { type: 'datetime-local', class: 'input js-date-time-picker', id: 'ec-target', name: 'target' },
+    _listeners: {},
+    setAttribute: function (k, v) { this.attributes[k] = String(v); this[k] = v; },
+    getAttribute: function (k) { return this.attributes[k] || null; },
+    addEventListener: function (type, handler) {
+      (this._listeners[type] = this._listeners[type] || []).push(handler);
+    },
+    removeEventListener: function (type, handler) {
+      if (this._listeners[type]) {
+        this._listeners[type] = this._listeners[type].filter(function (h) { return h !== handler; });
+      }
+    },
+    dispatchEvent: function (ev) {
+      const handlers = this._listeners[ev.type] || [];
+      for (let i = 0; i < handlers.length; i += 1) {
+        try { handlers[i](ev); } catch (_) {}
+      }
+      if (ev && ev.type === 'input')  inputFired += 1;
+      if (ev && ev.type === 'change') changeFired += 1;
+      return true;
+    },
+    focus: function () {},
+    classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+    getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+  };
+  const handle = ctx.HT.datePicker.enhance(stubInput, {});
+  handle.open();
+
+  // Parse the existing value.
+  check(handle._state.selectedIso === '2026-08-15',
+    'parses selectedIso from input.value (got "' + handle._state.selectedIso + '")');
+  check(handle._state.selectedHour === 14 && handle._state.selectedMinute === 30,
+    'parses hour=14 minute=30 from input.value (got h=' +
+      handle._state.selectedHour + ' m=' + handle._state.selectedMinute + ')');
+
+  // Adjust the time so OK has a value-change to dispatch.
+  handle._state.selectedHour = 9;
+  handle._state.selectedMinute = 45;
+
+  // Click OK.
+  handle._state.dlg.okBtn.dispatchEvent({ type: 'click' });
+  check(stubInput.value === '2026-08-15T09:45',
+    'OK commits input.value = "2026-08-15T09:45" (got "' + stubInput.value + '")');
+  check(inputFired > 0,
+    'input event fires after OK commit (got ' + inputFired + ')');
+  check(changeFired > 0,
+    'change event fires after OK commit (got ' + changeFired + ')');
+
+  handle.destroy();
+}
+
+// =============================================================
+// XIX. regression — date inputs still work after Story 9.19.1
+// =============================================================
+console.log('--- XIX. regression — date inputs unaffected by Story 9.19.1 ---');
+{
+  const ctx = buildCtx();
+  loadInto(ctx, SHELL_THIN_SRC, 'shell-thin.js (for XIX)');
+  loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XIX)');
+
+  const stubInput = {
+    tagName: 'INPUT', nodeName: 'INPUT', type: 'date',
+    id: 'ls-dob', name: 'dob', value: '2026-01-15',
+    min: '', max: '', className: 'input js-date-picker',
+    attributes: { type: 'date', class: 'input js-date-picker', id: 'ls-dob', name: 'dob', value: '2026-01-15' },
+    setAttribute: function (k, v) { this.attributes[k] = String(v); },
+    getAttribute: function (k) { return this.attributes[k] || null; },
+    addEventListener: function () {}, removeEventListener: function () {},
+    focus: function () {}, dispatchEvent: function () { return true; },
+    classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+    getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+  };
+  const handle = ctx.HT.datePicker.enhance(stubInput, {});
+  check(handle && handle._state && handle._state.type === 'date',
+    'date variant state.type === "date" (Story 9.19.1 did not regress the date path)');
+
+  handle.open();
+  const grid = handle._state.dlg.grid;
+  const cells = grid.childNodes.filter(function (n) {
+    return n && n.nodeType === 1 && (n.className || '').indexOf('date-picker-day') >= 0;
+  });
+  check(cells.length === 42,
+    'date grid still renders 42 cells (got ' + cells.length + ')');
+  // Time dialog must NOT have been instantiated.
+  check(ctx.HT.datePicker && handle._state.dlg && !handle._state.dlg.hourCol,
+    'date state.dlg does NOT expose hourCol (time variant only)');
+
+  handle.destroy();
+}
+
+// =============================================================
+// XX. eager-tag strip — 4 new inputs (time × 3, datetime-local × 1)
+// =============================================================
+console.log('--- XX. eager-tag strip — 4 new tool opt-ins ---');
+{
+  // Helper — does the html carry js-time-picker / js-date-time-picker
+  // on the given input id?
+  function hasClassOn(html, id, klass) {
+    const a = new RegExp('id=["\']' + id + '["\'][^>]*class=["\'][^"\']*' + klass).test(html);
+    const b = new RegExp('class=["\'][^"\']*' + klass + '[^"\']*["\'][^>]*id=["\']' + id + '["\']').test(html);
+    return a || b;
+  }
+
+  const timeFixtures = [
+    { slug: 'age-calculator',     input: 'dob-time',   klass: 'js-time-picker' },
+    { slug: 'countdown-to-date',  input: 'cd-time',    klass: 'js-time-picker' },
+    { slug: 'world-clock',        input: 'wc-mtg-time',klass: 'js-time-picker' },
+    { slug: 'exam-countdown',     input: 'ec-target',  klass: 'js-date-time-picker' },
+  ];
+  for (const fx of timeFixtures) {
+    const html = fs.readFileSync(path.join(REPO_ROOT, 'tools/' + fx.slug + '/index.html'), 'utf8');
+    check(!/src=["'][^"']*assets\/js\/date-picker\.js["']/.test(html),
+      'tools/' + fx.slug + '/index.html has no <script src="assets/js/date-picker.js">');
+    check(!/href=["'][^"']*assets\/css\/chrome-date-picker\.css["']/.test(html),
+      'tools/' + fx.slug + '/index.html has no <link href="assets/css/chrome-date-picker.css">');
+    check(hasClassOn(html, fx.input, fx.klass),
+      fx.slug + ': #' + fx.input + ' carries ' + fx.klass + ' class');
+  }
 }
 
 // =============================================================

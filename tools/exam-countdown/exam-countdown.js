@@ -233,6 +233,14 @@
     document.addEventListener('keydown', onKeydown);
   }
 
+  // Story 9.19.1 — opt the datetime-local target into HT.datePicker
+  // (lazy via shell-thin Proxy). The picker's onSelect writes back to
+  // input.value via the standard `change` event flow, so onInputChange
+  // picks it up transparently.
+  if (inputEl && HT.datePicker && typeof HT.datePicker.enhance === 'function') {
+    HT.datePicker.enhance(inputEl, {});
+  }
+
   // -------- Boot --------
   init();
   wire();

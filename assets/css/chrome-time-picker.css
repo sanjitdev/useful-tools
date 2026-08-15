@@ -1,0 +1,183 @@
+/* =============================================
+   Handy Tools — chrome-time-picker.css
+   Story 9.19.1: lazy-loaded alongside the time variant of
+   date-picker.js. Co-fired via HT.lazyLoadCss from inside the
+   Proxy makeProxy() factory in assets/js/shell-thin.js
+   (TIER2_CSS.datePicker entry).
+
+   Two-column layout: 24 hours on the left, 12 minute cells (5-min
+   granularity) on the right. Reuses .date-picker-dialog, .date-
+   picker-form, .date-picker-footer, .date-picker-clear from
+   chrome-date-picker.css (the date chunk MUST already be loaded
+   before this one).
+
+   Tokens come from base.css :root vars — light + dark + auto theme
+   + reduced-motion x2 blocks.
+   ============================================= */
+
+/* ----- Dialog surface ----- */
+
+.time-picker-dialog {
+  min-width: 240px;
+  max-width: 280px;
+}
+
+.time-picker-header {
+  justify-content: center;
+  padding: var(--space-2, 0.5rem) 0;
+  margin-bottom: var(--space-2, 0.5rem);
+  border-bottom: 1px solid var(--color-border, rgba(15, 17, 23, 0.12));
+}
+
+.time-picker-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+  color: var(--color-primary, #3169e8);
+}
+
+:root[data-theme="dark"] .time-picker-title {
+  color: var(--color-primary, #5d8af0);
+}
+
+/* ----- Two-column grid ----- */
+
+.time-picker-grid-wrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2, 0.5rem);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.time-picker-hour-col,
+.time-picker-minute-col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  align-content: start;
+}
+
+/* ----- Cells ----- */
+
+.time-picker-cell {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-text, #1a1d29);
+  padding: var(--space-2, 0.5rem) 0;
+  border-radius: var(--radius-md, 8px);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.time-picker-cell:hover {
+  background: var(--color-primary-soft, rgba(49, 105, 232, 0.08));
+}
+
+.time-picker-cell:focus {
+  outline: none;
+}
+
+.time-picker-cell:focus-visible {
+  outline: 2px solid var(--color-primary, #3169e8);
+  outline-offset: 1px;
+}
+
+.time-picker-cell--selected {
+  background: var(--color-primary, #3169e8);
+  color: var(--color-on-primary, #ffffff);
+  border-color: var(--color-primary, #3169e8);
+}
+
+.time-picker-cell--selected:hover {
+  background: var(--color-primary-hover, #2756c4);
+  border-color: var(--color-primary-hover, #2756c4);
+}
+
+.time-picker-cell--focused {
+  background: var(--color-primary-soft, rgba(49, 105, 232, 0.12));
+  border-color: var(--color-primary, #3169e8);
+}
+
+.time-picker-cell--focused.time-picker-cell--selected {
+  background: var(--color-primary, #3169e8);
+  color: var(--color-on-primary, #ffffff);
+}
+
+:root[data-theme="dark"] .time-picker-cell {
+  color: var(--color-text, #e8eaf0);
+}
+
+:root[data-theme="dark"] .time-picker-cell:hover {
+  background: var(--color-primary-soft, rgba(93, 138, 240, 0.16));
+}
+
+:root[data-theme="dark"] .time-picker-cell--selected {
+  background: var(--color-primary, #5d8af0);
+  color: var(--color-on-primary, #0e1018);
+}
+
+:root[data-theme="dark"] .time-picker-cell--selected:hover {
+  background: var(--color-primary-hover, #7da3f5);
+}
+
+:root[data-theme="dark"] .time-picker-cell--focused {
+  background: var(--color-primary-soft, rgba(93, 138, 240, 0.24));
+  border-color: var(--color-primary, #5d8af0);
+}
+
+/* ----- Now button ----- */
+
+.time-picker-now {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--color-border, rgba(15, 17, 23, 0.12));
+  color: var(--color-text, #1a1d29);
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  border-radius: var(--radius-md, 8px);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.time-picker-now:hover {
+  background: var(--color-primary-soft, rgba(49, 105, 232, 0.08));
+  border-color: var(--color-primary, #3169e8);
+  color: var(--color-primary, #3169e8);
+}
+
+.time-picker-now:focus-visible {
+  outline: 2px solid var(--color-primary, #3169e8);
+  outline-offset: 2px;
+}
+
+:root[data-theme="dark"] .time-picker-now {
+  color: var(--color-text, #e8eaf0);
+}
+
+/* ----- Reduced motion x2 (mirror base.css:274-286, 292-310) ----- */
+
+@media (prefers-reduced-motion: reduce) {
+  .time-picker-cell,
+  .time-picker-now {
+    transition: none;
+  }
+}
+
+:root:where([data-reduced-motion="true"]) .time-picker-cell,
+:root:where([data-reduced-motion="true"]) .time-picker-now {
+  transition: none;
+}
+
+/* ----- Print: hide the picker ----- */
+
+@media print {
+  .time-picker-dialog {
+    display: none !important;
+  }
+}
