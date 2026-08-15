@@ -56,6 +56,92 @@
   HT.shellThinLoaded = true;
 
   // ------------------------------------------------------------------
+  // Relative→absolute URL resolver (lazy-load path bug fix).
+  //
+  // shell-thin.js's TIER2_URLS / TIER2_CSS / kickShellBoot() all use
+  // repo-root-relative paths like `assets/js/history.js`. The home
+  // page (index.html at repo root) resolves them correctly via the
+  // browser's standard `<script src>` resolution: the page's URL is
+  // `/`, so `assets/js/quiz.js` → `/assets/js/quiz.js` (correct).
+  //
+  // But tool pages (tools/<slug>/index.html) live one directory
+  // deeper. The browser resolves `assets/js/quiz.js` against the
+  // page's URL (`/tools/<slug>/index.html`) and produces
+  // `/tools/<slug>/assets/js/quiz.js` — a 404. This bug shipped
+  // with Story 4 and never surfaced because no tool page triggered
+  // a lazy-load until Story 9.13 wired HT.quiz.open into the
+  // lifespan-simulator; the first "Try as quiz" click surfaced the
+  // `assets/js/quiz.js` 404 + downstream `assets/js/url.js` 404
+  // (urlState is the first namespace any quiz reveal touches).
+  //
+  // The fix: at IIFE execution time, capture this script's absolute
+  // URL via `document.currentScript.src`. The script ALWAYS lives at
+  // `<repo-root>/assets/js/shell-thin.js` — both the home page
+  // (`<script src="assets/js/shell-thin.js">`) and every tool page
+  // (`<script src="../../assets/js/shell-thin.js">`) resolve the
+  // script tag to the same absolute URL. Strip the trailing
+  // `/assets/js/shell-thin.js` to land at `<repo-root>/`, then
+  // resolve every repo-root-relative path against that base.
+  //
+  // Absolute URLs (http:, https:, //, file:, data:, blob:) and
+  // site-root-relative paths (/) pass through untouched. Tested by
+  // scripts/_smoke_quiz_proxy.js sections VI + VII.
+  // ------------------------------------------------------------------
+  const SCRIPT_URL = (function () {
+    try {
+      // document.currentScript is null in some sandbox contexts (the
+      // quiz-proxy smoke runs shell-thin.js in a vm with no
+      // <script>); fall back to null so resolveUrl() returns the
+      // original relative path (matches the pre-fix behavior — the
+      // smoke's own setup overrides currentScript via the lazyLog
+      // intercept before assertions run).
+      if (typeof document === 'undefined' || !document.currentScript) return null;
+      return document.currentScript.src || null;
+    } catch (e) {
+      return null;
+    }
+  })();
+  // Compute the repo-root base by walking back from this script's
+  // URL until we've stripped the chrome-root segment. The script
+  // always lives at `<repo>/assets/js/shell-thin.js` per the
+  // script-load-order invariant documented at the top of this IIFE;
+  // finding the last `assets` segment and slicing everything from
+  // there onward lands at the repo root regardless of how deep
+  // the script is nested (e.g., if shell-thin.js ever moved to
+  // `<repo>/v2/assets/js/shell-thin.js`, the same logic still finds
+  // the repo root).
+  let REPO_ROOT_BASE = null;
+  if (SCRIPT_URL) {
+    try {
+      const u = new URL(SCRIPT_URL);
+      // pathname is like "/assets/js/shell-thin.js"; after splitting
+      // on '/' and dropping empties, parts = ["assets", "js",
+      // "shell-thin.js"]. `lastIndexOf('assets')` finds the chrome-
+      // root segment, and slice(0, idx) drops everything from there
+      // onward — landing at the repo root.
+      const parts = u.pathname.split('/').filter(function (p) { return p.length > 0; });
+      const chromeRootIdx = parts.lastIndexOf('assets');
+      const rootParts = chromeRootIdx >= 0 ? parts.slice(0, chromeRootIdx) : [];
+      const rootPath = rootParts.length ? '/' + rootParts.join('/') + '/' : '/';
+      REPO_ROOT_BASE = u.origin + rootPath;
+    } catch (e) {
+      REPO_ROOT_BASE = null;
+    }
+  }
+  function resolveUrl(rel) {
+    if (!rel || typeof rel !== 'string') return rel;
+    // Absolute URLs (http:, https:, //, file:, data:, blob:) and
+    // site-root-relative paths (/) pass through untouched.
+    if (/^(?:[a-z]+:|\/\/|\/)/i.test(rel)) return rel;
+    if (!REPO_ROOT_BASE) return rel; // sandbox/SSR fallback
+    try {
+      return new URL(rel, REPO_ROOT_BASE).href;
+    } catch (e) {
+      return rel;
+    }
+  }
+
+  // ------------------------------------------------------------------
   // Proxy stubs. Tool IIFEs that call `HT.history.push(slug)` at
   // parse time hit the Proxy; first access lazy-loads the underlying
   // module. The Proxy resolves to the real namespace once shell.js
@@ -110,6 +196,18 @@
     quiz: 'assets/js/quiz.js',
   };
 
+  // Resolve relative paths against this script's own URL so the
+  // home page (index.html at repo root) and tool pages
+  // (tools/<slug>/index.html) both load from the same repo-relative
+  // path. Absolute URLs (http:, /, //) pass through. See the
+  // SCRIPT_URL / resolveUrl block at the top of this IIFE for the
+  // bug history and the sandbox-fallback contract.
+  for (const k in TIER2_URLS) {
+    if (Object.prototype.hasOwnProperty.call(TIER2_URLS, k)) {
+      TIER2_URLS[k] = resolveUrl(TIER2_URLS[k]);
+    }
+  }
+
   // Story 4 Phase 5 — chrome CSS chunks lazy-loaded alongside each
   // chrome namespace's first property access. Multiple namespaces may
   // share a CSS file (e.g., sampleData + share both use the
@@ -136,6 +234,15 @@
     // the round-trip to one network event.
     quiz: 'assets/css/quiz.css',
   };
+
+  // Same path-resolution treatment as TIER2_URLS above. Empty-string
+  // entries (namespaces without chrome CSS of their own) are passed
+  // through unchanged.
+  for (const k in TIER2_CSS) {
+    if (Object.prototype.hasOwnProperty.call(TIER2_CSS, k)) {
+      TIER2_CSS[k] = resolveUrl(TIER2_CSS[k]);
+    }
+  }
 
   function ensureLazy() {
     if (typeof HT.lazyLoad !== 'function') {
@@ -224,20 +331,24 @@
       });
     }
 
-    safeLazyLoad('assets/js/shell.js');
+    // All safeLazyLoad / lazyLoadCss calls below use resolveUrl() so
+    // tool pages (tools/<slug>/index.html) reach the same
+    // assets/ directory as the home page. See SCRIPT_URL / resolveUrl
+    // at the top of this IIFE.
+    safeLazyLoad(resolveUrl('assets/js/shell.js'));
     // Story 4b Phase 1: shell-*.js orchestrators (extracted from
     // shell.js boot() call sites) must be available by the time
     // shell.js boot() runs. They're tiny (~400 B each) and only
     // gated behind the chrome lazy-load — loading them eagerly
     // here would force them on the home/settings page where the
     // shell-* namespaces are never reached. Lazy is cheaper.
-    safeLazyLoad('assets/js/shell-history.js');
-    safeLazyLoad('assets/js/shell-share.js');
-    safeLazyLoad('assets/js/shell-sample-data.js');
-    safeLazyLoad('assets/js/help-overlay.js');
-    safeLazyLoad('assets/js/global-chords.js');
+    safeLazyLoad(resolveUrl('assets/js/shell-history.js'));
+    safeLazyLoad(resolveUrl('assets/js/shell-share.js'));
+    safeLazyLoad(resolveUrl('assets/js/shell-sample-data.js'));
+    safeLazyLoad(resolveUrl('assets/js/help-overlay.js'));
+    safeLazyLoad(resolveUrl('assets/js/global-chords.js'));
     if (typeof HT.lazyLoadCss === 'function') {
-      HT.lazyLoadCss('assets/css/chrome-settings.css').catch(function () {});
+      HT.lazyLoadCss(resolveUrl('assets/css/chrome-settings.css')).catch(function () {});
     }
   }
 

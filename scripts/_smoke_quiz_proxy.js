@@ -16,6 +16,14 @@
      - scripts/bundle-size-gate.py: quiz.js + quiz.css are in
        SPEC_PAGE_CONDITIONAL_MODULES, NOT in SPEC_JS_MODULES or
        SPEC_CSS_MODULES; BUNDLE_SIZE_BASELINE is at most 130,420 gz
+     - Story 9.13 regression guard (VI + VII): tool pages
+       (tools/<slug>/index.html) and the home page both resolve the
+       lazy-load URLs to the correct /assets/* location. The bug
+       was that shell-thin.js's TIER2_URLS / TIER2_CSS used bare
+       relative paths like 'assets/js/quiz.js' that 404'd from
+       tools/<slug>/index.html. Fix: resolve against
+       document.currentScript.src. The fix must not break the home
+       page that was already working.
 
    Pure-Node smoke (no jsdom / playwright). Runs in a vm sandbox with
    minimal HT + dom stubs.
@@ -93,6 +101,11 @@ function buildCtx() {
     },
     setTimeout: setTimeout,
     clearTimeout: clearTimeout,
+    // URL must be exposed explicitly — vm contexts don't inherit
+    // Node's globals by default. shell-thin.js uses `new URL(...)`
+    // in the resolveUrl base computation (Story 9.13 fix for tool-
+    // page 404s on assets/js/*.js).
+    URL: typeof URL !== 'undefined' ? URL : function () {},
     URLSearchParams: URLSearchParams,
     performance: { now: function () { return Date.now(); } },
     Object: Object,
@@ -253,6 +266,131 @@ console.log('--- V. bundle-size-gate.py spec movement ---');
   // Gate documents the Story 4c move in the docstring.
   check(/Story 4c/.test(gate), 'gate docstring mentions Story 4c');
   check(/SPEC_PAGE_CONDITIONAL_MODULES/.test(gate), 'gate references the new list in its docstring');
+}
+
+// =============================================================
+// VI. shell-thin.js resolves relative URLs against document.currentScript
+//      (Story 9.13 regression: tool pages used to 404 on assets/js/*.js)
+// =============================================================
+//
+// Bug history: shell-thin.js's TIER2_URLS / TIER2_CSS use relative paths
+// like 'assets/js/quiz.js' that only resolve correctly from the home
+// page (index.html at repo root). Tool pages (tools/<slug>/index.html)
+// live one directory deeper, so the browser resolved them to
+// tools/<slug>/assets/js/quiz.js — a 404. The first time this
+// surfaced was Story 9.13's "Try as quiz" click; fix is in
+// shell-thin.js lines 85-109 (SCRIPT_URL + resolveUrl).
+//
+// We simulate the bug by pretending <script src="..."> ran with
+// this URL:
+//   http://127.0.0.1:5500/tools/lifespan-simulator/index.html
+// and assert every Proxy-fired lazy-load points at the assets/ root
+// (NOT the buggy tools/<slug>/assets/ path).
+//
+// =============================================================
+console.log('--- VI. relative-URL resolution (tool-page regression) ---');
+{
+  const ctx = buildCtx();
+  // Simulate the bug: the page is tools/lifespan-simulator/index.html,
+  // but document.currentScript.src is the script tag's RESOLVED URL
+  // (the browser resolves the relative <script src> against the page
+  // URL BEFORE the script starts executing). Both the home page
+  // (<script src="assets/js/shell-thin.js">) and tool pages
+  // (<script src="../../assets/js/shell-thin.js">) resolve the script
+  // tag to the same absolute URL: <origin>/assets/js/shell-thin.js.
+  // That's the URL we stub here.
+  ctx.document.currentScript = { src: 'http://127.0.0.1:5500/assets/js/shell-thin.js' };
+  loadInto(ctx, SHELL_THIN_SRC, 'shell-thin.js (tool-page scenario)');
+
+  // Trigger the quiz namespace to fire lazy-load + lazy-loadCss.
+  const mount = { appendChild: function () {}, addEventListener: function () {} };
+  const callResult = ctx.HT.quiz.open({ mount: mount, questions: [] });
+  callResult.then(function () {}, function () {});
+
+  const firedJs  = ctx.HT._lazyLog.js;
+  const firedCss = ctx.HT._lazyLog.css;
+
+  // The bug: lazy-load was called with the BAD path
+  // /tools/lifespan-simulator/assets/js/quiz.js (404). The fix
+  // resolves every URL against the repo root
+  // (<origin>/assets/js/quiz.js), which is correct regardless of
+  // which page loaded shell-thin.js.
+  const firedQuizJs = firedJs.filter(function (u) { return /quiz\.js/.test(u); })[0];
+  check(!!firedQuizJs, 'quiz.js was lazy-loaded');
+  if (firedQuizJs) {
+    check(firedQuizJs.indexOf('tools/lifespan-simulator/assets/') === -1,
+      'quiz.js URL does NOT contain the buggy tools/<slug>/assets/ prefix (got: ' + firedQuizJs + ')');
+    check(/assets\/js\/quiz\.js(\?|#|$)/.test(firedQuizJs),
+      'quiz.js URL resolves to the assets/ root (got: ' + firedQuizJs + ')');
+  }
+
+  const firedQuizCss = firedCss.filter(function (u) { return /quiz\.css/.test(u); })[0];
+  check(!!firedQuizCss, 'quiz.css was lazy-loaded');
+  if (firedQuizCss) {
+    check(firedQuizCss.indexOf('tools/lifespan-simulator/assets/') === -1,
+      'quiz.css URL does NOT contain the buggy tools/<slug>/assets/ prefix (got: ' + firedQuizCss + ')');
+    check(/assets\/css\/quiz\.css(\?|#|$)/.test(firedQuizCss),
+      'quiz.css URL resolves to the assets/ root (got: ' + firedQuizCss + ')');
+  }
+
+  // Every chrome-namespace Proxy should also resolve correctly.
+  // urlState is the "next" namespace a quiz reveal touches (the
+  // reveal calls HT.urlState.decode for the share URL), so it
+  // must also be reachable from tool pages.
+  console.log('--- VI.b. every chrome namespace resolves to /assets/ ---');
+  ctx.HT._lazyLog.js.length = 0;
+  ctx.HT._lazyLog.css.length = 0;
+  ctx.HT.urlState.decode('lifespan-simulator', '#test=1');   // lazy-loads url.js
+  ctx.HT.history.push('lifespan-simulator');                  // lazy-loads history.js
+  ctx.HT.palette.open();                                      // lazy-loads palette-actions.js
+  ctx.HT.sampleData.mount('lifespan-simulator', {});          // lazy-loads sample-data.js
+  ctx.HT.share.print('lifespan-simulator');                   // lazy-loads share.js
+  ctx.HT.export.run();                                        // lazy-loads export.js
+  ctx.HT.import.run();                                        // lazy-loads import.js
+  ctx.HT.a11y.audit();                                        // lazy-loads a11y.js
+
+  // The chrome-settings.css lazyLoadCss at kickShellBoot time may
+  // also have fired when DOMContentLoaded is reached (it's stub-
+  // registered as a no-op here). We only check the URLs that map
+  // to non-empty CSS entries, otherwise the assertion is vacuous.
+  const cssSeen = ctx.HT._lazyLog.css.filter(function (u) { return u && u.length > 0; });
+  const badJs = ctx.HT._lazyLog.js.filter(function (u) {
+    return /tools\/lifespan-simulator\/assets\//.test(u);
+  });
+  const badCss = cssSeen.filter(function (u) {
+    return /tools\/lifespan-simulator\/assets\//.test(u);
+  });
+  check(badJs.length === 0,
+    'no chrome JS URL leaks the buggy tools/<slug>/assets/ prefix (got: ' +
+      (badJs.length ? badJs.join(', ') : 'none') + ')');
+  check(badCss.length === 0,
+    'no chrome CSS URL leaks the buggy tools/<slug>/assets/ prefix (got: ' +
+      (badCss.length ? badCss.join(', ') : 'none') + ')');
+}
+
+// =============================================================
+// VII. home-page regression: relative URLs still resolve from index.html
+//      (the fix must not break the home page that was already working)
+// =============================================================
+console.log('--- VII. home-page scenario (regression guard) ---');
+{
+  const ctx = buildCtx();
+  // Home page: same script URL — the browser resolves
+  // <script src="assets/js/shell-thin.js"> against the home page's
+  // URL, producing <origin>/assets/js/shell-thin.js.
+  ctx.document.currentScript = { src: 'http://127.0.0.1:5500/assets/js/shell-thin.js' };
+  loadInto(ctx, SHELL_THIN_SRC, 'shell-thin.js (home-page scenario)');
+
+  const mount = { appendChild: function () {}, addEventListener: function () {} };
+  ctx.HT.quiz.open({ mount: mount, questions: [] }).then(function () {}, function () {});
+
+  const firedQuizJs = ctx.HT._lazyLog.js.filter(function (u) { return /quiz\.js/.test(u); })[0];
+  check(!!firedQuizJs, 'home page: quiz.js was lazy-loaded');
+  if (firedQuizJs) {
+    // From any page (home or tool), assets/ resolves to the root.
+    check(/assets\/js\/quiz\.js/.test(firedQuizJs),
+      'home page: quiz.js URL resolves to /assets/js/quiz.js (got: ' + firedQuizJs + ')');
+  }
 }
 
 // =============================================================
