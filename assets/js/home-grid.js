@@ -3,7 +3,9 @@
    Renders the "From tools.json" section on the home page.
 
    Data flow:
-     1. fetch('./tools.json') — preferred path (production + dev).
+     1. fetch(<script-relative tools.json>) — preferred path
+        (production + dev). Resolves to the repo-root tools.json
+        from both home and tool pages (search.js pattern, Story 1.11).
      2. Fallback: <script type="application/json" id="ht-tools-json-inline">
         inlined by scripts/shell-template.py for file:// loads where fetch
         throws a CORS/scheme error.
@@ -31,8 +33,40 @@
   const HOST_ID = 'home-grid-tools-json';
   const SECTION_ID = 'home-grid-tools-json-section';
   const INLINE_ID = 'ht-tools-json-inline';
+  // Fallback when document.currentScript is unavailable (e.g. some
+  // test harnesses that move the script node before eval). Resolves
+  // relative to the document, which works correctly for the home
+  // page (/) but 404s on tool pages (/tools/<slug>/index.html).
+  // Captured below as `repoToolsJsonUrl()` so every fetch goes
+  // through the script-relative resolver.
   const TOOLS_JSON_URL = './tools.json';
   const COMING_SOON_MS = 2400;
+
+  // Story 1.11 (search.js) established the script-relative resolver
+  // pattern for tools.json. The home grid had the same `./tools.json`
+  // literal that 404s on tool pages (./tools.json from
+  // /tools/<slug>/index.html resolves to /tools/<slug>/tools.json).
+  // Mirroring search.js: capture this script's URL at IIFE time and
+  // resolve `../tools.json` from it so every page — home or tool —
+  // fetches the repo-root tools.json. Matches the search.js comment
+  // block verbatim for grep parity.
+  const SCRIPT_URL = (function () {
+    try {
+      if (typeof document !== 'undefined' && document.currentScript && document.currentScript.src) {
+        return document.currentScript.src;
+      }
+    } catch (_) { /* no-op */ }
+    return '';
+  })();
+
+  function repoToolsJsonUrl() {
+    if (!SCRIPT_URL) return TOOLS_JSON_URL;
+    try {
+      return new URL('../tools.json', SCRIPT_URL).href;
+    } catch (_) {
+      return TOOLS_JSON_URL;
+    }
+  }
 
   // Defense-in-depth shape check — CI validates the schema upstream.
   // The renderer only enforces the minimum fields it reads.
@@ -74,7 +108,7 @@
     if (typeof fetch !== 'function') {
       return Promise.reject(new Error('fetch unavailable'));
     }
-    return fetch(TOOLS_JSON_URL, { cache: 'no-cache' }).then(function (response) {
+    return fetch(repoToolsJsonUrl(), { cache: 'no-cache' }).then(function (response) {
       if (!response.ok) {
         throw new Error('HTTP ' + response.status);
       }

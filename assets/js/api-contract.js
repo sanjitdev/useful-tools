@@ -10,8 +10,8 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.21.0',
-  generated: '2026-08-14',
+  version: '1.23.0',
+  generated: '2026-08-15',
   entries: Object.freeze([
     Object.freeze({
       name: 'HT.boot',
@@ -19,6 +19,83 @@ window.HT.__apiContract = Object.freeze({
       stability: 'stable',
       module: 'assets/js/shell.js',
       notes: 'Idempotent. Safe to call twice — second call is a no-op.',
+    }),
+    Object.freeze({
+      name: 'HT.qs',
+      signature: '(sel: string, root?: HTMLElement | Document) => HTMLElement | null',
+      stability: 'stable',
+      module: 'assets/js/utils.js',
+      notes: 'Document.querySelector wrapper. root defaults to document. The HT.$ alias is identical (HT.$ = HT.qs); tools may use either. Stable since utils.js inception. Post-home-redesign retrofit (2026-08-13) promoted this from free-floating helper to contract surface because 37 of 40 tools depend on it being available before the Tool IIFE runs.',
+    }),
+    Object.freeze({
+      name: 'HT.$',
+      signature: '(sel: string, root?: HTMLElement | Document) => HTMLElement | null',
+      stability: 'stable',
+      module: 'assets/js/utils.js',
+      notes: 'Alias of HT.qs. Established in utils.js to give jQuery-style scripts a shorter call site. The contract is identical to HT.qs; the two bindings point at the same function reference. Breaking changes to HT.qs automatically propagate.',
+    }),
+    Object.freeze({
+      name: 'HT.qsa',
+      signature: '(sel: string, root?: HTMLElement | Document) => HTMLElement[]',
+      stability: 'stable',
+      module: 'assets/js/utils.js',
+      notes: 'Document.querySelectorAll wrapper, returns a real Array (Array.from) so callers can use forEach / map / filter directly without the NodeList cast. The HT.$$ alias is identical. Stable since utils.js inception.',
+    }),
+    Object.freeze({
+      name: 'HT.$$',
+      signature: '(sel: string, root?: HTMLElement | Document) => HTMLElement[]',
+      stability: 'stable',
+      module: 'assets/js/utils.js',
+      notes: 'Alias of HT.qsa. Same contract as HT.qsa; the two bindings point at the same function reference.',
+    }),
+    Object.freeze({
+      name: 'HT.fetch',
+      signature: '(url: string, opts?: {type?: "json"|"text"}) => Promise<any>',
+      stability: 'stable',
+      module: 'assets/js/utils.js',
+      notes: 'Thin wrapper around the native fetch with non-2xx -> reject. Mirrors HT.qs / HT.qsa so tool scripts can use the HT.* trio consistently. Returns parsed JSON by default; pass opts.type="text" to get the body as a string. Rejects with "HTTP <status> for <url>" on non-2xx. Rejects with Error("fetch unavailable") when fetch is not defined (defensive — older test harnesses). Tools that need the full Response surface (headers, status inspection, AbortSignal) should use HT.net.get instead (Story 1.14).',
+    }),
+    Object.freeze({
+      name: 'HT.formatNumber',
+      signature: '(n: number, opts?: {minFractionDigits?: number, maxFractionDigits?: number}) => string',
+      stability: 'stable',
+      module: 'assets/js/utils.js',
+      notes: 'Locale-aware number formatting via Intl.NumberFormat. minFractionDigits defaults to 0, maxFractionDigits to 4. Returns "—" for non-finite inputs (NaN, ±Infinity) so callers can render the result tile without a special case. Locale follows the browser default (undefined); tools that need an explicit locale should call Intl.NumberFormat directly.',
+    }),
+    Object.freeze({
+      name: 'HT.formatDuration',
+      signature: '(ms: number) => string',
+      stability: 'stable',
+      module: 'assets/js/utils.js',
+      notes: 'Formats a millisecond duration as a compact "<days>d <hours>h <minutes>m <seconds>s" string. Negative inputs render with a leading "-". Used by stopwatch, pomodoro, lifespan-simulator, and other time-aware tools. Always emits all four segments (omitting leading-zero days when ms < 86400000) for stable column widths.',
+    }),
+    Object.freeze({
+      name: 'HT.formatDurationHMS',
+      signature: '(ms: number) => string',
+      stability: 'stable',
+      module: 'assets/js/utils.js',
+      notes: 'Formats a millisecond duration as zero-padded "HH:MM:SS". Used by stopwatch and pomodoro where the visual cadence of the clock face matters more than the human-readable breakdown of HT.formatDuration.',
+    }),
+    Object.freeze({
+      name: 'HT.debounce',
+      signature: '<Args extends any[]>(fn: (...args: Args) => void, ms: number) => (...args: Args) => void',
+      stability: 'stable',
+      module: 'assets/js/utils.js',
+      notes: 'Trailing-edge debounce. Returns a wrapper that schedules fn on the trailing edge and resets the timer on every call. Preserves `this` and the arguments tuple. No leading-edge option by design — Story 2.1 / URL-state codec uses trailing debounce exclusively.',
+    }),
+    Object.freeze({
+      name: 'HT.toast',
+      signature: '(msg: string, ms?: number) => void',
+      stability: 'stable',
+      module: 'assets/js/utils.js',
+      notes: 'One-shot toast notification. msg is the visible text (already i18n-resolved by the caller; the helper does NOT translate). ms defaults to 1800ms. Auto-creates a .toast-container on first call. Used by Story 3.7 export, Story 3.8 import, and any tool that needs transient user feedback.',
+    }),
+    Object.freeze({
+      name: 'HT.copyToClipboard',
+      signature: '(text: string) => Promise<boolean>',
+      stability: 'stable',
+      module: 'assets/js/utils.js',
+      notes: 'Promise<boolean> wrapper around navigator.clipboard.writeText with a hidden-textarea fallback for non-secure-context loads (file:// in some browsers). Resolves true on success, false on failure (logs a single console.warn). Used by Story 2.5 share dialog, Story 3.11 view-source download, and any tool with a "Copy" affordance.',
     }),
     Object.freeze({
       name: 'HT.citation',
@@ -631,10 +708,10 @@ window.HT.__apiContract = Object.freeze({
     }),
     Object.freeze({
       name: 'HT.quiz',
-      signature: 'Readonly<{open: (options: {mount: HTMLElement, questions: ReadonlyArray<{id: string, label: string, prompt: string, options?: ReadonlyArray<{value: string|number, label: string}>, input?: "number"|"text"|"date", min?: number, max?: number, step?: number, helpText?: string, showIf?: ((answers: Readonly<{[id: string]: string|number}>) => boolean) | {skipIf?: (answers: Readonly<{[id: string]: string|number}>) => boolean}}>, answers?: object, onChange?: (answers: object) => void, onComplete?: (answers: object) => void, reveal?: (answers: object) => HTMLElement|string, animations?: boolean, storageKey?: string}) => Readonly<{close: () => void, destroy: () => void, getAnswers: () => object, jumpTo: (index: number) => void, progress: () => {current: number, total: number, answered: number}, isOpen: () => boolean}>, close: (handle?: object) => void, next: (handle: object) => void, prev: (handle: object) => void, skip: (handle: object) => void, answer: (handle: object, value: any) => void, progress: (handle: object) => {current: number, total: number, answered: number}, destroy: (handle: object) => void, isOpen: (handle?: object) => boolean}>',
+      signature: 'Readonly<{open: (options: {mount: HTMLElement, questions: ReadonlyArray<{id: string, label: string, prompt: string, options?: ReadonlyArray<{value: string|number, label: string}>, input?: "number"|"text"|"date", min?: number, max?: number, step?: number, helpText?: string, showIf?: ((answers: Readonly<{[id: string]: string|number|Array<string|number>}>) => boolean) | {skipIf?: (answers: Readonly<{[id: string]: string|number|Array<string|number>}>) => boolean}, multiSelect?: boolean}>, answers?: {[id: string]: string|number|Array<string|number>}, onChange?: (answers: object) => void, onComplete?: (answers: object) => void, reveal?: (answers: object) => HTMLElement|string, animations?: boolean, storageKey?: string}) => Readonly<{close: () => void, destroy: () => void, getAnswers: () => object, jumpTo: (index: number) => void, progress: () => {current: number, total: number, answered: number}, isOpen: () => boolean}>, close: (handle?: object) => void, next: (handle: object) => void, prev: (handle: object) => void, skip: (handle: object) => void, answer: (handle: object, value: string|number|Array<string|number>) => void, progress: (handle: object) => {current: number, total: number, answered: number}, destroy: (handle: object) => void, isOpen: (handle?: object) => boolean}>',
       stability: 'stable',
       module: 'assets/js/quiz.js',
-      notes: 'Story 9.12 Quiz Pattern shell module (additive updates: Story 9.12.1 — showIf predicate; Story 9.12.2 — Resume UI via storageKey). Cards render one-question-at-a-time inside a host mount element with Skip / Next / jumpTo navigation. Skip advances without writing to the answers map. Next on a question with a selected option writes the answer and advances; Next without a selection behaves like Skip. URL state round-trips via HT.urlState — tools declare keys in tools.json urlState.encode[] / decode[]. Reduced-motion respected under both @media (prefers-reduced-motion: reduce) and :root:where([data-reduced-motion="true"]). All animations are CSS-only (no requestAnimationFrame). Keyboard: Tab cycles within card, 1-9 picks option N, Arrow keys move within radiogroup, Enter advances, Esc pops one card. Focus is trapped per-card via the active-card scope. Story 9.12.1 — showIf predicate added to the Question spec (function or { skipIf } form). Branched-skip cards are silently omitted from state.answers (reveal panel renders them as the existing —/— skipped marker). The visible-card list is recomputed on every emitChange; progress().total reflects the visible-card count, not the logical question count. Navigation (next / skip / prev / jumpTo) auto-advances past hidden cards without disturbing the user. Story 9.12.2 — Resume UI via storageKey. When open() is called with a non-empty storageKey AND saved answers exist AND the URL hash does not pin a specific card (no view=card-N), the shell shows an inline <dialog> ("Resume previous attempt? N of M cards done · K skipped" + "Resume" / "Start over"). "Resume" (default focus, autofocus) restores {answers, current} and mounts. "Start over" clears the storage key (via HT.storage.remove or localStorage.removeItem) and mounts fresh. Esc cancels the dialog and is treated as Resume to preserve user data. Honors the showIf / visible-card semantics — the dialog count uses the visible-card list, not the raw question count. Defensive fallback: if <dialog> + showModal are unavailable, the shell auto-resumes without prompting. The dialog is NOT shown when the URL hash contains view=card- (URL wins). Read-only (Object.defineProperty writable:false configurable:false). Smoke harness: scripts/_smoke_quiz_shell.js.',
+      notes: 'Story 9.12 Quiz Pattern shell module (additive updates: Story 9.12.1 — showIf predicate; Story 9.12.2 — Resume UI via storageKey; Story 9.12.3 — Multi-select questions). Cards render one-question-at-a-time inside a host mount element with Skip / Next / jumpTo navigation. Skip advances without writing to the answers map. Next on a question with a selected option writes the answer and advances; Next without a selection behaves like Skip. URL state round-trips via HT.urlState — tools declare keys in tools.json urlState.encode[] / decode[]. Reduced-motion respected under both @media (prefers-reduced-motion: reduce) and :root:where([data-reduced-motion="true"]). All animations are CSS-only (no requestAnimationFrame). Keyboard: Tab cycles within card, 1-9 picks option N, Arrow keys move within the option group (radiogroup OR checkbox group), Enter advances, Esc pops one card. Focus is trapped per-card via the active-card scope. Story 9.12.1 — showIf predicate added to the Question spec (function or { skipIf } form). Branched-skip cards are silently omitted from state.answers (reveal panel renders them as the existing —/— skipped marker). The visible-card list is recomputed on every emitChange; progress().total reflects the visible-card count, not the logical question count. Navigation (next / skip / prev / jumpTo) auto-advances past hidden cards without disturbing the user. Story 9.12.2 — Resume UI via storageKey. When open() is called with a non-empty storageKey AND saved answers exist AND the URL hash does not pin a specific card (no view=card-N), the shell shows an inline <dialog> ("Resume previous attempt? N of M cards done · K skipped" + "Resume" / "Start over"). "Resume" (default focus, autofocus) restores {answers, current} and mounts. "Start over" clears the storage key (via HT.storage.remove or localStorage.removeItem) and mounts fresh. Esc cancels the dialog and is treated as Resume to preserve user data. Honors the showIf / visible-card semantics — the dialog count uses the visible-card list, not the raw question count. Defensive fallback: if <dialog> + showModal are unavailable, the shell auto-resumes without prompting. The dialog is NOT shown when the URL hash contains view=card- (URL wins). Story 9.12.3 — Multi-select questions. Setting Question.multiSelect: true renders the option list with role="group" + aria-multiselectable="true" and each option as role="checkbox" (vs the default role="radiogroup" + role="radio"). The answer is Array<string|number>; toggling a checkbox adds or removes one value. Empty array = the key is deleted from state.answers (matches radio\'s skip semantics — computeProgress.answered and computeResumeStats.done both treat empty as "skipped"). Hosts receiving the reveal() or onChange() callback see answers[q.id] as either a scalar (single-select) or an array (multi-select). The answer(handle, value) public API accepts either form — scalars on a multi-select question are coerced to a one-item array. Legacy scalar answers on a multi-select question passed via options.answers are coerced on open(). Read-only (Object.defineProperty writable:false configurable:false). Smoke harness: scripts/_smoke_quiz_shell.js.',
     }),
   ]),
 });
