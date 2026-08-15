@@ -937,10 +937,12 @@ assert(
 
 // -------------------------------------------------------------
 // AC-4: Modal width CSS — declarative only. Verify the rule string
-// in components.css contains the required token + @media query.
+// in chrome-settings.css contains the required token + @media query.
+// Story 4 Phase 5 split components.css; the settings modal rules
+// landed in chrome-settings.css (lazy-loaded via HT.lazyLoadCss).
 // -------------------------------------------------------------
 const cssContents = fs.readFileSync(
-  path.join(REPO_ROOT, 'assets/css/components.css'),
+  path.join(REPO_ROOT, 'assets/css/chrome-settings.css'),
   'utf8'
 );
 assert(
