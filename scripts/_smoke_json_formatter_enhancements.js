@@ -537,8 +537,15 @@ console.log('JSON Formatter Enhancements smoke (Story 9.1):');
     'api-contract.js: HT.diff entry present');
   check(/name:\s*'HT\.jsonSchema'/.test(acSrc),
     'api-contract.js: HT.jsonSchema entry present');
-  check(/version:\s*'1\.18\.0'/.test(acSrc),
-    'api-contract.js: version bumped to 1.18.0 (Story 9.2 surface addition: HT.citation)');
+  // Story 9.2 bumped api-contract to 1.18.0 when it added HT.citation;
+  // subsequent stories (3.7, 3.8, 3.11, 3.12, 1.11) bumped it further to
+  // 1.23.0. The assertion now just verifies the version is past the
+  // pre-9.2 baseline (1.17.x), confirming the surface additions stuck.
+  const versionMatch = acSrc.match(/version:\s*'(\d+)\.(\d+)\.(\d+)'/);
+  check(!!versionMatch && parseInt(versionMatch[1], 10) >= 1 && (
+    parseInt(versionMatch[1], 10) > 1 ||
+    (parseInt(versionMatch[1], 10) === 1 && parseInt(versionMatch[2], 10) >= 18)
+  ), 'api-contract.js: version bumped past 1.17.x (Story 9.2 surface addition: HT.citation)');
 }
 
 // ============================================================

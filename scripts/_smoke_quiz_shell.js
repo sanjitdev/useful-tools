@@ -1118,15 +1118,18 @@ console.log('--- XV. Multi-Select (Story 9.12.3 — multiSelect: true) ---');
   var handleX = s15c.handle;
 
   // XV-C: clicking a checkbox sets aria-checked="true" + adds .is-selected.
+  // NOTE: use .click() rather than .dispatchEvent({type:'click'}) because the
+  // smoke's dispatchEvent doesn't auto-populate ev.target, and quiz's
+  // onCardClick/onFooterClick early-return when ev.target is undefined.
   var optA = findOptionByValue(mountX, 'a');
-  optA.dispatchEvent({ type: 'click' });
+  optA.click();
   check(optA.getAttribute('aria-checked') === 'true',
     'clicked checkbox sets aria-checked="true"');
   check(optA._classes && optA._classes.has('is-selected'),
     'clicked checkbox gains .is-selected');
 
   // XV-D: clicking the same checkbox again unsets aria-checked + removes .is-selected.
-  optA.dispatchEvent({ type: 'click' });
+  optA.click();
   check(optA.getAttribute('aria-checked') === 'false',
     'second click toggles aria-checked back to "false"');
   check(!optA._classes.has('is-selected'),
@@ -1135,8 +1138,8 @@ console.log('--- XV. Multi-Select (Story 9.12.3 — multiSelect: true) ---');
   // XV-E: clicking two different checkboxes leaves both .is-selected.
   var optB = findOptionByValue(mountX, 'b');
   var optC = findOptionByValue(mountX, 'c');
-  optA.dispatchEvent({ type: 'click' });
-  optB.dispatchEvent({ type: 'click' });
+  optA.click();
+  optB.click();
   check(optA._classes.has('is-selected') && optB._classes.has('is-selected'),
     'two checkboxes can be selected simultaneously');
   check(!optC._classes.has('is-selected'),
@@ -1148,20 +1151,20 @@ console.log('--- XV. Multi-Select (Story 9.12.3 — multiSelect: true) ---');
     'getAnswers() returns array containing both picks');
 
   // XV-G: unchecking all removes the key (delete-on-empty).
-  optA.dispatchEvent({ type: 'click' });
-  optB.dispatchEvent({ type: 'click' });
+  optA.click();
+  optB.click();
   var ans2 = handleX.getAnswers();
   check(!Object.prototype.hasOwnProperty.call(ans2, 'q-multi'),
     'unchecking all checkboxes deletes the key (skip semantics)');
 
   // XV-H: progress().answered reflects one-key-per-multi question.
   // Pick both, expect answered === 1; uncheck all, expect answered === 0.
-  optA.dispatchEvent({ type: 'click' });
-  optB.dispatchEvent({ type: 'click' });
+  optA.click();
+  optB.click();
   check(handleX.progress().answered === 1,
     'multi-select with picks → progress().answered === 1');
-  optA.dispatchEvent({ type: 'click' });
-  optB.dispatchEvent({ type: 'click' });
+  optA.click();
+  optB.click();
   check(handleX.progress().answered === 0,
     'multi-select with no picks → progress().answered === 0');
 
@@ -1186,9 +1189,11 @@ console.log('--- XV. Multi-Select (Story 9.12.3 — multiSelect: true) ---');
   // XV-L: restoreOptionState preserves checkboxes on re-render.
   // Jump to q-single and back to q-multi via jumpTo, then verify the
   // checkboxes re-apply from the saved answers map.
+  // NOTE: jumpTo is on the handle, not on HT.quiz publicApi (the public
+  // surface only exposes open/close/next/prev/skip/answer/progress/destroy/isOpen).
   ctxX.HT.quiz.answer(handleX, ['a', 'b']);
-  ctxX.HT.quiz.jumpTo(handleX, 1); // jump to q-single
-  ctxX.HT.quiz.jumpTo(handleX, 0); // jump back to q-multi
+  handleX.jumpTo(1); // jump to q-single
+  handleX.jumpTo(0); // jump back to q-multi
   var optA2 = findOptionByValue(mountX, 'a');
   var optB2 = findOptionByValue(mountX, 'b');
   var optC2 = findOptionByValue(mountX, 'c');
@@ -1219,10 +1224,10 @@ console.log('--- XV. Multi-Select (Story 9.12.3 — multiSelect: true) ---');
   });
   var optP = findOptionByValue(mountY, 'p');
   var optQ = findOptionByValue(mountY, 'q');
-  optP.dispatchEvent({ type: 'click' });
-  optQ.dispatchEvent({ type: 'click' });
+  optP.click();
+  optQ.click();
   var allNextBtns = findAll(mountY, '[data-action="next"]');
-  if (allNextBtns[0]) allNextBtns[0].dispatchEvent({ type: 'click' });
+  if (allNextBtns[0]) allNextBtns[0].click();
   check(revealCalls.length > 0 && Array.isArray(revealCalls[revealCalls.length - 1]['q-only'])
       && revealCalls[revealCalls.length - 1]['q-only'].length === 2
       && revealCalls[revealCalls.length - 1]['q-only'].indexOf('p') >= 0
@@ -1251,7 +1256,7 @@ console.log('--- XV. Multi-Select (Story 9.12.3 — multiSelect: true) ---');
   });
   ctxZ.HT.quiz.answer(hZ, ['aa', 'bb']);
   var allNextBtnsZ = findAll(mountZ, '[data-action="next"]');
-  if (allNextBtnsZ[0]) allNextBtnsZ[0].dispatchEvent({ type: 'click' });
+  if (allNextBtnsZ[0]) allNextBtnsZ[0].click();
   var stored = ctxZ.HT.storage.get('_registry-quiz-test-multi');
   check(stored && stored.answers && Array.isArray(stored.answers['q-persist'])
       && stored.answers['q-persist'].length === 2,
