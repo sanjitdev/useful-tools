@@ -73,6 +73,38 @@
   if (typeof window === 'undefined') return;
   var HT = (window.HT = window.HT || {});
 
+  // Resolve `<repo>/assets/css/chrome-time-picker.css` correctly when
+  // the calling tool page is nested (e.g. tools/age-calculator/index.html).
+  // We capture the script's URL at module-load time (document.currentScript
+  // is set during the synchronous portion of a <script> tag's initial
+  // execution, then nulled afterward). The repo-root base is derived the
+  // same way shell-thin.js does it: walk the pathname back to the last
+  // `assets` segment. See scripts/_smoke_shell_thin_proxies.js §VI.
+  var REPO_ROOT_BASE = null;
+  try {
+    var cs = document.currentScript;
+    if (cs && cs.src) {
+      var u = new URL(cs.src);
+      var parts = u.pathname.split('/').filter(function (p) { return p.length > 0; });
+      var idx = parts.lastIndexOf('assets');
+      if (idx >= 0) {
+        // Origin + leading slash + path. If the repo root is the
+        // origin itself (no path segments before `assets`), the
+        // URL still works — pathname parsing leaves an empty
+        // string before "assets" so the trailing "/" is correct.
+        var prefix = parts.slice(0, idx).join('/');
+        REPO_ROOT_BASE = u.origin + (prefix ? '/' + prefix : '') + '/';
+      }
+    }
+  } catch (_) { /* keep null — fall back to window.location */ }
+  function resolveUrl(rel) {
+    if (!rel || typeof rel !== 'string') return rel;
+    if (/^(?:[a-z]+:|\/\/|\/)/i.test(rel)) return rel;
+    var base = REPO_ROOT_BASE || (window.location ? window.location.href : null);
+    if (!base) return rel;
+    try { return new URL(rel, base).href; } catch (_) { return rel; }
+  }
+
   /* ----- Internal state registry (mirror quiz.js:76-105) -----
      Per-input handle registry. Each enhanced input gets one handle,
      so multiple inputs on the same page each have their own state.
@@ -899,18 +931,12 @@
     // chunk from here).
     if (HT && typeof HT.lazyLoadCss === 'function') {
       try {
-        // Path is repo-root-relative — matches the convention in
-        // shell-thin.js TIER2_CSS (resolveUrl applied). Date-picker.js
-        // always runs after shell-thin.js, so resolveUrl has already
-        // been called on chrome-date-picker.css; we mirror that here.
-        // Resolve the relative URL against the page's base URL.
-        var cssUrl = 'assets/css/chrome-time-picker.css';
-        if (typeof window !== 'undefined' && window.location && window.location.href) {
-          try {
-            cssUrl = new URL(cssUrl, window.location.href).href;
-          } catch (_) { /* keep relative */ }
-        }
-        HT.lazyLoadCss(cssUrl);
+        // Path is repo-root-relative. resolveUrl() (defined at module
+        // top) walks back from this script's URL to the repo root so
+        // the CSS chunk is reachable from any tool page (e.g., tools/
+        // age-calculator/index.html). Falls back to window.location
+        // if document.currentScript is unavailable.
+        HT.lazyLoadCss(resolveUrl('assets/css/chrome-time-picker.css'));
       } catch (_) {}
     }
     _dlgTime = _buildTimeDialogShell();
@@ -1392,13 +1418,7 @@
     // tab strip + pane selectors are in chrome-datetime-picker.css.
     if (HT && typeof HT.lazyLoadCss === 'function') {
       try {
-        var cssUrl = 'assets/css/chrome-datetime-picker.css';
-        if (typeof window !== 'undefined' && window.location && window.location.href) {
-          try {
-            cssUrl = new URL(cssUrl, window.location.href).href;
-          } catch (_) { /* keep relative */ }
-        }
-        HT.lazyLoadCss(cssUrl);
+        HT.lazyLoadCss(resolveUrl('assets/css/chrome-datetime-picker.css'));
       } catch (_) {}
     }
     _dlgDateTime = _buildDateTimeDialogShell();

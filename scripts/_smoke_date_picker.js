@@ -1637,6 +1637,103 @@ console.log('--- XXI. script-load-order: tool IIFE runs before shell-thin.js, fi
 }
 
 // =============================================================
+// XXII. CSS URL resolution — repo-root base, not page URL
+// =============================================================
+//
+// Story 9.19.1 hotfix regression: the time + date-time dialogs do
+// `HT.lazyLoadCss('assets/css/chrome-time-picker.css')` from inside
+// _ensureTimeDialog / _ensureDateTimeDialog. The relative URL must
+// resolve to the repo root, NOT the calling tool page's directory
+// (e.g., tools/age-calculator/index.html would otherwise resolve
+// chrome-time-picker.css to tools/age-calculator/assets/css/...,
+// which is not a real path → 404 + "Refused to apply style" MIME
+// error).
+//
+// The fix captures document.currentScript.src at module-load time
+// and walks the pathname back to the last `assets` segment to
+// derive the repo root. This section verifies that:
+console.log('--- XXII. CSS URL resolution — repo-root base, not page URL ---');
+{
+  // Build a ctx that mimics a tool page. document.currentScript.src
+  // points to the repo root's date-picker.js (the real load path).
+  const ctx = buildCtx();
+  ctx.document.currentScript = {
+    src: 'http://127.0.0.1:5500/assets/js/date-picker.js',
+  };
+  ctx.window.location = {
+    href: 'http://127.0.0.1:5500/tools/age-calculator/index.html',
+    origin: 'http://127.0.0.1:5500',
+    pathname: '/tools/age-calculator/index.html',
+  };
+  ctx.document.URL = ctx.window.location.href;
+  loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XXII)');
+
+  // Trigger the time CSS lazy-load by enhancing a time input.
+  const timeInput = {
+    tagName: 'INPUT', nodeName: 'INPUT', type: 'time',
+    id: 'wc-mtg-time', name: 'mtg-time', value: '12:00',
+    min: '', max: '', className: 'input js-time-picker',
+    attributes: { type: 'time', class: 'input js-time-picker', id: 'wc-mtg-time', name: 'mtg-time' },
+    setAttribute: function (k, v) { this.attributes[k] = String(v); },
+    getAttribute: function (k) { return this.attributes[k] || null; },
+    addEventListener: function () {}, removeEventListener: function () {},
+    focus: function () {}, dispatchEvent: function () { return true; },
+    classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+    getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+  };
+  ctx.HT.datePicker.enhance(timeInput, {});
+  timeInput.dispatchEvent = function (ev) {
+    const handlers = this._listeners && this._listeners[ev.type] || [];
+    for (let i = 0; i < handlers.length; i += 1) handlers[i](ev);
+    return true;
+  };
+  // Open the dialog (which fires _ensureTimeDialog → lazyLoadCss).
+  // The handle returned by enhance() exposes open().
+  const timeHandle = ctx.HT.datePicker.enhance(timeInput, {});
+  timeHandle.open();
+
+  check(ctx.HT._lazyLog.css.some(function (u) { return u === 'http://127.0.0.1:5500/assets/css/chrome-time-picker.css'; }),
+    'time CSS URL resolves to repo root (got: ' + JSON.stringify(ctx.HT._lazyLog.css) + ')');
+  check(!ctx.HT._lazyLog.css.some(function (u) { return u.indexOf('tools/age-calculator/assets') >= 0; }),
+    'time CSS URL does NOT resolve to the tool page directory (no double-assets path)');
+}
+
+// Now exercise the date-time variant.
+{
+  const ctx = buildCtx();
+  ctx.document.currentScript = {
+    src: 'http://127.0.0.1:5500/assets/js/date-picker.js',
+  };
+  ctx.window.location = {
+    href: 'http://127.0.0.1:5500/tools/exam-countdown/index.html',
+    origin: 'http://127.0.0.1:5500',
+    pathname: '/tools/exam-countdown/index.html',
+  };
+  ctx.document.URL = ctx.window.location.href;
+  loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XXII datetime)');
+
+  const dtInput = {
+    tagName: 'INPUT', nodeName: 'INPUT', type: 'datetime-local',
+    id: 'ec-target', name: 'target', value: '',
+    min: '', max: '', className: 'input js-date-time-picker',
+    attributes: { type: 'datetime-local', class: 'input js-date-time-picker', id: 'ec-target', name: 'target' },
+    setAttribute: function (k, v) { this.attributes[k] = String(v); },
+    getAttribute: function (k) { return this.attributes[k] || null; },
+    addEventListener: function () {}, removeEventListener: function () {},
+    focus: function () {}, dispatchEvent: function () { return true; },
+    classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+    getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+  };
+  const dtHandle = ctx.HT.datePicker.enhance(dtInput, {});
+  dtHandle.open();
+
+  check(ctx.HT._lazyLog.css.some(function (u) { return u === 'http://127.0.0.1:5500/assets/css/chrome-datetime-picker.css'; }),
+    'date-time CSS URL resolves to repo root (got: ' + JSON.stringify(ctx.HT._lazyLog.css) + ')');
+  check(!ctx.HT._lazyLog.css.some(function (u) { return u.indexOf('tools/exam-countdown/assets') >= 0; }),
+    'date-time CSS URL does NOT resolve to the tool page directory');
+}
+
+// =============================================================
 // Vacuous-pass guard
 // =============================================================
 if (pass === 0 && fail === 0) {
