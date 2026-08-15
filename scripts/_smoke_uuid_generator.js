@@ -14,7 +14,8 @@ const vm = require('vm');
 const path = require('path');
 
 const SELF_TEST_PATH = path.resolve(__dirname, '_uuid_generator_self_test.js');
-const TOOL_JS_PATH = path.resolve(__dirname, '../tools/uuid-generator/uuid-generator.js');
+const TOOL_CORE_PATH = path.resolve(__dirname, '../tools/uuid-generator/uuid-generator-core.js');
+const TOOL_HANDLERS_PATH = path.resolve(__dirname, '../tools/uuid-generator/uuid-generator-handlers.js');
 const UTILS_JS_PATH = path.resolve(__dirname, '../assets/js/utils.js');
 
 const selfTest = require(SELF_TEST_PATH);
@@ -31,7 +32,8 @@ const {
   CROCKFORD_ALPHABET,
 } = selfTest;
 
-const toolSrc = fs.readFileSync(TOOL_JS_PATH, 'utf8');
+const toolCoreSrc = fs.readFileSync(TOOL_CORE_PATH, 'utf8');
+const toolHandlersSrc = fs.readFileSync(TOOL_HANDLERS_PATH, 'utf8');
 const utilsSrc = fs.readFileSync(UTILS_JS_PATH, 'utf8');
 
 // --- Stub DOM ---
@@ -157,7 +159,13 @@ ctx.HT.debounce = (fn, ms) => {
 };
 ctx.HT.$ = (sel) => elements[sel] || null;
 ctx.window.HT = ctx.HT;
-vm.runInContext(toolSrc, ctx, { filename: 'uuid-generator.js' });
+// Story 4b Phase 4 — uuid-generator-core.js + uuid-generator-handlers.js split.
+// Load core + handlers, then call window.uuidGeneratorInit().
+vm.runInContext(toolCoreSrc, ctx, { filename: 'uuid-generator-core.js' });
+vm.runInContext(toolHandlersSrc, ctx, { filename: 'uuid-generator-handlers.js' });
+if (typeof ctx.window.uuidGeneratorInit === 'function') {
+  ctx.window.uuidGeneratorInit();
+}
 
 // ---------------------------------------------------------------
 // Smoke harness
@@ -301,7 +309,11 @@ elements['#uuid-version']._v = 'v4';
   vm.runInContext(utilsSrc, ctx2, { filename: 'utils.js' });
   // Re-attach HT.$ after utils.js overrides it with HT.qs (real impl)
   ctx2.HT.$ = (sel) => elements[sel] || null;
-  vm.runInContext(toolSrc, ctx2, { filename: 'uuid-generator.js' });
+  vm.runInContext(toolCoreSrc, ctx2, { filename: 'uuid-generator-core.js' });
+  vm.runInContext(toolHandlersSrc, ctx2, { filename: 'uuid-generator-handlers.js' });
+  if (typeof ctx2.window.uuidGeneratorInit === 'function') {
+    ctx2.window.uuidGeneratorInit();
+  }
   check(elements['#uuid-url-warning']._text.indexOf('Unknown version') >= 0,
     'invalid ?version=unknown emits the .uuid-url-warning element');
   check(elements['#uuid-version']._v === 'v4',
