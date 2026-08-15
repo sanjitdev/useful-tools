@@ -237,8 +237,19 @@
   // (lazy via shell-thin Proxy). The picker's onSelect writes back to
   // input.value via the standard `change` event flow, so onInputChange
   // picks it up transparently.
-  if (inputEl && HT.datePicker && typeof HT.datePicker.enhance === 'function') {
+  //
+  // shell-thin.js loads with `defer`, so HT.datePicker is undefined
+  // when this synchronous script evaluates. Wait for DOMContentLoaded
+  // (shell-thin.js always runs before DOMContentLoaded fires).
+  function wireDatePicker() {
+    if (!inputEl) return;
+    if (!HT.datePicker || typeof HT.datePicker.enhance !== 'function') return;
     HT.datePicker.enhance(inputEl, {});
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wireDatePicker);
+  } else {
+    wireDatePicker();
   }
 
   // -------- Boot --------

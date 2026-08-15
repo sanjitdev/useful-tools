@@ -253,10 +253,20 @@
   // The picker's onSelect writes back to the input.value via the
   // standard change/input event flow, so tickHandler() picks it up
   // transparently.
-  if (HT.datePicker && typeof HT.datePicker.enhance === 'function') {
+  //
+  // shell-thin.js loads with `defer`, so HT.datePicker is undefined
+  // when this synchronous script evaluates. Wait for DOMContentLoaded
+  // (shell-thin.js always runs before DOMContentLoaded fires).
+  function wireDatePickers() {
+    if (!HT.datePicker || typeof HT.datePicker.enhance !== 'function') return;
     HT.qsa('.js-date-picker, .js-time-picker').forEach(function (el) {
       HT.datePicker.enhance(el, {});
     });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wireDatePickers);
+  } else {
+    wireDatePickers();
   }
 
   // Live "seconds" ticking

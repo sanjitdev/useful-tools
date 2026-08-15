@@ -1460,6 +1460,183 @@ console.log('--- XX. eager-tag strip — 4 new tool opt-ins ---');
 }
 
 // =============================================================
+// XXI. script-load-order regression — Story 9.19.1 fix
+// =============================================================
+//
+// Story 9.19.1 introduced a real-world bug: shell-thin.js loads with
+// `defer`, while tool JS (age-calculator.js etc.) does not. The eager
+// tool IIFE ran BEFORE shell-thin.js, so HT.datePicker was undefined
+// when the wiring block executed — the `if (HT.datePicker && ...)`
+// guard silently swallowed the call and the inputs kept their native
+// picker.
+//
+// Fix: each tool wraps its wire-block in a DOMContentLoaded listener
+// (since shell-thin.js always finishes before DOMContentLoaded).
+//
+// This section loads the actual tool JS into a vm with a stub
+// document, mimics the deferred-script ordering (tool.js BEFORE
+// shell-thin.js), then fires DOMContentLoaded and verifies
+// HT.datePicker.enhance was called.
+console.log('--- XXI. script-load-order: tool IIFE runs before shell-thin.js, fix via DOMContentLoaded ---');
+{
+  const tools = [
+    { slug: 'age-calculator',     js: 'age-calculator.js',          klass: 'js-date-picker, .js-time-picker' },
+    { slug: 'countdown-to-date',  js: 'countdown-to-date.js',       klass: 'js-date-picker, .js-time-picker' },
+    { slug: 'world-clock',        js: 'world-clock.js',             klass: 'js-date-picker, .js-time-picker' },
+    { slug: 'exam-countdown',     js: 'exam-countdown.js',          klass: 'js-date-time-picker' },
+  ];
+
+  for (const tool of tools) {
+    const toolSrc = fs.readFileSync(path.join(REPO_ROOT, 'tools/' + tool.slug + '/' + tool.js), 'utf8');
+
+    // Build a stub DOM that mimics the page environment.
+    const readyListeners = [];
+    const stubDoc = {
+      readyState: 'loading',
+      addEventListener(type, listener) {
+        if (type === 'DOMContentLoaded') readyListeners.push(listener);
+      },
+      removeEventListener() {},
+      documentElement: { appendChild() {} },
+      body: { appendChild() {} },
+      head: {},
+      createElement() { return { appendChild() {} }; },
+      currentScript: null,
+      querySelector() { return null; },
+      querySelectorAll() { return []; },
+    };
+    // Stub DOM elements that the tool JS may look up.
+    function makeStubEl() {
+      return new Proxy({
+        tagName: 'INPUT',
+        classList: { add() {}, remove() {}, contains: () => false },
+        setAttribute() {}, getAttribute: () => null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        appendChild() {}, removeChild() {}, click() {}, focus() {},
+        dispatchEvent: () => true,
+        style: {},
+        // Common <input> properties
+        value: '',
+        type: '',
+        id: '',
+        name: '',
+        checked: false,
+        min: '',
+        max: '',
+        // Common <div> properties
+        hidden: false,
+        textContent: '',
+        innerHTML: '',
+        innerText: '',
+        querySelector: () => null,
+        querySelectorAll: () => [],
+        getBoundingClientRect: () => ({ top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }),
+      }, { get(t, k) { return k in t ? t[k] : (typeof k === 'string' && t.id ? t.id + '?' + String(k) : undefined); }, set(t, k, v) { t[k] = v; return true; } });
+    }
+
+    // Seed the wire-up to record every enhance() call.
+    const enhanceCalls = [];
+    // ctx2 is unused now but kept for future expansion.
+
+    // Step 1: load the tool JS eagerly (simulates non-defer <script>).
+    // At this point HT.datePicker IS defined (we stubbed it), but in
+    // the real browser shell-thin.js has NOT yet run so the real
+    // HT.datePicker would be undefined. The test should still pass:
+    // either path (eager check works, or DOMContentLoaded listener
+    // runs) is acceptable, as long as enhance() is called for the
+    // inputs the tool owns.
+    //
+    // To simulate the real race: we run tool.js first WITH an
+    // undefined HT.datePicker (mimicking the bug), THEN install the
+    // stub HT.datePicker, THEN fire DOMContentLoaded.
+    const raceCtx = {
+      console, setTimeout, clearTimeout, setInterval: function () { return 0; }, clearInterval: function () {},
+      Promise, Date, Math, Object, Array, String, Number, JSON,
+      window: null,
+      document: stubDoc,
+      HT: new Proxy({
+        // Tool script sees undefined datePicker.
+        datePicker: undefined,
+        $: function () { return makeStubEl(); },
+        $$: function () { return []; },
+        qsa: function () { return []; },
+        debounce: function (fn) { return fn; },
+        throttle: function (fn) { return fn; },
+        makeTabs: function () {},
+        on: function () {},
+        uid: function () { return 'uid-' + Math.random().toString(36).slice(2, 8); },
+        lazyLoad: function () { return Promise.resolve(); },
+        lazyLoadCss: function () { return Promise.resolve(); },
+        formatDate: function () { return ''; },
+        pad2: function (n) { return String(n); },
+        setInterval: function () { return 0; },
+        clearInterval: function () {},
+        storage: {
+          _store: {},
+          get: function (k, dflt) { return Object.prototype.hasOwnProperty.call(this._store, k) ? this._store[k] : dflt; },
+          set: function (k, v) { this._store[k] = v; },
+          remove: function (k) { delete this._store[k]; },
+        },
+      }, {
+        // Default fallback: any unknown HT.* call returns a no-op
+        // function. This lets tool scripts fully evaluate without
+        // throwing on every helper they use.
+        get: function (t, k) {
+          if (k in t) return t[k];
+          if (typeof k === 'symbol') return undefined;
+          return function () { return undefined; };
+        },
+      }),
+    };
+    raceCtx.window = raceCtx;
+
+    // Step 1: load the tool JS eagerly (simulates non-defer <script>).
+    //
+    // To simulate the real race: we run tool.js first WITH an
+    // undefined HT.datePicker (mimicking the bug). Tool scripts may
+    // throw on other paths (missing setInterval, etc.) — we catch
+    // that and continue; what matters is whether the wire-block
+    // registered a DOMContentLoaded listener before the throw.
+    //
+    // We then install the stub HT.datePicker (and make HT.qsa return
+    // a representative input element), fire DOMContentLoaded, and
+    // check whether enhance() was called for the right inputs.
+    const initialListenerCount = readyListeners.length;
+    try { vm.runInContext(toolSrc, vm.createContext(raceCtx), { filename: tool.js }); }
+    catch (e) {
+      // Swallow — we only care that the wire-block registered a DCL
+      // listener, which happens BEFORE other init code that may throw.
+    }
+    check(readyListeners.length > initialListenerCount,
+      tool.slug + '/' + tool.js + ' registers a DOMContentLoaded listener (not bailing out on undefined HT.datePicker)');
+
+    // Step 2: simulate shell-thin.js deferred finishing (installs
+    // HT.datePicker Proxy). For tools that use HT.qsa('.js-...'),
+    // return stub elements representing the inputs the tool owns.
+    // For exam-countdown, the wire-block calls HT.datePicker.enhance
+    // on a captured inputEl, so HT.qsa is irrelevant.
+    raceCtx.HT.datePicker = {
+      enhance: function (el) { enhanceCalls.push(tool.slug + ':' + (el && el.id || '?')); },
+    };
+    // Build a "post-defer" view of HT that returns inputs for qsa.
+    const stubInput = makeStubEl();
+    stubInput.id = (tool.klass.indexOf('js-date-time-picker') >= 0) ? 'ec-target'
+                 : (tool.slug === 'age-calculator') ? 'dob'
+                 : (tool.slug === 'countdown-to-date') ? 'cd-date'
+                 : 'wc-mtg-date';
+    raceCtx.HT.qsa = function () { return [stubInput, makeStubEl(), makeStubEl()].slice(0, tool.klass.indexOf(',') >= 0 ? 3 : 1); };
+    stubDoc.readyState = 'interactive';
+    for (const l of readyListeners.slice(initialListenerCount)) {
+      try { l({ type: 'DOMContentLoaded' }); }
+      catch (e) { console.log('  FAIL  ' + tool.slug + ' DCL listener threw: ' + e.message); fail += 1; }
+    }
+    check(enhanceCalls.length > 0,
+      tool.slug + ': DOMContentLoaded fix wires inputs (enhance() called ' + enhanceCalls.length + ' time(s))');
+  }
+}
+
+// =============================================================
 // Vacuous-pass guard
 // =============================================================
 if (pass === 0 && fail === 0) {

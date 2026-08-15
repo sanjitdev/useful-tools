@@ -249,10 +249,20 @@
   // via the standard change event flow, so renderMeeting() picks it
   // up transparently. The "Now" button writes to .value directly and
   // calls renderMeeting() — no interaction with the popover.
-  if (HT.datePicker && typeof HT.datePicker.enhance === 'function') {
+  //
+  // shell-thin.js loads with `defer`, so HT.datePicker is undefined
+  // when this synchronous script evaluates. Wait for DOMContentLoaded
+  // (shell-thin.js always runs before DOMContentLoaded fires).
+  function wireDatePickers() {
+    if (!HT.datePicker || typeof HT.datePicker.enhance !== 'function') return;
     HT.qsa('.js-date-picker, .js-time-picker').forEach(function (el) {
       HT.datePicker.enhance(el, {});
     });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wireDatePickers);
+  } else {
+    wireDatePickers();
   }
 
   HT.$('#wc-mtg-now').addEventListener('click', function () {
