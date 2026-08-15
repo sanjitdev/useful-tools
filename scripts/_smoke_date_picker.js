@@ -291,7 +291,11 @@ function makeInputStub(type, id, value) {
     getAttribute: function (k) { return this.attributes[k] || null; },
     addEventListener: function (t, h) { (listeners[t] = listeners[t] || []).push(h); },
     removeEventListener: function () {},
-    focus: function () {},
+    focus: function () {
+      // Fire focus event so any handlers attached via addEventListener
+      // (including the datePicker's onFocus handler) can observe it.
+      this._fire('focus', { type: 'focus', target: this });
+    },
     dispatchEvent: function () { return true; },
     classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
     getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
@@ -2000,35 +2004,40 @@ console.log('--- XXIII. input click dispatch on state.type ---');
 // This section verifies the backdrop-close logic by intercepting
 // the document.addEventListener call (the smoke stub drops them by
 // default; we replace with a recording stub).
+// Module-scope helpers for §XXIV + §XXVI — capture event listeners
+// registered on the document so tests can fire synthetic events with
+// chosen targets. Mirrors buildCtx() but overrides document.addEventListener.
+function setupWithListenerCapture() {
+  const ctx = buildCtx();
+  ctx.document.currentScript = { src: 'http://127.0.0.1:5500/assets/js/date-picker.js' };
+  ctx.window.location = {
+    href: 'http://127.0.0.1:5500/tools/age-calculator/index.html',
+    origin: 'http://127.0.0.1:5500',
+    pathname: '/tools/age-calculator/index.html',
+  };
+  ctx.document.URL = ctx.window.location.href;
+  ctx.document._listeners = {};
+  ctx.document.addEventListener = function (type, handler /*, capture */) {
+    (ctx.document._listeners[type] = ctx.document._listeners[type] || []).push(handler);
+  };
+  loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XXIV/XXVI capture)');
+  return ctx;
+}
+
+function fireEvent(ctx, type, target) {
+  const ev = { type: type, target: target, preventDefault: function () {} };
+  const ls = (ctx.document._listeners && ctx.document._listeners[type]) || [];
+  for (let i = 0; i < ls.length; i += 1) {
+    try { ls[i](ev); } catch (_) {}
+  }
+}
+function fireMousedown(ctx, target) { fireEvent(ctx, 'mousedown', target); }
+function firePointerDown(ctx, target) { fireEvent(ctx, 'pointerdown', target); }
+function fireClick(ctx, target) { fireEvent(ctx, 'click', target); }
+
 console.log('--- XXIV. click-outside closes the dialog ---');
 {
-  // buildCtx overrides: replace document.addEventListener with a
-  // recording stub. Returns the listeners registry so we can invoke
-  // the mousedown handler with a fake target.
-  function setupWithListenerCapture() {
-    const ctx = buildCtx();
-    ctx.document.currentScript = { src: 'http://127.0.0.1:5500/assets/js/date-picker.js' };
-    ctx.window.location = {
-      href: 'http://127.0.0.1:5500/tools/age-calculator/index.html',
-      origin: 'http://127.0.0.1:5500',
-      pathname: '/tools/age-calculator/index.html',
-    };
-    ctx.document.URL = ctx.window.location.href;
-    ctx.document._listeners = {};
-    ctx.document.addEventListener = function (type, handler /*, capture */) {
-      (ctx.document._listeners[type] = ctx.document._listeners[type] || []).push(handler);
-    };
-    loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XXIV capture)');
-    return ctx;
-  }
-
-  function fireMousedown(ctx, target) {
-    const ev = { type: 'mousedown', target: target, preventDefault: function () {} };
-    const ls = (ctx.document._listeners && ctx.document._listeners.mousedown) || [];
-    for (let i = 0; i < ls.length; i += 1) {
-      try { ls[i](ev); } catch (_) {}
-    }
-  }
+  // --- date picker: backdrop click closes ---
 
   // --- date picker: backdrop click closes ---
   {
@@ -2082,6 +2091,112 @@ console.log('--- XXIV. click-outside closes the dialog ---');
     handle.open();
     fireMousedown(ctx, input);
     check(handle.isOpen() === true, 'date: mousedown on the source input does NOT close');
+  }
+}
+
+// =============================================================
+// XXVI. hotfix 5 — robust click-outside (multiple event types +
+// suppress-reopen after restore.focus)
+// =============================================================
+//
+// User reported: "still I can't close it" — root cause: _closeDialog
+// calls restore.focus() on the source input, which synchronously
+// fires a `focus` event on the input → input's focus handler calls
+// openForType() → picker re-opens before the user can see it closed.
+// Fix: set _suppressOpen=true in _closeDialog before focus restore,
+// openForType() checks the flag and returns early.
+//
+// Hotfix 5 also adds pointerdown + click listeners (Safari doesn't
+// fire mousedown on dialog backdrop) and a dialog-level click handler
+// for the dialog padding area.
+{
+  // --- date picker: focus event after _closeDialog does NOT re-open ---
+  {
+    const ctx = setupWithListenerCapture();
+    const input = makeInputStub('date', 'dob', '2026-01-15');
+    // The smoke stub fires focus events when focus() is called on the
+    // input (the input stub registers a focus listener via the test
+    // harness). Set up a focus listener on the input that records the
+    // sequence.
+    let focusCalls = 0;
+    if (typeof input.addEventListener === 'function') {
+      input.addEventListener('focus', function () { focusCalls += 1; });
+    }
+    const handle = ctx.HT.datePicker.enhance(input, {});
+    handle.open();
+    check(handle.isOpen() === true, 'hotfix 5: dialog opens before backdrop click');
+    const dialogNode = handle._state.dlg.dlg;
+    dialogNode.closest = function (sel) {
+      if (sel === '.date-picker-dialog') return dialogNode;
+      return null;
+    };
+    // Trigger backdrop close. _closeDialog sets _suppressOpen=true
+    // and calls restore.focus() on the input → focus event fires →
+    // input's focus listener runs (records the call) AND openForType()
+    // checks _suppressOpen and returns early.
+    fireMousedown(ctx, dialogNode);
+    check(handle.isOpen() === false, 'hotfix 5: dialog closes after backdrop mousedown');
+    // The input received focus() (1 call) but the picker did NOT
+    // re-open. Subsequent focus events SHOULD re-open.
+    const focusCountBefore = focusCalls;
+    // Second user click on input → should open. Fire directly on
+    // the input stub (bypasses document-level handler which would
+    // short-circuit on target===input).
+    if (typeof input._fire === 'function') input._fire('click', { type: 'click', target: input });
+    check(handle.isOpen() === true, 'hotfix 5: subsequent input click re-opens picker (not stuck closed)');
+    // focus listener should have been called at least once from the
+    // restore.focus() in _closeDialog.
+    check(focusCountBefore >= 1, 'hotfix 5: input received focus() from _closeDialog restore (focus calls >= 1, got ' + focusCountBefore + ')');
+  }
+
+  // --- date picker: pointerdown listener also closes ---
+  {
+    const ctx = setupWithListenerCapture();
+    const input = makeInputStub('date', 'dob', '2026-01-15');
+    const handle = ctx.HT.datePicker.enhance(input, {});
+    handle.open();
+    const fakeBodyEl = { closest: function () { return null; } };
+    // Reset suppress flag from any prior close.
+    handle._state._suppressOpen = false;
+    firePointerDown(ctx, fakeBodyEl);
+    check(handle.isOpen() === false, 'hotfix 5: pointerdown on body closes the dialog');
+  }
+
+  // --- date picker: click listener also closes (Safari path) ---
+  {
+    const ctx = setupWithListenerCapture();
+    const input = makeInputStub('date', 'dob', '2026-01-15');
+    const handle = ctx.HT.datePicker.enhance(input, {});
+    handle.open();
+    const fakeBodyEl = { closest: function () { return null; } };
+    handle._state._suppressOpen = false;
+    fireClick(ctx, fakeBodyEl);
+    check(handle.isOpen() === false, 'hotfix 5: click on body closes the dialog');
+  }
+
+  // --- date picker: same-gesture mousedown + click dedupe (no double-close) ---
+  {
+    const ctx = setupWithListenerCapture();
+    const input = makeInputStub('date', 'dob', '2026-01-15');
+    const handle = ctx.HT.datePicker.enhance(input, {});
+    handle.open();
+    const dialogNode = handle._state.dlg.dlg;
+    dialogNode.closest = function (sel) {
+      if (sel === '.date-picker-dialog') return dialogNode;
+      return null;
+    };
+    handle._state._suppressOpen = false;
+    // Simulate a single user gesture firing mousedown + pointerdown +
+    // click on the backdrop. The dedupe flag should ensure only the
+    // first call closes.
+    fireMousedown(ctx, dialogNode);
+    const isOpenAfterFirst = handle.isOpen();
+    firePointerDown(ctx, dialogNode);
+    fireClick(ctx, dialogNode);
+    // After the first close, subsequent calls in the same gesture
+    // should NOT throw / should NOT re-open (dedupe window is 250ms).
+    check(isOpenAfterFirst === false, 'hotfix 5: first close from mousedown succeeded');
+    check(handle.isOpen() === false, 'hotfix 5: subsequent pointerdown/click in same gesture does NOT re-open');
   }
 }
 

@@ -921,6 +921,12 @@
       }
     } catch (_) {}
     state.isOpen = false;
+    // Story 9.19.1 hotfix 5 — _closeDialog calls restore.focus() on
+    // the source input. That synchronously fires a `focus` event on
+    // the input, which would otherwise trigger the input's focus
+    // handler and re-open the picker. Set the suppress flag so the
+    // next openForType() call from that focus event no-ops.
+    state._suppressOpen = true;
     // Restore focus to sourceEl (or main[tabindex="-1"] fallback,
     // mirror share.js:323-336 + help-overlay.js:469-484).
     var restore = state.sourceEl;
@@ -943,6 +949,22 @@
     d.dlg.addEventListener('cancel', function () {
       var st = _activeState();
       if (st) _closeDialog(st);
+    });
+
+    // Story 9.19.1 hotfix 5 — backup close when the dialog itself
+    // is clicked (e.g., on the dialog's padding between the form and
+    // the dialog border). The document-level mousedown/click handler
+    // already handles backdrop clicks, but in some browsers (Safari,
+    // older Firefox), `mousedown` on the dialog padding doesn't fire
+    // on the dialog element — only `click` does. Listening on the
+    // dialog itself closes that gap. e.target === dlg means the user
+    // clicked the dialog but NOT any descendant (e.g., the form, the
+    // header, the grid, a button). That's the "padding" area — close.
+    d.dlg.addEventListener('click', function (e) {
+      if (e.target === d.dlg) {
+        var st = _activeState();
+        if (st) _closeDialog(st);
+      }
     });
 
     // Click on a grid cell — dispatch by mode (Story 9.19.5, inlined
@@ -1332,6 +1354,22 @@
     d.dlg.addEventListener('cancel', function () {
       var st = _activeState();
       if (st) _closeDialog(st);
+    });
+
+    // Story 9.19.1 hotfix 5 — backup close when the dialog itself
+    // is clicked (e.g., on the dialog's padding between the form and
+    // the dialog border). The document-level mousedown/click handler
+    // already handles backdrop clicks, but in some browsers (Safari,
+    // older Firefox), `mousedown` on the dialog padding doesn't fire
+    // on the dialog element — only `click` does. Listening on the
+    // dialog itself closes that gap. e.target === dlg means the user
+    // clicked the dialog but NOT any descendant (e.g., the form, the
+    // header, the grid, a button). That's the "padding" area — close.
+    d.dlg.addEventListener('click', function (e) {
+      if (e.target === d.dlg) {
+        var st = _activeState();
+        if (st) _closeDialog(st);
+      }
     });
 
     // Click on an hour cell.
@@ -2056,25 +2094,49 @@
      share the same backdrop close behavior.
   */
   var _clickOutsideWired = false;
+  // Story 9.19.1 hotfix 5 — coordinate multiple capture-phase
+  // listeners (mousedown + click + pointerdown) so Firefox / Safari /
+  // Chrome all fire close. The single mousedown listener from hotfix 4
+  // is insufficient on some browsers (notably older Safari builds)
+  // where the dialog backdrop doesn't fire mousedown on the dialog
+  // element. We listen to all three event types and dedupe via a
+  // short-lived flag so we don't call _closeDialog twice for the same
+  // user gesture.
+  var _lastCloseTs = 0;
   function _wireClickOutside() {
     if (_clickOutsideWired) return;
     _clickOutsideWired = true;
-    function onDocMouseDown(e) {
+    function handleOutsideClick(e) {
       var st = _activeState();
       if (!st) return;
       var target = e.target;
       if (!target || typeof target.closest !== 'function') return;
+      // Dedupe — same gesture can fire mousedown + click + pointerdown.
+      // Within 250ms is the same user gesture.
+      var now = (typeof performance !== 'undefined' && performance.now)
+        ? performance.now() : Date.now();
+      if (now - _lastCloseTs < 250) return;
+      // Story 9.19.1 hotfix 4 — native <dialog> backdrop quirk.
+      // Backdrop click sets e.target === dialog (not a child). The
+      // .closest('.date-picker-dialog') check would still match (the
+      // dialog has the class), so check it FIRST.
       if (st.dlg && st.dlg.dlg && target === st.dlg.dlg) {
-        // Backdrop click — close (the dialog itself was clicked but
-        // not any of its children; e.target === dialog).
+        _lastCloseTs = now;
         _closeDialog(st);
         return;
       }
-      if (target.closest('.date-picker-dialog')) return;       // inside dialog
-      if (st.input && target === st.input) return;             // source input
+      // Inside the dialog (any descendant) — don't close.
+      if (target.closest('.date-picker-dialog')) return;
+      // Source input — don't close (user clicked the input that
+      // opened the picker; the focus/click handler will keep it open).
+      if (st.input && target === st.input) return;
+      // Truly outside — close.
+      _lastCloseTs = now;
       _closeDialog(st);
     }
-    document.addEventListener('mousedown', onDocMouseDown, true);
+    document.addEventListener('mousedown', handleOutsideClick, true);
+    document.addEventListener('pointerdown', handleOutsideClick, true);
+    document.addEventListener('click', handleOutsideClick, true);
   }
 
   /* ----- Per-input wiring (Section J) -----
@@ -2092,6 +2154,13 @@
     // (which has tab + grid + hourCol + minuteCol). The fix mirrors
     // openById's dispatch.
     function openForType() {
+      if (state._suppressOpen) {
+        // The handler just closed the dialog and called restore.focus()
+        // on this input — that focus() synchronously fires a `focus`
+        // event which would otherwise re-open the picker. Skip.
+        state._suppressOpen = false;
+        return;
+      }
       if (state.type === 'time') _openTimeDialog(state);
       else if (state.type === 'datetime-local') _openDateTimeDialog(state);
       else _openDialog(state);
