@@ -1840,8 +1840,20 @@
      the shared dialog.
   */
   function _wireInputListeners(state) {
-    function onFocus() { _openDialog(state); }
-    function onClick() { _openDialog(state); }
+    // Dispatch on state.type so time / datetime-local inputs open
+    // their own dialog. Story 9.19.1 fix — calling _openDialog
+    // unconditionally on a time state threw because _renderGrid
+    // relies on dlg.grid, which the time variant doesn't expose
+    // (it has hourCol + minuteCol instead). Same for datetime-local
+    // (which has tab + grid + hourCol + minuteCol). The fix mirrors
+    // openById's dispatch.
+    function openForType() {
+      if (state.type === 'time') _openTimeDialog(state);
+      else if (state.type === 'datetime-local') _openDateTimeDialog(state);
+      else _openDialog(state);
+    }
+    function onFocus() { openForType(); }
+    function onClick() { openForType(); }
     state._focusHandler = onFocus;
     state._clickHandler = onClick;
     state.input.addEventListener('focus', onFocus);
@@ -1851,7 +1863,7 @@
     state.input.addEventListener('keydown', function onKeydown(e) {
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
         e.preventDefault();
-        _openDialog(state);
+        openForType();
       }
     });
   }

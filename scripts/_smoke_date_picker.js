@@ -1734,6 +1734,189 @@ console.log('--- XXII. CSS URL resolution — repo-root base, not page URL ---')
 }
 
 // =============================================================
+// XXIII. input click dispatches by state.type (Story 9.19.1 hotfix 3)
+// =============================================================
+//
+// Bug: _wireInputListeners attached focus/click/keydown handlers that
+// unconditionally called _openDialog(state). For type="time" inputs,
+// _openDialog ran _renderGrid(state), which dereferences dlg.grid —
+// but the time variant's dialog shell only has hourCol+minuteCol, no
+// grid. The TypeError aborted the open() before showModal() fired, so
+// the dialog never opened (and never closed). The user's report was
+// "now it's not closing" — actually the dialog never opened, but the
+// visible symptom was a frozen picker.
+//
+// Fix: _wireInputListeners now dispatches on state.type. This section
+// verifies three things:
+//   1. Clicking a <input type="time"> opens the time dialog (not the
+//      date one). We detect the wrong dispatch by checking that the
+//      time dialog's hourCol was rendered (the date dialog has no
+//      hourCol).
+//   2. Clicking a <input type="datetime-local"> opens the date-time
+//      dialog (renders the date pane's grid + the time pane's columns).
+//   3. Clicking a <input type="date"> still opens the date dialog
+//      (regression — the date path must keep working).
+//
+// We use a stack-recording fake for the dialog render functions so the
+// test doesn't depend on the JSDOM dialog being perfectly rendered.
+console.log('--- XXIII. input click dispatch on state.type ---');
+{
+  // Helper: build an input stub with a real addEventListener that
+  // records every handler so the test can call them.
+  function makeInputStub(type, id, value) {
+    const listeners = {};
+    return {
+      tagName: 'INPUT', nodeName: 'INPUT', type: type,
+      id: id, name: id, value: value || '',
+      min: '', max: '', className: 'input js-' + (type === 'date' ? 'date' : (type === 'time' ? 'time' : 'date-time')) + '-picker',
+      attributes: { type: type, class: 'input js-' + (type === 'date' ? 'date' : (type === 'time' ? 'time' : 'date-time')) + '-picker', id: id, name: id },
+      setAttribute: function (k, v) { this.attributes[k] = String(v); },
+      getAttribute: function (k) { return this.attributes[k] || null; },
+      addEventListener: function (t, h) { (listeners[t] = listeners[t] || []).push(h); },
+      removeEventListener: function () {},
+      focus: function () {},
+      dispatchEvent: function () { return true; },
+      classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+      getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+      _fire: function (t, ev) { (listeners[t] || []).forEach(function (h) { h(ev || {}); }); },
+    };
+  }
+
+  // --- TIME input click ---
+  {
+    const ctx = buildCtx();
+    ctx.document.currentScript = {
+      src: 'http://127.0.0.1:5500/assets/js/date-picker.js',
+    };
+    ctx.window.location = {
+      href: 'http://127.0.0.1:5500/tools/age-calculator/index.html',
+      origin: 'http://127.0.0.1:5500',
+      pathname: '/tools/age-calculator/index.html',
+    };
+    ctx.document.URL = ctx.window.location.href;
+    loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XXIII time)');
+
+    const timeInput = makeInputStub('time', 'dob-time', '00:00');
+    const handle = ctx.HT.datePicker.enhance(timeInput, {});
+
+    // Pre-and-post isOpen: clicking the input must open the dialog.
+    check(handle.isOpen() === false, 'time: dialog is closed before input click');
+    timeInput._fire('click', { type: 'click' });
+    check(handle.isOpen() === true, 'time: input click opens the time dialog (not the date one)');
+
+    // The time dialog exposes hourCol. After open(), the time grid
+    // renders 24 hour cells + 12 minute cells. We verify the dialog
+    // shell that's live (state.dlg) is the time variant, not the
+    // date one — by checking state.dlg.hourCol is defined.
+    const h = handle._state;
+    check(!!h, 'time: handle._state is exposed');
+    check(h && h.type === 'time', 'time: state.type === "time"');
+    check(h && h.dlg && !!h.dlg.hourCol, 'time: state.dlg.hourCol is defined (time variant, not date)');
+    check(h && h.dlg && !!h.dlg.minuteCol, 'time: state.dlg.minuteCol is defined (time variant, not date)');
+    check(h && h.dlg && h.dlg.grid === undefined, 'time: state.dlg.grid is NOT defined (date variant leaked)');
+  }
+
+  // --- DATETIME-LOCAL input click ---
+  {
+    const ctx = buildCtx();
+    ctx.document.currentScript = {
+      src: 'http://127.0.0.1:5500/assets/js/date-picker.js',
+    };
+    ctx.window.location = {
+      href: 'http://127.0.0.1:5500/tools/exam-countdown/index.html',
+      origin: 'http://127.0.0.1:5500',
+      pathname: '/tools/exam-countdown/index.html',
+    };
+    ctx.document.URL = ctx.window.location.href;
+    loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XXIII datetime)');
+
+    const dtInput = makeInputStub('datetime-local', 'ec-target', '');
+    const handle = ctx.HT.datePicker.enhance(dtInput, {});
+
+    check(handle.isOpen() === false, 'datetime-local: dialog is closed before input click');
+    dtInput._fire('click', { type: 'click' });
+    check(handle.isOpen() === true, 'datetime-local: input click opens the date-time dialog');
+
+    const h = handle._state;
+    check(h && h.type === 'datetime-local', 'datetime-local: state.type === "datetime-local"');
+    check(h && h.dlg && !!h.dlg.grid, 'datetime-local: state.dlg.grid is defined (date pane)');
+    check(h && h.dlg && !!h.dlg.hourCol, 'datetime-local: state.dlg.hourCol is defined (time pane)');
+    check(h && h.dlg && !!h.dlg.minuteCol, 'datetime-local: state.dlg.minuteCol is defined (time pane)');
+    check(h && h.dlg && !!h.dlg.dateTab, 'datetime-local: state.dlg.dateTab is defined');
+    check(h && h.dlg && !!h.dlg.timeTab, 'datetime-local: state.dlg.timeTab is defined');
+  }
+
+  // --- DATE input click (regression — date path still works) ---
+  {
+    const ctx = buildCtx();
+    ctx.document.currentScript = {
+      src: 'http://127.0.0.1:5500/assets/js/date-picker.js',
+    };
+    ctx.window.location = {
+      href: 'http://127.0.0.1:5500/tools/age-calculator/index.html',
+      origin: 'http://127.0.0.1:5500',
+      pathname: '/tools/age-calculator/index.html',
+    };
+    ctx.document.URL = ctx.window.location.href;
+    loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XXIII date)');
+
+    const dateInput = makeInputStub('date', 'dob', '2020-01-15');
+    const handle = ctx.HT.datePicker.enhance(dateInput, {});
+
+    check(handle.isOpen() === false, 'date: dialog is closed before input click');
+    dateInput._fire('click', { type: 'click' });
+    check(handle.isOpen() === true, 'date: input click opens the date dialog');
+
+    const h = handle._state;
+    check(h && h.type === 'date', 'date: state.type === "date"');
+    check(h && h.dlg && !!h.dlg.grid, 'date: state.dlg.grid is defined');
+    check(h && h.dlg && h.dlg.hourCol === undefined, 'date: state.dlg.hourCol is NOT defined (date variant)');
+  }
+
+  // --- FOCUS also opens the dialog (for keyboard users) ---
+  {
+    const ctx = buildCtx();
+    ctx.document.currentScript = { src: 'http://127.0.0.1:5500/assets/js/date-picker.js' };
+    ctx.window.location = {
+      href: 'http://127.0.0.1:5500/tools/age-calculator/index.html',
+      origin: 'http://127.0.0.1:5500',
+      pathname: '/tools/age-calculator/index.html',
+    };
+    ctx.document.URL = ctx.window.location.href;
+    loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XXIII focus)');
+
+    const timeInput = makeInputStub('time', 'dob-time', '00:00');
+    const handle = ctx.HT.datePicker.enhance(timeInput, {});
+
+    timeInput._fire('focus', { type: 'focus' });
+    check(handle.isOpen() === true, 'time: focus event also opens the time dialog (not the date one)');
+  }
+
+  // --- Enter key on the input also opens the dialog ---
+  {
+    const ctx = buildCtx();
+    ctx.document.currentScript = { src: 'http://127.0.0.1:5500/assets/js/date-picker.js' };
+    ctx.window.location = {
+      href: 'http://127.0.0.1:5500/tools/age-calculator/index.html',
+      origin: 'http://127.0.0.1:5500',
+      pathname: '/tools/age-calculator/index.html',
+    };
+    ctx.document.URL = ctx.window.location.href;
+    loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XXIII keydown)');
+
+    const dateTimeInput = makeInputStub('datetime-local', 'ec-target', '');
+    const handle = ctx.HT.datePicker.enhance(dateTimeInput, {});
+
+    // Stub event with preventDefault so the keydown handler doesn't
+    // crash on the bare object. The bare-bones {key: 'Enter'} from
+    // the test framework doesn't carry the Event.prototype methods.
+    const ev = { type: 'keydown', key: 'Enter', preventDefault: function () {} };
+    dateTimeInput._fire('keydown', ev);
+    check(handle.isOpen() === true, 'datetime-local: Enter keydown on input opens the date-time dialog (not the date one)');
+  }
+}
+
+// =============================================================
 // Vacuous-pass guard
 // =============================================================
 if (pass === 0 && fail === 0) {
