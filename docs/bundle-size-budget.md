@@ -10,7 +10,13 @@ audience: anyone adding chrome JS or CSS, or anyone shipping a tool
 # Bundle Size Budget
 
 NFR-1 in the PRD requires the shell JS to stay under 30 KB gzipped. The
-current chrome surface is **142,420 bytes gzipped (~4.7× over)** as of
+current chrome surface is **132,638 bytes gzipped (~4.4× over)** as of
+2026-08-15 (was 144,670 bytes before the Story 4c quiz.js reclassification
+moved quiz.js + quiz.css out of chrome into the page-conditional
+list; was 142,420 before the api-contract.js reclassification on
+2026-08-15; was 162,915 before the Story 2.10 cleanup deleted
+`layout.js` + `theme.js`). Story x-3 builds the measurement +
+CI gate; the path back to < 30 KB is its own epic.
 2026-08-15 (was 161,192 bytes before the api-contract.js
 reclassification; was 162,915 bytes before the Story 2.10 cleanup
 deleted `layout.js` + `theme.js`). Story x-3 builds the measurement +
@@ -27,10 +33,11 @@ recovery path (Story 4 / embed slim build).
 
 The numbers below come from `make bundle-size` (which runs
 `scripts/bundle-size-gate.py`). The locked baseline constant in the gate
-is `BUNDLE_SIZE_BASELINE = 142_420` bytes gzipped JS (bumped DOWN from
-161,175 on 2026-08-15 after the api-contract.js reclassification;
+is `BUNDLE_SIZE_BASELINE = 132_638` bytes gzipped JS (bumped DOWN from
+144,670 on 2026-08-15 after the Story 4c quiz.js reclassification;
+from 142,420 on 2026-08-15 after the api-contract.js reclassification;
 from 162,915 on 2026-08-15 after the Story 2.10 cleanup deleted
-`layout.js` + `theme.js`); CSS total is 22,480 bytes gzipped (under the
+`layout.js` + `theme.js`); CSS total is 13,924 bytes gzipped (under the
 25 KB CSS_BUDGET). Per Story x-3 policy, a Story that legitimately adds
 chrome beyond the +5 KB tolerance must bump the baseline in a Story
 commit (recorded decision, not an accident).
@@ -41,7 +48,7 @@ commit (recorded decision, not an accident).
 |---|---|---|---|---|
 | `assets/js/shell.js` | 94,696 | **26,841** | Story 1.5 | Chrome shell + theme + settings + palette + chords |
 | `assets/js/history.js` | 59,508 | **16,717** | Story 2.3 + 3.6 | Per-tool history (LIFO + restore + subscribe + panel) |
-| `assets/js/quiz.js` | 49,001 | **12,032** | Story 9.12 | Quiz pattern shell module (recent — grew fast) |
+| `assets/js/quiz.js` | 49,001 | **12,032** | Story 9.12 — page-conditional (Story 4c) | Quiz pattern shell module. Moved to `SPEC_PAGE_CONDITIONAL_MODULES` 2026-08-15 — loaded by the shell-thin Proxy factory on first `HT.quiz.open()`. Only 1 tool (`quiz-preview`) uses it today; 6 more (lifespan, calorie, bmi, pros-cons, space, bd-tax) plan to adopt it in Stories 9.13–9.18. NOT in chrome budget. |
 | `assets/js/storage-registry.js` | 27,857 | 7,488 | Story 1.10 | Namespaced key registry |
 | `assets/js/quality.js` | 22,847 | 7,223 | Story 2.11 | `/quality` tool inventory |
 | `assets/js/search.js` | 21,283 | 6,839 | Story 1.11 | Search engine + ranking |
@@ -65,7 +72,7 @@ commit (recorded decision, not an accident).
 | `assets/js/layout.js` | 2,190 | 898 | **LEGACY** | Story 2.10 marks for deletion |
 | `assets/js/theme.js` | 1,936 | 842 | **LEGACY** | Story 2.10 marks for deletion |
 | `assets/js/site-config.js` | 882 | 485 | Story 1.12 | Repo coordinates (frozen) |
-| **TOTAL** | — | **142,420** | — | vs NFR-1 target 30,000 — **4.7× over** |
+| **TOTAL** | — | **132,638** | — | vs NFR-1 target 30,000 — **4.4× over** |
 
 ### CSS — by size descending
 
@@ -73,10 +80,10 @@ commit (recorded decision, not an accident).
 |---|---|---|---|---|
 | `assets/css/components.css` | 64,566 | 13,193 | Story 1.5 + 3.x | Shared component styles (`.panel`, `.field`, `.result`, `.btn`) |
 | `assets/css/base.css` | 11,945 | 3,752 | Story 1.5 | Reset + typography + cobalt tokens |
-| `assets/css/quiz.css` | 10,834 | 2,697 | Story 9.12 | Quiz pattern styles |
+| `assets/css/quiz.css` | 10,834 | 2,697 | Story 9.12 — page-conditional (Story 4c) | Quiz pattern styles. Moved to `SPEC_PAGE_CONDITIONAL_MODULES` 2026-08-15 — co-loaded with `assets/js/quiz.js` via `HT.lazyLoadCss`. NOT in chrome budget. |
 | `assets/css/print.css` | 6,278 | 1,930 | Story 3.10 | `@media print` block |
 | `assets/css/tools.css` | 3,901 | 908 | Story 1.5 | Shared utility classes |
-| **TOTAL** | — | **22,480** | — | vs NFR-1 budget 30,000 — **under by 7.5 KB** |
+| **TOTAL** | — | **13,924** | — | vs NFR-1 budget 30,000 — **under by 16.1 KB** |
 
 ---
 
@@ -112,8 +119,8 @@ These are the highest-leverage opportunities for getting closer to the
 30 KB NFR-1 target without dropping features. Candidate #1 (lazy-load
 `api-contract.js`) was reclassified on 2026-08-15 — `api-contract.js`
 was never chrome to begin with, only loaded on view-source.html +
-quality.html. Candidates #2 (layout.js + theme.js) and #3 (quiz.js)
-remain as future Stories.
+quality.html. Candidate #2 (layout.js + theme.js) and candidate #3
+(quiz.js) shipped 2026-08-15 (Story 2.10 cleanup + Story 4c).
 
 ### 1. ~~Lazy-load `api-contract.js`~~ (RECLASSIFIED 2026-08-15 — this story)
 
@@ -176,28 +183,75 @@ ever re-added.
 gz compression on the empty file list delta accounted for the
 17-byte drift).
 
-### 3. Co-locate `quiz.js` into per-Tool bundles (~12 KB gz, ~7% of total)
+### 3. Co-locate `quiz.js` into per-Tool bundles (~12 KB gz, ~7% of total) — **DONE 2026-08-15 (Story 4c)**
 
-**Today:** `quiz.js` loads on every page even though only the ~12
+**Today (was):** `quiz.js` loads on every page even though only the ~12
 quiz-using tools call `HT.quiz.open()`. The other 30+ tools pay the
 download cost.
 
-**Tomorrow:** Move `quiz.js` from "every page" chrome into the
+**Was-planned:** Move `quiz.js` from "every page" chrome into the
 quiz-using tools' `<script>` tags. The tools already have helper
 scripts (e.g., `citation-styles.js`, `diff.js`, `jwt-codec.js`) — the
 quiz pattern joins them.
 
-**Effort:** ~half a day (update tools.json + regenerate per-tool pages
-+ retest). **Impact:** ~12 KB gz reduction on non-quiz pages.
-**Risk:** Story 9.12's contract gate currently assumes `quiz.js` is
-in the chrome; needs to be updated.
+**Now (Story 4c shipped 2026-08-15):** Wire `quiz.js` + `quiz.css`
+into the `shell-thin.js` Proxy factory (same shape as `history`/
+`share`/`palette`). The first `HT.quiz.open(...)` call on any tool
+page fires `HT.lazyLoad('assets/js/quiz.js')` + `HT.lazyLoadCss
+('assets/css/quiz.css')` in parallel. The home page no longer loads
+quiz.js at all. The adopting tool pattern (currently: quiz-preview;
+planned: lifespan, calorie, bmi, pros-cons, space, bd-tax in Stories
+9.13–9.18) just calls `HT.quiz.open(...)` — the Proxy does the
+lazy-load transparently.
+
+**Why this is better than the original plan:** The "move quiz.js
+into per-tool bundles" plan would have required editing 6 tool HTMLs
+(quiz-preview's 12 KB + 5 future adopters' 12 KB each = 60+ KB total
+duplicated chrome). The Proxy pattern: 1 lazy-load handles all 6,
+deduped across the page. Stories 9.13–9.18 just call `HT.quiz.open(...)`
+— no script tag changes needed.
+
+**Actual reduction:** −12,032 bytes gz off chrome (exact: 144,670 −
+132,638). No gz recompression benefit — the prior 142,420 baseline had
+already been bumped up by the Story 4b Phase 1 shell-* modules (+2,250
+drift), so the actual pre-Story-4c chrome was 144,670 gz and the new
+baseline is the measured 132,638 gz. Quiz-preview page also drops
+~12 KB gz from first-paint. Chrome baseline: 142,420 → 132,638 gz
+(intermediate pre-Story-4c chrome 144,670 gz; quiz.js + quiz.css out
+of chrome).
+
+**Changed files:**
+- `assets/js/shell-thin.js` — added `quiz` to `TIER2_URLS` + `TIER2_CSS` + Proxy stub
+- `index.html` + `tools/quiz-preview/index.html` — removed eager `<script>` + `<link>` tags
+- `scripts/bundle-size-gate.py` — moved into `SPEC_PAGE_CONDITIONAL_MODULES` (new list); baseline bumped DOWN; gate validates the file still exists on disk (catches drift)
+- `scripts/_smoke_quiz_proxy.js` (NEW) — 5 sections, ~30 assertions verifying the Proxy wiring
+- `_bmad-output/implementation-artifacts/story-4c-quiz-lazy-load.md` (NEW) — shipped-state retro
+
+**Lessons learned:**
+1. **The home page's eager load was wrong to begin with.** The home
+   has no `HT.quiz` UI. The tag was speculatively added in case a
+   "Try the quiz" demo was ever built — that demo never shipped. The
+   Proxy pattern is the right primitive: the module loads only when
+   needed, regardless of which page is loaded.
+2. **CSS coupling must be tracked.** `quiz.css` was already on the
+   home page even though `quiz.js` shipped only on 2 pages. The
+   Proxy factory's `TIER2_CSS` map (Story 4 Phase 5) co-loads the
+   CSS in parallel with the JS — same network event, no extra round
+   trip. Without this, the home page would have invisible FOUC
+   the first time a user clicked a quiz button.
+3. **The bundle-size gate's "missing on disk" check is the right
+   safety net.** `SPEC_PAGE_CONDITIONAL_MODULES` is excluded from
+   the chrome budget but the gate still verifies the file exists.
+   If someone deletes quiz.js, the gate fails with a clear error
+   pointing at the right list — not the chrome budget.
 
 ### Combined impact
 
-With candidates #1 (reclassified) and #2 (DONE 2026-08-15) shipped,
-the remaining candidate #3 gets us from **142,420 → ~130,000 bytes
-gzipped** (a 9% additional reduction). Still 4.3× over NFR-1, but
-each additional candidate gets incrementally harder.
+With candidates #1 (reclassified), #2 (DONE 2026-08-15), and
+#3 (DONE 2026-08-15 — Story 4c) shipped, chrome is at
+**132,638 bytes gzipped** — an 18% total reduction from the original
+161,175 baseline. Still 4.4× over NFR-1, but each additional
+candidate gets incrementally harder.
 
 ---
 

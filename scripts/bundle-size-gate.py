@@ -125,6 +125,14 @@ SCHEMA_ANCHOR = "tools.schema.json"
 # view-source dependencies — only loaded on /view-source.html, not on
 # every page. They are NOT counted in the chrome budget; they have
 # their own "view-source bundle" budget (see x-3 follow-up).
+#
+# Story 4c — page-conditional module list (smaller analog of the
+# view-source/quality bundle, but for any page that adopts the module).
+# The first entry is quiz.js (Story 9.12) + quiz.css, loaded by
+# story-4c's shell-thin Proxy factory on first HT.quiz.open() call.
+# Future Stories 9.13–9.18 may add their own quiz-mode toggles and
+# will use the same lazy-load primitive — no new budget line needed.
+# Module list is declared below as SPEC_PAGE_CONDITIONAL_MODULES.
 SPEC_JS_MODULES = [
     "assets/js/site-config.js",
     "assets/js/storage-registry.js",
@@ -145,7 +153,6 @@ SPEC_JS_MODULES = [
     "assets/js/pack-page.js",
     "assets/js/quality.js",
     "assets/js/view-source.js",
-    "assets/js/quiz.js",
     "assets/js/search.js",
     "assets/js/home-grid.js",
     "assets/js/home-sidebar.js",
@@ -170,7 +177,6 @@ SPEC_CSS_MODULES = [
     "assets/css/components-core.css",
     "assets/css/tools.css",
     "assets/css/print.css",
-    "assets/css/quiz.css",
 ]
 
 # Story 4 Phase 5 — lazy CSS chunks. NOT in SPEC_CSS_MODULES (they're
@@ -186,6 +192,21 @@ LAZY_CSS_MODULES = [
 ]
 LAZY_CSS_BUDGET_GZ = 12_000  # bytes gz (sum of all lazy chunks)
 
+# Story 4c — page-conditional modules. These are NOT chrome (they
+# don't load on every page) but we still measure them for budget
+# accounting so the shell-thin Proxy wiring story stays honest.
+# quiz.js + quiz.css are now loaded by HT.lazyLoad/HT.lazyLoadCss via
+# the Proxy factory in assets/js/shell-thin.js — only on tools that
+# adopt HT.quiz.open() (currently quiz-preview; planned: lifespan,
+# calorie, bmi, pros-cons, space, bd-tax in Stories 9.13–9.18).
+# Files in this list are excluded from the chrome budget (the sum is
+# NOT counted toward BUNDLE_SIZE_BASELINE) but they MUST exist on disk
+# for the gate's "missing module" check to pass (see _check_module_on_disk).
+SPEC_PAGE_CONDITIONAL_MODULES = [
+    "assets/js/quiz.js",
+    "assets/css/quiz.css",
+]
+
 # Story x-3 baseline — measured 2026-08-15 against the post-home-
 # redesign retrofit commit. Update this constant in the same commit
 # that legitimately adds chrome beyond the tolerance; the bump is a
@@ -200,7 +221,7 @@ LAZY_CSS_BUDGET_GZ = 12_000  # bytes gz (sum of all lazy chunks)
 # Actual measured sum at landing (post-Epic 3 chrome surface): 162,915
 # bytes gzipped. The spec's initial estimate of ~115 KB was optimistic
 # (it excluded several Epic-2/Epic-3 modules); this baseline captures
-# the real chrome footprint as of 2026-08-15. Three baseline bumps so
+# the real chrome footprint as of 2026-08-15. Four baseline bumps so
 # far:
 #   1. DOWN to 161,175 on 2026-08-15 (Story 2.10 cleanup) — deleted
 #      dead-code layout.js (898 gz) + theme.js (842 gz) = 1,740 bytes
@@ -212,10 +233,20 @@ LAZY_CSS_BUDGET_GZ = 12_000  # bytes gz (sum of all lazy chunks)
 #      been over-counting since it shipped 2026-08-15. Actual delta
 #      -18,755 bytes gz (gz recompression of the smaller list absorbs
 #      17 bytes of the 18,772 estimate).
+#   3. DOWN to 132,638 on 2026-08-15 (Story 4c — quiz lazy-load) —
+#      quiz.js (12,032 gz) + quiz.css (2,697 gz) moved out of chrome
+#      into SPEC_PAGE_CONDITIONAL_MODULES. Quiz is page-conditional:
+#      only tools that adopt HT.quiz.open() load it (currently
+#      quiz-preview; planned: lifespan, calorie, bmi, pros-cons, space,
+#      bd-tax). The shell-thin Proxy factory lazy-loads on first call.
+#      Actual chrome delta -12,032 bytes gz (no gz recompression
+#      benefit — the prior 142,420 baseline already included the shell-*
+#      modules added by Story 4b Phase 1, so the prior chrome was
+#      144,670 gz pre-Story 4c; new baseline is the measured 132,638 gz).
 # The path back to the 30 KB NFR-1 target is Story 4 (embed slim build)
 # + per-Tool lazy loading — see docs/bundle-size-budget.md for the
 # AC-4 decomposition.
-BUNDLE_SIZE_BASELINE = 142_420
+BUNDLE_SIZE_BASELINE = 132_638
 BUNDLE_SIZE_TOLERANCE = 5_000
 
 # NFR-1 target for the CSS budget (also aspirational — see the
@@ -397,6 +428,28 @@ def main(argv: list[str]) -> int:
         lazy_css_delta = 0
         print("  (no lazy CSS modules present — skipping lazy CSS budget check)")
 
+    # Story 4c — page-conditional modules (e.g., quiz.js + quiz.css
+    # loaded by the shell-thin Proxy factory on tools that adopt
+    # HT.quiz.open()). Not counted in the chrome budget, but the files
+    # MUST exist on disk; otherwise the lazy-load would fail silently at
+    # runtime. Measure for sanity, fail only on missing files (not on
+    # budget exceedance — there's no budget for this list).
+    print("")
+    print(
+        f"bundle-size-gate: measuring {len(SPEC_PAGE_CONDITIONAL_MODULES)} "
+        f"page-conditional module(s)…"
+    )
+    pcond_present, pcond_missing = measure_set(root, SPEC_PAGE_CONDITIONAL_MODULES)
+    print(render_breakdown(pcond_present, pcond_missing))
+
+    if pcond_present:
+        pcond_total = sum(m["gz"] for m in pcond_present)
+        print("")
+        print(
+            f"  total page-conditional (gzipped, not in chrome budget): "
+            f"{pcond_total:,d} bytes"
+        )
+
     # Decide pass / fail.
     failures: list[str] = []
     if js_total > js_limit:
@@ -429,6 +482,15 @@ def main(argv: list[str]) -> int:
                 f"the entry from SPEC_JS_MODULES."
             )
 
+    if pcond_missing:
+        for rel in pcond_missing:
+            failures.append(
+                f"module missing on disk: {rel} — listed in "
+                f"SPEC_PAGE_CONDITIONAL_MODULES but not found at {root / rel}. "
+                f"The shell-thin Proxy factory lazy-loads this URL on first "
+                f"access; missing file would silently break the runtime path."
+            )
+
     # Last-line JSON for CI scrapers.
     summary = {
         "js_total": js_total,
@@ -448,6 +510,9 @@ def main(argv: list[str]) -> int:
         "lazy_css_delta": lazy_css_delta if lazy_css_present else None,
         "lazy_css_modules": lazy_css_present,
         "lazy_css_missing": lazy_css_missing,
+        "pcond_total": pcond_total if pcond_present else None,
+        "pcond_modules": pcond_present,
+        "pcond_missing": pcond_missing,
         "failures": failures,
     }
     print("")

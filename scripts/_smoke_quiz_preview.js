@@ -208,7 +208,12 @@ console.log('--- I. Preview tool HTML loads ---');
   check(has(HTML_SRC, 'data-slug="quiz-preview"'), 'main has data-slug="quiz-preview"');
   check(has(HTML_SRC, 'id="quiz-mount"'), 'mount node id="quiz-mount" exists');
   check(has(HTML_SRC, 'HT.quiz') || has(HTML_SRC, 'quiz.js'), 'references HT.quiz / quiz.js');
-  check(has(HTML_SRC, 'assets/css/quiz.css'), 'links assets/css/quiz.css');
+  // Story 4c: quiz.js + quiz.css are now lazy-loaded via the
+  // shell-thin.js Proxy factory. The HTML no longer ships the
+  // eager <script> + <link> tags; the smoke just verifies the JS
+  // bootstrap (quiz-preview.js) still references HT.quiz.open(...).
+  check(!has(HTML_SRC, 'src="../../assets/js/quiz.js"'), 'no eager <script src="../../assets/js/quiz.js"> (Story 4c lazy-load)');
+  check(!has(HTML_SRC, 'href="../../assets/css/quiz.css"'), 'no eager <link href="../../assets/css/quiz.css"> (Story 4c lazy-load)');
   check(has(HTML_SRC, 'quiz-preview.js'), 'links quiz-preview.js');
   check(has(HTML_SRC, '_quiz-preview.css'), 'links _quiz-preview.css');
 }

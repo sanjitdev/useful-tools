@@ -99,6 +99,15 @@
     // alongside shell.js (it's a one-shot DOMContentLoaded listener).
     helpOverlay: 'assets/js/help-overlay.js',
     globalChords: 'assets/js/global-chords.js',
+    // Story 4c — quiz pattern shell module. quiz.js is page-conditional
+    // (only tools that adopt HT.quiz.open() — currently quiz-preview;
+    // planned: lifespan, calorie, bmi, pros-cons, space, bd-tax in
+    // Stories 9.13–9.18). quiz.js does `window.HT.quiz = window.HT.quiz
+    // || publicApi` at module init, so the Proxy stub assigned here
+    // is preserved across the lazy-load round-trip — first call to
+    // HT.quiz.open(...) hits the Proxy, fires lazyLoad + lazyLoadCss,
+    // and forwards to the real API once quiz.js parses.
+    quiz: 'assets/js/quiz.js',
   };
 
   // Story 4 Phase 5 — chrome CSS chunks lazy-loaded alongside each
@@ -121,6 +130,11 @@
     urlState:    '',
     helpOverlay: 'assets/css/chrome-help.css',
     globalChords: '',
+    // Story 4c — quiz.css is co-loaded with quiz.js on first access
+    // (the card DOM is created by HT.quiz.open()); CSS is only needed
+    // after the JS has parsed, but lazy-loading both in parallel keeps
+    // the round-trip to one network event.
+    quiz: 'assets/css/quiz.css',
   };
 
   function ensureLazy() {
@@ -174,6 +188,11 @@
   HT.export     = makeProxy(TIER2_URLS.exportData, 'export');
   HT.import     = makeProxy(TIER2_URLS.importData, 'import');
   HT.a11y       = makeProxy(TIER2_URLS.a11y, 'a11y');
+  // Story 4c — quiz pattern Proxy. quiz.js does `window.HT.quiz = window.HT.quiz || publicApi`
+  // so the Proxy stub here is preserved across the lazy-load round-trip. The first
+  // `HT.quiz.open(...)` call fires lazyLoad('assets/js/quiz.js') + lazyLoadCss('assets/css/quiz.css')
+  // in parallel, then `Promise.all`s and forwards to the real HT.quiz.open().
+  HT.quiz       = makeProxy(TIER2_URLS.quiz, 'quiz');
 
   // ------------------------------------------------------------------
   // DOMContentLoaded → lazy-load shell.js (the real boot orchestrator).
