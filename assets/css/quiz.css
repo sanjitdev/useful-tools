@@ -196,6 +196,24 @@
   margin-right: 4px;
 }
 
+/* Story 9.12.3 — Multi-select (checkbox) variants.
+   When role="checkbox", swap the radio's "✓" marker for an empty/checked
+   checkbox glyph (☐ / ☑). The .is-selected background/border stay the
+   same as the radio variant. */
+.quiz-option[role="checkbox"]::before {
+  content: "\2610"; /* ☐ */
+  font-weight: 800;
+  margin-right: 4px;
+  color: var(--color-muted, #5b6373);
+  display: inline-block;
+}
+.quiz-option[role="checkbox"].is-selected::before {
+  content: "\2611"; /* ☑ */
+  color: var(--color-primary, #2F5BFF);
+}
+/* The .quiz-option.is-selected background/border/colour rules above
+   also apply to the checkbox variant — no duplication needed. */
+
 /* Pick-bounce animation (re-triggered on every pick) */
 .quiz-option-bounce {
   animation: quiz-option-pick 180ms ease-out;
@@ -398,6 +416,11 @@
   .quiz-header {
     border-bottom: 1px solid #ccc;
     padding-bottom: 8px;
+  }
+  /* Story 9.12.3 — strip the ☐/☑ glyph from printed output; the
+     text label is enough to communicate the answer. */
+  .quiz-option[role="checkbox"]::before {
+    content: "";
   }
 }
 

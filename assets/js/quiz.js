@@ -27,6 +27,16 @@
      showIf defaults to "always visible" — predicates that throw are treated
      as "visible" so a broken predicate never blocks the user.
 
+   Question spec (additive, Story 9.12.3):
+     { id, label, prompt, options?, input?, min?, max?, step?, helpText?,
+       showIf?: ((answers) => boolean) | { skipIf?: (answers) => boolean },
+       multiSelect?: boolean }
+     multiSelect: true → options render as checkboxes (role="group" + role="checkbox");
+     answer is an array of selected values. Empty array = delete the key
+     (matches radio's skip semantics). Scalar answers are coerced to [scalar].
+
+   answers values: string | number | Array<string | number>.
+
    Handle API:
      { close, destroy, getAnswers, jumpTo, progress, isOpen }
 
@@ -163,14 +173,20 @@
 
     var interactive = null;
     if (Array.isArray(question.options) && question.options.length > 0) {
-      interactive = el('ul', {
+      // Story 9.12.3 — multiSelect renders the option list as a checkbox
+      // group (role="group" + aria-multiselectable) and each option as
+      // role="checkbox" instead of the default radiogroup/radio.
+      var isMulti = question.multiSelect === true;
+      var ulAttrs = {
         class: 'quiz-options',
-        role: 'radiogroup',
+        role: isMulti ? 'group' : 'radiogroup',
         'aria-labelledby': labelId,
-      }, question.options.map(function (opt, i) {
+      };
+      if (isMulti) ulAttrs['aria-multiselectable'] = 'true';
+      interactive = el('ul', ulAttrs, question.options.map(function (opt, i) {
         var btn = el('button', {
           type: 'button',
-          role: 'radio',
+          role: isMulti ? 'checkbox' : 'radio',
           'aria-checked': 'false',
           class: 'quiz-option',
           'data-value': String(opt.value),
@@ -520,6 +536,32 @@
         try { state.nextBtn.textContent = 'Next →'; } catch (_) {}
       }
     }
+
+    // Story 9.12.3 — restore option-button state from saved answers so
+    // re-renders (jumpTo, prev, rewind) preserve multi-select checkboxes.
+    restoreOptionState(card, state.questions[state.current], state.answers);
+  }
+
+  function restoreOptionState(card, q, answers) {
+    if (!card || !q) return;
+    var qId = q.id;
+    var saved = answers && Object.prototype.hasOwnProperty.call(answers, qId) ? answers[qId] : undefined;
+    var isMulti = q.multiSelect === true;
+    var arr;
+    if (isMulti) {
+      arr = Array.isArray(saved) ? saved : [];
+    } else {
+      arr = (saved === undefined) ? [] : [String(saved)];
+    }
+    var opts = card.querySelectorAll('.quiz-option');
+    for (var i = 0; i < opts.length; i += 1) {
+      var opt = opts[i];
+      var ov = opt.getAttribute('data-value');
+      var sel = arr.indexOf(ov) >= 0;
+      opt.setAttribute('aria-checked', sel ? 'true' : 'false');
+      if (sel) opt.classList.add('is-selected');
+      else opt.classList.remove('is-selected');
+    }
   }
 
   /* ----- Reveal ----- */
@@ -619,12 +661,41 @@
       var card = t.closest('.quiz-card');
       var state = card && card._state;
       if (!state) return;
-      // Update aria-checked on siblings
-      var opts = card.querySelectorAll('.quiz-option');
-      for (var i = 0; i < opts.length; i += 1) {
-        opts[i].setAttribute('aria-checked', opts[i] === t ? 'true' : 'false');
-        if (opts[i] === t) opts[i].classList.add('is-selected');
-        else opts[i].classList.remove('is-selected');
+      // Story 9.12.3 — detect multi-select from the current question.
+      var currentQ = state.questions[state.current];
+      var isMulti = !!(currentQ && currentQ.multiSelect === true);
+      var cardId = currentQ && currentQ.id;
+      if (isMulti && cardId) {
+        // Toggle one item in the answer array.
+        var current = state.answers[cardId];
+        var currentArr = Array.isArray(current) ? current.slice() : [];
+        var idx = currentArr.indexOf(value);
+        if (idx >= 0) currentArr.splice(idx, 1);
+        else currentArr.push(value);
+        // Empty array = delete key (matches Story 9.12.1 skip semantics).
+        if (currentArr.length === 0) delete state.answers[cardId];
+        else state.answers[cardId] = currentArr;
+        // Rebuild aria-checked + is-selected on all siblings from the array.
+        var allBtns = card.querySelectorAll('.quiz-option');
+        for (var k = 0; k < allBtns.length; k += 1) {
+          var b = allBtns[k];
+          var bv = b.getAttribute('data-value');
+          var sel = currentArr.indexOf(bv) >= 0;
+          b.setAttribute('aria-checked', sel ? 'true' : 'false');
+          if (sel) b.classList.add('is-selected');
+          else b.classList.remove('is-selected');
+        }
+        state._pendingValue = currentArr;
+      } else {
+        // Update aria-checked on siblings (existing radio behaviour).
+        var opts = card.querySelectorAll('.quiz-option');
+        for (var i = 0; i < opts.length; i += 1) {
+          opts[i].setAttribute('aria-checked', opts[i] === t ? 'true' : 'false');
+          if (opts[i] === t) opts[i].classList.add('is-selected');
+          else opts[i].classList.remove('is-selected');
+        }
+        // Stash current value so Next picks it up.
+        state._pendingValue = value;
       }
       // Pick animation
       if (!reducedMotionOn()) {
@@ -633,8 +704,6 @@
         void t.offsetWidth;
         t.classList.add('quiz-option-bounce');
       }
-      // Stash current value so Next picks it up
-      state._pendingValue = value;
     }
   }
 
@@ -732,7 +801,19 @@
       // If option question and a value is pending, write it
       if (current && Array.isArray(current.options) && current.options.length > 0) {
         if (state._pendingValue !== undefined) {
-          state.answers[current.id] = state._pendingValue;
+          // Story 9.12.3 — multi-select: the array is already committed
+          // in onCardClick; only re-write if the pending value is non-empty.
+          // An empty array means "unselect all" — delete the key (skip
+          // semantics), matching radio's no-selection path.
+          if (current.multiSelect === true) {
+            if (Array.isArray(state._pendingValue) && state._pendingValue.length === 0) {
+              delete state.answers[current.id];
+            } else {
+              state.answers[current.id] = state._pendingValue;
+            }
+          } else {
+            state.answers[current.id] = state._pendingValue;
+          }
           state._pendingValue = undefined;
           advance(state, true);
           return;
@@ -821,6 +902,16 @@
         throw new Error('HT.quiz.open: duplicate question id "' + q.id + '"');
       }
       seen[q.id] = true;
+      // Story 9.12.3 — coerce legacy scalars on the seed answers for
+      // multi-select questions. saveState/loadState already round-trip
+      // arrays cleanly, so this only affects hosts that pass answers
+      // directly via options.answers (e.g. URL hydration).
+      if (q.multiSelect === true && options.answers && Object.prototype.hasOwnProperty.call(options.answers, q.id)) {
+        var va = options.answers[q.id];
+        if (va !== undefined && va !== null && !Array.isArray(va)) {
+          options.answers[q.id] = [va];
+        }
+      }
       // Story 9.12.1 — normalize showIf → _skipIf.
       // Capture q in a per-iteration IIFE so the closure doesn't leak
       // the loop's function-scoped `q` (which always references the
@@ -1145,13 +1236,37 @@
       var s = h._state;
       var q = s.questions[s.current];
       if (!q) return;
-      s.answers[q.id] = value;
+      // Story 9.12.3 — multi-select accepts an array; otherwise scalar.
+      // Empty array = delete key (matches skip semantics).
+      if (q.multiSelect === true) {
+        if (value === undefined || value === null) {
+          delete s.answers[q.id];
+          value = [];
+        } else if (!Array.isArray(value)) {
+          value = [value];
+        }
+        if (Array.isArray(value) && value.length === 0) {
+          delete s.answers[q.id];
+        } else {
+          s.answers[q.id] = value.map(function (v) { return String(v); });
+        }
+      } else {
+        s.answers[q.id] = value;
+      }
       s._pendingValue = undefined;
-      // Highlight matching option
+      // Highlight matching options. For multi-select, match any whose
+      // value is in the answer array; for single-select, exact match.
       var opts = s.stack.querySelectorAll('.quiz-option');
+      var isMulti = q.multiSelect === true;
+      var arr = isMulti ? (Array.isArray(s.answers[q.id]) ? s.answers[q.id] : []) : null;
       for (var i = 0; i < opts.length; i += 1) {
         var ov = opts[i].getAttribute('data-value');
-        var match = String(ov) === String(value);
+        var match;
+        if (isMulti) {
+          match = arr.indexOf(ov) >= 0;
+        } else {
+          match = String(ov) === String(value);
+        }
         opts[i].setAttribute('aria-checked', match ? 'true' : 'false');
         if (match) opts[i].classList.add('is-selected');
         else opts[i].classList.remove('is-selected');

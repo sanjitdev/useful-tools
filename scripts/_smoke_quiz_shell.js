@@ -250,6 +250,17 @@ function closest(node, sel) {
   return null;
 }
 
+// Helper — find a .quiz-option by data-value attribute (the Style B
+// matches() regex only handles single attribute selectors, so we walk
+// the tree and filter manually).
+function findOptionByValue(root, value) {
+  var opts = findAll(root, '.quiz-option');
+  for (var i = 0; i < opts.length; i += 1) {
+    if (opts[i].getAttribute('data-value') === String(value)) return opts[i];
+  }
+  return null;
+}
+
 // =============================================================
 // Build a sandbox context
 // =============================================================
@@ -1039,6 +1050,212 @@ console.log('--- XIV. Resume UI (Story 9.12.2) ---');
   });
   var dlgD = findResumeDialog(ctxD);
   check(!dlgD, 'no storageKey → no resume dialog (direct mount)');
+}
+
+// =============================================================
+// XV. Multi-Select (Story 9.12.3 — multiSelect: true)
+// =============================================================
+console.log('--- XV. Multi-Select (Story 9.12.3 — multiSelect: true) ---');
+{
+  // Helper to mount a multi-select quiz with a clean ctx, return the handle.
+  function openMulti() {
+    var ctxX = buildCtx();
+    loadQuiz(ctxX);
+    var mountX = ctxX.document.createElement('div');
+    var h = ctxX.HT.quiz.open({
+      mount: mountX,
+      questions: [
+        {
+          id: 'q-multi',
+          label: 'Pick all that apply',
+          prompt: 'Which apply?',
+          options: [
+            { value: 'a', label: 'A' },
+            { value: 'b', label: 'B' },
+            { value: 'c', label: 'C' },
+          ],
+          multiSelect: true,
+        },
+        {
+          id: 'q-single',
+          label: 'Pick one',
+          prompt: 'Pick one:',
+          options: [
+            { value: 'x', label: 'X' },
+            { value: 'y', label: 'Y' },
+          ],
+        },
+      ],
+    });
+    return { ctx: ctxX, mount: mountX, handle: h };
+  }
+
+  // XV-A: multi-select renders <ul role="group" aria-multiselectable="true">
+  //       and each option is <button role="checkbox">.
+  var s15a = openMulti();
+  var ctx15a = s15a.ctx;
+  var mount15a = s15a.mount;
+  var handle15a = s15a.handle;
+  var group = findFirst(mount15a, '[role="group"]');
+  check(!!group, 'multi-select renders <ul role="group">');
+  check(group.getAttribute('aria-multiselectable') === 'true',
+    'group has aria-multiselectable="true"');
+  var checkboxes = findAll(mount15a, '[role="checkbox"]');
+  check(checkboxes.length === 3, 'three checkboxes rendered (one per option)');
+
+  // XV-B: single-select still renders role="radiogroup" + role="radio".
+  ctx15a.HT.quiz.next(handle15a);
+  var radio = findFirst(mount15a, '[role="radiogroup"]');
+  check(!!radio, 'single-select renders <ul role="radiogroup">');
+  var radios = findAll(mount15a, '[role="radio"]');
+  check(radios.length === 2, 'two radios rendered (single-select question unchanged)');
+
+  // Open a fresh context for the remaining assertions (so we can mount
+  // q-multi again at index 0).
+  var s15c = openMulti();
+  var ctxX = s15c.ctx;
+  var mountX = s15c.mount;
+  var handleX = s15c.handle;
+
+  // XV-C: clicking a checkbox sets aria-checked="true" + adds .is-selected.
+  var optA = findOptionByValue(mountX, 'a');
+  optA.dispatchEvent({ type: 'click' });
+  check(optA.getAttribute('aria-checked') === 'true',
+    'clicked checkbox sets aria-checked="true"');
+  check(optA._classes && optA._classes.has('is-selected'),
+    'clicked checkbox gains .is-selected');
+
+  // XV-D: clicking the same checkbox again unsets aria-checked + removes .is-selected.
+  optA.dispatchEvent({ type: 'click' });
+  check(optA.getAttribute('aria-checked') === 'false',
+    'second click toggles aria-checked back to "false"');
+  check(!optA._classes.has('is-selected'),
+    'second click removes .is-selected');
+
+  // XV-E: clicking two different checkboxes leaves both .is-selected.
+  var optB = findOptionByValue(mountX, 'b');
+  var optC = findOptionByValue(mountX, 'c');
+  optA.dispatchEvent({ type: 'click' });
+  optB.dispatchEvent({ type: 'click' });
+  check(optA._classes.has('is-selected') && optB._classes.has('is-selected'),
+    'two checkboxes can be selected simultaneously');
+  check(!optC._classes.has('is-selected'),
+    'untouched checkbox stays un-selected');
+
+  // XV-F: handle.getAnswers() returns array of selected values.
+  var ans = handleX.getAnswers();
+  check(Array.isArray(ans['q-multi']) && ans['q-multi'].indexOf('a') >= 0 && ans['q-multi'].indexOf('b') >= 0,
+    'getAnswers() returns array containing both picks');
+
+  // XV-G: unchecking all removes the key (delete-on-empty).
+  optA.dispatchEvent({ type: 'click' });
+  optB.dispatchEvent({ type: 'click' });
+  var ans2 = handleX.getAnswers();
+  check(!Object.prototype.hasOwnProperty.call(ans2, 'q-multi'),
+    'unchecking all checkboxes deletes the key (skip semantics)');
+
+  // XV-H: progress().answered reflects one-key-per-multi question.
+  // Pick both, expect answered === 1; uncheck all, expect answered === 0.
+  optA.dispatchEvent({ type: 'click' });
+  optB.dispatchEvent({ type: 'click' });
+  check(handleX.progress().answered === 1,
+    'multi-select with picks → progress().answered === 1');
+  optA.dispatchEvent({ type: 'click' });
+  optB.dispatchEvent({ type: 'click' });
+  check(handleX.progress().answered === 0,
+    'multi-select with no picks → progress().answered === 0');
+
+  // XV-I: answer(handle, ['a','b']) accepts an array.
+  ctxX.HT.quiz.answer(handleX, ['a', 'b']);
+  var ans3 = handleX.getAnswers();
+  check(Array.isArray(ans3['q-multi']) && ans3['q-multi'].length === 2,
+    'answer(handle, array) writes an array');
+
+  // XV-J: answer(handle, 'z') (scalar) on a multi-select question coerces to ['z'].
+  ctxX.HT.quiz.answer(handleX, 'c');
+  var ans4 = handleX.getAnswers();
+  check(Array.isArray(ans4['q-multi']) && ans4['q-multi'].length === 1 && ans4['q-multi'][0] === 'c',
+    'answer(handle, scalar) on multi-select coerces to one-item array');
+
+  // XV-K: answer(handle, []) (empty array) deletes the key (skip semantics).
+  ctxX.HT.quiz.answer(handleX, []);
+  var ans5 = handleX.getAnswers();
+  check(!Object.prototype.hasOwnProperty.call(ans5, 'q-multi'),
+    'answer(handle, []) deletes the key');
+
+  // XV-L: restoreOptionState preserves checkboxes on re-render.
+  // Jump to q-single and back to q-multi via jumpTo, then verify the
+  // checkboxes re-apply from the saved answers map.
+  ctxX.HT.quiz.answer(handleX, ['a', 'b']);
+  ctxX.HT.quiz.jumpTo(handleX, 1); // jump to q-single
+  ctxX.HT.quiz.jumpTo(handleX, 0); // jump back to q-multi
+  var optA2 = findOptionByValue(mountX, 'a');
+  var optB2 = findOptionByValue(mountX, 'b');
+  var optC2 = findOptionByValue(mountX, 'c');
+  check(optA2._classes.has('is-selected') && optB2._classes.has('is-selected') && !optC2._classes.has('is-selected'),
+    'jumpTo re-render restores multi-select checkbox state from saved answers');
+
+  // XV-M: reveal() callback receives the array on the multi-select question.
+  // Use a one-question quiz so the reveal fires cleanly after one Next.
+  var ctxY = buildCtx();
+  loadQuiz(ctxY);
+  var mountY = ctxY.document.createElement('div');
+  var revealCalls = [];
+  ctxY.HT.quiz.open({
+    mount: mountY,
+    questions: [
+      {
+        id: 'q-only',
+        label: 'Pick',
+        prompt: 'Pick any:',
+        options: [
+          { value: 'p', label: 'P' },
+          { value: 'q', label: 'Q' },
+        ],
+        multiSelect: true,
+      },
+    ],
+    reveal: function (answers) { revealCalls.push(answers); }
+  });
+  var optP = findOptionByValue(mountY, 'p');
+  var optQ = findOptionByValue(mountY, 'q');
+  optP.dispatchEvent({ type: 'click' });
+  optQ.dispatchEvent({ type: 'click' });
+  var allNextBtns = findAll(mountY, '[data-action="next"]');
+  if (allNextBtns[0]) allNextBtns[0].dispatchEvent({ type: 'click' });
+  check(revealCalls.length > 0 && Array.isArray(revealCalls[revealCalls.length - 1]['q-only'])
+      && revealCalls[revealCalls.length - 1]['q-only'].length === 2
+      && revealCalls[revealCalls.length - 1]['q-only'].indexOf('p') >= 0
+      && revealCalls[revealCalls.length - 1]['q-only'].indexOf('q') >= 0,
+    'reveal() callback receives Array on multi-select question id');
+
+  // XV-N: saveState/loadState round-trip preserves the array shape.
+  var ctxZ = buildCtx();
+  loadQuiz(ctxZ);
+  var mountZ = ctxZ.document.createElement('div');
+  var hZ = ctxZ.HT.quiz.open({
+    mount: mountZ,
+    questions: [
+      {
+        id: 'q-persist',
+        label: 'Pick',
+        prompt: 'Pick any:',
+        options: [
+          { value: 'aa', label: 'AA' },
+          { value: 'bb', label: 'BB' },
+        ],
+        multiSelect: true,
+      },
+    ],
+    storageKey: '_registry-quiz-test-multi'
+  });
+  ctxZ.HT.quiz.answer(hZ, ['aa', 'bb']);
+  var allNextBtnsZ = findAll(mountZ, '[data-action="next"]');
+  if (allNextBtnsZ[0]) allNextBtnsZ[0].dispatchEvent({ type: 'click' });
+  var stored = ctxZ.HT.storage.get('_registry-quiz-test-multi');
+  check(stored && stored.answers && Array.isArray(stored.answers['q-persist'])
+      && stored.answers['q-persist'].length === 2,
+    'saveState round-trip preserves Array answer shape');
 }
 
 // =============================================================

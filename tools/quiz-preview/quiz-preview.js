@@ -72,6 +72,20 @@
         { value: 'strong',  label: 'Strong — wake me up' }
       ],
       showIf: function (answers) { return answers['q1-vibe'] !== 'calm'; }
+    },
+    {
+      // Story 9.12.3 — multi-select demo: pick any combination.
+      id: 'q7-extras',
+      label: 'Style',
+      prompt: 'Which extras would you add to the quiz? (Pick any.)',
+      options: [
+        { value: 'animations', label: 'More animations' },
+        { value: 'sounds',     label: 'Sound effects' },
+        { value: 'progress',   label: 'Progress bar' },
+        { value: 'themes',     label: 'Custom themes' }
+      ],
+      helpText: 'Optional — leave blank to skip.',
+      multiSelect: true
     }
   ];
 
@@ -95,6 +109,19 @@
     return n;
   }
 
+  // Story 9.12.3 — format an answer for display. Multi-select questions
+  // produce an Array<string|number>; join with ", " for readable output.
+  // Back-compat: scalars (single-select), null, undefined, and '' all
+  // pass through the existing skip-detection.
+  function fmtAnswer(ans) {
+    if (ans === undefined || ans === null || ans === '') return '— skipped';
+    if (Array.isArray(ans)) {
+      if (ans.length === 0) return '— skipped';
+      return ans.map(function (v) { return String(v); }).join(', ');
+    }
+    return String(ans);
+  }
+
   function buildReveal(answers) {
     var wrap = el('div', { class: 'quiz-reveal-custom' });
 
@@ -104,7 +131,7 @@
     var list = el('ul', { class: 'quiz-reveal-list' });
     QUESTIONS.forEach(function (q) {
       var ans = answers[q.id];
-      var display = (ans === undefined || ans === '') ? '— skipped' : String(ans);
+      var display = fmtAnswer(ans);
       var li = el('li', { class: 'quiz-reveal-item' }, [
         el('span', { class: 'quiz-reveal-item-label', text: q.label + ': ' }),
         el('span', { class: 'quiz-reveal-item-value', text: display })
@@ -141,7 +168,7 @@
   function fmtAnswers(answers) {
     return QUESTIONS.map(function (q) {
       var v = answers[q.id];
-      return (q.label + ': ' + (v === undefined || v === '' ? '—' : String(v)));
+      return (q.label + ': ' + fmtAnswer(v));
     }).join('\n');
   }
 
