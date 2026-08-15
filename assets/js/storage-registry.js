@@ -512,7 +512,7 @@
     purpose: 'Light/dark/auto theme selection (FOUC IIFE reads at boot)',
     lifetime: 'persistent',
     schema: 'string in {auto,light,dark}',
-    owner: 'theme.js',
+    owner: 'shell.js',
   });
 
   // ht.* runtime keys owned by shell.js (settings modal). All plain

@@ -3,8 +3,13 @@ _es5_grep.py — Story 2.10 ES5-pattern gate.
 
 Scans assets/js/** for the two ES5 anti-patterns that Story 2.10 migrated
 away from: `var` declarations and Array.prototype.concat calls. The
-migrated files (utils.js, layout.js, theme.js) MUST be free of both — if
-anyone re-introduces ES5 patterns, the gate fails.
+migrated files (utils.js) MUST be free of both — if anyone re-introduces
+ES5 patterns, the gate fails.
+
+(2026-08-15: layout.js and theme.js were deleted from disk in the
+Story 2.10 cleanup. The MIGRATED lists still mention them as a defensive
+check — if either file is ever re-added, the gate still fires the same
+ES5 sweep on it.)
 
 (Note: the migrated files deliberately use string concatenation with `+`
 inside template-literal-free blocks where the original did — only
@@ -12,9 +17,9 @@ inside template-literal-free blocks where the original did — only
 script targets the canonical anti-patterns only.)
 
 Scope:
-    - utils.js, layout.js, theme.js (the shared migrated files): MUST
-      be free of `var ` (with trailing space, to avoid matching `var`
-      inside identifiers like `myvar`) and `.concat(`.
+    - utils.js (the shared migrated file): MUST be free of `var `
+      (with trailing space, to avoid matching `var` inside identifiers
+      like `myvar`) and `.concat(`.
     - assets/js/** (broader sweep): catches stragglers in other JS files
       (tool scripts) that still use `.concat(`. `.concat(` is the more
       dangerous of the two because it's an API-level anti-pattern that
@@ -46,8 +51,11 @@ except (AttributeError, OSError):
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ASSETS_JS = REPO_ROOT / "assets" / "js"
 
-# The three files Story 2.10 migrated. Scanned with the strictest rules
+# The files Story 2.10 migrated. Scanned with the strictest rules
 # (no `var` declarations AT ALL, no `.concat(` calls).
+# (2026-08-15: layout.js + theme.js deleted in Story 2.10 cleanup.
+# They are still listed as a defensive check — if either file is ever
+# re-added, the gate still fires the same ES5 sweep on it.)
 MIGRATED_FILES = (
     "utils.js",
     "layout.js",

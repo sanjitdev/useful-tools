@@ -10,10 +10,10 @@
   'use strict';
 
   // The soft handoff flag (Subtask 4.4) is set as the very first
-  // statement so the legacy theme.js IIFE short-circuits when both
-  // scripts are present. Setting it here, before any DOMContentLoaded
-  // handler runs, keeps the order deterministic regardless of script
-  // load order.
+  // statement. (2026-08-15: theme.js was deleted in Story 2.10 cleanup;
+  // the flag is preserved so any stale page cached in a user's browser
+  // that still references the removed script doesn't break — the flag
+  // is a harmless no-op when theme.js is absent.)
   window.__htShellReplacesTheme = true;
 
   const HT = (window.HT = window.HT || {});

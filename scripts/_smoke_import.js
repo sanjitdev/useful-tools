@@ -81,7 +81,7 @@ const HT_storage = {
   clear: function () { for (const k of Object.keys(_store)) delete _store[k]; for (const k of Object.keys(_meta)) delete _meta[k]; },
 };
 
-HT_storage.register('ht.theme', { purpose: 'theme', lifetime: 'persistent', schema: 'string', owner: 'theme.js' });
+HT_storage.register('ht.theme', { purpose: 'theme', lifetime: 'persistent', schema: 'string', owner: 'shell.js' });
 HT_storage.register('ht.locale', { purpose: 'locale', lifetime: 'persistent', schema: 'string', owner: 'shell.js' });
 HT_storage.register('ht.fontScale', { purpose: 'font-scale', lifetime: 'persistent', schema: 'string', owner: 'shell.js' });
 HT_storage.register('ht.units', { purpose: 'units', lifetime: 'persistent', schema: 'string', owner: 'shell.js' });
@@ -460,7 +460,7 @@ setTimeout(function () {
                       confirmResponse = true;
                       // Plant existing values to detect order: clean the store.
                       for (const k of Object.keys(_store)) delete _store[k];
-                      HT_storage.register('ht.theme', { purpose: 'theme', lifetime: 'persistent', schema: 'string', owner: 'theme.js' });
+                      HT_storage.register('ht.theme', { purpose: 'theme', lifetime: 'persistent', schema: 'string', owner: 'shell.js' });
                       HT_storage.register('ht.locale', { purpose: 'locale', lifetime: 'persistent', schema: 'string', owner: 'shell.js' });
                       HT_storage.register('ht.fontScale', { purpose: 'font-scale', lifetime: 'persistent', schema: 'string', owner: 'shell.js' });
                       HT_storage.register('ht.units', { purpose: 'units', lifetime: 'persistent', schema: 'string', owner: 'shell.js' });

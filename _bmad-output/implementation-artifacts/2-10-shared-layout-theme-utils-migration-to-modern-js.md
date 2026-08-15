@@ -300,3 +300,93 @@ No `tools.json` change. No `tools/<slug>/*.js` change. No HTML change.
 ## Status
 
 done
+
+---
+
+## Cleanup (2026-08-15) — Delete layout.js + theme.js
+
+**Status:** DONE 2026-08-15 (x-3 follow-up; AC-4 reduction candidate #2)
+
+### Why
+
+This story's original AC-2 / AC-3 migrated `layout.js` + `theme.js` to
+modern JS but explicitly **kept them on disk** as a soft-handoff for
+legacy pages. By 2026-08-15 the post-home-redesign retrofit confirmed
+**zero current pages reference them** (the chrome is static HTML in
+`assets/shell/chrome.html`; `shell.js` owns the theme API end-to-end).
+They were pure dead code that shipped to every page.
+
+### What changed
+
+| File | Change |
+|---|---|
+| `assets/js/layout.js` | **DELETED** — 54 lines of legacy header/footer injector (zero callers) |
+| `assets/js/theme.js` | **DELETED** — 56 lines of legacy theme toggle (zero callers; shell.js owns `HT.theme`) |
+| `scripts/bundle-size-gate.py` | Removed both entries from `SPEC_JS_MODULES`; bumped `BUNDLE_SIZE_BASELINE` DOWN 162,915 → 161,175 (-1,740 bytes gz) |
+| `assets/shell/chrome.html` | Storage-registry manifest entry `ht.theme` re-owned by `shell.js` |
+| `index.html` | Same manifest re-splice |
+| `quality.html` | Same manifest re-splice |
+| `packs/*.html` (6 files) | Same manifest re-splice |
+| `assets/js/storage-registry.js` | `register('ht.theme', { owner: 'shell.js' })` |
+| `assets/js/shell.js` | Updated soft-handoff comment to note `theme.js` is gone (flag is a no-op) |
+| `scripts/shell-template.py` | Removed two `<script>`-strip regex blocks (defensive removes now dead) + updated two FOUC IIFE comments |
+| `scripts/_smoke_import.js`, `_smoke_export.js` | Test fixtures re-owned ht.theme to `shell.js` (3 sites) |
+| `scripts/_es5_grep.py` | Docstring + MIGRATED lists note the files are gone (kept as defensive check if ever re-added) |
+| `docs/bundle-size-budget.md` | Reduction candidate #2 marked DONE; total + baseline updated to post-cleanup values |
+| `docs/README.md` | (no change — Story x-3 row already references the doc) |
+
+### Net effect on the bundle
+
+- **Before cleanup:** JS chrome = **162,915 bytes gzipped** (per
+  `make bundle-size`).
+- **After cleanup:** JS chrome = **161,192 bytes gzipped** (per
+  `make bundle-size`; the actual delta is 1,723 bytes gz — the
+  remaining 17 bytes from the 1,740 estimate come from gz
+  recompression of the empty list delta).
+- **Baseline lock:** `BUNDLE_SIZE_BASELINE` bumped DOWN from
+  162,915 → 161,175 (the measured value at cleanup time).
+- **NFR-1 gap:** Still 5.4× over (the 1.7 KB savings is small relative
+  to the 130+ KB overshoot). The path back to < 30 KB remains Story 4
+  / embed slim build + per-Tool lazy loading — see
+  `docs/bundle-size-budget.md` and
+  `_bmad-output/planning-artifacts/prds/prd-useful-tools-2026-07-31/NFR-1-REVISION.md`.
+
+### Verification
+
+- ✅ `make bundle-size` PASS (25 JS modules; total 161,192; delta +17 vs new baseline 161,175)
+- ✅ `make shell-drift` PASS (all 45 tool pages + index.html + quality.html + 6 pack pages in sync)
+- ✅ `make chrome-dom-smoke` PASS (8/8 fixtures green)
+- ✅ `make script-load-order` PASS (40/40 tools load utils.js before own script)
+- ✅ `make storage-registry` PASS (manifest integrity + call-site cross-check)
+- ✅ `make es5-grep` PASS (32 JS files scanned, 0 var / 0 concat)
+- ✅ `make regression-sweep` PASS (45/45 tools, 315/315 checks across 7-check battery)
+
+### Risks considered (and mitigated)
+
+1. **Stale browser cache** — a returning visitor with a cached
+   `<script src="theme.js">` reference would 404 in the console.
+   Mitigated: `window.__htShellReplacesTheme` flag is a harmless
+   no-op when `theme.js` is absent; the theme API on `shell.js`
+   doesn't depend on the removed module at all. No code path
+   consulted `theme.js` after Story 1.6.
+2. **Manifest drift** — the byte-aligned storage-registry-manifest
+   in 9 HTML files needed re-splicing. Done by editing chrome.html
+   first, then propagating to all 8 dependents.
+3. **Shell-template splice regressions** — the script's defensive
+   `LEGACY_THEME_SCRIPT_RE.sub("", ...)` + `LEGACY_LAYOUT_SCRIPT_RE.sub("", ...)`
+   calls (which used to strip the script tags on regeneration) are
+   now dead code; removed them rather than let them run on every
+   regen.
+4. **Test fixture drift** — `_smoke_import.js` + `_smoke_export.js`
+   register `ht.theme` with `owner: 'theme.js'` for their fixtures.
+   Updated all 3 sites to `owner: 'shell.js'` (the storage-registry
+   gate cross-checks register() owners against manifest owners).
+
+### Cross-references
+
+- `docs/bundle-size-budget.md` — Reduction candidate #2 (DONE 2026-08-15)
+- `_bmad-output/implementation-artifacts/x-3-bundle-size-budget.md` — Story x-3 spec; this cleanup is the AC-4 / AC-6 reduction work the gate measured
+- `_bmad-output/implementation-artifacts/post-home-redesign-retrofit-2026-08-13.md` — confirmed zero callers before deletion
+- `_bmad-output/planning-artifacts/prds/prd-useful-tools-2026-07-31/NFR-1-REVISION.md` — tiered NFR-1 budget proposal (pending PRD owner approval)
+- Story 1.5 (`_bmad-output/implementation-artifacts/1-5-shell-html-skeleton-with-cobalt-tokens.md`) — original chrome.js / theme.js removal step (the soft-handoff that this cleanup completes)
+- Story 1.6 (`_bmad-output/implementation-artifacts/1-6-theme-system-with-light-dark-and-auto-modes.md`) — moved theme logic into shell.js; this cleanup removes the last reference

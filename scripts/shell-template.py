@@ -750,9 +750,8 @@ def transform(
         )
         return source
 
-    # 5. Remove theme.js and layout.js script tags; ensure shell.js is present.
-    new_source = LEGACY_THEME_SCRIPT_RE.sub("", new_source)
-    new_source = LEGACY_LAYOUT_SCRIPT_RE.sub("", new_source)
+    # 5. (removed 2026-08-15 — Story 2.10 cleanup) theme.js + layout.js
+    #    were stripped from tool pages; the files no longer exist on disk.
     if 'src="../../assets/js/shell.js"' not in new_source:
         new_source = new_source.replace(
             '<script src="../../assets/js/utils.js"></script>',
@@ -1944,7 +1943,8 @@ def regenerate_home(
     storage_registry_manifest_in_source = storage_registry_manifest in source
     # Story 1.10: the storage-registry.js script tag is part of the
     # byte-aligned contract — without it the wrapper's delegation target
-    # never loads and theme.js boots without a registered ht.theme.
+    # never loads and shell.js boots without a registered ht.theme.
+    # (2026-08-15: shell.js owns ht.theme since Story 2.10 cleanup.)
     storage_registry_js_in_source = (
         'src="assets/js/storage-registry.js"' in source
     )
@@ -2443,8 +2443,10 @@ def regenerate_home(
 
         # Story 1.10: ensure storage-registry.js is loaded BEFORE utils.js
         # so the wrapper can delegate. The registry IIFE runs synchronously
-        # at script-load (no defer) and registers ht.theme before theme.js
+        # at script-load (no defer) and registers ht.theme before shell.js
         # boots, satisfying the FOUC IIFE's plain-string read path.
+        # (2026-08-15: theme.js deleted in Story 2.10; shell.js owns the
+        # ht.theme key now.)
         if 'src="assets/js/storage-registry.js"' not in new_source:
             utils_anchor = '<script src="assets/js/utils.js"></script>'
             if utils_anchor in new_source:
@@ -2613,15 +2615,8 @@ def regenerate_home(
             count=1,
         )
 
-    # Remove theme.js and layout.js script tags.
-    home_theme_re = re.compile(
-        r"<script src=\"assets/js/theme\.js\"></script>\s*", re.IGNORECASE
-    )
-    home_layout_re = re.compile(
-        r"<script src=\"assets/js/layout\.js\"></script>\s*", re.IGNORECASE
-    )
-    new_source = home_theme_re.sub("", new_source)
-    new_source = home_layout_re.sub("", new_source)
+    # (removed 2026-08-15 — Story 2.10 cleanup) theme.js + layout.js
+    # were stripped from home + tool pages; the files no longer exist.
     if 'src="assets/js/shell.js"' not in new_source:
         new_source = new_source.replace(
             '<script src="assets/js/utils.js"></script>',

@@ -73,7 +73,7 @@ const HT_storage = {
 };
 
 // Seed a small registry with the spec's expected key families
-HT_storage.register('ht.theme', { purpose: 'theme', lifetime: 'persistent', schema: 'string', owner: 'theme.js' });
+HT_storage.register('ht.theme', { purpose: 'theme', lifetime: 'persistent', schema: 'string', owner: 'shell.js' });
 HT_storage.register('ht.locale', { purpose: 'locale', lifetime: 'persistent', schema: 'string', owner: 'shell.js' });
 HT_storage.register('ht.fontScale', { purpose: 'font-scale', lifetime: 'persistent', schema: 'string', owner: 'shell.js' });
 HT_storage.register('handy-tools.history.inflation-calculator', { purpose: 'history', lifetime: 'persistent', schema: 'entry-array', owner: 'history.js' });
