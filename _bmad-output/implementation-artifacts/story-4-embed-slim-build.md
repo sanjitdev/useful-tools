@@ -1,6 +1,6 @@
 # Story 4 — Embed Slim Build (Tier 1 < 30 KB NFR-1 Path)
 
-Status: in-progress (Phase 1 shipped 2026-08-15; Phase 2 shipped 2026-08-15; Phases 3–5 pending)
+Status: in-progress (Phase 1 shipped 2026-08-15; Phase 2 shipped 2026-08-15; Phase 3 shipped 2026-08-15; Phases 4–5 pending)
 Created: 2026-08-15
 Origin: Story x-3 (Bundle Size Budget NFR-1 Gate) AC-4 + NFR-1-REVISION.md proposal
 Cross-epic: yes (concerns every chrome page; affects shell-template + drift gate + smoke tests)
@@ -294,6 +294,79 @@ Manual Chrome DevTools "Slow 4G" profile verification of `tools/qr-code-generato
 ### Roll-back
 
 Phase 2 ships 2 modified files + 0 new files. Roll-back is `git checkout -- tools/qr-code-generator/index.html assets/js/shell-thin.js` — qr-code-generator goes back to the full chrome block, and shell-thin.js reverts to the Phase 1 stub that only logs "stub ok". No other code paths are touched.
+
+## Phase 3 progress (shipped 2026-08-15)
+
+### What shipped
+
+- `scripts/_slim_tier1_sweep.py` (NEW, ~400 lines pure-stdlib Python) — sweeps every chrome page to slim Tier 1 shape. Idempotent transform that strips the heavy chrome script block (url.js, history.js, sample-data.js, share.js, export.js, import.js, a11y.js, palette-actions.js, shell.js, search.js, help-overlay.js, global-chords.js) from any chrome page and inserts the slim Tier 1 footer (ht-lazy.js + shell-thin.js defer) right after the utils.js line. CLI: `--dry-run`, `--tool <slug>`, `--root <path>`. Re-running on a page already in slim Tier 1 shape is a no-op (the script reports "already slim Tier 1" for every page). 53 chrome pages swept in one pass: 45 tool pages + 6 pack pages + home (index.html) + quality.html + view-source.html + tools/quiz-preview/index.html.
+
+- `scripts/_bundle_size_tier1.py` (NEW, ~280 lines pure-stdlib Python) — per-page Tier 1 bundle size gate (AC-1). Walks every chrome page (45 tools + 6 packs + home + quality + view-source + quiz-preview = 54 pages), parses the eager `<script>` tags, identifies the slim Tier 1 footer (site-config + storage-registry + utils + ht-lazy + shell-thin = 13,974 gz), and exits non-zero if any page exceeds the 30 KB NFR-1 floor (30,000 bytes gz) or is missing one of the Tier 1 markers (drift guard). CLI: `--budget`, `--root`, `--no-fail`. Outputs a JSON line for CI scraping (mirrors bundle-size-gate.py's shape).
+
+- `Makefile` `bundle-size-tier1` target (NEW) — invokes `python scripts/_bundle_size_tier1.py`. Wired into `ci:` chain immediately after `bundle-size` so the Tier 1 budget gate fires before the smoke matrix. `bundle-size` (the Tier 2 / chrome-total gate) continues to PASS at 142,420 gz — unchanged, because Phase 3 doesn't delete any heavy chrome modules from disk, just stops loading them eagerly.
+
+- `scripts/shell-drift-check.py` (modified) — replaced the prior `search.js` script-tag anchor with the slim Tier 1 invariant. Every chrome page must carry BOTH `ht-lazy.js` and `shell-thin.js` defer, with the relative path prefix matched per page kind (home/quality/view-source use root-relative; packs use `../`; tools + quiz-preview use `../../`). The drift check now reports `missing_script_anchor` for `ht-lazy.js` or `shell-thin.js` if either is missing — page has drifted out of slim Tier 1 shape.
+
+- `scripts/_smoke_view_source.js` (modified) — Phase 3 slim Tier 1 view: the four heavy chrome assertions (`a11y.js`, `shell.js`, `search.js`, `help-overlay.js` script tags) are replaced with the slim Tier 1 markers (`ht-lazy.js`, `shell-thin.js` defer). New drift guard verifies no heavy chrome script tag re-appears on view-source. 90/90 PASS (was 91/91 before — the heavy chrome assertions are gone).
+
+- `scripts/_smoke_wave_1_pages.js` + `_smoke_wave_2_pages.js` + `_smoke_wave_3_pages.js` (modified) — wave smokes now assert the slim Tier 1 footer (site-config + storage-registry + utils + ht-lazy + shell-thin defer) on every wave tool, with a drift guard verifying heavy chrome is absent. Wave 1: 46/46 PASS (was 28/15 before). Wave 2: 361/361 PASS. Wave 3: 409/409 PASS.
+
+- `scripts/_smoke_chrome_dom_walk.js` (modified) — fixture chrome now uses slim Tier 1 shape (site-config + storage-registry + utils + ht-lazy + shell-thin defer) instead of the prior `search.js` script tag. Quality fixture updated to root-relative slim Tier 1 path. Tier 1 stub files added to the throwaway repo (ht-lazy.js + shell-thin.js) so the script-tag anchors resolve. 8/8 PASS (was 4/4 before — Phase 3 + 4 prior = 8).
+
+- 53 chrome pages modified by sweep — every `tools/<slug>/index.html` (45), every `packs/<slug>.html` (6), `index.html`, `quality.html`, `view-source.html`, `tools/quiz-preview/index.html`. Each page now carries the slim Tier 1 footer (ht-lazy.js + shell-thin.js defer) right after utils.js, with no heavy chrome script tag. Per-Tool script + page-conditional modules (home-grid, recent, pins, home-sidebar, pack-grid, pack-page, quality, quiz, view-source, api-contract, highlight.min.js, zip-store.js, per-Tool .js) preserved verbatim.
+
+### Tier 1 measurement (AC-1) — every chrome page < 30 KB gz
+
+```
+bundle-size-tier1: PASS (54/54 chrome pages under 30,000 bytes Tier 1 gz; max=13,974, avg=13,974)
+```
+
+Per-tool gz breakdown (Tier 1 = 13,974 gz total on every page):
+| File | gz | Tier 1? |
+|---|---:|---|
+| `assets/js/site-config.js` | 485 | yes (frozen) |
+| `assets/js/storage-registry.js` | 7,484 | yes (frozen) |
+| `assets/js/utils.js` | 3,124 | yes (frozen) |
+| `assets/js/ht-lazy.js` | 1,055 | yes (Story 4 Phase 1) |
+| `assets/js/shell-thin.js` | 1,826 | yes (Story 4 Phase 2) |
+| **Tier 1 JS subtotal** | **13,974** | **first paint** |
+
+vs. PRD NFR-1 budget of 30,000 gz: **46.6% of budget, 2.1× margin**. AC-1 satisfied across all 54 chrome pages.
+
+### Strategy
+
+The original Phase 3 plan called for regenerating every chrome page via `shell-template.py`. Recon showed shell-template.py is 2,800+ lines with multiple splice paths (transform / ensure_tool_config_and_slug / splice_print_footer / regenerate_home etc.) — high-risk to modify for the slim Tier 1 footer. Phase 3 ships a NEW independent script `_slim_tier1_sweep.py` that walks every chrome page, strips the heavy chrome module regex match, and splices ht-lazy.js + shell-thin.js defer right after the utils.js anchor for that page kind. Idempotent: re-running on already-slim pages is a no-op (returns `slim_tier1_already(source)` true and skips the file).
+
+This keeps Phase 3 surgical: `shell-template.py` is unchanged, so a future Phase 6 / Phase 4 / Phase 5 commit can swap the heavy chrome module list in `_slim_tier1_sweep.py` (or move the slim Tier 1 footer into shell-template.py's emit) without re-engineering the sweep.
+
+### Verification
+
+All Phase 3 gates verified:
+- `bundle-size-tier1` — **54/54 chrome pages under 30,000 bytes Tier 1 gz** (max=13,974, avg=13,974)
+- `bundle-size` (Tier 2 / chrome-total) — PASS at 142,420 gz (unchanged from pre-Phase 3; heavy chrome modules remain on disk for lazy-load)
+- `shell-drift-check` — **all pages in sync** with slim Tier 1 invariant (ht-lazy.js + shell-thin.js defer on every chrome page)
+- `script-load-order` — 1/1 PASS (utils.js before `<slug>.js` invariant unchanged)
+- `shell-a11y-check` — all structural a11y invariants PASS
+- `storage-registry-gate` — register() calls match manifest
+- `chrome-dom-smoke` — 8/8 PASS (slim Tier 1 fixture chrome)
+- `wave-1-smoke` — 46/46 PASS (slim Tier 1 footer on qr-code-generator, inflation-calculator, lifespan-simulator)
+- `wave-2-smoke` — 361/361 PASS
+- `wave-3-smoke` — 409/409 PASS
+- `view-source-smoke` — 90/90 PASS
+- `regression_sweep` — **45/45 tools, 315/315 checks** PASS (no consoleError, jsLoad, history, fetch, or scriptLoadOrder regressions)
+- `palette-actions-smoke` — 52/52 PASS (HT.palette Proxy stub lazy-loads palette-actions.js on first palette open)
+- `history-smoke` — 116/116 PASS (HT.history Proxy stub lazy-loads history.js on first history-panel open)
+- `ht-lazy-smoke` — 15/15 PASS
+- `shell-public-api-smoke` — 23/23 PASS (AD-14 frozen HT.* API surface preserved)
+
+### Pre-existing failures (unrelated to Phase 3, not addressed here)
+
+- `json-formatter-enhancements-smoke` — 1 fail (stale api-contract.js version assertion: 1.18.0 vs actual 1.23.0). Pre-existing as of Phase 2; out of scope.
+- `quiz-smoke` — 6+ fails (multi-select checkbox bug). Pre-existing as of Phase 2; out of scope.
+
+### Roll-back
+
+Phase 3 ships 53 modified HTML files + 4 modified scripts (drift-check, 4 smokes) + 2 new scripts (sweep + tier1 gate) + Makefile change + spec doc update. Roll-back is `git revert <phase-3-sha>` — reverts all 53 page transforms and restores the heavy chrome script block. The sweep script + tier1 gate are independent and can be removed via `git rm` if needed. The drift-check change is a one-commit revert (`git checkout <prev-sha> -- scripts/shell-drift-check.py`).
 
 ## Cross-references
 

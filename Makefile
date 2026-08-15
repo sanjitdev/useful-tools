@@ -130,7 +130,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke script-load-order shell-a11y bundle-size verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative uuid-generator-smoke ht-lazy-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke quiz-smoke quiz-preview-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke script-load-order shell-a11y bundle-size bundle-size-tier1 verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative uuid-generator-smoke ht-lazy-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke quiz-smoke quiz-preview-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Story 1.18 (AI-E1-15) replaced the
@@ -185,6 +185,24 @@ shell-a11y:
 # AC-4 top-3 reduction candidates + the Epic 4 path back to < 30 KB.
 bundle-size:
 	@$(PYTHON) scripts/bundle-size-gate.py
+
+# `bundle-size-tier1` is Story 4 Phase 3's per-page Tier 1 budget
+# gate (AC-1). Walks every chrome page (45 tools + 6 packs + home +
+# quality + view-source + quiz-preview), parses the eager `<script>`
+# tags, identifies the slim Tier 1 footer (site-config +
+# storage-registry + utils + ht-lazy + shell-thin), gz-sums it, and
+# exits non-zero if any page exceeds the 30 KB NFR-1 floor (30,000
+# bytes gz) or is missing one of the Tier 1 markers (drift guard).
+# Pairs with `make bundle-size` (which measures the *full* chrome JS
+# total across SPEC_JS_MODULES — the Tier 2 budget). After the Story
+# 4 slim-build sweep, every chrome page measures ~14 KB Tier 1 gz
+# (vs. the 142 KB pre-sweep chrome total). The gate fails fast on
+# any page that drifts out of slim Tier 1 shape — re-run
+# `scripts/_slim_tier1_sweep.py` to restore. See _bmad-output/
+# implementation-artifacts/story-4-embed-slim-build.md for the AC-1
+# rationale + per-page budget table.
+bundle-size-tier1:
+	@$(PYTHON) scripts/_bundle_size_tier1.py
 
 # `measure-fouc` is best-effort: it tries to launch a headless browser
 # via `npx puppeteer` (if Node is on PATH) or `npx lighthouse` and

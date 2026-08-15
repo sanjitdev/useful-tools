@@ -163,11 +163,35 @@ WAVE_2.forEach(function (slug) {
   check('tools/' + slug + '/index.html exists', fs.existsSync(toolHtml));
   if (fs.existsSync(toolHtml)) {
     const html = fs.readFileSync(toolHtml, 'utf8');
-    check('  index.html includes share.js script tag', hasScriptTag(html, 'share.js'));
-    check('  index.html includes a11y.js script tag', hasScriptTag(html, 'a11y.js'));
-    check('  index.html includes shell.js script tag', hasScriptTag(html, 'shell.js'));
-    check('  index.html includes sample-data.js script tag', hasScriptTag(html, 'sample-data.js'));
-    check('  index.html includes history.js script tag', hasScriptTag(html, 'history.js'));
+    // Slim Tier 1 footer (Story 4 Phase 3) — site-config +
+    // storage-registry + utils + ht-lazy + shell-thin defer.
+    // Heavy chrome modules (share.js, a11y.js, shell.js,
+    // sample-data.js, history.js, etc.) are stripped and
+    // lazy-loaded via the shell-thin.js Proxy stubs + ht-lazy.js
+    // on first user action. Drift guard verifies heavy chrome
+    // is absent.
+    check('  index.html includes site-config.js script tag',
+      hasScriptTag(html, 'site-config.js'));
+    check('  index.html includes storage-registry.js script tag',
+      hasScriptTag(html, 'storage-registry.js'));
+    check('  index.html includes utils.js script tag',
+      hasScriptTag(html, 'utils.js'));
+    check('  index.html includes ht-lazy.js script tag (slim Tier 1)',
+      hasScriptTag(html, 'ht-lazy.js'));
+    check('  index.html includes shell-thin.js script tag (slim Tier 1)',
+      hasScriptTag(html, 'shell-thin.js'));
+    const heavyChromeAbsent = [
+      'share.js', 'a11y.js', 'shell.js',
+      'sample-data.js', 'history.js', 'url.js',
+      'export.js', 'import.js', 'palette-actions.js',
+      'help-overlay.js', 'search.js', 'global-chords.js',
+    ];
+    let firstHeavyHit = null;
+    for (const m of heavyChromeAbsent) {
+      if (hasScriptTag(html, m)) { firstHeavyHit = m; break; }
+    }
+    check('  index.html has no heavy chrome script tags (slim Tier 1)',
+      firstHeavyHit === null, 'first hit: ' + firstHeavyHit);
 
     // Wave-2 differentiator: every encode/decode selector must resolve to
     // an id in the HTML.

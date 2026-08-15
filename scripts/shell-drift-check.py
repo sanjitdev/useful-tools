@@ -41,7 +41,11 @@ If a drift is detected, the script exits 2, prints one
 diff to `.chrome-dom-diff.json` at the repo root (AC-4).
 
 Preserved non-DOM checks (these never moved to the DOM walk):
-  - search.js script tag with correct relative path (home / pack / tool)
+  - slim Tier 1 footer (ht-lazy.js + shell-thin.js defer) on every
+    chrome page (Story 4 Phase 3 — replaces the prior search.js
+    anchor check; search.js is no longer eagerly loaded on chrome
+    pages and is instead served on-demand from the palette's
+    "search tools" affordance via ht-lazy.js + Proxy stubs).
   - site-config.js script tag + script-tag order (before storage-registry.js)
   - data-slug="<slug>" on <main id="main"> for tool pages only
   - inline tools.json block on home (substring check)
@@ -61,7 +65,8 @@ Exit codes
   3 — write error or unexpected I/O failure
 
 Author: Handy Tools (Story 1.5 — Shell HTML Skeleton with Cobalt Tokens;
-        Story 1.18 — Chrome Equivalence DOM Walk (AI-E1-15) 2026-08-12)
+        Story 1.18 — Chrome Equivalence DOM Walk (AI-E1-15) 2026-08-12;
+        Story 4 Phase 3 — Slim Tier 1 footer invariants 2026-08-15)
 """
 
 from __future__ import annotations
@@ -98,16 +103,21 @@ TOOLS_JSON_REL = Path("tools.json")
 # block is byte-equivalent across home + tool + pack + /quality pages.
 HELP_REL = Path("assets/shell/help.html")
 TOOLS_JSON_REL = Path("tools.json")
-# Story 1.11: the search.js script tag is a fixed-string anchor that
-# shell-template.py splices into every page (home + 34 tools). The drift
-# check verifies the substring is present on every page. Two paths exist:
-# home pages use src="assets/js/search.js" (root-relative); tool pages use
-# src="../../assets/js/search.js". We accept either form.
-SEARCH_JS_ANCHOR_HOME = '<script src="assets/js/search.js" defer></script>'
-SEARCH_JS_ANCHOR_TOOL = '<script src="../../assets/js/search.js" defer></script>'
-# Story 6.2: pack pages live at packs/<slug>.html (depth 1), so they use
-# the "../" relative path for assets/js/* scripts (one level up to repo root).
-SEARCH_JS_ANCHOR_PACK = '<script src="../assets/js/search.js" defer></script>'
+# Story 4 Phase 3: the slim Tier 1 footer is a fixed-string anchor
+# on every chrome page. The drift check verifies both markers are
+# present (ht-lazy.js — the loader — and shell-thin.js — the boot
+# orchestrator). Two paths exist (matches the prior search.js split):
+# home pages use root-relative src="assets/js/<name>.js"; tool pages
+# use src="../../assets/js/<name>.js". Pack pages use "../" (depth 1).
+# search.js is no longer in the eager chrome block — it ships as a
+# Tier 2 module lazy-loaded by the palette's "search tools"
+# affordance via ht-lazy.js + Proxy stubs.
+HT_LAZY_JS_ANCHOR_HOME = '<script src="assets/js/ht-lazy.js"></script>'
+HT_LAZY_JS_ANCHOR_TOOL = '<script src="../../assets/js/ht-lazy.js"></script>'
+HT_LAZY_JS_ANCHOR_PACK = '<script src="../assets/js/ht-lazy.js"></script>'
+SHELL_THIN_JS_ANCHOR_HOME = '<script src="assets/js/shell-thin.js" defer></script>'
+SHELL_THIN_JS_ANCHOR_TOOL = '<script src="../../assets/js/shell-thin.js" defer></script>'
+SHELL_THIN_JS_ANCHOR_PACK = '<script src="../assets/js/shell-thin.js" defer></script>'
 # Story 1.12: site-config.js script tag + ordering. Same home-vs-tool
 # path split as search.js (root-relative on home, "../../" on tool pages).
 # Site-config.js must load BEFORE storage-registry.js so HT.siteConfig
@@ -825,7 +835,7 @@ def scan_page(
     help_bytes: str,
     tools_json_inline_bytes: str,
     manifest_sha: str,
-    search_js_anchors: tuple[str, str, str],
+    tier1_anchors: tuple[str, str, str, str, str, str],
     site_config_anchors: tuple[str, str, str],
 ) -> tuple[bool, list[dict], dict]:
     """Run all chrome-equivalence + per-page checks against a single page.
@@ -887,29 +897,43 @@ def scan_page(
 
     # === Non-DOM checks (preserved from the prior byte-substring script) ===
 
-    # search.js anchor + correct relative path.
+    # slim Tier 1 footer (Story 4 Phase 3) — ht-lazy.js + shell-thin.js
+    # defer markers must be present on every chrome page. Replaces the
+    # prior search.js anchor check (search.js is now a Tier 2 module
+    # served on-demand by the palette's "search tools" affordance).
     is_home = kind == "home"
     is_pack = kind == "pack"
     is_root_page = kind in ("view-source", "quality")
     if is_home or is_root_page:
-        expected_search = search_js_anchors[0]
+        expected_ht_lazy = tier1_anchors[0]
+        expected_shell_thin = tier1_anchors[3]
         expected_storage = STORAGE_REGISTRY_JS_ANCHOR_HOME
         expected_site = site_config_anchors[0]
     elif is_pack:
-        expected_search = search_js_anchors[2]
+        expected_ht_lazy = tier1_anchors[2]
+        expected_shell_thin = tier1_anchors[5]
         expected_storage = STORAGE_REGISTRY_JS_ANCHOR_PACK
         expected_site = site_config_anchors[2]
     else:
-        expected_search = search_js_anchors[1]
+        expected_ht_lazy = tier1_anchors[1]
+        expected_shell_thin = tier1_anchors[4]
         expected_storage = STORAGE_REGISTRY_JS_ANCHOR_TOOL
         expected_site = site_config_anchors[1]
 
-    if expected_search not in page_text:
+    if expected_ht_lazy not in page_text:
         diffs.append({
             "kind": "missing_script_anchor",
             "region": "scripts",
-            "path": "search.js",
-            "expected": expected_search,
+            "path": "ht-lazy.js",
+            "expected": expected_ht_lazy,
+            "actual": None,
+        })
+    if expected_shell_thin not in page_text:
+        diffs.append({
+            "kind": "missing_script_anchor",
+            "region": "scripts",
+            "path": "shell-thin.js",
+            "expected": expected_shell_thin,
             "actual": None,
         })
 
@@ -1036,7 +1060,7 @@ def scan(
     help_bytes: str,
     tools_json_inline_bytes: str,
     manifest_sha: str,
-    search_js_anchors: tuple[str, str, str],
+    tier1_anchors: tuple[str, str, str, str, str, str],
     site_config_anchors: tuple[str, str, str],
 ) -> tuple[int, list[dict]]:
     """Scan every target file; return (failure_count, file_diffs).
@@ -1069,7 +1093,7 @@ def scan(
             help_bytes,
             tools_json_inline_bytes,
             manifest_sha,
-            search_js_anchors,
+            tier1_anchors,
             site_config_anchors,
         )
         if ok:
@@ -1121,7 +1145,14 @@ def main(argv: list[str]) -> int:
     tools_json_inline_bytes = load_tools_json_inline(root)
     _manifest_inner, manifest_sha = load_manifest_bytes(root)
 
-    search_js_anchors = (SEARCH_JS_ANCHOR_HOME, SEARCH_JS_ANCHOR_TOOL, SEARCH_JS_ANCHOR_PACK)
+    tier1_anchors = (
+        HT_LAZY_JS_ANCHOR_HOME,
+        HT_LAZY_JS_ANCHOR_TOOL,
+        HT_LAZY_JS_ANCHOR_PACK,
+        SHELL_THIN_JS_ANCHOR_HOME,
+        SHELL_THIN_JS_ANCHOR_TOOL,
+        SHELL_THIN_JS_ANCHOR_PACK,
+    )
     site_config_anchors = (
         SITE_CONFIG_JS_ANCHOR_HOME,
         SITE_CONFIG_JS_ANCHOR_TOOL,
@@ -1136,7 +1167,7 @@ def main(argv: list[str]) -> int:
         help_bytes,
         tools_json_inline_bytes,
         manifest_sha,
-        search_js_anchors,
+        tier1_anchors,
         site_config_anchors,
     )
 

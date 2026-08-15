@@ -35,6 +35,11 @@ check('view-source.html exists', fs.existsSync(pagePath));
 const page = fs.readFileSync(pagePath, 'utf8');
 check('view-source.html non-empty', page.length > 1000, 'len=' + page.length);
 
+// Slim Tier 1 (Story 4 Phase 3): view-source no longer carries the
+// heavy chrome script block (a11y.js, shell.js, search.js,
+// help-overlay.js). Tier 1 = site-config + storage-registry + utils +
+// ht-lazy + shell-thin; page-conditional modules (api-contract,
+// highlight.min.js, zip-store.js, view-source.js) follow.
 const expectedFragments = [
   '<main id="main"',
   'data-view-source-tool',
@@ -49,18 +54,52 @@ const expectedFragments = [
   'src="assets/js/site-config.js"',
   'src="assets/js/storage-registry.js"',
   'src="assets/js/utils.js"',
+  'src="assets/js/ht-lazy.js"',
   'src="assets/js/api-contract.js"',
   'src="assets/js/vendor/highlight.min.js"',
   'src="assets/js/vendor/zip-store.js"',
   'src="assets/js/view-source.js"',
-  'src="assets/js/a11y.js"',
-  'src="assets/js/shell.js"',
-  'src="assets/js/search.js"',
-  'src="assets/js/help-overlay.js"',
 ];
 for (const fragment of expectedFragments) {
   check('view-source.html has \u201c' + fragment + '\u201d', page.indexOf(fragment) !== -1);
 }
+
+// Slim Tier 1 (Story 4 Phase 3): view-source now carries the standard
+// Tier 1 footer (ht-lazy + shell-thin defer) just like every chrome
+// page — the Proxy stubs in shell-thin.js keep HT.history /
+// HT.urlState / HT.palette available if any future view-source code
+// path needs them, and the Tier 1 budget stays well under 30 KB gz.
+check('view-source.html has shell-thin.js defer (slim Tier 1)',
+  page.indexOf('src="assets/js/shell-thin.js" defer') !== -1);
+
+// Heavy chrome modules must be absent on view-source too (Story 4
+// Phase 3 slim Tier 1 sweep). Drift guard — if a future change
+// re-introduces any of these script tags, the page falls back out
+// of slim Tier 1 shape and the bundle tier1-budget gate will flag it.
+const heavyChromeAbsent = [
+  'assets/js/a11y.js"',
+  'assets/js/shell.js"',
+  'assets/js/search.js"',
+  'assets/js/help-overlay.js"',
+  'assets/js/url.js"',
+  'assets/js/history.js"',
+  'assets/js/sample-data.js"',
+  'assets/js/share.js"',
+  'assets/js/export.js"',
+  'assets/js/import.js"',
+  'assets/js/palette-actions.js"',
+  'assets/js/global-chords.js"',
+];
+let heavyChromeOk = true;
+let firstHeavyHit = '';
+for (const tag of heavyChromeAbsent) {
+  if (page.indexOf(tag) !== -1) {
+    heavyChromeOk = false;
+    if (!firstHeavyHit) firstHeavyHit = tag;
+  }
+}
+check('view-source.html has no heavy chrome script tags (slim Tier 1)',
+  heavyChromeOk, 'first hit: ' + firstHeavyHit);
 
 // Script order: site-config before storage-registry before api-contract
 const orderIdx = (s) => page.indexOf(s);

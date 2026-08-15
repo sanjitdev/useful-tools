@@ -6,9 +6,13 @@
    lifespan-simulator), verifies:
 
      1. The tool's index.html exists and includes
-        the Story 2.x Shell script tags (share.js,
-        a11y.js, shell.js between the FOUC IIFE and
-        </body>).
+        the slim Tier 1 script footer (Story 4
+        Phase 3) — site-config.js, storage-registry.js,
+        utils.js, ht-lazy.js, shell-thin.js defer.
+        Heavy chrome modules (share.js, a11y.js,
+        shell.js, sample-data.js, history.js, etc.)
+        are NOT eagerly loaded — they ship as Tier 2
+        via ht-lazy.js + Proxy stubs.
      2. The tool's <slug>.js exists and is non-empty.
      3. tools.json contains a matching entry with
         ready: true and score >= 8.
@@ -109,11 +113,33 @@ WAVE_1.forEach(function (slug) {
   check('tools/' + slug + '/index.html exists', fs.existsSync(toolHtml));
   if (fs.existsSync(toolHtml)) {
     const html = fs.readFileSync(toolHtml, 'utf8');
-    check('  index.html includes share.js script tag', hasScriptTag(html, 'share.js'));
-    check('  index.html includes a11y.js script tag', hasScriptTag(html, 'a11y.js'));
-    check('  index.html includes shell.js script tag', hasScriptTag(html, 'shell.js'));
-    check('  index.html includes sample-data.js script tag', hasScriptTag(html, 'sample-data.js'));
-    check('  index.html includes history.js script tag', hasScriptTag(html, 'history.js'));
+    // Slim Tier 1 footer (Story 4 Phase 3) — site-config +
+    // storage-registry + utils + ht-lazy + shell-thin defer.
+    // Heavy chrome modules are stripped and lazy-loaded via the
+    // shell-thin.js Proxy stubs + ht-lazy.js on first user action.
+    check('  index.html includes site-config.js script tag',
+      hasScriptTag(html, 'site-config.js'));
+    check('  index.html includes storage-registry.js script tag',
+      hasScriptTag(html, 'storage-registry.js'));
+    check('  index.html includes utils.js script tag',
+      hasScriptTag(html, 'utils.js'));
+    check('  index.html includes ht-lazy.js script tag (slim Tier 1)',
+      hasScriptTag(html, 'ht-lazy.js'));
+    check('  index.html includes shell-thin.js script tag (slim Tier 1)',
+      hasScriptTag(html, 'shell-thin.js'));
+    // Drift guard: heavy chrome modules must NOT be eagerly loaded.
+    const heavyChromeAbsent = [
+      'share.js', 'a11y.js', 'shell.js',
+      'sample-data.js', 'history.js', 'url.js',
+      'export.js', 'import.js', 'palette-actions.js',
+      'help-overlay.js', 'search.js', 'global-chords.js',
+    ];
+    let firstHeavyHit = null;
+    for (const m of heavyChromeAbsent) {
+      if (hasScriptTag(html, m)) { firstHeavyHit = m; break; }
+    }
+    check('  index.html has no heavy chrome script tags (slim Tier 1)',
+      firstHeavyHit === null, 'first hit: ' + firstHeavyHit);
   }
 
   const toolJs = path.join(TOOLS_DIR, slug, slug + '.js');

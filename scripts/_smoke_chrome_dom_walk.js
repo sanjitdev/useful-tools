@@ -8,9 +8,14 @@
  *   1. tools/canonical/index.html   — every chrome subtree verbatim;
  *                                     expect ok (proves the DOM walk +
  *                                     per-page-kind rules + non-DOM
- *                                     checks (data-slug, search.js,
- *                                     site-config.js, storage-registry.js
- *                                     paths) all pass).
+ *                                     checks (data-slug, slim Tier 1
+ *                                     footer: site-config.js,
+ *                                     storage-registry.js, utils.js,
+ *                                     ht-lazy.js, shell-thin.js defer;
+ *                                     Story 4 Phase 3 replaced the prior
+ *                                     search.js anchor check since
+ *                                     search.js is now a Tier 2 module)
+ *                                     all pass).
  *   2. tools/missing-header/index.html — drops <header class="site-header">;
  *                                        expect drift naming `site-header`.
  *   3. tools/extra-inline-script/index.html — adds an extra <script>
@@ -138,9 +143,13 @@ Build a throwaway repo at `$TMP/chrome-dom-smoke-<rand>/` that:
   - has `assets/shell/palette.html`, `assets/shell/settings.html`,
     `assets/shell/help.html` (byte-substring anchor files — content is
     arbitrary as long as it contains the shell:* region markers)
-  - has `assets/js/search.js`, `assets/js/site-config.js`,
-    `assets/js/storage-registry.js` (the script-tag anchors the gate
-    substring-checks for; empty stubs are sufficient)
+  - has the slim Tier 1 footer stubs (Story 4 Phase 3):
+    `assets/js/site-config.js`, `assets/js/storage-registry.js`,
+    `assets/js/utils.js`, `assets/js/ht-lazy.js`,
+    `assets/js/shell-thin.js` (the script-tag anchors the gate
+    substring-checks for; empty stubs are sufficient). The prior
+    `assets/js/search.js` anchor was retired when search.js moved
+    to a Tier 2 lazy module.
   - has `tools.json` (the inline tools.json block source; empty tools
     list is the minimal valid input)
 */
@@ -207,9 +216,14 @@ function buildTempRepo() {
   copyFileSync('assets/shell/settings.html', root);
   copyFileSync('assets/shell/help.html', root);
 
-  fs.writeFileSync(path.join(root, 'assets', 'js', 'search.js'), '// smoke stub\n');
   fs.writeFileSync(path.join(root, 'assets', 'js', 'site-config.js'), '// smoke stub\n');
   fs.writeFileSync(path.join(root, 'assets', 'js', 'storage-registry.js'), '// smoke stub\n');
+  fs.writeFileSync(path.join(root, 'assets', 'js', 'utils.js'), '// smoke stub\n');
+  // Tier 1 (Story 4 Phase 3): the slim Tier 1 footer adds
+  // ht-lazy.js + shell-thin.js. Keep stub files so the script-tag
+  // anchors resolve when the drift detector measures them.
+  fs.writeFileSync(path.join(root, 'assets', 'js', 'ht-lazy.js'), '// smoke stub\n');
+  fs.writeFileSync(path.join(root, 'assets', 'js', 'shell-thin.js'), '// smoke stub\n');
 
   fs.writeFileSync(path.join(root, 'tools.json'), '{"tools":[]}\n');
 
@@ -253,15 +267,23 @@ function buildTempRepo() {
    * `fixtureChrome` under the hood and is appropriate for fixtures
    * that don't mutate the chrome. */
   function wrapChrome(slug, chromeRegion) {
+    // Slim Tier 1 footer (Story 4 Phase 3) — site-config +
+    // storage-registry + utils + ht-lazy + shell-thin defer. The
+    // chrome-drift detector requires these markers; the prior
+    // search.js anchor check was retired when chrome moved to
+    // slim Tier 1 (search.js now ships as a Tier 2 module via the
+    // shell-thin.js Proxy stubs).
     return [
       '<!doctype html>',
       '<html lang="en">',
       '<head>',
       '  <meta charset="utf-8">',
       '  <title>' + slug + ' - Handy Tools</title>',
-      '  <script src="../../assets/js/search.js" defer></script>',
       '  <script src="../../assets/js/site-config.js"></script>',
       '  <script src="../../assets/js/storage-registry.js"></script>',
+      '  <script src="../../assets/js/utils.js"></script>',
+      '  <script src="../../assets/js/ht-lazy.js"></script>',
+      '  <script src="../../assets/js/shell-thin.js" defer></script>',
       '</head>',
       '<body>',
       chromeRegion,
@@ -355,9 +377,13 @@ function buildTempRepo() {
       '<head>',
       '  <meta charset="utf-8">',
       '  <title>Quality - Handy Tools</title>',
-      '  <script src="assets/js/search.js" defer></script>',
+      // Slim Tier 1 footer (Story 4 Phase 3): quality.html is a
+      // root-level page so paths are root-relative.
       '  <script src="assets/js/site-config.js"></script>',
       '  <script src="assets/js/storage-registry.js"></script>',
+      '  <script src="assets/js/utils.js"></script>',
+      '  <script src="assets/js/ht-lazy.js"></script>',
+      '  <script src="assets/js/shell-thin.js" defer></script>',
       '</head>',
       '<body>',
       qualityChrome,
