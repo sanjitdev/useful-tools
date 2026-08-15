@@ -206,6 +206,15 @@
     }
 
     safeLazyLoad('assets/js/shell.js');
+    // Story 4b Phase 1: shell-*.js orchestrators (extracted from
+    // shell.js boot() call sites) must be available by the time
+    // shell.js boot() runs. They're tiny (~400 B each) and only
+    // gated behind the chrome lazy-load — loading them eagerly
+    // here would force them on the home/settings page where the
+    // shell-* namespaces are never reached. Lazy is cheaper.
+    safeLazyLoad('assets/js/shell-history.js');
+    safeLazyLoad('assets/js/shell-share.js');
+    safeLazyLoad('assets/js/shell-sample-data.js');
     safeLazyLoad('assets/js/help-overlay.js');
     safeLazyLoad('assets/js/global-chords.js');
     if (typeof HT.lazyLoadCss === 'function') {

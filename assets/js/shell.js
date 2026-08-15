@@ -382,58 +382,42 @@
     // page. Sample is global, Tools opt in via the urlState.sample block
     // in tools.json. The mount helper renders both buttons into a
     // .tool-actions flex row. Skipped in embed mode and on any page
-    // without data-slug. The Shell boot() calls this for tool pages
-    // after the URL hash has been bound by the Story 2.1 codec (when
-    // that lands); for the Story 2.2 standalone commit, the sample/
-    // reset affordance still works because HT.sampleData.mount reads
-    // the schema via the inline splice / HT.homeGrid fallback rather
-    // than the codec.
-    if (!isEmbedMode() && main && HT.sampleData
-        && typeof HT.sampleData.mount === 'function') {
+    // without data-slug.
+    //
+    // Story 4b Phase 1: the call site moved to shell-sample-data.js so
+    // shell.js boot() stays slim. The orchestrator reads the same
+    // embed/slug guards inline (mirrors the original behavior).
+    if (!isEmbedMode() && main && HT.shellSampleData
+        && typeof HT.shellSampleData.mount === 'function') {
       const toolSlug = main.getAttribute && main.getAttribute('data-slug');
-      if (toolSlug && /^[a-z][a-z0-9-]*[a-z0-9]$/.test(toolSlug)) {
-        try { HT.sampleData.mount(toolSlug, main); }
-        catch (err) { console.warn('shell.boot: HT.sampleData.mount failed', err); }
-      }
+      try { HT.shellSampleData.mount(toolSlug, main); }
+      catch (err) { console.warn('shell.boot: HT.shellSampleData.mount failed', err); }
     }
 
     // Story 2.3: mount the per-tool history panel. The Shell wires this
     // (NOT each tool) so the panel layout, mobile-vs-desktop split, and
     // cross-tab sync are consistent across every tool. Skipped in embed
-    // mode (AD-7) and when the slug declares no history-keys block —
-    // the panel helper itself is defensive and returns an empty
-    // teardown for misconfigured slugs, but we also early-out here to
-    // skip the work entirely on home / Settings / other non-tool pages
-    // where data-slug is absent.
-    if (!isEmbedMode() && main && HT.history
-        && typeof HT.history.panel === 'function') {
+    // mode (AD-7) and when the slug declares no history-keys block.
+    //
+    // Story 4b Phase 1: call site moved to shell-history.js.
+    if (!isEmbedMode() && main && HT.shellHistory
+        && typeof HT.shellHistory.mount === 'function') {
       const historySlug = main.getAttribute && main.getAttribute('data-slug');
-      if (historySlug && /^[a-z][a-z0-9-]*[a-z0-9]$/.test(historySlug)) {
-        try {
-          if (HT.history.hasHistory && HT.history.hasHistory(historySlug)) {
-            HT.history.panel(historySlug, main);
-          }
-        }
-        catch (err) { console.warn('shell.boot: HT.history.panel failed', err); }
-      }
+      try { HT.shellHistory.mount(historySlug, main); }
+      catch (err) { console.warn('shell.boot: HT.shellHistory.mount failed', err); }
     }
 
     // Story 2.5: mount the per-tool share dialog affordance. The Shell
     // wires this (NOT each tool) so the dialog, print button, and
     // embed snippet are consistent across every tool. Skipped in
-    // embed mode (AD-7) and when the slug declares no urlState block
-    // (the share URL is meaningful only when there's state to share).
-    if (!isEmbedMode() && main && HT.share
-        && typeof HT.share.mount === 'function') {
+    // embed mode (AD-7) and when the slug declares no urlState block.
+    //
+    // Story 4b Phase 1: call site moved to shell-share.js.
+    if (!isEmbedMode() && main && HT.shellShare
+        && typeof HT.shellShare.mount === 'function') {
       const shareSlug = main.getAttribute && main.getAttribute('data-slug');
-      if (shareSlug && /^[a-z][a-z0-9-]*[a-z0-9]$/.test(shareSlug)) {
-        try {
-          if (HT.share.hasShare && HT.share.hasShare(shareSlug)) {
-            HT.share.mount(shareSlug, main);
-          }
-        }
-        catch (err) { console.warn('shell.boot: HT.share.mount failed', err); }
-      }
+      try { HT.shellShare.mount(shareSlug, main); }
+      catch (err) { console.warn('shell.boot: HT.shellShare.mount failed', err); }
     }
 
     // Story 1.7: install the command palette wiring (skip entirely in

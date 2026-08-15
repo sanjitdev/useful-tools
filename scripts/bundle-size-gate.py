@@ -150,6 +150,13 @@ SPEC_JS_MODULES = [
     "assets/js/home-grid.js",
     "assets/js/home-sidebar.js",
     "assets/js/shell.js",
+    # Story 4b Phase 1 — shell.js boot() call sites for history/share/
+    # sampleData extraction. Loaded lazily by kickShellBoot() alongside
+    # shell.js; measured as part of the chrome bundle for budget
+    # accounting. Each is ~400 B raw / ~300 B gz.
+    "assets/js/shell-history.js",
+    "assets/js/shell-share.js",
+    "assets/js/shell-sample-data.js",
 ]
 
 # CSS modules — the chrome stylesheets loaded on every page. Story 1.5
