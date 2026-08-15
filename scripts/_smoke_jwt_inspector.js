@@ -32,12 +32,16 @@ const path = require('path');
 const { webcrypto } = require('crypto');
 
 const JWT_CODEC_PATH = path.resolve(__dirname, '../assets/js/jwt-codec.js');
-const TOOL_JS_PATH = path.resolve(__dirname, '../tools/jwt-inspector/jwt-inspector.js');
+// Story 4b Phase 3 — jwt-inspector split into core + handlers.
+const TOOL_CORE_PATH = path.resolve(__dirname, '../tools/jwt-inspector/jwt-inspector-core.js');
+const TOOL_HANDLERS_PATH = path.resolve(__dirname, '../tools/jwt-inspector/jwt-inspector-handlers.js');
 const UTILS_JS_PATH = path.resolve(__dirname, '../assets/js/utils.js');
 const PEM_FIXTURE_PATH = path.resolve(__dirname, 'fixtures/jwt-test-keypair.pem');
 
 const jwtCodecSrc = fs.readFileSync(JWT_CODEC_PATH, 'utf8');
-const toolSrc = fs.readFileSync(TOOL_JS_PATH, 'utf8');
+const toolCoreSrc = fs.readFileSync(TOOL_CORE_PATH, 'utf8');
+const toolHandlersSrc = fs.readFileSync(TOOL_HANDLERS_PATH, 'utf8');
+const toolSrc = toolCoreSrc + '\n' + toolHandlersSrc;
 const utilsSrc = fs.readFileSync(UTILS_JS_PATH, 'utf8');
 const pemFixture = fs.readFileSync(PEM_FIXTURE_PATH, 'utf8');
 
@@ -175,7 +179,12 @@ function loadTool(ctx) {
   ctx.HT.$ = (sel) => elements[sel] || null;
   ctx.window.HT = ctx.HT;
   vm.runInContext(jwtCodecSrc, ctx, { filename: 'jwt-codec.js' });
-  vm.runInContext(toolSrc, ctx, { filename: 'jwt-inspector.js' });
+  // Story 4b Phase 3 — load core then handlers, then call init.
+  vm.runInContext(toolCoreSrc, ctx, { filename: 'jwt-inspector-core.js' });
+  vm.runInContext(toolHandlersSrc, ctx, { filename: 'jwt-inspector-handlers.js' });
+  if (typeof ctx.window.jwtInspectorInit === 'function') {
+    ctx.window.jwtInspectorInit();
+  }
 }
 
 // ---------------------------------------------------------------
@@ -617,10 +626,12 @@ check(threw3, 'decodeJwt: non-JSON payload → throws');
   vm.createContext(ctx14);
   vm.runInContext(utilsSrc, ctx14, { filename: 'utils.js' });
   // Do NOT run jwt-codec.js — leave HT.jwt undefined.
-  // Run the tool — it must bail with a console.warn and not throw.
+  // Story 4b Phase 3 — load core first (which doesn't touch HT.jwt),
+  // then handlers, which must bail with a console.warn.
   let guardThrew = false;
   try {
-    vm.runInContext(toolSrc, ctx14, { filename: 'jwt-inspector.js' });
+    vm.runInContext(toolCoreSrc, ctx14, { filename: 'jwt-inspector-core.js' });
+    vm.runInContext(toolHandlersSrc, ctx14, { filename: 'jwt-inspector-handlers.js' });
   } catch (_e) {
     guardThrew = true;
   }

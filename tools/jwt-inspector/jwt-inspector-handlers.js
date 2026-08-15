@@ -1,36 +1,41 @@
 /* ============================================
-   JWT Inspector
-   Decode JWTs and verify HS256 / RS256 / ES256
-   signatures offline via Web Crypto. Pure
-   client-side — `window.HT.jwt` from
-   `assets/js/jwt-codec.js` does the base64url +
-   3-segment split; this script handles DOM
-   wiring + signature verification.
+   JWT Inspector — jwt-inspector-handlers.js (Story 4b Phase 3)
+   Lazy chunk: DOM refs, render, PEM parsing, verification
+   dispatcher, panel switching, URL state, history, wire.
 
-   Privacy: zero network requests. Tokens and
-   secrets are processed locally; the token is
-   NOT pushed to the recent-history log
-   (sensitive material).
+   Loaded via HT.lazyLoadTool('jwt-inspector', './jwt-inspector-handlers.js')
+   on DOMContentLoaded by core.js.
 
-   Keyboard:
-     d — decode + verify
-     v — re-verify current token
+   Depends on assets/js/jwt-codec.js (eager vendor) which
+   exposes window.HT.jwt.{decodeJwt,base64urlDecode,getAlg}.
+
+   Story 4b — see _bmad-output/implementation-artifacts/
+   story-4b-per-tool-code-splitting.md
    ============================================ */
 
 (function () {
   'use strict';
 
-  // Defensive guard: assets/js/jwt-codec.js must load BEFORE this script
+  if (typeof window === 'undefined' || !window.HT) return;
+
+  // Defensive guard: assets/js/jwt-codec.js must load BEFORE the tool script
   // so `window.HT.jwt` is populated. The smoke harness preloads it; the
   // regression sweep does the same via the include-order convention on
   // tools/jwt-inspector/index.html.
-  if (!HT.jwt || typeof HT.jwt.decodeJwt !== 'function') {
+  if (!window.HT.jwt || typeof window.HT.jwt.decodeJwt !== 'function') {
     if (typeof console !== 'undefined' && console.warn) {
-      console.warn('jwt-inspector: HT.jwt is unavailable; ' +
+      console.warn('jwt-inspector-handlers: HT.jwt is unavailable; ' +
         'assets/js/jwt-codec.js must load before jwt-inspector.js.');
     }
     return;
   }
+
+  // core handle is optional (only used for supported-algs list).
+  var core = window.HT.jwtInspectorCore;
+  var SUPPORTED_ALGS = core && typeof core.getSupportedAlgs === 'function'
+    ? core.getSupportedAlgs()
+    : ['hs256', 'rs256', 'es256'];
+  var HT = window.HT;
 
   // ---------------------------------------------------------------
   // Element references
@@ -75,9 +80,6 @@
     }
   }
 
-  // JSON.stringify for the decoded header/payload pretty-print. We use
-  // a function rather than `<pre>` textContent so the indentation is
-  // render-stable across browsers.
   function prettyJson(obj) {
     try {
       return JSON.stringify(obj, null, 2);
@@ -139,10 +141,6 @@
 
   // ---------------------------------------------------------------
   // PEM normalization
-  //
-  // Web Crypto's `crypto.subtle.importKey('spki', derBytes, ...)`
-  // expects the raw DER bytes — not the textual PEM. We strip
-  // `-----BEGIN/END-----` headers and base64-decode the body.
   // ---------------------------------------------------------------
 
   function pemToDer(pemText) {
@@ -154,11 +152,9 @@
       .replace(/-----END [^-]+-----/g, '')
       .replace(/\s+/g, '');
     if (!body) throw new Error('PEM body is empty');
-    // Reject non-base64 characters (anything outside [A-Za-z0-9+/=]).
     if (!/^[A-Za-z0-9+/=_-]+$/.test(body)) {
       throw new Error('PEM body contains non-base64 characters');
     }
-    // Standard base64 alphabet (we convert any URL-safe chars just in case).
     var std = body.replace(/-/g, '+').replace(/_/g, '/');
     var pad = std.length % 4;
     if (pad === 2) std += '==';
@@ -182,18 +178,13 @@
   }
 
   // ---------------------------------------------------------------
-  // Verification dispatcher — HS256 / RS256 / ES256 only per ROQ-3
+  // Verification dispatcher
   // ---------------------------------------------------------------
 
   function unsupportedAlg(alg) {
     return 'Verification for ' + alg + ' is not supported in this tool. Decode is shown above.';
   }
 
-  /**
-   * Verify the token signature using the supplied key material.
-   * Returns a Promise resolving to { state: 'valid'|'invalid'|'error'|'unsupported',
-   *   message: '...' }
-   */
   function verify(decoded, headerAndPayload, signatureBytes, secret, pem, alg) {
     if (alg === 'hs256') return verifyHs256(headerAndPayload, signatureBytes, secret);
     if (alg === 'rs256') return verifyRs256(headerAndPayload, signatureBytes, pem);
@@ -270,7 +261,7 @@
   }
 
   // ---------------------------------------------------------------
-  // Algorithm panels — show secret for HS256, PEM for RS256/ES256
+  // Algorithm panels
   // ---------------------------------------------------------------
 
   function showPanelsForAlg(alg) {
@@ -287,10 +278,6 @@
   // Process — decode and verify
   // ---------------------------------------------------------------
 
-  /**
-   * Cached decoded + signature for the current token. We re-verify
-   * (only) when the secret / PEM changes, not on every keystroke.
-   */
   var lastToken = '';
   var lastDecoded = null;
   var lastSignature = null;
@@ -314,7 +301,6 @@
     try {
       decoded = HT.jwt.decodeJwt(token);
     } catch (e) {
-      // Distinguish segment-count error vs JSON error for the user.
       var msg = (e && e.message) || String(e);
       setVerify(msg, 'error');
       setExp('', '');
@@ -357,7 +343,6 @@
     };
   }
 
-  // Re-verify using the LAST decoded signature — bound to secret/PEM input.
   function reVerify() {
     if (!lastDecoded || !lastSignature || !lastToken) {
       setVerify('Paste a JWT above to decode and verify.', 'pending');
@@ -369,8 +354,7 @@
   }
 
   // ---------------------------------------------------------------
-  // URL state — token only (NOT secret, NOT pem) per AC-5/ROQ-1.
-  // Embed mode (`?embed=1`) SKIPS token load — privacy.
+  // URL state
   // ---------------------------------------------------------------
 
   function isEmbedMode() {
@@ -393,7 +377,7 @@
   var urlWriteHandle = null;
 
   function writeUrlState(token) {
-    if (isEmbedMode()) return; // never include token in embed URL
+    if (isEmbedMode()) return;
     try {
       if (urlWriteHandle) clearTimeout(urlWriteHandle);
       urlWriteHandle = setTimeout(function () {
@@ -408,10 +392,7 @@
   }
 
   function applyUrlState() {
-    if (isEmbedMode()) {
-      // Privacy: embed mode omits token URL state entirely.
-      return;
-    }
+    if (isEmbedMode()) return;
     var token = readTokenFromUrl();
     if (token && tokenEl) {
       tokenEl.value = token;
@@ -422,39 +403,39 @@
   // Event wiring
   // ---------------------------------------------------------------
 
-  if (tokenEl) {
-    tokenEl.addEventListener('input', function () {
-      processToken(tokenEl.value || '');
-      writeUrlState(tokenEl.value || '');
+  function wire() {
+    if (tokenEl) {
+      tokenEl.addEventListener('input', function () {
+        processToken(tokenEl.value || '');
+        writeUrlState(tokenEl.value || '');
+      });
+    }
+
+    if (secretEl) {
+      secretEl.addEventListener('input', HT.debounce(reVerify, 200));
+    }
+
+    if (pemEl) {
+      pemEl.addEventListener('input', HT.debounce(reVerify, 200));
+    }
+
+    document.addEventListener('keydown', function (ev) {
+      var target = ev.target;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+        return;
+      }
+      if (ev.key === 'd' || ev.key === 'D') {
+        ev.preventDefault();
+        if (tokenEl) processToken(tokenEl.value || '');
+      } else if (ev.key === 'v' || ev.key === 'V') {
+        ev.preventDefault();
+        reVerify();
+      }
     });
   }
 
-  if (secretEl) {
-    secretEl.addEventListener('input', HT.debounce(reVerify, 200));
-  }
-
-  if (pemEl) {
-    pemEl.addEventListener('input', HT.debounce(reVerify, 200));
-  }
-
-  // Keyboard: d = decode+verify, v = re-verify
-  document.addEventListener('keydown', function (ev) {
-    var target = ev.target;
-    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
-      return;
-    }
-    if (ev.key === 'd' || ev.key === 'D') {
-      ev.preventDefault();
-      if (tokenEl) processToken(tokenEl.value || '');
-    } else if (ev.key === 'v' || ev.key === 'V') {
-      ev.preventDefault();
-      reVerify();
-    }
-  });
-
   // ---------------------------------------------------------------
-  // History push — token NEVER enters history (AC-4). We only push
-  // the algorithm + whether a secret was set.
+  // History push
   // ---------------------------------------------------------------
 
   function pushHistory() {
@@ -469,11 +450,16 @@
   }
 
   // ---------------------------------------------------------------
-  // Boot
+  // Init
   // ---------------------------------------------------------------
 
-  applyUrlState();
-  var initial = tokenEl ? tokenEl.value : '';
-  processToken(initial);
-  pushHistory();
+  function init() {
+    applyUrlState();
+    var initial = tokenEl ? tokenEl.value : '';
+    processToken(initial);
+    wire();
+    pushHistory();
+  }
+
+  window.jwtInspectorInit = init;
 })();
