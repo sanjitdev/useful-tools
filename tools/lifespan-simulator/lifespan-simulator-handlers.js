@@ -1414,6 +1414,20 @@
     renderResult();
     if (state.mode === 'plan') renderPlan();
     wireQuizToggle();
+    wireDatePickers();
+  }
+
+  /* Story 9.19 — opt the 2 DOB inputs into HT.datePicker (lazy via
+     shell-thin Proxy). The input stays the source of truth — same id,
+     name, value (ISO YYYY-MM-DD), min/max, change/input events fire
+     after a pick. The picker's onSelect callback writes back to the
+     input.value via the standard event flow, so onAnyChange() picks
+     it up transparently. */
+  function wireDatePickers() {
+    if (!HT.datePicker || typeof HT.datePicker.enhance !== 'function') return;
+    HT.$$('.js-date-picker').forEach(function (el) {
+      HT.datePicker.enhance(el, {});
+    });
   }
 
   /* ===========================================================

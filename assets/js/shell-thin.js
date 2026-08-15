@@ -194,6 +194,17 @@
     // HT.quiz.open(...) hits the Proxy, fires lazyLoad + lazyLoadCss,
     // and forwards to the real API once quiz.js parses.
     quiz: 'assets/js/quiz.js',
+    // Story 9.19 — custom date picker. date-picker.js is page-
+    // conditional (only tools that opt inputs into HT.datePicker.enhance
+    // — currently lifespan-simulator × 2 DOBs, age-calculator × 2,
+    // date-difference × 2, countdown-to-date, world-clock,
+    // loan-calculator, space-calculator — 10 inputs across 7 tools).
+    // date-picker.js does `Object.defineProperty(HT, 'datePicker', {value: publicApi, ...})`
+    // so the Proxy stub here is preserved across the lazy-load round-
+    // trip. First call to HT.datePicker.enhance(...) hits the Proxy,
+    // fires lazyLoad + lazyLoadCss in parallel, and forwards to the
+    // real API once date-picker.js parses.
+    datePicker: 'assets/js/date-picker.js',
   };
 
   // Resolve relative paths against this script's own URL so the
@@ -233,6 +244,11 @@
     // after the JS has parsed, but lazy-loading both in parallel keeps
     // the round-trip to one network event.
     quiz: 'assets/css/quiz.css',
+    // Story 9.19 — date picker CSS, co-loaded with date-picker.js on
+    // first HT.datePicker.enhance() access. chrome-date-picker.css
+    // lives in assets/css/ (chrome-* prefix); see scripts/bundle-
+    // size-gate.py LAZY_CSS_MODULES for the gz budget.
+    datePicker: 'assets/css/chrome-date-picker.css',
   };
 
   // Same path-resolution treatment as TIER2_URLS above. Empty-string
@@ -300,6 +316,11 @@
   // `HT.quiz.open(...)` call fires lazyLoad('assets/js/quiz.js') + lazyLoadCss('assets/css/quiz.css')
   // in parallel, then `Promise.all`s and forwards to the real HT.quiz.open().
   HT.quiz       = makeProxy(TIER2_URLS.quiz, 'quiz');
+  // Story 9.19 — date picker Proxy. date-picker.js does `Object.defineProperty(window.HT, 'datePicker', {value: publicApi, writable: false, configurable: false, enumerable: true})`
+  // at module init, so the Proxy stub here is preserved across the lazy-load round-trip —
+  // first call to HT.datePicker.enhance(...) hits the Proxy, fires lazyLoad + lazyLoadCss,
+  // and forwards to the real API once date-picker.js parses.
+  HT.datePicker = makeProxy(TIER2_URLS.datePicker, 'datePicker');
 
   // ------------------------------------------------------------------
   // DOMContentLoaded → lazy-load shell.js (the real boot orchestrator).

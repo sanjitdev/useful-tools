@@ -189,6 +189,11 @@ LAZY_CSS_MODULES = [
     "assets/css/chrome-help.css",
     "assets/css/chrome-confirm-share.css",
     "assets/css/chrome-history.css",
+    # Story 9.19 — date picker CSS. chrome-date-picker.css is
+    # co-loaded with date-picker.js on first HT.datePicker.enhance()
+    # call (pilot: lifespan-simulator). The picker is page-
+    # conditional so the CSS lives here (NOT in SPEC_CSS_MODULES).
+    "assets/css/chrome-date-picker.css",
 ]
 LAZY_CSS_BUDGET_GZ = 12_000  # bytes gz (sum of all lazy chunks)
 
@@ -205,6 +210,13 @@ LAZY_CSS_BUDGET_GZ = 12_000  # bytes gz (sum of all lazy chunks)
 SPEC_PAGE_CONDITIONAL_MODULES = [
     "assets/js/quiz.js",
     "assets/css/quiz.css",
+    # Story 9.19 — custom date picker. date-picker.js loads on
+    # first HT.datePicker.enhance() call from any tool that opts in
+    # via class="js-date-picker" on its <input type="date">. Pilot:
+    # tools/lifespan-simulator/index.html (ls-dob + ls-dob-f).
+    # Planned: age-calculator, date-difference, countdown-to-date,
+    # world-clock, loan-calculator, space-calculator.
+    "assets/js/date-picker.js",
 ]
 
 # Story x-3 baseline — measured 2026-08-15 against the post-home-
