@@ -142,9 +142,9 @@ console.log('--- I. json-formatter-core.js ---');
   check(/line\s+1.*column\s+3/.test(lc1), 'lineColumnOfError parses "line X column Y" → ' + lc1);
 
   // parseSafe
-  const ps1 = ctx.HT.jsonFormatterCore.parseSafe(function () { return '{"a":1}'; });
+  const ps1 = ctx.HT.jsonFormatterCore.parseSafe('{"a":1}');
   check(ps1.ok === true && ps1.parsed.a === 1, 'parseSafe returns ok for valid JSON');
-  const ps2 = ctx.HT.jsonFormatterCore.parseSafe(function () { return '{ bad }'; });
+  const ps2 = ctx.HT.jsonFormatterCore.parseSafe('{ bad }');
   check(ps2.ok === false && typeof ps2.error === 'string', 'parseSafe returns ok=false for invalid JSON');
 
   // sortKeysRecursive

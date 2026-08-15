@@ -1,75 +1,43 @@
 /* ============================================
-   Inflation Calculator
-   Core 5 features:
-     1. CPI-adjusted value (backward + forward)
-     2. Purchasing power over time
-     3. Real vs nominal wage growth
-     4. Salary required to keep up
-     5. Period comparison
-   Bundled BLS CPI-U 1913-2024 (cpi-data.js).
-   Forward projection default: 3% CAGR, user-editable.
+   Inflation Calculator — inflation-calculator-handlers.js (Story 4b Phase 2)
+   Lazy chunk: holds all event handlers, calculations, render, history
+   push, share, persistence, and boot. Loaded via
+   HT.lazyLoadTool('inflation-calculator', './inflation-calculator-handlers.js')
+   on first interaction (or DOMContentLoaded by core.js).
+
+   Read-only access to data tables + helpers via HT.inflationCalculatorCore
+   (set by core.js).
+
+   Story 4b — see _bmad-output/implementation-artifacts/
+   story-4b-per-tool-code-splitting.md
    ============================================ */
 
 (function () {
   'use strict';
 
-  // -------------------------------------------------------------
-  // Data + helpers
-  // -------------------------------------------------------------
-
-  var CPI = window.CPI_US_ANNUAL || [];
-  var FORWARD_DEFAULT = window.CPI_FORWARD_DEFAULT || 3.0;
-  var LATEST_YEAR = CPI.length ? CPI[CPI.length - 1].year : new Date().getFullYear();
-  var LATEST_INDEX = CPI.length ? CPI[CPI.length - 1].index : 100;
-  var FIRST_YEAR = CPI.length ? CPI[0].year : 1913;
-
-  function cpiFor(year) {
-    if (year < FIRST_YEAR) return null;
-    if (year > LATEST_YEAR) return null;
-    var entry = CPI[year - FIRST_YEAR];
-    return entry ? entry.index : null;
+  if (typeof window === 'undefined' || !window.HT) return;
+  if (!window.HT.inflationCalculatorCore) {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('inflation-calculator-handlers: HT.inflationCalculatorCore missing — inflation-calculator-core.js must load first.');
+    }
+    return;
   }
+  var HT = window.HT;
+  var core = HT.inflationCalculatorCore;
 
-  function indexFor(year, forwardRate) {
-    if (year <= LATEST_YEAR) return cpiFor(year);
-    if (!forwardRate) forwardRate = FORWARD_DEFAULT;
-    var rate = Math.pow(1 + forwardRate / 100, year - LATEST_YEAR);
-    return LATEST_INDEX * rate;
-  }
-
-  function clampYear(year) {
-    year = parseInt(year, 10);
-    if (!isFinite(year)) return LATEST_YEAR;
-    if (year < FIRST_YEAR) return FIRST_YEAR;
-    if (year > LATEST_YEAR + 100) return LATEST_YEAR + 100;
-    return year;
-  }
-
-  function clampAmount(n) {
-    n = parseFloat(n);
-    if (!isFinite(n)) return 100;
-    return n;
-  }
-
-  function clampRate(n) {
-    n = parseFloat(n);
-    if (!isFinite(n)) return FORWARD_DEFAULT;
-    if (n < 0) return 0;
-    if (n > 10) return 10;
-    return n;
-  }
-
-  function pct(n, digits) {
-    if (digits === undefined) digits = 2;
-    if (!isFinite(n)) return '—';
-    var sign = n > 0 ? '+' : '';
-    return sign + n.toFixed(digits) + '%';
-  }
-
-  function money(n) {
-    if (!isFinite(n)) return '—';
-    return '$' + HT.formatNumber(n, { minFractionDigits: 2, maxFractionDigits: 2 });
-  }
+  // Pull helpers + constants from core to use locally.
+  var CPI = core.CPI;
+  var FORWARD_DEFAULT = core.FORWARD_DEFAULT;
+  var LATEST_YEAR = core.LATEST_YEAR;
+  var LATEST_INDEX = core.LATEST_INDEX;
+  var FIRST_YEAR = core.FIRST_YEAR;
+  var cpiFor = core.cpiFor;
+  var indexFor = core.indexFor;
+  var clampYear = core.clampYear;
+  var clampAmount = core.clampAmount;
+  var clampRate = core.clampRate;
+  var pct = core.pct;
+  var money = core.money;
 
   // -------------------------------------------------------------
   // Calculations — pure functions
@@ -711,10 +679,10 @@
   }
 
   // -------------------------------------------------------------
-  // Boot
+  // Boot (exposed as window.inflationCalculatorInit for core.js)
   // -------------------------------------------------------------
 
-  function boot() {
+  window.inflationCalculatorInit = function () {
     if (!HT.storage || !HT.$) return;
     var useFwd = HT.$('#ic-use-forward');
     if (fields.forwardRateWrap) {
@@ -731,11 +699,5 @@
     });
 
     render();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
-  } else {
-    boot();
-  }
+  };
 })();

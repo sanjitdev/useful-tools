@@ -104,7 +104,6 @@ console.log('--- I. bd-tax-core.js ---');
   check(Object.isFrozen(ctx.HT.bdTaxCore), 'HT.bdTaxCore is frozen (AD-14 internal handle)');
   check(typeof ctx.HT.bdTaxCore.getRules === 'function', 'HT.bdTaxCore.getRules is a function');
   check(typeof ctx.HT.bdTaxCore.getRulesets === 'function', 'HT.bdTaxCore.getRulesets is a function');
-  check(typeof ctx.HT.bdTaxCore.getDict === 'function', 'HT.bdTaxCore.getDict is a function');
   check(typeof ctx.HT.bdTaxCore.getPresets === 'function', 'HT.bdTaxCore.getPresets is a function');
   check(typeof ctx.HT.bdTaxCore.getShareHashFields === 'function', 'HT.bdTaxCore.getShareHashFields is a function');
   check(typeof ctx.HT.bdTaxCore.getState === 'function', 'HT.bdTaxCore.getState is a function');
@@ -132,11 +131,16 @@ console.log('--- I. bd-tax-core.js ---');
   check(hashFields.indexOf('salaryBasic') !== -1, 'SHARE_HASH_FIELDS includes salaryBasic');
   check(hashFields.indexOf('rulesKey') !== -1, 'SHARE_HASH_FIELDS includes rulesKey');
 
-  const dict = ctx.HT.bdTaxCore.getDict();
-  check(!!dict.en && !!dict.bn, 'DICT has en + bn');
-  check(Object.keys(dict.en).length > 50, 'DICT.en has >50 keys');
-  check(Object.keys(dict.bn).length > 50, 'DICT.bn has >50 keys');
-  check(dict.en.currency === '৳', 'DICT.en.currency = ৳');
+  const dict = ctx.HT.bdTaxCore.getDict && ctx.HT.bdTaxCore.getDict();
+  // DICT moved to handlers chunk in Story 4b Phase 4 to drop core
+  // under the 7 KB per-tool budget. Verify the block is in handlers
+  // source (the IIFE keeps it private).
+  check(!dict, 'DICT is NOT exposed on core (intentional — moved to handlers)');
+  check(/var DICT = \{/.test(HANDLERS_SRC), 'handlers source declares DICT block');
+  check(/en: \{[\s\S]*?bn: \{/.test(HANDLERS_SRC), 'handlers DICT has en + bn');
+  check((HANDLERS_SRC.match(/pageTitle: 'Bangladesh/g) || []).length >= 1, 'handlers DICT.en has pageTitle');
+  check((HANDLERS_SRC.match(/pageTitle: 'বাংলাদেশ/g) || []).length >= 1, 'handlers DICT.bn has Bengali pageTitle');
+  check((HANDLERS_SRC.match(/currency: '৳'/g) || []).length >= 2, 'handlers DICT has currency for both langs');
 
   const state = ctx.HT.bdTaxCore.getState();
   check(state && typeof state === 'object', 'getState() returns state object');

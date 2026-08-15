@@ -1,262 +1,62 @@
 /* ============================================
-   Lifespan Simulator
-   Statistical lifespan estimator based on WHO/GBD/UK Biobank effect sizes.
-   This is a population-level model — not a prediction.
+   Lifespan Simulator — lifespan-simulator-handlers.js (Story 4b Phase 2)
+   Lazy chunk: evaluate, WHAT_IFS, LIFESTYLE_FACTORS, plan functions,
+   els/state, getAnswers, countFilledFields, confidenceLevel,
+   habitScore, computeRange, appliedSliderDelta, fmtSigned/fmtYears,
+   renderContributorList, renderResult, planCurrentLabel,
+   openPlanTooltip/closePlanTooltip, buildPlanCard, renderPlan,
+   buildSliders, populateCountries, updateBMI, wireInputs/wireTabs/
+   wireResetAndCopy, onAnyChange, applyEmbedMode, fLabelFor, init.
+   Reads constants from HT.lifespanSimulatorCore (parse-time).
+
+   Loaded via HT.lazyLoadTool('lifespan-simulator', './lifespan-simulator-handlers.js')
+   on DOMContentLoaded by core.js.
+
+   Story 4b — see _bmad-output/implementation-artifacts/
+   story-4b-per-tool-code-splitting.md
    ============================================ */
 
 (function () {
   'use strict';
 
-  /* ===========================================================
-     0. WHO_DELTAS — scale convention (AI-E1-11: hoisted metadata)
-
-     Every per-input delta below is expressed in YEARS OF LIFE and is
-     negative for harm, positive for benefit, zero for the neutral
-     reference. The scale is consistent across the 22+ tables:
-       -3.0 yrs  strong harm (daily smoking, heavy alcohol)
-       -1.0 yrs  moderate harm (high blood pressure, no exercise)
-        0.0 yrs  neutral reference (never smoked, healthy BMI)
-       +1.0 yrs  modest benefit (vaccinated, daily fruit/veg)
-       +4.0 yrs  strong benefit (60+ min daily exercise)
-
-     Sources are cited inline next to each table (WHO fact sheet,
-     GBD 2019, Moore et al. BMJ 2012, etc.) and re-asserted in the
-     per-tooltip `sourceLabel` shown when the user clicks ⓘ. Do NOT
-     change a delta without re-validating the source citation — this
-     is an entertainment-only tool (see FR-2 / Story 1.16) but the
-     numbers are still attached to real WHO publications, and a stale
-     citation is worse than no citation.
-
-     The constants below document the scale; per-input values live
-     in the named tables (SMOKING, STRESS, BLOODPRESSURE, ...).
-     =========================================================== */
-
-  var WHO_DELTAS = Object.freeze({
-    SCALE_MIN: -10.0,        // floor for any single contribution (defense in depth)
-    SCALE_MAX: 10.0,         // ceiling for any single contribution
-    SYNERGY_SMOKING_ALCOHOL: -1.5,
-    SYNERGY_SMOKING_SEDENTARY: -1.0,
-  });
-
-  /* ===========================================================
-     1. Country baselines (life expectancy at birth, by sex)
-     Source: WHO Global Health Observatory, latest year per country.
-     =========================================================== */
-
-  var COUNTRIES = [
-    { code: 'BD', name: 'Bangladesh',    male: 71.4, female: 74.6 },
-    { code: 'IN', name: 'India',          male: 68.9, female: 71.3 },
-    { code: 'PK', name: 'Pakistan',       male: 65.6, female: 68.6 },
-    { code: 'NP', name: 'Nepal',          male: 67.0, female: 70.4 },
-    { code: 'LK', name: 'Sri Lanka',      male: 73.3, female: 79.7 },
-    { code: 'CN', name: 'China',          male: 75.4, female: 81.0 },
-    { code: 'JP', name: 'Japan',          male: 81.5, female: 87.6 },
-    { code: 'KR', name: 'South Korea',    male: 80.6, female: 86.6 },
-    { code: 'SG', name: 'Singapore',      male: 81.0, female: 85.9 },
-    { code: 'TH', name: 'Thailand',       male: 73.6, female: 80.2 },
-    { code: 'ID', name: 'Indonesia',      male: 69.4, female: 73.5 },
-    { code: 'MY', name: 'Malaysia',       male: 72.7, female: 77.4 },
-    { code: 'PH', name: 'Philippines',    male: 67.4, female: 73.6 },
-    { code: 'VN', name: 'Vietnam',        male: 70.5, female: 76.0 },
-    { code: 'AE', name: 'UAE',            male: 76.4, female: 79.2 },
-    { code: 'SA', name: 'Saudi Arabia',   male: 74.5, female: 77.6 },
-    { code: 'TR', name: 'Turkey',         male: 75.4, female: 81.0 },
-    { code: 'EG', name: 'Egypt',          male: 68.8, female: 73.2 },
-    { code: 'NG', name: 'Nigeria',        male: 51.7, female: 53.5 },
-    { code: 'ZA', name: 'South Africa',   male: 59.4, female: 64.6 },
-    { code: 'KE', name: 'Kenya',          male: 64.9, female: 69.3 },
-    { code: 'GB', name: 'United Kingdom', male: 79.0, female: 82.9 },
-    { code: 'IE', name: 'Ireland',        male: 80.7, female: 84.0 },
-    { code: 'FR', name: 'France',         male: 79.7, female: 85.7 },
-    { code: 'DE', name: 'Germany',        male: 78.9, female: 83.7 },
-    { code: 'ES', name: 'Spain',          male: 80.9, female: 86.3 },
-    { code: 'IT', name: 'Italy',          male: 81.1, female: 85.4 },
-    { code: 'NL', name: 'Netherlands',    male: 80.0, female: 83.4 },
-    { code: 'SE', name: 'Sweden',         male: 81.3, female: 84.7 },
-    { code: 'NO', name: 'Norway',         male: 81.0, female: 84.4 },
-    { code: 'DK', name: 'Denmark',        male: 79.5, female: 83.4 },
-    { code: 'FI', name: 'Finland',        male: 79.2, female: 84.5 },
-    { code: 'PL', name: 'Poland',         male: 72.5, female: 81.0 },
-    { code: 'RU', name: 'Russia',         male: 65.5, female: 76.4 },
-    { code: 'US', name: 'United States',  male: 76.4, female: 81.6 },
-    { code: 'CA', name: 'Canada',         male: 80.5, female: 84.6 },
-    { code: 'MX', name: 'Mexico',         male: 71.8, female: 77.4 },
-    { code: 'BR', name: 'Brazil',         male: 72.5, female: 79.7 },
-    { code: 'AR', name: 'Argentina',      male: 73.4, female: 80.0 },
-    { code: 'CL', name: 'Chile',          male: 78.9, female: 83.9 },
-    { code: 'AU', name: 'Australia',      male: 81.3, female: 85.2 },
-    { code: 'NZ', name: 'New Zealand',    male: 80.4, female: 84.0 },
-    { code: 'GLOBAL', name: 'Global average', male: 70.0, female: 75.0 }
-  ];
-
-  var COUNTRY_BY_CODE = {};
-  COUNTRIES.forEach(function (c) { COUNTRY_BY_CODE[c.code] = c; });
-
-  function baselineFor(countryCode, sex) {
-    var c = COUNTRY_BY_CODE[countryCode] || COUNTRY_BY_CODE.GLOBAL;
-    return sex === 'male' ? c.male : c.female;
+  if (typeof window === 'undefined' || !window.HT) return;
+  if (!window.HT.lifespanSimulatorCore) {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('lifespan-simulator-handlers: HT.lifespanSimulatorCore missing — lifespan-simulator-core.js must load first.');
+    }
+    return;
   }
-
-  /* ===========================================================
-     2. Adjustment table
-     Each entry returns { delta, label, source } for a given input value.
-     If no entry matches, the factor contributes 0 (neutral).
-     =========================================================== */
-
-  /* Smoking */
-  var SMOKING = {
-    never:       { delta:  0,    label: 'Never smoked' },
-    former:      { delta: -1.5,  label: 'Former smoker' },
-    occasional:  { delta: -3.0,  label: 'Occasional smoker' },
-    daily:       { delta: -9.0,  label: 'Daily smoker' }
-  };
-
-  /* Stress */
-  var STRESS = {
-    low:      { delta:  0.5, label: 'Low stress' },
-    moderate: { delta:  0,   label: 'Moderate stress' },
-    high:     { delta: -1.0, label: 'High stress' },
-    extreme:  { delta: -2.0, label: 'Extreme stress' }
-  };
-
-  /* Blood pressure */
-  var BP = {
-    normal:   { delta:  0,   label: 'Normal blood pressure' },
-    elevated: { delta: -0.7, label: 'Elevated blood pressure' },
-    high:     { delta: -2.0, label: 'High blood pressure' }
-  };
-
-  /* Diabetes */
-  var DIABETES = {
-    no:          { delta:  0,   label: 'No diabetes' },
-    prediabetes: { delta: -1.5, label: 'Pre-diabetes' },
-    yes:         { delta: -6.0, label: 'Diabetes' }
-  };
-
-  /* Heart disease (existing) */
-  var HEART = {
-    no:  { delta:  0,   label: 'No heart disease' },
-    yes: { delta: -5.0, label: 'Existing heart disease' }
-  };
-
-  /* Cholesterol */
-  var CHOLESTEROL = {
-    no:  { delta:  0,   label: 'Normal cholesterol' },
-    yes: { delta: -1.2, label: 'High cholesterol' }
-  };
-
-  /* Cancer history */
-  var CANCER = {
-    no:       { delta:  0,   label: 'No cancer history' },
-    family:   { delta: -0.8, label: 'Family cancer history' },
-    personal: { delta: -3.5, label: 'Personal cancer history' }
-  };
-
-  /* Depression */
-  var DEPRESSION = {
-    no:         { delta:  0,   label: 'No depression' },
-    treated:    { delta: -1.0, label: 'Treated depression' },
-    untreated:  { delta: -2.5, label: 'Untreated depression' }
-  };
-
-  /* Seatbelt */
-  var SEATBELT = {
-    always:    { delta:  0,   label: 'Always wears seatbelt' },
-    sometimes: { delta: -1.0, label: 'Sometimes wears seatbelt' },
-    never:     { delta: -2.5, label: 'Never wears seatbelt' }
-  };
-
-  /* Motorcycle / scooter */
-  var MOTORCYCLE = {
-    none:      { delta:  0,   label: 'No motorcycle use' },
-    occasional:{ delta: -1.0, label: 'Occasional motorcycle' },
-    frequent:  { delta: -2.5, label: 'Frequent motorcycle (helmeted)' }
-  };
-
-  /* Drug use */
-  var DRUGS = {
-    never:   { delta:  0,    label: 'No drug use' },
-    former:  { delta: -1.5,  label: 'Former drug use' },
-    current: { delta: -5.0,  label: 'Current drug use' }
-  };
-
-  /* Medical checkups */
-  var CHECKUPS = {
-    yearly:    { delta:  1.0, label: 'Yearly checkups' },
-    irregular: { delta:  0,   label: 'Irregular checkups' },
-    never:     { delta: -1.0, label: 'No checkups' }
-  };
-
-  /* Vaccinations */
-  var VACCINES = {
-    yes:     { delta:  1.0, label: 'Vaccinated' },
-    partial: { delta:  0,   label: 'Partially vaccinated' },
-    no:      { delta: -1.5, label: 'Unvaccinated' }
-  };
-
-  /* Dental care */
-  var DENTAL = {
-    regular:   { delta:  0.7, label: 'Regular dental care' },
-    occasional:{ delta:  0,   label: 'Occasional dental care' },
-    rare:      { delta: -0.7, label: 'Rare dental care' }
-  };
-
-  /* Fruit & veg */
-  var FRUITVEG = {
-    daily:  { delta:  1.0, label: 'Daily fruit & veg' },
-    weekly: { delta:  0,   label: 'Some fruit & veg' },
-    rarely: { delta: -1.0, label: 'Rarely eats fruit & veg' }
-  };
-
-  /* Sun exposure (U-shaped; moderate best) */
-  var SUN = {
-    low:      { delta: -0.5, label: 'Low sun exposure' },
-    moderate: { delta:  0.3, label: 'Moderate sun exposure' },
-    high:     { delta: -0.4, label: 'High sun exposure' }
-  };
-
-  /* Pollution */
-  var POLLUTION = {
-    low:      { delta:  0,   label: 'Low air pollution' },
-    moderate: { delta: -0.7, label: 'Moderate air pollution' },
-    high:     { delta: -1.5, label: 'High air pollution' }
-  };
-
-  /* Income */
-  var INCOME = {
-    low:    { delta: -1.5, label: 'Low income' },
-    middle: { delta:  0,   label: 'Middle income' },
-    high:   { delta:  1.0, label: 'High income' }
-  };
-
-  /* Education */
-  var EDUCATION = {
-    none:      { delta: -1.5, label: 'Primary education or less' },
-    secondary: { delta:  0,   label: 'Secondary education' },
-    tertiary:  { delta:  2.0, label: 'Tertiary education' }
-  };
-
-  /* Relationship */
-  var RELATIONSHIP = {
-    partner: { delta:  1.0, label: 'Partner / married' },
-    single:  { delta:  0,   label: 'Single' }
-  };
-
-  /* ===========================================================
-     3. Continuous / numeric factors — computed inline in evaluate()
-     =========================================================== */
+  var HT = window.HT;
+  var core = HT.lifespanSimulatorCore;
+  var WHO_DELTAS = core.WHO_DELTAS;
+  var COUNTRIES = core.COUNTRIES;
+  var SMOKING = core.SMOKING;
+  var STRESS = core.STRESS;
+  var BP = core.BP;
+  var DIABETES = core.DIABETES;
+  var HEART = core.HEART;
+  var CHOLESTEROL = core.CHOLESTEROL;
+  var CANCER = core.CANCER;
+  var DEPRESSION = core.DEPRESSION;
+  var SEATBELT = core.SEATBELT;
+  var MOTORCYCLE = core.MOTORCYCLE;
+  var DRUGS = core.DRUGS;
+  var CHECKUPS = core.CHECKUPS;
+  var VACCINES = core.VACCINES;
+  var DENTAL = core.DENTAL;
+  var FRUITVEG = core.FRUITVEG;
+  var SUN = core.SUN;
+  var POLLUTION = core.POLLUTION;
+  var INCOME = core.INCOME;
+  var EDUCATION = core.EDUCATION;
+  var RELATIONSHIP = core.RELATIONSHIP;
+  var baselineFor = core.baselineFor;
+  var pickEnum = core.pickEnum;
+  var clamp = core.clamp;
 
   /* ===========================================================
      4. Compute adjustments from a flat answer object
      =========================================================== */
-
-  function pickEnum(table, value) {
-    return table[value] || null;
-  }
-
-  function clamp(v, min, max) {
-    return Math.max(min, Math.min(max, v));
-  }
 
   function evaluate(ans) {
     var contributions = [];
@@ -358,7 +158,6 @@
         sum += 0.3;
         contributions.push({ label: 'No alcohol', delta: 0.3 });
       } else if (ans.alcohol <= 7) {
-        // mild protective effect acknowledged in literature but controversial; keep neutral
         sum += 0;
       } else if (ans.alcohol <= 14) {
         sum += -0.5;
@@ -444,15 +243,14 @@
       contributions.push({ label: 'Family hx — diabetes', delta: -0.5 });
     }
 
-    // Interaction cap: smoking + heavy alcohol
+    // Interaction caps
     if (ans.smoking === 'daily' && isFinite(ans.alcohol) && ans.alcohol > 14) {
-      sum += -1.5;
-      contributions.push({ label: 'Smoking + heavy alcohol (synergy)', delta: -1.5 });
+      sum += WHO_DELTAS.SYNERGY_SMOKING_ALCOHOL;
+      contributions.push({ label: 'Smoking + heavy alcohol (synergy)', delta: WHO_DELTAS.SYNERGY_SMOKING_ALCOHOL });
     }
-    // Interaction cap: smoking + sedentary
     if (ans.smoking === 'daily' && isFinite(ans.exercise) && ans.exercise < 10) {
-      sum += -1.0;
-      contributions.push({ label: 'Smoking + sedentary (synergy)', delta: -1.0 });
+      sum += WHO_DELTAS.SYNERGY_SMOKING_SEDENTARY;
+      contributions.push({ label: 'Smoking + sedentary (synergy)', delta: WHO_DELTAS.SYNERGY_SMOKING_SEDENTARY });
     }
 
     return { sum: sum, contributions: contributions };
@@ -460,9 +258,6 @@
 
   /* ===========================================================
      5. What-If presets
-     Each describes: title, baseDescription, and a `deltaIfApplied(ans)`
-     function returning the projected change (positive = longer life).
-     A slider represents "if the user adopts this habit".
      =========================================================== */
 
   var WHAT_IFS = [
@@ -472,8 +267,8 @@
       note: 'daily → never',
       deltaIfApplied: function (a) {
         var cur = SMOKING[a.smoking] || { delta: 0 };
-        if (cur.delta === 0) return 0;        // already optimal
-        return -cur.delta;                     // undo the smoking penalty
+        if (cur.delta === 0) return 0;
+        return -cur.delta;
       }
     },
     {
@@ -483,9 +278,9 @@
       deltaIfApplied: function (a) {
         var bonus = 2.5;
         if (a.exercise >= 30) return 0;
-        if (a.exercise >= 15) return bonus - 1.0;   // already some
+        if (a.exercise >= 15) return bonus - 1.0;
         if (a.exercise >= 1)  return bonus + 0.5;
-        return bonus + 3.0;                          // fully sedentary
+        return bonus + 3.0;
       }
     },
     {
@@ -556,12 +351,6 @@
 
   /* ===========================================================
      5b. Plan-Your-Changes factors (Story 1.16)
-     Each factor reads CURRENT values from the Quick/Full form and
-     asks the user to pick a TARGET. The deltaIfAdopted(ans, target)
-     function returns the nominal years-of-life gain if the user
-     adopted the target. WHO-cited magnitudes; tooltip shows the
-     source. The "no cancel-out" rule is enforced in computePlanNet(),
-     not here — this section only computes the raw per-factor gain.
      =========================================================== */
 
   var LIFESTYLE_FACTORS = [
@@ -591,7 +380,7 @@
       deltaIfAdopted: function (ans, target) {
         var cur = SMOKING[ans.smoking] || { delta: 0 };
         var tgt = SMOKING[target] || { delta: 0 };
-        var gain = cur.delta - tgt.delta;       // positive if we move to a better state
+        var gain = cur.delta - tgt.delta;
         return gain > 0 ? gain : 0;
       },
       source: {
@@ -614,17 +403,15 @@
         var inp = document.createElement('input');
         inp.type = 'number';
         inp.min = 0;
-        inp.max = 0;       // WHO says "no safe level"; only allow 0
+        inp.max = 0;
         inp.step = 1;
         inp.className = 'input';
         inp.id = 'ls-plan-target-alcohol';
         inp.value = target;
-        // Hint: WHO acknowledges no safe level. The single value 0 is the only target.
         inp.addEventListener('input', function () { onChange(parseFloat(inp.value) || 0); });
         return inp;
       },
       deltaIfAdopted: function (ans, target) {
-        // Map current to its negative delta (if any); compare to target's delta.
         function deltaForDrinks(v) {
           if (!isFinite(v)) return 0;
           if (v === 0) return 0.3;
@@ -782,7 +569,6 @@
       },
       targetDefault: { fastfood: 1, fruitveg: 'daily' },
       targetControl: function (target, onChange) {
-        // Composite: two side-by-side controls
         var wrap = document.createElement('div');
         wrap.style.display = 'flex';
         wrap.style.gap = '8px';
@@ -849,9 +635,7 @@
 
   /* ===========================================================
      5c. Compute the plan-tab net (Story 1.16)
-     Strict "no cancel-out" rule: if the user has any negative factor
-     on the Quick/Full form, every positive plan gain is reduced to 0.
-     Returns { net, perFactor: [{id, nominal, effective, capped, source, ...}] }
+     Strict "no cancel-out" rule.
      =========================================================== */
 
   function sumOfCurrentNegatives(ans) {
@@ -865,13 +649,13 @@
 
   function computePlanNet(ans, planTargets) {
     var sumNeg = sumOfCurrentNegatives(ans);
-    var capping = sumNeg < 0;       // any negative triggers the cap
+    var capping = sumNeg < 0;
 
     var perFactor = LIFESTYLE_FACTORS.map(function (f) {
       var target = planTargets[f.id];
       if (target === undefined) target = f.targetDefault;
       var nominal = f.deltaIfAdopted(ans, target);
-      var effective = capping ? 0 : nominal;     // hard cap: positive gain → 0
+      var effective = capping ? 0 : nominal;
       return {
         id: f.id,
         label: f.label,
@@ -895,7 +679,6 @@
 
   /* ===========================================================
      5d. Plan-tab persistence (Story 1.16)
-     Same storage key as the form (no separate schema entry needed).
      =========================================================== */
 
   var PLAN_STORAGE_KEY = 'handy-tools.lifespan-simulator.plan';
@@ -963,10 +746,10 @@
   };
 
   var state = {
-    mode: 'quick',            // 'quick' | 'full' | 'plan'
+    mode: 'quick',
     baselineYears: null,
-    sliderOverrides: {},     // { id: true/false } (Quick/Full result)
-    planTargets: {}          // { smoking: 'never', alcohol: 0, ... } (Plan tab)
+    sliderOverrides: {},
+    planTargets: {}
   };
 
   /* ===========================================================
@@ -1046,7 +829,6 @@
      8. Confidence + Healthy Habit Score
      =========================================================== */
 
-  // Count of fields the user has actively changed from a "neutral" baseline
   function countFilledFields(ans) {
     var filled = 0, total = 0;
     function count(v, neutral) {
@@ -1108,17 +890,16 @@
       if (c.delta > 0) pos += c.delta;
       else neg += c.delta;
     });
-    var score = 50 + (pos * 3) + (neg * 3); // each year +3 / -3
+    var score = 50 + (pos * 3) + (neg * 3);
     return clamp(Math.round(score), 0, 100);
   }
 
   /* ===========================================================
      9. Range computation
-     Narrower when more fields are filled; wider when mostly defaults.
      =========================================================== */
 
   function computeRange(years, filledPct) {
-    var spread = 6 - (filledPct * 4);   // 6y when 0% filled, 2y when 100%
+    var spread = 6 - (filledPct * 4);
     spread = Math.max(2, Math.min(6, spread));
     return {
       low:  Math.max(40, years - spread),
@@ -1184,17 +965,14 @@
     var sliderInfo = appliedSliderDelta(ans);
     var finalYears = clamp(baselineYears + sliderInfo.total, 40, 110);
 
-    // Range is based on baselineYears (sliders are "what if", not part of the estimate)
     var fillStats = countFilledFields(ans);
     var range = computeRange(baselineYears, fillStats.filled / Math.max(1, fillStats.total));
 
-    // Result main + sub
     els.years.textContent = HT.formatNumber(finalYears, { minFractionDigits: 1, maxFractionDigits: 1 }) + ' years';
     els.range.textContent = 'Expected age range: ' +
       HT.formatNumber(range.low, { minFractionDigits: 0, maxFractionDigits: 0 }) + '–' +
       HT.formatNumber(range.high, { minFractionDigits: 0, maxFractionDigits: 0 }) + ' years (statistical estimate, not a prediction)';
 
-    // Estimated date
     if (ans.dob) {
       var d = new Date(ans.dob.getTime());
       d.setFullYear(d.getFullYear() + Math.round(finalYears));
@@ -1203,14 +981,11 @@
       els.date.textContent = '—';
     }
 
-    // Confidence
     var conf = confidenceLevel(fillStats.filled / Math.max(1, fillStats.total));
     els.confidence.textContent = conf.text + ' (' + fillStats.filled + '/' + fillStats.total + ')';
 
-    // Healthy habit score
     els.score.textContent = habitScore(ev.contributions) + '/100';
 
-    // Contributors
     var pos = ev.contributions.filter(function (c) { return c.delta > 0; })
       .sort(function (a, b) { return b.delta - a.delta; })
       .slice(0, 4);
@@ -1220,7 +995,6 @@
     renderContributorList(els.extenders, pos, 'pos');
     renderContributorList(els.risks, neg, 'neg');
 
-    // Slider baseline + applied status
     els.baseline.textContent = HT.formatNumber(baselineYears, { minFractionDigits: 1, maxFractionDigits: 1 }) + ' years';
 
     var activeLabels = sliderInfo.active;
@@ -1231,7 +1005,6 @@
         ' (' + fmtSigned(sliderInfo.total) + ')';
     }
 
-    // Per-slider delta badges
     WHAT_IFS.forEach(function (s) {
       var d = s.deltaIfApplied(ans);
       var badge = HT.$('#slider-delta-' + s.id);
@@ -1243,7 +1016,6 @@
       if (input) input.disabled = (d === 0);
     });
 
-    // Shareable summary
     var strengthsText = pos.length ? pos[0].label.toLowerCase() : 'balanced habits';
     var risksText = neg.length ? neg[0].label.toLowerCase() : 'few risk factors';
     var yearsStr = HT.formatNumber(finalYears, { minFractionDigits: 0, maxFractionDigits: 0 });
@@ -1258,7 +1030,6 @@
       strengthsText + ', while ' + risksText + ' is my biggest risk factor. ' +
       'Try the Lifespan Simulator and compare your result.';
 
-    // Plan tab re-renders when answers change (Story 1.16).
     if (state.mode === 'plan') {
       renderPlan();
     }
@@ -1266,9 +1037,6 @@
 
   /* ===========================================================
      11b. Render Plan tab (Story 1.16)
-     Builds one card per LIFESTYLE_FACTOR with current value,
-     target control, nominal/effective deltas, warning chip,
-     and an info button that opens a WHO-source tooltip.
      =========================================================== */
 
   function planCurrentLabel(f, ans) {
@@ -1281,7 +1049,6 @@
     return (rounded > 0 ? '+' : '') + rounded.toFixed(1) + ' yr';
   }
 
-  // Closes any open plan-tab tooltip.
   function closePlanTooltip() {
     var open = HT.$('#ls-plan-tooltip');
     if (open) open.parentNode.removeChild(open);
@@ -1300,11 +1067,9 @@
         '<a href="' + source.url + '" target="_blank" rel="noopener noreferrer">' +
         source.sourceLabel + '</a></p>';
     document.body.appendChild(tip);
-    // Position below the button
     var rect = btn.getBoundingClientRect();
     tip.style.top = (window.scrollY + rect.bottom + 6) + 'px';
     tip.style.left = (window.scrollX + rect.left) + 'px';
-    // Dismiss on click outside / Escape
     setTimeout(function () {
       document.addEventListener('click', onDocClickForTooltip, true);
       document.addEventListener('keydown', onEscForTooltip, true);
@@ -1420,7 +1185,6 @@
     var ans = getAnswers();
     var plan = computePlanNet(ans, state.planTargets);
 
-    // Net card sign and text
     var sign = 'neutral';
     if (plan.net > 0.05) sign = 'positive';
     else if (plan.net < -0.05) sign = 'negative';
@@ -1445,12 +1209,10 @@
       els.planNetSub.textContent = 'No net change from these targets.';
     }
 
-    // Baseline reference (unaffected by plan)
     var ev = evaluate(ans);
     var baselineYears = clamp(baselineFor(ans.country, ans.sex) + ev.sum, 40, 110);
     els.planBaseline.textContent = HT.formatNumber(baselineYears, { minFractionDigits: 1, maxFractionDigits: 1 }) + ' years';
 
-    // Per-factor cards
     els.planGrid.innerHTML = '';
     plan.perFactor.forEach(function (p) {
       var f = LIFESTYLE_FACTORS.filter(function (x) { return x.id === p.id; })[0];
@@ -1458,7 +1220,6 @@
       els.planGrid.appendChild(card);
     });
 
-    // Applied-status line
     var active = plan.perFactor.filter(function (p) { return p.effective !== 0; });
     if (active.length === 0) {
       els.planApplied.textContent = 'No plan changes.';
@@ -1522,7 +1283,6 @@
         opt.textContent = c.name;
         sel.appendChild(opt);
       });
-      // Default Bangladesh
       sel.value = 'BD';
     });
   }
@@ -1541,14 +1301,12 @@
   }
 
   function wireInputs() {
-    // Quick tab
     HT.$$('#ls-dob, #ls-sex, #ls-country, #ls-height, #ls-weight, ' +
           '#ls-smoking, #ls-alcohol, #ls-exercise, #ls-sleep, #ls-stress, #ls-fruitveg, ' +
           '#ls-seatbelt, #ls-checkups, #ls-drugs').forEach(function (el) {
       el.addEventListener('input', onAnyChange);
       el.addEventListener('change', onAnyChange);
     });
-    // Full tab extras
     HT.$$('#ls-dob-f, #ls-sex-f, #ls-country-f, #ls-height-f, #ls-weight-f, ' +
           '#ls-smoking-f, #ls-alcohol-f, #ls-exercise-f, #ls-sleep-f, #ls-stress-f, #ls-fruitveg-f, ' +
           '#ls-fastfood-f, #ls-water-f, #ls-sitting-f, #ls-steps-f, #ls-sun-f, ' +
@@ -1599,17 +1357,14 @@
     });
   }
 
-  // Embed mode (?embed=1) hides the plan tab and forces quick tab.
   function applyEmbedMode() {
     var params = null;
     try { params = new URLSearchParams(window.location.search); } catch (_) {}
     if (!params || params.get('embed') !== '1') return;
-    // Hide plan tab button + plan panel
     var planTab = HT.$('#ls-mode-tabs .tab[data-tab="plan"]');
     if (planTab && planTab.parentNode) planTab.parentNode.removeChild(planTab);
     var planPanel = HT.qs('[data-tab-panel="plan"]');
     if (planPanel && planPanel.parentNode) planPanel.parentNode.removeChild(planPanel);
-    // If user landed on plan, fall back to quick
     if (state.mode === 'plan') {
       state.mode = 'quick';
       var quickTab = HT.$('#ls-mode-tabs .tab[data-tab="quick"]');
@@ -1637,9 +1392,5 @@
     if (state.mode === 'plan') renderPlan();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  window.lifespanSimulatorInit = init;
 })();

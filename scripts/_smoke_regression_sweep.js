@@ -755,8 +755,26 @@ function runOneTool(entry) {
     errors.push('scriptLoadOrder: ' + sloCheck.issue);
   }
 
-  const jsPath = path.join(TOOLS_DIR, slug, slug + '.js');
-  if (!fs.existsSync(jsPath)) {
+  // Story 4b Phase 2 split tools: prefer <slug>-core.js when present.
+  // The legacy monolithic files have been deleted for split tools.
+  // bd-tax-calculator uses a short-name file (`bd-tax-core.js`); the
+  // budget gate (scripts/_bundle_size_per_tool.py) handles that suffix
+  // stripping — mirror it here so the regression sweep finds the core
+  // file regardless of short-name convention.
+  const short = (function () {
+    for (const suf of ['-calculator', '-converter', '-estimator', '-formatter',
+                       '-generator', '-inspector', '-scaler', '-tester',
+                       '-timer', '-tracker', '-viewer']) {
+      if (slug.endsWith(suf) && slug.length > suf.length) return slug.slice(0, -suf.length);
+    }
+    return null;
+  })();
+  const candidatePaths = [];
+  if (short) candidatePaths.push(path.join(TOOLS_DIR, slug, short + '-core.js'));
+  candidatePaths.push(path.join(TOOLS_DIR, slug, slug + '-core.js'));
+  candidatePaths.push(path.join(TOOLS_DIR, slug, slug + '.js'));
+  const jsPath = candidatePaths.find(function (p) { return fs.existsSync(p); });
+  if (!jsPath) {
     checkResults.jsLoad = false;
     errors.push('js:missing');
     return { slug: slug, results: checkResults, errors: errors };

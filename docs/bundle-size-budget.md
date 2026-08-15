@@ -3,8 +3,8 @@ title: Bundle Size Budget — chrome JS + CSS gzipped totals
 status: active
 created: 2026-08-15
 updated: 2026-08-15
-story: x-3 (Bundle Size Budget NFR-1 Gate)
-audience: anyone adding chrome JS or CSS
+story: x-3 (Bundle Size Budget NFR-1 Gate) + Story 4b (per-tool code-splitting)
+audience: anyone adding chrome JS or CSS, or anyone shipping a tool
 ---
 
 # Bundle Size Budget
@@ -237,6 +237,66 @@ module, or a new Story that ships helper code):
 3. Either trim the offender, or — if the addition is justified — bump
    `BUNDLE_SIZE_BASELINE` in `scripts/bundle-size-gate.py` in the same
    commit with a one-line comment explaining why.
+
+---
+
+## Per-tool budget (Story 4b)
+
+The chrome gate covers **chrome** only — every page loads the same chrome
+JS, so its size is a single global number. Tool scripts are different:
+each tool ships its own `<slug>.js` (or `<slug>-core.js` + `<slug>-handlers.js`
+after Story 4b), and a regression in any single tool is invisible to the
+chrome gate.
+
+`scripts/_bundle_size_per_tool.py` is the **per-tool budget gate**. It
+walks `tools/<slug>/index.html`, resolves the eager script (preferring
+`<slug>-core.js` for split tools, falling back to `<slug>.js` for
+monolithic), and sums:
+
+| Layer | Bytes gz |
+|-------|---:|
+| `<slug>-core.js` (or `<slug>.js`) | **core** |
+| Vendor scripts (`./cpi-data.js`, `../../assets/js/jwt-codec.js`, etc.) | `+vendor` |
+| `<slug>.css` | `+css` |
+| **Sum** | **first-paint** |
+
+### Budgets
+
+| Metric | Budget | Why |
+|--------|------:|-----|
+| **core** | **7,000 bytes gz** | Above the top-10 average (~4.3 KB gz) but below the worst pre-Story-4b offenders. Matches the per-tool budget in the Story 4b plan. |
+| **first-paint** | **30,000 bytes gz** | PRD NFR-1 letter-of-the-law. Tool core + vendor + CSS must stay under the 30 KB floor. |
+
+### Tool shape (after Story 4b)
+
+```
+tools/<slug>/
+  index.html              ← loads <slug>-core.js (or <slug>.js for monolithic)
+  <slug>-core.js          ← PARSE-TIME: data tables, frozen AD-14 handle
+  <slug>-handlers.js      ← LAZY: handlers, formatters, render (top-10 tools only)
+  <slug>.css              ← per-tool CSS (eager; small)
+  + any vendor scripts (eager)
+```
+
+The 10 top-tier tools are split (see `scripts/_bundle_size_per_tool.py`'s
+per-tool table for the current core/first-paint breakdown). The 34
+remaining tools are monolithic — they ship as a single `<slug>.js` that
+the gate treats as the *core*; no extraction is needed because their
+core is already under 7 KB gz.
+
+### How to keep the gate honest
+
+1. Run `make bundle-size-per-tool` locally before pushing.
+2. If the gate fails, look at the per-tool breakdown to find the
+   offender.
+3. Either split the offender into `<slug>-core.js` + `<slug>-handlers.js`,
+   or — if the addition is justified (e.g. a new feature) — bump
+   `TOOL_CORE_BUDGET_BYTES_GZ` in `scripts/_bundle_size_per_tool.py` in the
+   same commit with a one-line comment explaining why.
+4. **Never** add a `<slug>-handlers.js` to a `<script src>` in HTML. The
+   gate has a drift detector that fails if a handler chunk is eagerly
+   loaded — the whole point of the split is that handlers lazily load on
+   first interaction.
 4. Reference this doc in the Story's "Acceptance Criteria" section so
    reviewers see the budget decision.
 
