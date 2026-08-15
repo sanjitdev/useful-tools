@@ -243,6 +243,18 @@
   HT.$('#wc-mtg-time').addEventListener('change', renderMeeting);
   HT.$('#wc-mtg-time').addEventListener('input', renderMeeting);
 
+  // Story 9.19 — opt the meeting-date input into HT.datePicker (lazy
+  // via shell-thin Proxy). The picker's onSelect writes back to the
+  // input.value via the standard change event flow, so renderMeeting()
+  // picks it up transparently. The "Now" button writes to .value
+  // directly and calls renderMeeting() — no interaction with the
+  // popover.
+  if (HT.datePicker && typeof HT.datePicker.enhance === 'function') {
+    HT.qsa('.js-date-picker').forEach(function (el) {
+      HT.datePicker.enhance(el, {});
+    });
+  }
+
   HT.$('#wc-mtg-now').addEventListener('click', function () {
     var n = new Date();
     HT.$('#wc-mtg-date').value =

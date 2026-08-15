@@ -248,6 +248,16 @@
   tUnit.addEventListener('change', tickHandler);
   tValue.addEventListener('input', tickHandler);
 
+  // Story 9.19 — opt the 2 DOB inputs into HT.datePicker (lazy via
+  // shell-thin Proxy). The picker's onSelect writes back to the
+  // input.value via the standard change/input event flow, so
+  // tickHandler() picks it up transparently.
+  if (HT.datePicker && typeof HT.datePicker.enhance === 'function') {
+    HT.qsa('.js-date-picker').forEach(function (el) {
+      HT.datePicker.enhance(el, {});
+    });
+  }
+
   // Live "seconds" ticking
   setInterval(function () {
     if (HT.$('[data-tab-panel="from-dob"]').style.display !== 'none') {

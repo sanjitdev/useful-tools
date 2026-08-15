@@ -162,5 +162,15 @@
   includeEndInput.addEventListener('change', update);
   unitInput.addEventListener('change', update);
 
+  // Story 9.19 — opt the 2 date inputs into HT.datePicker (lazy via
+  // shell-thin Proxy). The picker's onSelect writes back to the
+  // input.value via the standard input event flow, so handler()
+  // picks it up transparently.
+  if (HT.datePicker && typeof HT.datePicker.enhance === 'function') {
+    HT.qsa('.js-date-picker').forEach(function (el) {
+      HT.datePicker.enhance(el, {});
+    });
+  }
+
   update();
 })();

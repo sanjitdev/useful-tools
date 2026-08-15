@@ -215,5 +215,15 @@
     fields[k].addEventListener('change', render);
   });
 
+  // Story 9.19 — opt the start-date input into HT.datePicker (lazy
+  // via shell-thin Proxy). The picker's onSelect writes back to the
+  // input.value via the standard input/change event flow, so the
+  // existing handler/render() picks it up transparently.
+  if (HT.datePicker && typeof HT.datePicker.enhance === 'function') {
+    HT.qsa('.js-date-picker').forEach(function (el) {
+      HT.datePicker.enhance(el, {});
+    });
+  }
+
   render();
 })();

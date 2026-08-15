@@ -200,6 +200,15 @@
     HT.$(sel).addEventListener('input', persistFromInputs);
   });
 
+  // Story 9.19 — opt the date input into HT.datePicker (lazy via
+  // shell-thin Proxy). Quick-pick buttons write to .value directly
+  // and call persistFromInputs() — no interaction with the popover.
+  if (HT.datePicker && typeof HT.datePicker.enhance === 'function') {
+    HT.qsa('.js-date-picker').forEach(function (el) {
+      HT.datePicker.enhance(el, {});
+    });
+  }
+
   HT.qsa('[data-quick]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var q = quickPick(btn.getAttribute('data-quick'));

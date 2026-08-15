@@ -373,6 +373,18 @@
     var tabs = HT.$('#mode-tabs');
     if (tabs && HT.makeTabs) HT.makeTabs(tabs);
 
+    // Story 9.19 — opt the age-dob input into HT.datePicker (lazy via
+    // shell-thin Proxy). The picker's onSelect writes back to the
+    // input.value via the standard input/change event flow, so the
+    // existing handler/renderAll() picks it up transparently. The
+    // max="2099-12-31" attribute on the input propagates to disabled
+    // cells in the grid (verified by smoke §X).
+    if (HT.datePicker && typeof HT.datePicker.enhance === 'function') {
+      HT.qsa('.js-date-picker').forEach(function (el) {
+        HT.datePicker.enhance(el, {});
+      });
+    }
+
     renderAll();
   }
 
