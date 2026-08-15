@@ -20,10 +20,19 @@ const vm = require('vm');
 const path = require('path');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
-const TOOL_SRC = fs.readFileSync(
-  path.join(REPO_ROOT, 'tools/grocery-list/grocery-list.js'),
+// Story 4b Phase 4 — grocery-list split into core + handlers. The
+// legacy `TOOL_SRC` constant is now the concatenation of both files,
+// used by the source-grep checks below (treat the split as a single
+// logical artefact for surface-level assertions).
+const TOOL_CORE_SRC = fs.readFileSync(
+  path.join(REPO_ROOT, 'tools/grocery-list/grocery-list-core.js'),
   'utf8'
 );
+const TOOL_HANDLERS_SRC = fs.readFileSync(
+  path.join(REPO_ROOT, 'tools/grocery-list/grocery-list-handlers.js'),
+  'utf8'
+);
+const TOOL_SRC = TOOL_CORE_SRC + '\n' + TOOL_HANDLERS_SRC;
 const CSS_SRC = fs.readFileSync(
   path.join(REPO_ROOT, 'tools/grocery-list/grocery-list.css'),
   'utf8'
@@ -184,6 +193,8 @@ function buildAndLoad(search, opts) {
       // shell — but in our isolated vm context, we collapse to fn => fn.
       debounce: function (fn) { return fn; },
       toast: function () { /* stub */ },
+      // Story 4b Phase 4 — lazyLoadTool stub so core's boot() resolves.
+      lazyLoadTool: function () { return Promise.resolve(); },
     },
     document: {
       documentElement: { getAttribute: function () { return null; } },
@@ -202,7 +213,12 @@ function buildAndLoad(search, opts) {
   ctx.matchMedia = function () { return { matches: false }; };
 
   vm.createContext(ctx);
-  vm.runInContext(TOOL_SRC, ctx, { filename: 'grocery-list.js' });
+  // Story 4b Phase 4 — grocery-list-core.js + -handlers.js split.
+  vm.runInContext(TOOL_CORE_SRC, ctx, { filename: 'grocery-list-core.js' });
+  vm.runInContext(TOOL_HANDLERS_SRC, ctx, { filename: 'grocery-list-handlers.js' });
+  if (typeof ctx.window.groceryListInit === 'function') {
+    ctx.window.groceryListInit();
+  }
 
   return { ctx, elements, fetchCalls, xhrCalls, consoleErrors, consoleInfos, historyReplaceCalls };
 }
