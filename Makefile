@@ -130,7 +130,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke script-load-order shell-a11y verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke quiz-smoke quiz-preview-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke script-load-order shell-a11y bundle-size verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke quiz-smoke quiz-preview-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Story 1.18 (AI-E1-15) replaced the
@@ -169,6 +169,22 @@ script-load-order:
 # tokens + dark-theme override in assets/css/base.css.
 shell-a11y:
 	@$(PYTHON) scripts/shell-a11y-check.py
+
+# `bundle-size` is Story x-3's NFR-1 enforcement gate. Measures every
+# chrome JS + CSS module's gzipped byte size via Python's gzip module
+# (the same compression CDNs ship), sums them, and exits non-zero when
+# the JS total exceeds `BUNDLE_SIZE_BASELINE + BUNDLE_SIZE_TOLERANCE`
+# or when the CSS total exceeds `CSS_BUDGET`. The baseline is captured
+# in scripts/bundle-size-gate.py; a Story that legitimately adds chrome
+# must bump the baseline in a Story commit (recorded decision, not an
+# accident). Exit codes: 0 = within budget; 1 = over budget; 2 =
+# vacuous (no modules found); 3 = invocation error. Wired into
+# `make ci` after `shell-a11y` and before `verify-compound` so a bloat
+# regression fails fast before the more expensive smoke chain runs.
+# See docs/bundle-size-budget.md for the per-module breakdown + the
+# AC-4 top-3 reduction candidates + the Epic 4 path back to < 30 KB.
+bundle-size:
+	@$(PYTHON) scripts/bundle-size-gate.py
 
 # `measure-fouc` is best-effort: it tries to launch a headless browser
 # via `npx puppeteer` (if Node is on PATH) or `npx lighthouse` and
@@ -557,18 +573,19 @@ quality-smoke:
 # The Python wrapper shells to the Node harness, parses the JSON last-line
 # summary, and writes .regression-sweep-output.txt. The Node harness itself
 # remains usable directly via `node scripts/_smoke_regression_sweep.js`.
-# Exit codes: 0 = all 6 checks pass on all ready:true tools; 1 = any check
+# Exit codes: 0 = all 7 checks pass on all ready:true tools; 1 = any check
 # fails; 2 = vacuous (no ready:true tools); 3 = invocation error.
 regression-sweep:
 	@$(PYTHON) scripts/_regression_sweep.py
 	@echo "report: $$(pwd)/.regression-sweep-output.txt"
 
 # `regression-sweep-negative` runs the negative-test battery against the
-# regression sweep. For each of the 6 checks (schema, html, jsLoad,
-# history, consoleError, fetch), inject a known-broken fixture, run the
-# sweep, and assert the expected check flips to false. 6 PASS expected
-# (one per check). If any check stays true under its broken fixture, the
-# sweep has a vacuous pass and 210/210 is meaningless — exit 1.
+# regression sweep. For each of the 7 checks (schema, html, jsLoad,
+# history, consoleError, fetch, scriptLoadOrder), inject a known-broken
+# fixture, run the sweep, and assert the expected check flips to false.
+# 7 PASS expected (one per check). If any check stays true under its
+# broken fixture, the sweep has a vacuous pass and 245/245 is meaningless
+# — exit 1.
 regression-sweep-negative:
 	@node scripts/_smoke_regression_sweep_negative.js
 

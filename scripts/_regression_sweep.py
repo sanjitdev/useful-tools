@@ -122,11 +122,11 @@ def render_table(summary: dict) -> str:
     """Render the per-tool rows as a Markdown table."""
     rows = summary.get("rows", [])
     header = [
-        "| slug | 1·schema | 2·html | 3·jsLoad | 4·history | 5·console.error | 6·fetch | errors |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| slug | 1·schema | 2·html | 3·jsLoad | 4·history | 5·console.error | 6·fetch | 7·scriptLoadOrder | errors |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     body = []
-    keys = ("schema", "html", "jsLoad", "history", "consoleError", "fetch")
+    keys = ("schema", "html", "jsLoad", "history", "consoleError", "fetch", "scriptLoadOrder")
     for r in rows:
         cells = [r["slug"]]
         for k in keys:

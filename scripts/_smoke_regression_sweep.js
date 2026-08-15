@@ -3,7 +3,7 @@
 
    For every tool in tools.json with ready:true, evaluates
    the tool's JS in a fresh vm context with a synthetic
-   document + a minimal HT.* facade, then runs a 6-check
+   document + a minimal HT.* facade, then runs a 7-check
    battery:
 
      1. Schema load       tools.json entry is well-formed
@@ -20,6 +20,16 @@
                           the tool's JS load phase.
      6. Fetch gate        no fetch() call hit a URL with
                           a scheme + non-localhost host.
+     7. Script load order tools/<slug>/index.html loads
+                          utils.js BEFORE its own <slug>.js.
+                          Catches the "HT.$ is not a function"
+                          regression class that surfaced in
+                          citation-formatter / diff-viewer /
+                          jwt-inspector (post-home-redesign
+                          retrofit, 2026-08-13). Mirrors
+                          .test-output/check-script-load-order.js
+                          but evaluated per-tool rather than
+                          as a standalone node script.
 
    The harness is deliberately small. It does NOT boot
    the full Shell (storage-registry / site-config / a11y
@@ -615,7 +625,7 @@ function checkSchema(entry) {
 
 function checkHtml(slug) {
   const p = path.join(TOOLS_DIR, slug, 'index.html');
-  if (!fs.existsSync(p)) return { issues: ['html-missing'], ids: [] };
+  if (!fs.existsSync(p)) return { issues: ['html-missing'], ids: [], scripts: [] };
   const txt = fs.readFileSync(p, 'utf8');
   const issues = [];
   if (!/<\/html>\s*$/.test(txt)) issues.push('html:no-</html>');
@@ -629,13 +639,18 @@ function checkHtml(slug) {
      them at load time before HT.makeTabs inserts them. data-i18n values
      are pre-registered so HT.qsa('[data-i18n]') returns real elements
      whose getAttribute('data-i18n') yields the actual translation key —
-     otherwise applyI18n() in bd-tax calls T(null) and crashes. */
+     otherwise applyI18n() in bd-tax calls T(null) and crashes.
+     Also collect every <script src="..."> declaration in document order
+     so check 7 (script load order) can verify utils.js precedes <slug>.js
+     — see the post-home-redesign retrofit (2026-08-13). */
   const idRegex = /\bid=["']([\w-]+)["']/g;
   const tabPanelRegex = /\bdata-tab-panel=["']([\w-]+)["']/g;
   const i18nRegex = /\bdata-i18n=["']([^"']+)["']/g;
+  const scriptRegex = /<script\s+[^>]*src=["']([^"']+)["'][^>]*>/g;
   const ids = [];
   const tabPanels = [];
   const i18nKeys = [];
+  const scripts = [];
   let m;
   while ((m = idRegex.exec(txt)) !== null) {
     if (ids.indexOf(m[1]) === -1) ids.push(m[1]);
@@ -645,6 +660,13 @@ function checkHtml(slug) {
   }
   while ((m = i18nRegex.exec(txt)) !== null) {
     if (i18nKeys.indexOf(m[1]) === -1) i18nKeys.push(m[1]);
+  }
+  /* Scripts are returned in document order so check 7 can compare
+     positional indices (lower index = earlier in the file). The same
+     regex as .test-output/check-script-load-order.js so both gates
+     evaluate the identical parse. */
+  while ((m = scriptRegex.exec(txt)) !== null) {
+    scripts.push(m[1]);
   }
   /* Register data-tab-panel ids as "tp-<value>" so HT.qs can mirror the
      attribute selector. Tools use HT.$('[data-tab-panel="metric"]') and
@@ -658,7 +680,36 @@ function checkHtml(slug) {
   for (let i = 0; i < i18nKeys.length; i += 1) {
     ids.push('i18n-' + i18nKeys[i].replace(/[^a-zA-Z0-9_-]/g, '_'));
   }
-  return { issues: issues, ids: ids, tabPanels: tabPanels, i18nKeys: i18nKeys };
+  return { issues: issues, ids: ids, tabPanels: tabPanels, i18nKeys: i18nKeys, scripts: scripts };
+}
+
+/* check 7: script load order.
+   Mirrors .test-output/check-script-load-order.js. Walks the <script>
+   src list (in document order) and asserts utils.js precedes <slug>.js.
+   Returns 'skip' when the tool has no ./<slug>.js script (the check is
+   only meaningful when the tool has its own IIFE that might call HT.$
+   at parse time). Returns false when utils.js is missing entirely OR
+   when utils.js appears AFTER the tool script — both are the
+   "HT.$ is not a function" failure mode surfaced in the
+   post-home-redesign retrofit (2026-08-13) on citation-formatter,
+   diff-viewer, and jwt-inspector. */
+function checkScriptLoadOrder(slug, scripts) {
+  if (!Array.isArray(scripts) || scripts.length === 0) return { result: 'skip', issue: null };
+  const toolIdx = scripts.indexOf('./' + slug + '.js');
+  const utilsIdx = scripts.findIndex(function (s) {
+    return typeof s === 'string' && s.indexOf('/assets/js/utils.js') !== -1;
+  });
+  if (toolIdx === -1) return { result: 'skip', issue: null };
+  if (utilsIdx === -1) {
+    return { result: false, issue: 'utils.js missing entirely' };
+  }
+  if (toolIdx < utilsIdx) {
+    return {
+      result: false,
+      issue: './' + slug + '.js at position ' + toolIdx + ', utils.js at position ' + utilsIdx,
+    };
+  }
+  return { result: true, issue: null };
 }
 
 function buildEmptyPageDom() {
@@ -675,7 +726,7 @@ function buildEmptyPageDom() {
 function runOneTool(entry) {
   const slug = entry.slug;
   const errors = [];
-  const checkResults = { schema: null, html: null, jsLoad: null, history: null, consoleError: null, fetch: null };
+  const checkResults = { schema: null, html: null, jsLoad: null, history: null, consoleError: null, fetch: null, scriptLoadOrder: null };
 
   /* check 1: schema */
   const schemaIssues = checkSchema(entry);
@@ -684,11 +735,25 @@ function runOneTool(entry) {
 
   /* check 2: HTML — also pulls every id="..." declaration so the tool JS
      can resolve HT.$('#foo') and document.getElementById('foo') against
-     pre-registered synthetic elements. */
+     pre-registered synthetic elements. The returned scripts[] list feeds
+     check 7 (script load order). */
   const htmlCheck = checkHtml(slug);
   const htmlIssues = htmlCheck.issues;
   checkResults.html = htmlIssues.length === 0;
   if (htmlIssues.length > 0) errors.push('html: ' + htmlIssues.join(','));
+
+  /* check 7: script load order — wired here (before check 3) so a
+     broken load order fails the row even if the tool JS happens to
+     evaluate cleanly via the synthetic HT.* facade. The post-home-
+     redesign retrofit (2026-08-13) caught citation-formatter /
+     diff-viewer / jwt-inspector via the same check at the .test-output/
+     layer; the regression sweep is the per-tool complement so every
+     ready:true tool carries the same guarantee. */
+  const sloCheck = checkScriptLoadOrder(slug, htmlCheck.scripts);
+  checkResults.scriptLoadOrder = sloCheck.result;
+  if (sloCheck.result === false) {
+    errors.push('scriptLoadOrder: ' + sloCheck.issue);
+  }
 
   const jsPath = path.join(TOOLS_DIR, slug, slug + '.js');
   if (!fs.existsSync(jsPath)) {
@@ -855,8 +920,8 @@ function runOneTool(entry) {
 /* ---------- Main ---------- */
 
 function printRow(slug, results) {
-  const marks = ['1', '2', '3', '4', '5', '6'].map(function (i) {
-    const v = results[['schema', 'html', 'jsLoad', 'history', 'consoleError', 'fetch'][Number(i) - 1]];
+  const marks = ['1', '2', '3', '4', '5', '6', '7'].map(function (i) {
+    const v = results[['schema', 'html', 'jsLoad', 'history', 'consoleError', 'fetch', 'scriptLoadOrder'][Number(i) - 1]];
     if (v === true) return '✓';
     if (v === 'skip') return '·';
     return '✗';
@@ -871,8 +936,8 @@ function main() {
   });
 
   console.log('Regression sweep: ' + ready.length + ' ready:true tools');
-  console.log('  ' + 'slug'.padEnd(28) + '  123456');
-  console.log('  ' + '-'.repeat(28) + '  ------');
+  console.log('  ' + 'slug'.padEnd(28) + '  1234567');
+  console.log('  ' + '-'.repeat(28) + '  -------');
 
   const rows = [];
   for (let i = 0; i < ready.length; i += 1) {

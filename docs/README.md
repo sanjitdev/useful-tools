@@ -37,6 +37,7 @@ that way", look in `_bmad-output/`.
 | [`tool-ideas.md`](tool-ideas.md) | Parking lot for tool concepts not yet promoted to `tools.json`. Each idea has a one-liner rationale + the epic it would belong to. |
 | [`pack-taxonomy.md`](pack-taxonomy.md) | Definition of the 5 packs (productivity, finance, health, planning, education). Which tools belong, ordering rules, the `dashboard` schema. |
 | [`shell-public-api.md`](shell-public-api.md) | The `HT.*` frozen-public surface (AD-14): every method, signature, version, and the gate that enforces it (`shell-public-api-smoke`). The mirror of `assets/js/api-contract.js` in prose. §10 documents the canonical tool-script load order with the bug story (post-home-redesign retrofit). |
+| [`bundle-size-budget.md`](bundle-size-budget.md) | Per-module gzipped breakdown of the chrome surface (162,915 bytes JS + 22,480 bytes CSS as of 2026-08-15), the NFR-1 gap (5.4× over the 30 KB JS target), top-3 reduction candidates, and the Story 4 path back to < 30 KB. Companion to the `bundle-size` CI gate. |
 
 ---
 
@@ -74,3 +75,10 @@ post-home-redesign retrofit audit (`_bmad-output/implementation-artifacts/post-h
 The audit captured four bug classes (category spacing, shell.js TDZ,
 HT.$ load order, undocumented `utils.js` helpers) and surfaced four
 follow-up items; the shell-public-api.md link got an inline §10 pointer.
+
+**Updated 2026-08-15:** added a row pointing to `bundle-size-budget.md`
+(Story x-3). The doc captures the per-module gzipped breakdown
+(162,915 bytes JS, 22,480 bytes CSS), explains the NFR-1 gap (5.4×
+over the 30 KB JS target), and identifies the top-3 reduction
+candidates + the Story 4 path back to < 30 KB. The
+`scripts/bundle-size-gate.py` gate is now wired into `make ci`.

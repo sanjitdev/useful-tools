@@ -202,6 +202,36 @@ the bug class from "depends on a contributor reading §10" into
 
 ---
 
+## Follow-up completion log (2026-08-15)
+
+All four recommended follow-up items were completed in a single
+sweep on 2026-08-15:
+
+| # | Action item | Status | Where |
+|---|---|---|---|
+| 1 | Wire `.test-output/check-script-load-order.js` into `make ci` | ✅ done | `Makefile` line 164 — `script-load-order:` target is in the `ci:` chain (line 133) and runs after `chrome-dom-smoke` |
+| 2 | Add the same load-order check to the regression sweep | ✅ done | `scripts/_smoke_regression_sweep.js` — added check 7 (`scriptLoadOrder`); `scripts/_smoke_regression_sweep_negative.js` — added 7th negative fixture; `scripts/_regression_sweep.py` — renders the 7th column |
+| 3 | Add `HT.$` / `HT.$$` to the `api-contract.js` frozen manifest | ✅ done | `assets/js/api-contract.js` version 1.23.0 — added `HT.qs`, `HT.$`, `HT.qsa`, `HT.$$`, `HT.fetch`, `HT.formatNumber`, `HT.formatDuration`, `HT.formatDurationHMS`, `HT.debounce`, `HT.toast`, `HT.copyToClipboard` |
+| 4 | Audit other `utils.js` helpers for the same doc gap | ✅ done | Same entry as #3 — all 11 utils.js surface entries are now registered (not just `HT.$` / `HT.$$`; the entire surface is contractually committed) |
+
+**Total time spent: ~1 hour** (vs the estimated 3.5 hours — the
+helper at `.test-output/check-script-load-order.js` already existed,
+which made items 1 and 2 a port rather than a write).
+
+**Regression sweep impact:** sweep is now a 7-check battery (was 6).
+With 35 ready:true tools the expected total is 7 × 35 = **245/245**
+(was 6 × 35 = 210/210). Per-tool rows in `.regression-sweep-output.txt`
+gain a "7·scriptLoadOrder" column. Negative-test battery expects
+**7 PASS** (was 6). Both updated in
+`.github/workflows/tool-contract-gate.yml` line 418-434.
+
+**Retrofit closure:** all four F-class findings (F1 .home-grid-group
+CSS, F2 shell.js TDZ, F3 HT.$ is not a function, F4 doc gap, F5 doc
+index) and all four follow-up items are now resolved. The bug class
+that motivated this retrofit is no longer shippable.
+
+---
+
 ## Files changed in this round
 
 | Commit | Files | Purpose |

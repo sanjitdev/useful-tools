@@ -413,10 +413,13 @@ jobs:
         # Story 2.12: load every ready:true tool's <slug>.js in a fresh
         # vm context with a synthetic DOM + a minimal HT.* facade (the
         # top-22 HT.* helpers + the shell APIs the tool JS touches).
-        # Run the 6-check battery — schema, HTML, JS load, HT.history
-        # roundtrip, console.error gate, fetch gate (no external URLs).
-        # Exits 0 only when all 35 ready:true tools pass all 6 checks
-        # (210/210). The Python wrapper writes
+        # Run the 7-check battery — schema, HTML, JS load, HT.history
+        # roundtrip, console.error gate, fetch gate (no external URLs),
+        # and script-load-order (utils.js must precede <slug>.js;
+        # mirrors the .test-output/check-script-load-order.js guard
+        # added in the post-home-redesign retrofit on 2026-08-13).
+        # Exits 0 only when all 35 ready:true tools pass all 7 checks
+        # (245/245). The Python wrapper writes
         # `.regression-sweep-output.txt` so the Markdown report is
         # uploadable as a build artifact. The path filter covers
         # tools/**, assets/js/**, scripts/_smoke_regression_sweep.js,
@@ -425,11 +428,11 @@ jobs:
         run: make regression-sweep
 
       - name: Regression-sweep negative-test battery (Story 2.12)
-        # Proves each of the 6 regression-sweep checks is meaningful,
+        # Proves each of the 7 regression-sweep checks is meaningful,
         # not vacuous. For each check, inject a known-broken fixture,
         # run the sweep, and assert the expected check flips to false.
-        # 6 PASS expected. If any check stays true under its broken
-        # fixture, the sweep has a vacuous pass and 210/210 is
+        # 7 PASS expected. If any check stays true under its broken
+        # fixture, the sweep has a vacuous pass and 245/245 is
         # meaningless — exit 1 fails the gate.
         run: make regression-sweep-negative
 
