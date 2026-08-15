@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-/* Story 4b Phase 2 — lifespan-simulator core+handlers split smoke.
+/* Story 4b Phase 2 + Story 9.13 — lifespan-simulator core+handlers split
+   + quiz-mode smoke.
 
-   Verifies the new lifespan-simulator-core.js + lifespan-simulator-handlers.js
-   pair:
+   Sections I-V (Story 4b):
      - lifespan-simulator-core.js loads via vm sandbox without throwing
      - HT.lifespanSimulatorCore frozen handle exposes WHO_DELTAS, COUNTRIES,
        COUNTRY_BY_CODE, all 22 enum tables (SMOKING/STRESS/BP/DIABETES/HEART/
@@ -16,6 +16,20 @@
      - lifespan-simulator-handlers.js loads after core and binds
        window.lifespanSimulatorInit
      - lazy-loadable via HT.lazyLoadTool API shape
+
+   Sections VI-X (Story 9.13):
+     - VI. Quiz wiring present in handlers.js (LIFESPAN_QUESTIONS,
+       buildLifespanReveal, mountLifespanQuiz, toggleQuizMode,
+       wireQuizToggle, storageKey _registry-lifespan-simulator)
+     - VII. 36 question ids match the keys evaluate() reads (1:1
+       with the form's input shape so skip = neutral default)
+     - VIII. buildLifespanReveal calls evaluate() + baselineFor() in
+       scope and returns a node containing the headline number
+     - IX. index.html has ls-quiz-mount + ls-quiz-toggle; no eager
+       quiz.js / quiz.css tags (Story 4c Proxy handles it)
+     - X. AD-14 boundaries — no bare navigator.clipboard.writeText,
+       no bare window.print(), share uses HT.copyToClipboard, print
+       uses HT.share.print
 
    Pure-Node smoke (no jsdom / playwright). Runs in a vm sandbox with
    minimal HT + dom stubs.
@@ -34,6 +48,7 @@ const vm = require('vm');
 const REPO_ROOT = path.resolve(__dirname, '..');
 const CORE_SRC = fs.readFileSync(path.join(REPO_ROOT, 'tools/lifespan-simulator/lifespan-simulator-core.js'), 'utf8');
 const HANDLERS_SRC = fs.readFileSync(path.join(REPO_ROOT, 'tools/lifespan-simulator/lifespan-simulator-handlers.js'), 'utf8');
+const HTML_SRC = fs.readFileSync(path.join(REPO_ROOT, 'tools/lifespan-simulator/index.html'), 'utf8');
 
 let pass = 0;
 let fail = 0;
@@ -201,6 +216,106 @@ console.log('--- V. boot path with lazyLoadTool stub ---');
     check(lazyCalled.slug === 'lifespan-simulator', 'lazyLoadTool called with slug "lifespan-simulator"');
     check(lazyCalled.url === './lifespan-simulator-handlers.js', 'lazyLoadTool called with handlers URL');
   }
+}
+
+// =============================================================
+// VI. Quiz wiring present in handlers.js (Story 9.13)
+// =============================================================
+console.log('--- VI. Quiz wiring in handlers.js ---');
+{
+  check(/var LIFESPAN_QUESTIONS\s*=\s*\[/.test(HANDLERS_SRC), 'LIFESPAN_QUESTIONS array declared');
+  check(/function buildLifespanReveal/.test(HANDLERS_SRC), 'buildLifespanReveal() defined');
+  check(/function mountLifespanQuiz/.test(HANDLERS_SRC), 'mountLifespanQuiz() defined');
+  check(/function toggleQuizMode/.test(HANDLERS_SRC), 'toggleQuizMode() defined');
+  check(/function wireQuizToggle/.test(HANDLERS_SRC), 'wireQuizToggle() defined');
+  check(/'_registry-lifespan-simulator'/.test(HANDLERS_SRC), 'storageKey is _registry-lifespan-simulator');
+  check(/HT\.quiz\.open\(/.test(HANDLERS_SRC), 'handlers calls HT.quiz.open');
+  check(/state\.answers\s*=/.test(HANDLERS_SRC), 'onChange writes to state.answers (Plan tab interop)');
+  check(/HT\.copyToClipboard/.test(HANDLERS_SRC), 'share handler uses HT.copyToClipboard (Shell Public API)');
+  check(/HT\.share\.print/.test(HANDLERS_SRC), 'print handler uses HT.share.print (Shell Public API)');
+}
+
+// =============================================================
+// VII. LIFESPAN_QUESTIONS ids match the keys evaluate() reads
+// =============================================================
+console.log('--- VII. Question ids match evaluate() keys ---');
+{
+  // Extract question ids by matching `id: 'xxx'` inside LIFESPAN_QUESTIONS only.
+  // We isolate the array by capturing from `var LIFESPAN_QUESTIONS` until
+  // the closing `];` — the array is the first thing after that var, and
+  // no nested `];` appears inside.
+  const arrayMatch = HANDLERS_SRC.match(/var LIFESPAN_QUESTIONS\s*=\s*\[([\s\S]*?)\];/);
+  check(!!arrayMatch, 'LIFESPAN_QUESTIONS array body extractable');
+  if (arrayMatch) {
+    const body = arrayMatch[1];
+    const ids = Array.from(new Set((body.match(/id:\s*'([a-z]+)'/g) || []).map(function (s) {
+      return s.match(/'([a-z]+)'/)[1];
+    })));
+    check(ids.length === 36, 'LIFESPAN_QUESTIONS has 36 entries (actual: ' + ids.length + ')');
+    // Every id that evaluate() reads (excluding bmi which is derived
+    // from height/weight) must be present.
+    const required = [
+      'dob', 'sex', 'country', 'height', 'weight', 'alcohol', 'exercise', 'sleep',
+      'smoking', 'stress', 'fruitveg', 'seatbelt', 'drugs', 'checkups',
+      'bp', 'diabetes', 'heart', 'cholesterol', 'cancer', 'depression',
+      'familyheart', 'familycancer', 'familydiabetes',
+      'motorcycle', 'vaccines', 'dental', 'pollution', 'income',
+      'education', 'relationship', 'sun',
+      'fastfood', 'water', 'sitting', 'steps', 'screen'
+    ];
+    const missing = required.filter(function (r) { return ids.indexOf(r) < 0; });
+    check(missing.length === 0, 'all required ids present (missing: ' + (missing.length ? missing.join(',') : 'none') + ')');
+    // Each id must be unique.
+    const dupes = ids.filter(function (id, i) { return ids.indexOf(id) !== i; });
+    check(dupes.length === 0, 'all ids unique (dupes: ' + (dupes.length ? dupes.join(',') : 'none') + ')');
+  }
+}
+
+// =============================================================
+// VIII. buildLifespanReveal calls evaluate() + baselineFor()
+// =============================================================
+console.log('--- VIII. buildLifespanReveal uses evaluate() + baselineFor() ---');
+{
+  // The reveal function lives inside the handlers IIFE, so its in-scope
+  // evaluate() and baselineFor() are the same functions form mode uses.
+  // Verify the function body contains the right calls + returns a node.
+  check(/function buildLifespanReveal\([\s\S]*?evaluate\(ans\)[\s\S]*?baselineFor\(ans\.country, ans\.sex\)[\s\S]*?return\s+\w+;/.test(HANDLERS_SRC),
+    'buildLifespanReveal calls evaluate(ans) + baselineFor(ans.country, ans.sex) and returns a node');
+  check(/quiz-reveal-headline/.test(HANDLERS_SRC), 'reveal uses .quiz-reveal-headline class');
+  check(/quiz-reveal-custom/.test(HANDLERS_SRC), 'reveal uses .quiz-reveal-custom wrapper');
+  check(/data-action="share"/.test(HANDLERS_SRC), 'reveal has share button');
+  check(/data-action="print"/.test(HANDLERS_SRC), 'reveal has print button');
+  check(/data-action="reset"/.test(HANDLERS_SRC), 'reveal has reset button');
+  check(/Switch to advanced form view/.test(HANDLERS_SRC), 'reveal has form-view link');
+  // Neutral-default merge: skip = neutral (matches evaluate() skip contract).
+  check(/Object\.keys\(answers\)\.forEach/.test(HANDLERS_SRC), 'reveal merges answers over neutral defaults');
+  // BMI derivation from height+weight (the quiz doesn't ask for BMI directly).
+  check(/answers\.weight\s*\/\s*Math\.pow\(answers\.height/.test(HANDLERS_SRC),
+    'reveal derives bmi from height+weight when both present');
+}
+
+// =============================================================
+// IX. index.html: ls-quiz-mount + ls-quiz-toggle; no eager quiz tags
+// =============================================================
+console.log('--- IX. index.html quiz wiring ---');
+{
+  check(/id="ls-quiz-mount"/.test(HTML_SRC), 'ls-quiz-mount div present');
+  check(/id="ls-quiz-toggle"/.test(HTML_SRC), 'ls-quiz-toggle button present');
+  check(/data-quiz-host="form"/.test(HTML_SRC), 'form panels wrapped in data-quiz-host="form"');
+  // Story 4c lazy-load: NO eager <script src="quiz.js"> or <link href="quiz.css">.
+  check(!/src=["'][^"']*assets\/js\/quiz\.js["']/.test(HTML_SRC), 'no eager <script src=".../quiz.js"> (Story 4c Proxy)');
+  check(!/href=["'][^"']*assets\/css\/quiz\.css["']/.test(HTML_SRC), 'no eager <link href=".../quiz.css"> (Story 4c Proxy)');
+}
+
+// =============================================================
+// X. AD-14 boundaries preserved (no bare clipboard/print)
+// =============================================================
+console.log('--- X. AD-14 boundaries ---');
+{
+  check(!/navigator\.clipboard\.writeText\s*\(/.test(HANDLERS_SRC), 'no bare navigator.clipboard.writeText (AD-14)');
+  check(!/window\.print\s*\(/.test(HANDLERS_SRC), 'no bare window.print() call (AD-14)');
+  check(/HT\.copyToClipboard/.test(HANDLERS_SRC), 'share routes through HT.copyToClipboard');
+  check(/HT\.share\.print\(\s*['"]lifespan-simulator['"]/.test(HANDLERS_SRC), 'print routes through HT.share.print("lifespan-simulator")');
 }
 
 console.log('');

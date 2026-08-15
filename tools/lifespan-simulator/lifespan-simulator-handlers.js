@@ -749,7 +749,14 @@
     mode: 'quick',
     baselineYears: null,
     sliderOverrides: {},
-    planTargets: {}
+    planTargets: {},
+    // Story 9.13 — quiz-mode answer cache. Populated by the quiz
+    // shell's onChange callback so renderPlan() reads the same numbers
+    // the quiz produced (without syncing 36 form fields). getAnswers()
+    // prefers form-DOM values when present (form mode = source of truth)
+    // and falls back to state.answers when the user came from quiz mode
+    // and the form fields haven't been touched.
+    answers: {}
   };
 
   /* ===========================================================
@@ -757,6 +764,22 @@
      =========================================================== */
 
   function getAnswers() {
+    // Story 9.13 — if quiz mode populated state.answers, prefer those.
+    // The quiz has its own neutral-default contract (skip = neutral), so
+    // we don't need to apply the form-mode mode-specific defaults here.
+    if (state.answers && Object.keys(state.answers).length > 0) {
+      var qa = state.answers;
+      var qdob = qa.dob ? new Date(qa.dob) : null;
+      var qage = qdob ? Math.floor((Date.now() - qdob.getTime()) / (365.25 * 86400000)) : NaN;
+      var qbmi = (isFinite(qa.height) && isFinite(qa.weight) && qa.height > 0)
+        ? qa.weight / Math.pow(qa.height / 100, 2)
+        : NaN;
+      var out = Object.assign({}, qa);
+      out.dob = qdob;
+      out.age = qage;
+      out.bmi = qbmi;
+      return out;
+    }
     var suf = state.mode === 'full' ? '-f' : '';
     function num(id) {
       var v = parseFloat(HT.$('#ls-' + id + suf).value);
@@ -1390,6 +1413,271 @@
     updateBMI();
     renderResult();
     if (state.mode === 'plan') renderPlan();
+    wireQuizToggle();
+  }
+
+  /* ===========================================================
+     15. Quiz mode (Story 9.13)
+     Reuses the existing evaluate(ans) path — same numbers as form mode.
+     Quiz questions drive the same state.answers shape getAnswers()
+     produces, so Plan tab still works after quiz completion.
+     =========================================================== */
+
+  var LIFESPAN_QUESTIONS = [
+    { id: 'dob',       label: 'Date of birth',     prompt: 'When were you born?',          input: 'date',   helpText: 'Used to compute your age and target date.' },
+    { id: 'sex',       label: 'Sex',               prompt: 'What is your sex?',            options: [{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }] },
+    { id: 'country',   label: 'Country',           prompt: 'Which country do you live in?', options: COUNTRIES.map(function (c) { return { value: c.code, label: c.name }; }) },
+    { id: 'height',    label: 'Height (cm)',       prompt: 'Height in centimetres?',       input: 'number', min: 50,  max: 250, step: 1 },
+    { id: 'weight',    label: 'Weight (kg)',       prompt: 'Weight in kilograms?',         input: 'number', min: 10,  max: 300, step: 0.5 },
+    { id: 'alcohol',   label: 'Alcohol (drinks/wk)', prompt: 'Alcoholic drinks per week?',  input: 'number', min: 0,   max: 50,  step: 1 },
+    { id: 'exercise',  label: 'Exercise (min/day)',  prompt: 'Exercise minutes per day?',   input: 'number', min: 0,   max: 240, step: 5 },
+    { id: 'sleep',     label: 'Sleep (h/night)',    prompt: 'Sleep hours per night?',      input: 'number', min: 0,   max: 14,  step: 0.5 },
+    { id: 'smoking',   label: 'Smoking',           prompt: 'Do you smoke?',                options: [{ value: 'never', label: 'Never' }, { value: 'former', label: 'Former' }, { value: 'occasional', label: 'Occasional' }, { value: 'daily', label: 'Daily' }] },
+    { id: 'stress',    label: 'Stress',            prompt: 'Your usual stress level?',     options: [{ value: 'low', label: 'Low' }, { value: 'moderate', label: 'Moderate' }, { value: 'high', label: 'High' }, { value: 'extreme', label: 'Extreme' }] },
+    { id: 'fruitveg',  label: 'Fruit & veg',       prompt: 'How often do you eat fruit and vegetables?', options: [{ value: 'daily', label: 'Daily (5+ servings)' }, { value: 'weekly', label: 'Weekly' }, { value: 'rarely', label: 'Rarely' }] },
+    { id: 'seatbelt',  label: 'Seatbelt',          prompt: 'How often do you wear a seatbelt?', options: [{ value: 'always', label: 'Always' }, { value: 'sometimes', label: 'Sometimes' }, { value: 'never', label: 'Never' }] },
+    { id: 'drugs',     label: 'Drug use',          prompt: 'Recreational drug use history?', options: [{ value: 'never', label: 'Never' }, { value: 'former', label: 'Former' }, { value: 'current', label: 'Current' }] },
+    { id: 'checkups',  label: 'Medical checkups',  prompt: 'How often do you get a medical checkup?', options: [{ value: 'yearly', label: 'Yearly' }, { value: 'irregular', label: 'Irregular' }, { value: 'never', label: 'Never' }] },
+    { id: 'bp',        label: 'Blood pressure',    prompt: 'Blood pressure status?',       options: [{ value: 'normal', label: 'Normal' }, { value: 'elevated', label: 'Elevated' }, { value: 'high', label: 'High' }] },
+    { id: 'diabetes',  label: 'Diabetes',          prompt: 'Diabetes status?',             options: [{ value: 'no', label: 'No' }, { value: 'prediabetes', label: 'Pre-diabetes' }, { value: 'yes', label: 'Yes' }] },
+    { id: 'heart',     label: 'Heart disease',     prompt: 'Existing heart disease?',      options: [{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes' }] },
+    { id: 'cholesterol', label: 'Cholesterol',     prompt: 'High cholesterol?',            options: [{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes' }] },
+    { id: 'cancer',    label: 'Cancer history',    prompt: 'Cancer history?',              options: [{ value: 'no', label: 'No' }, { value: 'family', label: 'Family history' }, { value: 'personal', label: 'Personal history' }] },
+    { id: 'depression', label: 'Depression',       prompt: 'Depression history?',          options: [{ value: 'no', label: 'No' }, { value: 'treated', label: 'Treated' }, { value: 'untreated', label: 'Untreated' }] },
+    { id: 'familyheart', label: 'Family — heart',  prompt: 'Family history of heart disease?', options: [{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes' }] },
+    { id: 'familycancer', label: 'Family — cancer', prompt: 'Family history of cancer?',   options: [{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes' }] },
+    { id: 'familydiabetes', label: 'Family — diabetes', prompt: 'Family history of diabetes?', options: [{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes' }] },
+    { id: 'motorcycle', label: 'Motorcycle',       prompt: 'Motorcycle or scooter use?',   options: [{ value: 'none', label: 'None' }, { value: 'occasional', label: 'Occasional (helmeted)' }, { value: 'frequent', label: 'Frequent (helmeted)' }] },
+    { id: 'vaccines',  label: 'Vaccinations',      prompt: 'Vaccinations up to date?',     options: [{ value: 'yes', label: 'Yes' }, { value: 'partial', label: 'Partial' }, { value: 'no', label: 'No' }] },
+    { id: 'dental',    label: 'Dental care',       prompt: 'How often do you see a dentist?', options: [{ value: 'regular', label: 'Regular (yearly+)' }, { value: 'occasional', label: 'Occasional' }, { value: 'rare', label: 'Rare / never' }] },
+    { id: 'pollution', label: 'Air pollution',     prompt: 'Air pollution where you live?', options: [{ value: 'low', label: 'Low' }, { value: 'moderate', label: 'Moderate' }, { value: 'high', label: 'High' }] },
+    { id: 'income',    label: 'Income',            prompt: 'Income level?',                options: [{ value: 'low', label: 'Low' }, { value: 'middle', label: 'Middle' }, { value: 'high', label: 'High' }] },
+    { id: 'education', label: 'Education',         prompt: 'Highest education completed?', options: [{ value: 'none', label: 'Primary or less' }, { value: 'secondary', label: 'Secondary' }, { value: 'tertiary', label: 'Tertiary' }] },
+    { id: 'relationship', label: 'Relationship',  prompt: 'Relationship status?',         options: [{ value: 'partner', label: 'Partner / married' }, { value: 'single', label: 'Single' }] },
+    { id: 'sun',       label: 'Sun exposure',      prompt: 'Sun exposure?',                options: [{ value: 'low', label: 'Low' }, { value: 'moderate', label: 'Moderate' }, { value: 'high', label: 'High' }] },
+    { id: 'fastfood',  label: 'Fast food (meals/wk)', prompt: 'Fast food meals per week?',  input: 'number', min: 0, max: 21, step: 1 },
+    { id: 'water',     label: 'Water (L/day)',     prompt: 'Water litres per day?',        input: 'number', min: 0, max: 6,  step: 0.25 },
+    { id: 'sitting',   label: 'Sitting (h/day)',   prompt: 'Sitting hours per day?',       input: 'number', min: 0, max: 18, step: 0.5 },
+    { id: 'steps',     label: 'Steps (k/day)',     prompt: 'Steps in thousands per day?',  input: 'number', min: 0, max: 30, step: 0.5 },
+    { id: 'screen',    label: 'Screen time (h/day)', prompt: 'Screen time hours per day?',  input: 'number', min: 0, max: 18, step: 0.5 }
+  ];
+
+  function quizEl(tag, attrs, children) {
+    var n = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        if (k === 'class') n.className = attrs[k];
+        else if (k === 'text') n.textContent = attrs[k];
+        else if (k === 'html') n.innerHTML = attrs[k];
+        else n.setAttribute(k, attrs[k]);
+      });
+    }
+    (children || []).forEach(function (c) {
+      if (typeof c === 'string') n.appendChild(document.createTextNode(c));
+      else if (c) n.appendChild(c);
+    });
+    return n;
+  }
+
+  function buildLifespanReveal(answers) {
+    // Merge quiz answers with neutral defaults so skip = neutral baseline
+    // (matches the form-mode countFilledFields + evaluate() contract).
+    var ans = {
+      sex: 'female', country: 'GLOBAL',
+      smoking: 'never', stress: 'moderate', fruitveg: 'daily',
+      seatbelt: 'always', drugs: 'never', checkups: 'yearly',
+      bp: 'normal', diabetes: 'no', heart: 'no', cholesterol: 'no',
+      cancer: 'no', depression: 'no',
+      familyheart: 'no', familycancer: 'no', familydiabetes: 'no',
+      motorcycle: 'none', vaccines: 'yes', dental: 'regular',
+      pollution: 'low', income: 'middle', education: 'secondary',
+      relationship: 'partner', sun: 'moderate'
+    };
+    Object.keys(answers).forEach(function (k) {
+      var v = answers[k];
+      if (v !== undefined && v !== null && !(typeof v === 'number' && !isFinite(v)) && v !== '') {
+        ans[k] = v;
+      }
+    });
+    if (isFinite(answers.height) && isFinite(answers.weight) && answers.height > 0) {
+      ans.bmi = answers.weight / Math.pow(answers.height / 100, 2);
+    }
+
+    var ev = evaluate(ans);
+    var baseline = clamp(baselineFor(ans.country, ans.sex) + ev.sum, 40, 110);
+    var range = computeRange(baseline, 1.0);
+
+    var yearsStr = HT.formatNumber(baseline, { minFractionDigits: 1, maxFractionDigits: 1 });
+    var rangeLow = HT.formatNumber(range.low,  { minFractionDigits: 0, maxFractionDigits: 0 });
+    var rangeHigh = HT.formatNumber(range.high, { minFractionDigits: 0, maxFractionDigits: 0 });
+
+    var wrap = quizEl('div', { class: 'quiz-reveal-custom' });
+
+    var headline = quizEl('p', { class: 'quiz-reveal-headline' });
+    headline.appendChild(document.createTextNode('Your estimated lifespan is '));
+    headline.appendChild(quizEl('strong', { text: yearsStr + ' years' }));
+    headline.appendChild(quizEl('small', {
+      text: ' (range ' + rangeLow + '–' + rangeHigh + ' years — statistical estimate, not a prediction)'
+    }));
+    wrap.appendChild(headline);
+
+    // Top-3 contributors (positive + negative)
+    var topList = quizEl('ul', { class: 'quiz-reveal-list quiz-reveal-list-top' });
+    var pos = ev.contributions.filter(function (c) { return c.delta > 0; })
+      .sort(function (a, b) { return b.delta - a.delta; }).slice(0, 3);
+    var neg = ev.contributions.filter(function (c) { return c.delta < 0; })
+      .sort(function (a, b) { return a.delta - b.delta; }).slice(0, 3);
+
+    function row(label, val) {
+      var li = quizEl('li', { class: 'quiz-reveal-item' });
+      li.appendChild(quizEl('span', { class: 'quiz-reveal-item-label', text: label + ': ' }));
+      li.appendChild(quizEl('span', { class: 'quiz-reveal-item-value', text: val }));
+      return li;
+    }
+
+    if (pos.length) {
+      topList.appendChild(row('Top strengths',
+        pos.map(function (c) { return c.label + ' (' + fmtSigned(c.delta) + ')'; }).join(', ')));
+    }
+    if (neg.length) {
+      topList.appendChild(row('Top risks',
+        neg.map(function (c) { return c.label + ' (' + fmtSigned(c.delta) + ')'; }).join(', ')));
+    }
+    if (pos.length === 0 && neg.length === 0) {
+      topList.appendChild(row('Notes', 'Balanced baseline — no major positive or negative factors.'));
+    }
+    wrap.appendChild(topList);
+
+    // Action buttons (Reset local; Share/Print route through Shell Public API)
+    var actions = quizEl('div', { class: 'quiz-reveal-actions', 'data-print': 'ignore' });
+    var shareBtn = quizEl('button', {
+      type: 'button', class: 'btn btn-secondary', 'data-action': 'share',
+      text: 'Share summary'
+    });
+    var printBtn = quizEl('button', {
+      type: 'button', class: 'btn btn-secondary', 'data-action': 'print',
+      text: 'Print'
+    });
+    var resetBtn = quizEl('button', {
+      type: 'button', class: 'btn btn-ghost', 'data-action': 'reset',
+      text: 'Reset'
+    });
+    var formLink = quizEl('a', {
+      class: 'quiz-reveal-form-link', href: '?view=form', text: 'Switch to advanced form view'
+    });
+    actions.appendChild(shareBtn);
+    actions.appendChild(printBtn);
+    actions.appendChild(resetBtn);
+    actions.appendChild(formLink);
+    wrap.appendChild(actions);
+
+    return wrap;
+  }
+
+  var _quizHandle = null;
+
+  function mountLifespanQuiz() {
+    var mount = document.getElementById('ls-quiz-mount');
+    if (!mount) return null;
+    if (!HT.quiz || typeof HT.quiz.open !== 'function') {
+      console.error('lifespan-simulator-quiz: HT.quiz not loaded');
+      mount.textContent = 'HT.quiz failed to load.';
+      return null;
+    }
+
+    // Try to restore from URL state (?qa=<b64> shares the answer set)
+    var seed = {};
+    try {
+      if (HT.urlState && typeof HT.urlState.decode === 'function') {
+        var restored = HT.urlState.decode('lifespan-simulator', location.hash);
+        if (restored && typeof restored === 'object' && restored.qa) {
+          try {
+            var decoded = JSON.parse(atob(String(restored.qa)));
+            if (decoded && typeof decoded === 'object') seed = decoded;
+          } catch (_) { /* defensive — decode failure leaves seed empty */ }
+        }
+      }
+    } catch (_) {}
+
+    if (_quizHandle && typeof _quizHandle.close === 'function') {
+      try { _quizHandle.close(); } catch (_) {}
+    }
+    _quizHandle = HT.quiz.open({
+      mount: mount,
+      questions: LIFESPAN_QUESTIONS,
+      answers: seed,
+      reveal: buildLifespanReveal,
+      storageKey: '_registry-lifespan-simulator',
+      onChange: function (a) {
+        // Mirror quiz answers back into the form-mode state so Plan tab
+        // reads the same numbers the quiz produced. evaluate() + renderResult
+        // would also work but Plan tab reads state.answers directly.
+        state.answers = a;
+      },
+      onComplete: function (a) {
+        // Wire share/print/reset on the reveal panel (one-shot).
+        var revealEl = document.querySelector('#ls-quiz-mount .quiz-reveal');
+        if (!revealEl) return;
+        var share = revealEl.querySelector('[data-action="share"]');
+        var print = revealEl.querySelector('[data-action="print"]');
+        var reset = revealEl.querySelector('[data-action="reset"]');
+        if (share) share.addEventListener('click', function () {
+          var text = revealEl.querySelector('.quiz-reveal-custom') ?
+            revealEl.querySelector('.quiz-reveal-custom').textContent.trim() :
+            revealEl.textContent.trim();
+          HT.copyToClipboard(text);
+          share.textContent = 'Copied!';
+          setTimeout(function () { share.textContent = 'Share summary'; }, 1500);
+        });
+        if (print) print.addEventListener('click', function () {
+          if (HT.share && typeof HT.share.print === 'function') {
+            HT.share.print('lifespan-simulator');
+          }
+        });
+        if (reset) reset.addEventListener('click', function () {
+          if (_quizHandle && typeof _quizHandle.destroy === 'function') {
+            _quizHandle.destroy();
+          } else if (_quizHandle && typeof _quizHandle.close === 'function') {
+            _quizHandle.close();
+          }
+          _quizHandle = null;
+          mountLifespanQuiz();
+        });
+      }
+    });
+
+    return _quizHandle;
+  }
+
+  function toggleQuizMode(force) {
+    var quizMount = document.getElementById('ls-quiz-mount');
+    var formEl = document.querySelector('[data-quiz-host="form"]');
+    var params = null;
+    try { params = new URLSearchParams(window.location.search); } catch (_) {}
+    var want = typeof force === 'boolean' ? force : (params && params.get('view') === 'quiz');
+    if (want) {
+      if (formEl) formEl.hidden = true;
+      if (quizMount) quizMount.hidden = false;
+      mountLifespanQuiz();
+    } else {
+      if (quizMount) quizMount.hidden = true;
+      if (formEl) formEl.hidden = false;
+      if (_quizHandle && typeof _quizHandle.close === 'function') {
+        try { _quizHandle.close(); } catch (_) {}
+        _quizHandle = null;
+      }
+    }
+  }
+
+  function wireQuizToggle() {
+    var btn = document.getElementById('ls-quiz-toggle');
+    if (!btn) return;
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      toggleQuizMode(true);
+    });
+    // Honour ?view=quiz on initial load (no force → reads URL).
+    toggleQuizMode();
   }
 
   window.lifespanSimulatorInit = init;

@@ -57,8 +57,16 @@
       <button class="tab is-active" data-tab="quick" type="button" role="tab">Quick estimate</button>
       <button class="tab" data-tab="full" type="button" role="tab">Full assessment</button>
       <button class="tab" data-tab="plan" type="button" role="tab">Plan your changes</button>
+      <button class="tab ls-quiz-tab" id="ls-quiz-toggle" type="button">Try as quiz</button>
     </div>
 
+    <!-- ============================================================
+         QUIZ / FORM SPLIT (Story 9.13)
+         data-quiz-host="form" wraps all 3 form tab panels so quiz mode
+         can hide them. The quiz mount sits next to it and is shown
+         when ?view=quiz or when the user clicks "Try as quiz".
+         ============================================================ -->
+    <div data-quiz-host="form">
     <!-- ============================================================
          QUICK TAB — Personal + Lifestyle + Habits
          ============================================================ -->
@@ -591,6 +599,13 @@
         </ul>
       </details>
     </div>
+    </div><!-- /data-quiz-host="form" -->
+
+    <!-- Quiz mount (Story 9.13). Hidden by default; revealed when
+         ?view=quiz or when the user clicks "Try as quiz" above.
+         quiz.js + quiz.css lazy-load via the shell-thin Proxy on
+         first HT.quiz.open() call (Story 4c). -->
+    <div id="ls-quiz-mount" hidden role="region" aria-label="Lifespan quiz"></div>
   </main>
   <!-- shell:print-footer (Story 3.10) -->
 <footer class="print-only print-footer" aria-hidden="true">
