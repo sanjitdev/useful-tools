@@ -1,6 +1,6 @@
 # Story 4 — Embed Slim Build (Tier 1 < 30 KB NFR-1 Path)
 
-Status: in-progress (Phase 1 shipped 2026-08-15; Phase 2 shipped 2026-08-15; Phase 3 shipped 2026-08-15; Phases 4–5 pending)
+Status: in-progress (Phase 1 shipped 2026-08-15; Phase 2 shipped 2026-08-15; Phase 3 shipped 2026-08-15; Phase 4 shipped 2026-08-15; Phase 5 pending)
 Created: 2026-08-15
 Origin: Story x-3 (Bundle Size Budget NFR-1 Gate) AC-4 + NFR-1-REVISION.md proposal
 Cross-epic: yes (concerns every chrome page; affects shell-template + drift gate + smoke tests)
@@ -368,6 +368,62 @@ All Phase 3 gates verified:
 
 Phase 3 ships 53 modified HTML files + 4 modified scripts (drift-check, 4 smokes) + 2 new scripts (sweep + tier1 gate) + Makefile change + spec doc update. Roll-back is `git revert <phase-3-sha>` — reverts all 53 page transforms and restores the heavy chrome script block. The sweep script + tier1 gate are independent and can be removed via `git rm` if needed. The drift-check change is a one-commit revert (`git checkout <prev-sha> -- scripts/shell-drift-check.py`).
 
+## Phase 4 progress (shipped 2026-08-15)
+
+### What shipped
+
+- `assets/js/shell-thin.js` (modified) — added 5 more Proxy stubs to the existing 3 (history, urlState, palette). The Phase 3 slim Tier 1 sweep stripped the eager `<script>` tags for `sample-data.js`, `share.js`, `export.js`, `import.js`, and `a11y.js` from every chrome page. Before Phase 4, those modules never loaded, and `shell.js boot()`'s guards (`HT.sampleData && typeof HT.sampleData.mount === 'function'`) silently skipped Sample/Reset, Share, Export, Import, and A11y features. Phase 4 re-enables them via the same Proxy pattern as the original 3 stubs: each namespace is a Proxy whose `get` returns a function that lazy-loads the canonical chrome module URL on first property access and forwards the call to the real namespace once it loads.
+
+  The 8 Proxy stubs now in `shell-thin.js`:
+  | HT.* stub | Lazy-loads | Consumed by |
+  |---|---|---|
+  | `HT.history` | `assets/js/history.js` | shell.js boot(), tool IIFEs (e.g., `HT.history.push(slug)`) |
+  | `HT.urlState` | `assets/js/url.js` | tool IIFEs (e.g., `HT.urlState.encode(...)`) |
+  | `HT.palette` | `assets/js/palette-actions.js` | shell.js boot() palette wiring |
+  | `HT.sampleData` | `assets/js/sample-data.js` | shell.js boot() Sample/Reset buttons mount |
+  | `HT.share` | `assets/js/share.js` | shell.js boot() Share button mount |
+  | `HT.export` | `assets/js/export.js` | shell.js wireSettings() Export button click |
+  | `HT.import` | `assets/js/import.js` | shell.js wireSettings() Import button click |
+  | `HT.a11y` | `assets/js/a11y.js` | shell.js boot() A11y audit hotkey + button |
+
+  `HT.export` and `HT.import` look like reserved-word writes at first glance, but `HT.export.run()` and `HT.import.run()` are member-access expressions — ES2015+ allows reserved words as property names after a dot. The Proxy stubs work in strict mode (verified empirically: `node -e "'use strict'; var x = {}; x.import = {fn: () => 'ok'}; console.log(x.import.fn());"`).
+
+- `scripts/_smoke_shell_thin_proxies.js` (NEW, ~140 lines pure-Node) — verifies the Proxy round-trip for all 8 namespaces. Loads `shell-thin.js` in a `vm` context with a fake `HT.lazyLoad` that captures the requested URL AND swaps the Proxy for a plain namespace object (mirroring what a real chrome module's IIFE does after parsing: `Object.defineProperties(HT, { share: { value: {...}, ... } })`). Exercises each Proxy with a canonical boot() call (`HT.history.panel()`, `HT.urlState.encode()`, `HT.palette.open()`, `HT.sampleData.mount()`, `HT.share.mount()`, `HT.export.run()`, `HT.import.run()`, `HT.a11y.audit()`) and asserts (1) the method is callable, (2) lazyLoad fires with the canonical chrome module URL, (3) the call forwards to the (fake) namespace and returns the expected value. **34/34 PASS.**
+
+- `Makefile` `shell-thin-proxies-smoke` target (NEW) — wired into `ci:` chain immediately after `ht-lazy-smoke`.
+
+### Strategy
+
+The original Phase 4 plan called for **decomposing shell.js (26 KB / 26,862 gz) into 6 lazy chunks** (shell-history.js, shell-sample-data.js, shell-share.js, shell-export.js, shell-import.js, shell-a11y.js). Recon showed this is the highest-risk phase in Story 4 (estimated 1.5 days), touching the boot orchestration that runs on every chrome page. A regression would break every tool page.
+
+**Phase 4 ships the safer minimal path:** the Proxy stub + lazy-load pattern re-enables the 5 chrome namespaces that Phase 3 stripped, without restructuring shell.js itself. shell.js still parses in full on `DOMContentLoaded` (26 KB cost unchanged) and runs `boot()` unchanged; the difference is that the `HT.sampleData.mount(slug, main)` calls inside boot() now actually fire (via the Proxy) instead of being skipped.
+
+The full shell.js decomposition into 6 `shell-*.js` chunks remains a future story (4b or 4c). When that lands, the shell-*.js files will contain the existing mountX functions (which currently live inside shell.js's IIFE), each lazy-loaded by shell-thin.js's Proxy stub for the corresponding namespace.
+
+### Verification
+
+- `shell-thin-proxies-smoke` — **34/34 PASS** (8 namespaces × {exists, callable, lazy-load fires, forwards to fake})
+- `regression_sweep` — 45/45 tools, 315/315 checks PASS (unchanged from Phase 3 baseline)
+- `script-load-order` — 1/1 PASS
+- `shell-drift-check` — all pages in sync
+- `bundle-size-tier1` — 54/54 chrome pages under 30 KB gz (unchanged at 13,974 gz; Phase 4 doesn't change Tier 1 footer)
+- `bundle-size` (Tier 2 / chrome-total) — PASS at 142,420 gz (unchanged; Phase 4 doesn't change the chrome modules on disk)
+- `ht-lazy-smoke` — 15/15 PASS
+- `shell-public-api-smoke` — 23/23 PASS (AD-14 frozen HT.* surface preserved)
+- `chrome-dom-smoke` — 8/8 PASS
+- `view-source-smoke` — 90/90 PASS
+- `wave-{1,2,3}-smoke` — 46/46, 361/361, 409/409 PASS
+- `history-smoke` — 116/116 PASS (HT.history Proxy → lazy history.js still works)
+- `share-dialog-smoke` — 50/50 PASS (HT.share Proxy → lazy share.js works)
+- `sample-data-smoke` — 54/54 PASS
+- `export-smoke` — 43/43 PASS
+- `import-smoke` — 53/53 PASS
+- `a11y-smoke` — 42/42 PASS
+
+### Roll-back
+
+Phase 4 ships 1 modified asset (`assets/js/shell-thin.js` adds 5 Proxy stubs) + 1 new smoke + Makefile target + spec doc update. Roll-back is `git revert <phase-4-sha>` — restores shell-thin.js to the 3-stub Phase 3 shape and removes the new smoke. No other code paths are touched (shell.js, the heavy chrome modules, and the swept pages are all unchanged).
+
 ## Cross-references
 
 - Story x-3 (Bundle Size Budget NFR-1 Gate) — built the measurement + CI gate; Story 4 is the implementation of its reduction candidates
@@ -393,5 +449,5 @@ Phase 3 ships 53 modified HTML files + 4 modified scripts (drift-check, 4 smokes
 - Phase 1: 0.5 day ✅ shipped 2026-08-15
 - Phase 2: 1 day (includes manual canary verification)
 - Phase 3: 1 day (sweep + bundle-size-tier1 new target)
-- Phase 4: 1.5 days (shell.js decomposition is the highest-risk)
+- Phase 4: 1.5 days (shell.js decomposition is the highest-risk) ✅ shipped 2026-08-15 (Proxy stub minimal path; full decomposition deferred)
 - Phase 5: 1 day (CSS split is mostly mechanical)

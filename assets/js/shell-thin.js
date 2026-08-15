@@ -1,23 +1,27 @@
 /* ============================================
-   Handy Tools — shell-thin.js (Story 4, Phase 2)
+   Handy Tools — shell-thin.js (Story 4, Phase 2 + Phase 4)
    Tier 1 boot orchestrator. The slim shell that
    ships on every chrome page in place of
-   shell.js. Phase 2 strategy: lazy-load
-   shell.js on DOMContentLoaded (preserving
-   the existing boot order), with Proxy stubs
-   for HT.history / HT.urlState / HT.palette
-   so tool IIFEs can read those namespaces
-   before shell.js loads (the Proxy triggers
-   the lazy-load transparently).
+   shell.js. Strategy: lazy-load shell.js on
+   DOMContentLoaded (preserving the existing
+   boot order), with Proxy stubs for every
+   chrome namespace (history, urlState, palette,
+   sampleData, share, export, import, a11y) so
+   tool IIFEs and shell.js boot() can read those
+   namespaces before the underlying modules load
+   (the Proxy triggers the lazy-load transparently
+   on first property access).
 
-   Phase 4 will decompose shell.js into
-   shell-history.js + shell-sample-data.js +
-   shell-share.js + shell-export.js +
-   shell-import.js + shell-a11y.js, each
-   loaded on demand. Phase 2 is the safe
-   canary: zero changes to shell.js, just
-   one tool page (qr-code-generator) points
-   at shell-thin.js.
+   Phase 4 re-enables 5 chrome namespaces that
+   the Phase 3 slim Tier 1 sweep stripped from
+   the eager script block (sample-data.js,
+   share.js, export.js, import.js, a11y.js). All
+   8 namespaces now share the same lazy-load
+   pattern. The lazy-load round-trip is
+   transparent: boot()'s `HT.sampleData.mount(slug, main)`
+   hits the Proxy, fires `lazyLoad('assets/js/sample-data.js')`,
+   and forwards to the real `mount` once the
+   module is parsed.
 
    Story 4 — see _bmad-output/implementation-artifacts/
    story-4-embed-slim-build.md
@@ -49,6 +53,17 @@
   // module. The Proxy resolves to the real namespace once shell.js
   // (or history.js) loads.
   //
+  // After Story 4 Phase 3 swept the heavy chrome script block from
+  // every chrome page, the page no longer eagerly loads
+  // sample-data.js, share.js, export.js, import.js, or a11y.js —
+  // those modules now lazy-load on first property access via these
+  // Proxy stubs. The boot() function in shell.js already has
+  // `HT.sampleData && typeof HT.sampleData.mount === 'function'`
+  // guards (and analogously for share / export / import / a11y),
+  // so before Phase 4 those `mount` calls were silently skipped.
+  // Phase 4 re-enables them via the same Proxy pattern used for
+  // history / urlState / palette.
+  //
   // NOTE: We bind to `lazyLoad` from ht-lazy.js which must load
   // BEFORE this file. The script order invariant is:
   //   site-config → storage-registry → utils → ht-lazy → shell-thin
@@ -57,6 +72,17 @@
     history: 'assets/js/history.js',
     urlState: 'assets/js/url.js',
     palette: 'assets/js/palette-actions.js',
+    // Story 4 Phase 4 — re-enable chrome features that the slim Tier 1
+    // sweep stripped from the eager script block. Each of these
+    // namespaces is consumed by shell.js boot() (Sample/Reset → mount,
+    // Share → mount, Export → button, Import → button, A11y audit →
+    // hotkey + button). All of them share the same lazy-load + Proxy
+    // shape as history/urlState/palette.
+    sampleData: 'assets/js/sample-data.js',
+    share: 'assets/js/share.js',
+    exportData: 'assets/js/export.js',
+    importData: 'assets/js/import.js',
+    a11y: 'assets/js/a11y.js',
   };
 
   function ensureLazy() {
@@ -87,6 +113,22 @@
   HT.history  = makeProxy(TIER2_URLS.history, 'history');
   HT.urlState = makeProxy(TIER2_URLS.urlState, 'urlState');
   HT.palette  = makeProxy(TIER2_URLS.palette, 'palette');
+  // Story 4 Phase 4: re-enable lazy-load for the chrome namespaces
+  // that the slim Tier 1 sweep stripped from the eager script block.
+  // Each Proxy property access transparently triggers the lazy-load
+  // and forwards to the real namespace once it resolves.
+  //
+  // HT.export / HT.import look like reserved-word writes at first
+  // glance, but `HT.export.run()` is just a member-access expression
+  // — ES2015+ allows reserved words as property names after a dot.
+  // The Proxy stub lives on HT.export (not HT.exportData), so
+  // boot()'s `HT.export.run()` and `HT.import.run()` find the
+  // Proxy transparently.
+  HT.sampleData = makeProxy(TIER2_URLS.sampleData, 'sampleData');
+  HT.share      = makeProxy(TIER2_URLS.share, 'share');
+  HT.export     = makeProxy(TIER2_URLS.exportData, 'export');
+  HT.import     = makeProxy(TIER2_URLS.importData, 'import');
+  HT.a11y       = makeProxy(TIER2_URLS.a11y, 'a11y');
 
   // ------------------------------------------------------------------
   // DOMContentLoaded → lazy-load shell.js (the real boot orchestrator).
