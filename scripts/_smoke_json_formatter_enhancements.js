@@ -15,7 +15,8 @@ const path = require('path');
 
 const DIFF_PATH = path.resolve(__dirname, '../assets/js/diff.js');
 const SCHEMA_PATH = path.resolve(__dirname, '../assets/js/json-schema-lite.js');
-const TOOL_JS_PATH = path.resolve(__dirname, '../tools/json-formatter/json-formatter.js');
+const TOOL_CORE_PATH = path.resolve(__dirname, '../tools/json-formatter/json-formatter-core.js');
+const TOOL_HANDLERS_PATH = path.resolve(__dirname, '../tools/json-formatter/json-formatter-handlers.js');
 const TOOL_HTML_PATH = path.resolve(__dirname, '../tools/json-formatter/index.html');
 const DIFF_VIEWER_JS_PATH = path.resolve(__dirname, '../tools/diff-viewer/diff-viewer.js');
 const API_CONTRACT_PATH = path.resolve(__dirname, '../assets/js/api-contract.js');
@@ -30,7 +31,8 @@ const {
 } = diffLib;
 const { validate } = schemaLib;
 
-const toolSrc = fs.readFileSync(TOOL_JS_PATH, 'utf8');
+const toolCoreSrc = fs.readFileSync(TOOL_CORE_PATH, 'utf8');
+const toolHandlersSrc = fs.readFileSync(TOOL_HANDLERS_PATH, 'utf8');
 const utilsSrc = fs.readFileSync(UTILS_JS_PATH, 'utf8');
 
 // --- Stub DOM ---
@@ -190,7 +192,11 @@ function loadTool(search) {
   ctx.HT.$ = (sel) => elements[sel] || null;
   ctx.HT.qs = (sel) => elements[sel] || null;
   ctx.window.HT = ctx.HT;
-  vm.runInContext(toolSrc, ctx, { filename: 'json-formatter.js' });
+  vm.runInContext(toolCoreSrc, ctx, { filename: 'json-formatter-core.js' });
+  vm.runInContext(toolHandlersSrc, ctx, { filename: 'json-formatter-handlers.js' });
+  if (typeof ctx.window.jsonFormatterInit === 'function') {
+    ctx.window.jsonFormatterInit();
+  }
   return ctx;
 }
 
@@ -355,7 +361,10 @@ console.log('JSON Formatter Enhancements smoke (Story 9.1):');
 // ============================================================
 {
   // Strip comments and string literals for the bounds check.
-  const stripped = toolSrc
+  // Story 4b Phase 4 — assert bounds on BOTH core (parse-time) and
+  // handlers (lazy chunk).
+  const combined = toolCoreSrc + '\n' + toolHandlersSrc;
+  const stripped = combined
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/\/\/.*$/gm, '');
   // Note: 'localStorage' must NOT appear as a free identifier.
@@ -376,7 +385,7 @@ console.log('JSON Formatter Enhancements smoke (Story 9.1):');
       break;
     }
   }
-  check(boundsOk, `json-formatter.js has no direct localStorage/fetch/HT.provide (${boundsViolated})`);
+  check(boundsOk, `json-formatter-{core,handlers}.js have no direct localStorage/fetch/HT.provide (${boundsViolated})`);
 }
 
 // ============================================================

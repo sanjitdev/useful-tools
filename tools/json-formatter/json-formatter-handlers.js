@@ -1,127 +1,73 @@
 /* ============================================
-   JSON Formatter
-   Format, minify, validate; optional tree view.
-   Story 9.1 — three enhancements gated by ?feature=...
-     ?feature=sort   → Sort keys checkbox
-     ?feature=schema → Schema textarea + Validate
-     ?feature=diff   → JSON-B textarea + Diff
-   The page renders only the controls for the
-   active features. Invalid ?feature=foo is
-   silently dropped (page renders with no
-   enhancements visible).
+   JSON Formatter — json-formatter-handlers.js (Story 4b Phase 4)
+   Lazy chunk: DOM refs, renderTree (DOM-bound), doFormat /
+   doMinify / doValidate / doTree / copyOut / doSchema / doDiff,
+   wireActions, init.
+
+   Loaded via HT.lazyLoadTool('json-formatter', './json-formatter-handlers.js')
+   on DOMContentLoaded by core.js.
+
+   Pure helpers (DEFAULT_INPUT, sortKeysRecursive, parseSafe,
+   escapeHtml, readFeatures) live in core and are read via
+   HT.jsonFormatterCore.
+
+   Story 4b — see _bmad-output/implementation-artifacts/
+   story-4b-per-tool-code-splitting.md
    ============================================ */
 
 (function () {
   'use strict';
 
-  var DEFAULT_INPUT = '{\n  "name": "Handy Tools",\n  "version": 1,\n  "tags": ["utility", "static", "vanilla"],\n  "author": { "name": "you", "email": "you@example.com" },\n  "active": true,\n  "beta": null\n}';
+  if (typeof window === 'undefined' || !window.HT) return;
+  if (!window.HT.jsonFormatterCore) {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('json-formatter-handlers: HT.jsonFormatterCore missing — json-formatter-core.js must load first.');
+    }
+    return;
+  }
+  var HT = window.HT;
+  var core = HT.jsonFormatterCore;
+  var DEFAULT_INPUT = core.getDefaultInput();
+  var escapeHtml = core.escapeHtml;
+  var parseSafe = core.parseSafe;
+  var sortKeysRecursive = core.sortKeysRecursive;
+  var readFeatures = core.readFeatures;
 
-  // ----- DOM lookups -----
-  var input = HT.$('#json-input');
-  var out = HT.$('#output');
-  var status = HT.$('#status');
-  var sortPanel = HT.$('#sort-panel');
-  var sortKeys = HT.$('#sort-keys');
-  var schemaPanel = HT.$('#schema-panel');
-  var schemaInput = HT.$('#schema-input');
-  var schemaErrors = HT.$('#schema-errors');
-  var schemaOk = HT.$('#schema-ok');
-  var runSchema = HT.$('#run-schema');
-  var diffPanel = HT.$('#diff-panel');
-  var inputB = HT.$('#json-input-b');
-  var runDiff = HT.$('#run-diff');
-  var diffOutput = HT.$('#json-diff-output');
-
+  // ---------------------------------------------------------------
+  // DOM refs (populated in init)
+  // ---------------------------------------------------------------
+  var input, out, status, sortPanel, sortKeys;
+  var schemaPanel, schemaInput, schemaErrors, schemaOk, runSchema;
+  var diffPanel, inputB, runDiff, diffOutput;
   var currentPretty = '';
   var currentTree = false;
   var lastParsed = null;
 
-  if (!input.value.trim()) input.value = DEFAULT_INPUT;
-
-  // ----- Feature gating (AC-4) -----
-  // URL is ?feature=sort,schema,diff (comma-separated).
-  // Read directly from the location; no HT.urlState dep for the
-  // toggle panels because they are presentational, not bindable
-  // inputs in the schema.
-  function readFeatures() {
-    try {
-      var params = new URLSearchParams(location.search || '');
-      var raw = (params.get('feature') || '').toLowerCase();
-      if (!raw) return [];
-      var ALLOWED = { sort: 1, schema: 1, diff: 1 };
-      var out = {};
-      raw.split(',').forEach(function (part) {
-        var t = part.trim();
-        if (ALLOWED[t]) out[t] = 1;
-      });
-      return Object.keys(out);
-    } catch (_) {
-      return [];
-    }
-  }
-
-  function applyFeatureGating() {
-    var features = readFeatures();
-    if (sortPanel) sortPanel.hidden = features.indexOf('sort') < 0;
-    if (schemaPanel) schemaPanel.hidden = features.indexOf('schema') < 0;
-    if (diffPanel) diffPanel.hidden = features.indexOf('diff') < 0;
-  }
-
-  // ----- Helpers -----
+  // ---------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------
   function setStatus(text, cls) {
     status.className = cls || '';
     status.textContent = text || '';
-  }
-
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
-
-  function lineColumnOfError(text, err) {
-    var lines = text.split('\n');
-    var matched = /\bline\s+(\d+)\s+column\s+(\d+)/.exec(err.message || '');
-    if (matched) {
-      return 'line ' + matched[1] + ', column ' + matched[2];
-    }
-    var pos = (err.message || '').match(/position\s+(\d+)/);
-    if (pos) {
-      var p = parseInt(pos[1], 10);
-      var upto = text.slice(0, p);
-      var ln = upto.split('\n').length;
-      var col = p - upto.lastIndexOf('\n');
-      return 'around line ' + ln + ', column ' + col;
-    }
-    return err.message || 'parse error';
   }
 
   function getText() {
     return input.value;
   }
 
-  function parseSafe() {
-    var text = getText();
-    try {
-      var parsed = JSON.parse(text);
-      return { ok: true, parsed: parsed, text: text };
-    } catch (e) {
-      return { ok: false, error: lineColumnOfError(text, e) };
-    }
+  // ---------------------------------------------------------------
+  // Feature gating (AC-4)
+  // ---------------------------------------------------------------
+  function applyFeatureGating() {
+    var features = readFeatures(window.location.search);
+    if (sortPanel) sortPanel.hidden = features.indexOf('sort') < 0;
+    if (schemaPanel) schemaPanel.hidden = features.indexOf('schema') < 0;
+    if (diffPanel) diffPanel.hidden = features.indexOf('diff') < 0;
   }
 
-  // ----- AC-1: sortKeys -----
-  function sortKeysRecursive(value) {
-    if (Array.isArray(value)) return value.map(sortKeysRecursive);
-    if (value && typeof value === 'object') {
-      return Object.fromEntries(
-        Object.keys(value).sort().map(function (k) { return [k, sortKeysRecursive(value[k])]; })
-      );
-    }
-    return value;
-  }
-
-  // ----- Tree rendering -----
+  // ---------------------------------------------------------------
+  // Tree rendering
+  // ---------------------------------------------------------------
   function renderTree(value) {
     function render(val, key) {
       var k = '';
@@ -183,14 +129,16 @@
     });
   }
 
-  // ----- Actions -----
+  // ---------------------------------------------------------------
+  // Actions
+  // ---------------------------------------------------------------
   function buildOutput(parsed) {
     var sorted = (sortKeys && sortKeys.checked) ? sortKeysRecursive(parsed) : parsed;
     return JSON.stringify(sorted, null, 2);
   }
 
   function doFormat() {
-    var r = parseSafe();
+    var r = parseSafe(getText());
     if (!r.ok) { setStatus('Invalid JSON: ' + r.error, 'error'); return; }
     lastParsed = r.parsed;
     currentPretty = buildOutput(r.parsed);
@@ -202,7 +150,7 @@
   }
 
   function doMinify() {
-    var r = parseSafe();
+    var r = parseSafe(getText());
     if (!r.ok) { setStatus('Invalid JSON: ' + r.error, 'error'); return; }
     lastParsed = r.parsed;
     var sorted = (sortKeys && sortKeys.checked) ? sortKeysRecursive(r.parsed) : r.parsed;
@@ -214,14 +162,14 @@
   }
 
   function doValidate() {
-    var r = parseSafe();
+    var r = parseSafe(getText());
     if (!r.ok) { setStatus('Invalid JSON: ' + r.error, 'error'); return; }
     lastParsed = r.parsed;
     setStatus('Valid JSON.', 'success');
   }
 
   function doTree() {
-    var r = parseSafe();
+    var r = parseSafe(getText());
     if (!r.ok) { setStatus('Invalid JSON: ' + r.error, 'error'); return; }
     lastParsed = r.parsed;
     var sorted = (sortKeys && sortKeys.checked) ? sortKeysRecursive(r.parsed) : r.parsed;
@@ -237,7 +185,7 @@
     HT.copyToClipboard(currentPretty || (lastParsed ? JSON.stringify(lastParsed, null, 2) : ''));
   }
 
-  // ----- AC-2: Schema validate -----
+  // AC-2: Schema validate
   function doSchema() {
     if (!schemaInput || !schemaErrors || !schemaOk) return;
     schemaErrors.innerHTML = '';
@@ -254,7 +202,7 @@
       renderSchemaErrors([{ path: '', message: 'Invalid schema JSON: ' + e.message }]);
       return;
     }
-    var r = parseSafe();
+    var r = parseSafe(getText());
     if (!r.ok) {
       renderSchemaErrors([{ path: '', message: 'Input JSON is invalid; cannot validate against schema.' }]);
       return;
@@ -282,13 +230,12 @@
     schemaErrors.appendChild(frag);
   }
 
-  // ----- AC-3: Diff -----
+  // AC-3: Diff
   function doDiff() {
     if (!diffOutput) return;
     diffOutput.innerHTML = '';
     var rawA = input.value;
     var rawB = inputB ? inputB.value : '';
-    // Parse both; if either is unparseable, show inline error.
     var parsedA, parsedB;
     try { parsedA = JSON.parse(rawA); } catch (e) {
       renderDiffMessage('JSON A is invalid: ' + e.message, true);
@@ -324,7 +271,9 @@
     diffOutput.appendChild(div);
   }
 
-  // ----- Wiring -----
+  // ---------------------------------------------------------------
+  // Wiring
+  // ---------------------------------------------------------------
   function wireActions() {
     HT.$('#format').addEventListener('click', doFormat);
     HT.$('#minify').addEventListener('click', doMinify);
@@ -336,14 +285,37 @@
     if (runDiff) runDiff.addEventListener('click', doDiff);
   }
 
-  // ----- Boot -----
-  applyFeatureGating();
-  wireActions();
-  doFormat();
+  // ---------------------------------------------------------------
+  // Init
+  // ---------------------------------------------------------------
+  function init() {
+    input = HT.$('#json-input');
+    out = HT.$('#output');
+    status = HT.$('#status');
+    sortPanel = HT.$('#sort-panel');
+    sortKeys = HT.$('#sort-keys');
+    schemaPanel = HT.$('#schema-panel');
+    schemaInput = HT.$('#schema-input');
+    schemaErrors = HT.$('#schema-errors');
+    schemaOk = HT.$('#schema-ok');
+    runSchema = HT.$('#run-schema');
+    diffPanel = HT.$('#diff-panel');
+    inputB = HT.$('#json-input-b');
+    runDiff = HT.$('#run-diff');
+    diffOutput = HT.$('#json-diff-output');
 
-  // Re-apply gating on history navigation. ?feature=… lives in
-  // location.search, so hashchange never fires for query-string
-  // edits — popstate covers back/forward, which is the supported
-  // way to revisit a different feature-set page.
-  window.addEventListener('popstate', applyFeatureGating);
+    if (!input.value.trim()) input.value = DEFAULT_INPUT;
+
+    applyFeatureGating();
+    wireActions();
+    doFormat();
+
+    // Re-apply gating on history navigation. ?feature=… lives in
+    // location.search, so hashchange never fires for query-string
+    // edits — popstate covers back/forward, which is the supported
+    // way to revisit a different feature-set page.
+    window.addEventListener('popstate', applyFeatureGating);
+  }
+
+  window.jsonFormatterInit = init;
 })();
