@@ -1,157 +1,43 @@
 /* ============================================
-   Timestamp Converter
-   Convert between Unix epoch (seconds or ms),
-   ISO 8601, RFC 2822, and human-readable
-   formats. Single + batch modes.
+   Timestamp Converter — timestamp-converter-handlers.js (Story 4b Phase 3)
+   Lazy chunk: DOM refs, render (single + batch), URL state, history,
+   copy buttons, mode toggle, now button, keyboard, init.
 
-   Pure offline — no fetch / XHR / HT.provide.
+   Loaded via HT.lazyLoadTool('timestamp-converter', './timestamp-converter-handlers.js')
+   on DOMContentLoaded by core.js.
+
+   Math/data are read via HT.timestampConverterCore (internal handle).
+
+   Story 4b — see _bmad-output/implementation-artifacts/
+   story-4b-per-tool-code-splitting.md
    ============================================ */
 
 (function () {
   'use strict';
 
-  // ---------------------------------------------------------------
-  // Constants
-  // ---------------------------------------------------------------
-
-  // Unix epoch magnitudes:
-  //   1-10 digits  → seconds  (up to year 2286, 10^10 - 1 = 9999999999)
-  //   11-16 digits → ms       (10^11 = year 1973, 10^16 = year 5138)
-  //   17+ digits   → rejected
-  var UNIX_SECONDS_RE = /^\d{1,10}$/;
-  var UNIX_MILLISECONDS_RE = /^\d{11,16}$/;
-
-  // ISO 8601:
-  //   date-only: YYYY-MM-DD
-  //   datetime: YYYY-MM-DDThh:mm[:ss[.ffff]][Z|±hh[:mm]]
-  var ISO_8601_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
-
-  // RFC 2822: starts with 3-letter weekday + comma
-  var RFC_2822_RE = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\s+\d{2}:\d{2}(:\d{2})?\s+(GMT|[+-]\d{4})$/;
-
-  var MAX_DIGITS = 16;
-
-  var FORMAT_LABELS = {
-    'unix-seconds': 'Unix seconds',
-    'unix-milliseconds': 'Unix milliseconds',
-    'iso-8601': 'ISO 8601',
-    'rfc-2822': 'RFC 2822',
-    'human-utc': 'Human UTC',
-    'human-local': 'Human local'
-  };
-
-  // ---------------------------------------------------------------
-  // Classifier
-  // ---------------------------------------------------------------
-
-  function classify(raw) {
-    if (typeof raw !== 'string') return { kind: 'invalid', reason: 'not a string' };
-    var s = raw.trim();
-    if (s === '') return { kind: 'empty', reason: 'empty input' };
-
-    // Reject leading signs, whitespace, or non-digits for epoch
-    if (/^[+-]/.test(s)) {
-      return { kind: 'invalid', reason: 'signs not allowed' };
+  if (typeof window === 'undefined' || !window.HT) return;
+  if (!window.HT.timestampConverterCore) {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('timestamp-converter-handlers: HT.timestampConverterCore missing — timestamp-converter-core.js must load first.');
     }
-
-    // Try Unix epoch (digits only)
-    if (/^\d+$/.test(s)) {
-      if (s.length > MAX_DIGITS) {
-        return { kind: 'invalid', reason: 'epoch out of range (max ' + MAX_DIGITS + ' digits)' };
-      }
-      if (UNIX_SECONDS_RE.test(s)) {
-        return { kind: 'unix-seconds', seconds: parseInt(s, 10) };
-      }
-      if (UNIX_MILLISECONDS_RE.test(s)) {
-        return { kind: 'unix-milliseconds', ms: parseInt(s, 10) };
-      }
-      return { kind: 'invalid', reason: 'epoch out of range' };
-    }
-
-    // Try ISO 8601
-    if (ISO_8601_RE.test(s)) {
-      var ms = Date.parse(s);
-      if (!isNaN(ms)) {
-        // Detect naive datetime (no timezone marker) for the inline warning.
-        var naive = /T\d{2}:\d{2}/.test(s) && !/(Z|[+-]\d{2}:?\d{2})$/.test(s);
-        return {
-          kind: 'iso-8601',
-          ms: ms,
-          naive: naive,
-          hasTime: /T\d{2}:\d{2}/.test(s)
-        };
-      }
-      return { kind: 'invalid', reason: 'ISO 8601 failed to parse' };
-    }
-
-    // Try RFC 2822
-    if (RFC_2822_RE.test(s)) {
-      var ms2 = Date.parse(s);
-      if (!isNaN(ms2)) {
-        return { kind: 'rfc-2822', ms: ms2 };
-      }
-      return { kind: 'invalid', reason: 'RFC 2822 failed to parse' };
-    }
-
-    return { kind: 'invalid', reason: 'unrecognized format' };
+    return;
   }
+  var HT = window.HT;
+  var core = HT.timestampConverterCore;
+  var FORMAT_LABELS = core.getFormatLabels();
+  var classify = core.classify;
+  var formatOutputs = core.formatOutputs;
 
   // ---------------------------------------------------------------
-  // Formatters
+  // DOM refs (populated in init)
   // ---------------------------------------------------------------
-
-  function toUnixSeconds(ms) {
-    return Math.floor(ms / 1000);
-  }
-
-  function toUnixMs(ms) {
-    return ms;
-  }
-
-  function toIso8601(ms) {
-    return new Date(ms).toISOString();
-  }
-
-  function toRfc2822(ms) {
-    return new Date(ms).toUTCString();
-  }
-
-  function toHumanUtc(ms) {
-    return new Date(ms).toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
-  }
-
-  function toHumanLocal(ms) {
-    try {
-      return new Intl.DateTimeFormat('en-US', {
-        dateStyle: 'medium',
-        timeStyle: 'medium'
-      }).format(new Date(ms));
-    } catch (e) {
-      // Fallback if Intl is missing
-      var d = new Date(ms);
-      return d.toLocaleString();
-    }
-  }
-
-  function formatOutputs(ms) {
-    return {
-      'unix-seconds': String(toUnixSeconds(ms)),
-      'unix-milliseconds': String(toUnixMs(ms)),
-      'iso-8601': toIso8601(ms),
-      'rfc-2822': toRfc2822(ms),
-      'human-utc': toHumanUtc(ms),
-      'human-local': toHumanLocal(ms)
-    };
-  }
-
-  // ---------------------------------------------------------------
-  // DOM rendering
-  // ---------------------------------------------------------------
-
   var inputEl, batchInputEl, singlePanel, batchPanel, batchTableEl, batchCaptionEl;
   var detectedEl, warningEl, errorEl, copyButtons, modeButtons;
   var currentMode = 'single';
 
+  // ---------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------
   function setOutput(id, value) {
     var el = HT.$('#' + id);
     if (el) el.value = value == null ? '' : String(value);
@@ -162,6 +48,18 @@
       .forEach(function (id) { setOutput(id, ''); });
   }
 
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // ---------------------------------------------------------------
+  // DOM rendering — single mode
+  // ---------------------------------------------------------------
   function renderOutputs(ms) {
     var out = formatOutputs(ms);
     Object.keys(out).forEach(function (k) {
@@ -175,6 +73,37 @@
       }[k];
       setOutput(targetId, out[k]);
     });
+  }
+
+  function showDetected(label) {
+    if (!detectedEl) return;
+    detectedEl.textContent = 'Detected: ' + label;
+    detectedEl.hidden = false;
+  }
+  function hideDetected() {
+    if (!detectedEl) return;
+    detectedEl.textContent = '';
+    detectedEl.hidden = true;
+  }
+  function showError(msg) {
+    if (!errorEl) return;
+    errorEl.textContent = msg;
+    errorEl.hidden = false;
+  }
+  function hideError() {
+    if (!errorEl) return;
+    errorEl.textContent = '';
+    errorEl.hidden = true;
+  }
+  function showWarning(msg) {
+    if (!warningEl) return;
+    warningEl.textContent = msg;
+    warningEl.hidden = false;
+  }
+  function hideWarning() {
+    if (!warningEl) return;
+    warningEl.textContent = '';
+    warningEl.hidden = true;
   }
 
   function renderSingle() {
@@ -203,7 +132,6 @@
       ? result.seconds * 1000
       : result.ms;
 
-    // Range check
     if (ms < -8640000000000000 || ms > 8640000000000000) {
       clearOutputs();
       hideDetected();
@@ -220,54 +148,13 @@
       hideWarning();
     }
 
-    // Only mutate URL state and push history on a successful decode.
-    // Empty / invalid input is transient (mid-typing); persisting it to
-    // the URL would create noisy history entries and pollute the shareable
-    // link.
     writeUrlState(inputEl.value, currentMode);
     pushHistory(result.kind, currentMode);
-  }
-
-  function showDetected(label) {
-    if (!detectedEl) return;
-    detectedEl.textContent = 'Detected: ' + label;
-    detectedEl.hidden = false;
-  }
-
-  function hideDetected() {
-    if (!detectedEl) return;
-    detectedEl.textContent = '';
-    detectedEl.hidden = true;
-  }
-
-  function showError(msg) {
-    if (!errorEl) return;
-    errorEl.textContent = msg;
-    errorEl.hidden = false;
-  }
-
-  function hideError() {
-    if (!errorEl) return;
-    errorEl.textContent = '';
-    errorEl.hidden = true;
-  }
-
-  function showWarning(msg) {
-    if (!warningEl) return;
-    warningEl.textContent = msg;
-    warningEl.hidden = false;
-  }
-
-  function hideWarning() {
-    if (!warningEl) return;
-    warningEl.textContent = '';
-    warningEl.hidden = true;
   }
 
   // ---------------------------------------------------------------
   // Batch mode
   // ---------------------------------------------------------------
-
   function renderBatch() {
     if (!batchTableEl || !batchInputEl) return;
     var raw = batchInputEl.value || '';
@@ -312,47 +199,9 @@
     }
   }
 
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  // ---------------------------------------------------------------
-  // Public surface for tests + introspection (HT.timestamp)
-  // ---------------------------------------------------------------
-
-  var HT_TIMESTAMP_HANDLE = Object.freeze({
-    version: '1.0.0',
-    classify: classify,
-    formatOutputs: formatOutputs,
-    toUnixSeconds: toUnixSeconds,
-    toUnixMs: toUnixMs,
-    toIso8601: toIso8601,
-    toRfc2822: toRfc2822,
-    toHumanUtc: toHumanUtc,
-    toHumanLocal: toHumanLocal,
-  });
-
-  try {
-    if (typeof window !== 'undefined') {
-      window.HT_TIMESTAMP = HT_TIMESTAMP_HANDLE;
-    }
-  } catch (e) { /* sandboxed */ }
-
-  try {
-    if (typeof module !== 'undefined' && module.exports) {
-      module.exports = HT_TIMESTAMP_HANDLE;
-    }
-  } catch (e) { /* browser */ }
-
   // ---------------------------------------------------------------
   // Mode toggle
   // ---------------------------------------------------------------
-
   function setMode(mode) {
     currentMode = mode === 'batch' ? 'batch' : 'single';
     if (singlePanel) singlePanel.hidden = (currentMode === 'batch');
@@ -371,7 +220,6 @@
   // ---------------------------------------------------------------
   // URL state
   // ---------------------------------------------------------------
-
   function readUrlState() {
     try {
       var params = new URLSearchParams(window.location.search);
@@ -387,7 +235,6 @@
   function applyUrlState() {
     var state = readUrlState();
 
-    // Embed mode: skip input from URL state
     var isEmbed = false;
     try {
       if (window.HT_SHELL_EMBED === true || window.HT_SHELL_EMBED === 'true') isEmbed = true;
@@ -423,7 +270,6 @@
   // ---------------------------------------------------------------
   // History push
   // ---------------------------------------------------------------
-
   function pushHistory(format, mode) {
     try {
       if (window.HT && HT.history && typeof HT.history.push === 'function') {
@@ -438,7 +284,6 @@
   // ---------------------------------------------------------------
   // Copy buttons
   // ---------------------------------------------------------------
-
   function wireCopyButtons() {
     copyButtons = document.querySelectorAll('[data-action="copy"][data-target]');
     copyButtons.forEach(function (btn) {
@@ -461,7 +306,6 @@
   // ---------------------------------------------------------------
   // Now button
   // ---------------------------------------------------------------
-
   function useNow() {
     if (!inputEl) return;
     inputEl.value = String(Math.floor(Date.now() / 1000));
@@ -471,7 +315,6 @@
   // ---------------------------------------------------------------
   // Init
   // ---------------------------------------------------------------
-
   function init() {
     inputEl = HT.$('#ts-input');
     batchInputEl = HT.$('#ts-batch-input');
@@ -505,7 +348,6 @@
     if (inputEl) inputEl.addEventListener('input', onInput);
     if (batchInputEl) batchInputEl.addEventListener('input', onInput);
 
-    // Keyboard shortcuts
     document.addEventListener('keydown', function (ev) {
       var target = ev.target;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
@@ -531,9 +373,5 @@
     applyUrlState();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  window.timestampConverterInit = init;
 })();

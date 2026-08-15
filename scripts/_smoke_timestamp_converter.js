@@ -16,10 +16,11 @@ const vm = require('vm');
 const path = require('path');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
-const TOOL_SRC = fs.readFileSync(
-  path.join(REPO_ROOT, 'tools/timestamp-converter/timestamp-converter.js'),
-  'utf8'
-);
+// Story 4b Phase 3 — timestamp-converter split into core + handlers.
+const TOOL_CORE_PATH = path.join(REPO_ROOT, 'tools/timestamp-converter/timestamp-converter-core.js');
+const TOOL_HANDLERS_PATH = path.join(REPO_ROOT, 'tools/timestamp-converter/timestamp-converter-handlers.js');
+const TOOL_SRC = fs.readFileSync(TOOL_CORE_PATH, 'utf8');
+const TOOL_HANDLERS_SRC = fs.readFileSync(TOOL_HANDLERS_PATH, 'utf8');
 
 let pass = 0;
 let fail = 0;
@@ -356,7 +357,12 @@ function buildAndLoad(search) {
   ctx.module.exports = ctx.exports;
 
   vm.createContext(ctx);
-  vm.runInContext(TOOL_SRC, ctx, { filename: 'timestamp-converter.js' });
+  // Story 4b Phase 3 — load core then handlers then call init.
+  vm.runInContext(TOOL_SRC, ctx, { filename: 'timestamp-converter-core.js' });
+  vm.runInContext(TOOL_HANDLERS_SRC, ctx, { filename: 'timestamp-converter-handlers.js' });
+  if (typeof ctx.window.timestampConverterInit === 'function') {
+    ctx.window.timestampConverterInit();
+  }
 
   return { ctx, elements, modeButtonsArr, copyButtonsArr, historyCalls, fetchCalls, xhrCalls, modeSingleBtn, modeBatchBtn };
 }
@@ -377,7 +383,11 @@ function buildAndLoad(search) {
   // Reload to honor embed
   const env2 = buildAndLoad('?input=' + REF_EPOCH_S + '&embed=1');
   env2.ctx.window.HT_SHELL_EMBED = true;
-  vm.runInContext(TOOL_SRC, env2.ctx, { filename: 'timestamp-converter.js' });
+  vm.runInContext(TOOL_SRC, env2.ctx, { filename: 'timestamp-converter-core.js' });
+  vm.runInContext(TOOL_HANDLERS_SRC, env2.ctx, { filename: 'timestamp-converter-handlers.js' });
+  if (typeof env2.ctx.window.timestampConverterInit === 'function') {
+    env2.ctx.window.timestampConverterInit();
+  }
   check(env2.elements['#ts-input']._v === '',
     'URL state + embed: input NOT populated (privacy)');
 }
