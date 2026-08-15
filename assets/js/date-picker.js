@@ -215,6 +215,10 @@
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December',
   ];
+  var MONTHS_SHORT = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
 
   /* ----- Date math (Section C) -----
      Single source of truth — all date manipulation goes through
@@ -486,8 +490,19 @@
   function _renderGrid(state) {
     var dlg = state.dlg;
     if (!dlg) return;
+    // Dispatch on mode — Story 9.19.5 (inlined into 9.19.1 hotfix 4).
+    if (state.mode === 'months') return _renderMonths(state);
+    if (state.mode === 'years')  return _renderYears(state);
+    return _renderDays(state);
+  }
+
+  function _renderDays(state) {
+    var dlg = state.dlg;
+    if (!dlg) return;
     var grid = dlg.grid;
     clearChildren(grid);
+    grid.classList.remove('date-picker-grid--narrow');
+    if (dlg.dlg && dlg.dlg.classList) dlg.dlg.classList.remove('date-picker-dialog--month-year-mode');
 
     var startIso = gridStart(state.view);
     var todayIso = isoToday();
@@ -549,6 +564,105 @@
     }
   }
 
+  // Render the 12-month grid for state.view.y. Click a month to drill
+  // back down to the day grid. Disabled months are outside min/max.
+  function _renderMonths(state) {
+    var dlg = state.dlg;
+    if (!dlg) return;
+    var grid = dlg.grid;
+    clearChildren(grid);
+    // Switch to a 4-column grid (the days mode uses 7). The class
+    // also hides the weekday strip via the .date-picker-dialog--month-
+    // year-mode selector in CSS.
+    grid.classList.add('date-picker-grid--narrow');
+    if (dlg.dlg && dlg.dlg.classList) dlg.dlg.classList.add('date-picker-dialog--month-year-mode');
+
+    var minIso = state.minIso || null;
+    var maxIso = state.maxIso || null;
+    var y = state.view.y;
+
+    // Header — show only the year.
+    dlg.monthLabel.textContent = '';
+    dlg.yearLabel.textContent  = String(y);
+    dlg.gridLabel.textContent  = String(y);
+
+    var focusMonth = state.view.m;
+    state.view.m = focusMonth;
+
+    for (var m = 1; m <= 12; m += 1) {
+      var isFocused = (m === focusMonth);
+      var minY = minIso ? parseInt(minIso.slice(0, 4), 10) : null;
+      var maxY = maxIso ? parseInt(maxIso.slice(0, 4), 10) : null;
+      var isDisabled = (minY != null && y < minY) || (maxY != null && y > maxY) ||
+                       (minY != null && y === minY && m < parseInt(minIso.slice(5, 7), 10)) ||
+                       (maxY != null && y === maxY && m > parseInt(maxIso.slice(5, 7), 10));
+      var classes = ['date-picker-month'];
+      if (isFocused) classes.push('date-picker-month--focused');
+
+      var attrs = {
+        type: 'button',
+        role: 'gridcell',
+        class: classes.join(' '),
+        dataset: { month: String(m) },
+        tabindex: isFocused ? '0' : '-1',
+        'aria-label': MONTHS_LONG[m - 1] + ' ' + y,
+      };
+      if (isDisabled) {
+        attrs.disabled = true;
+        attrs['aria-label'] = MONTHS_LONG[m - 1] + ' ' + y + ', unavailable';
+      }
+      attrs.text = MONTHS_SHORT[m - 1];
+      grid.appendChild(el('button', attrs));
+    }
+  }
+
+  // Render the 12-year grid (3 rows × 4 cols) for the current decade.
+  // The decade is state.view.y - (state.view.y % 10). Click a year to
+  // drill into the months view for that year.
+  function _renderYears(state) {
+    var dlg = state.dlg;
+    if (!dlg) return;
+    var grid = dlg.grid;
+    clearChildren(grid);
+    grid.classList.add('date-picker-grid--narrow');
+    if (dlg.dlg && dlg.dlg.classList) dlg.dlg.classList.add('date-picker-dialog--month-year-mode');
+
+    var minIso = state.minIso || null;
+    var maxIso = state.maxIso || null;
+    var focusYear = state.view.y;
+    var decadeStart = focusYear - (focusYear % 10);
+
+    // Header — show the decade range.
+    dlg.monthLabel.textContent = '';
+    dlg.yearLabel.textContent  = decadeStart + ' – ' + (decadeStart + 9);
+    dlg.gridLabel.textContent  = decadeStart + ' – ' + (decadeStart + 9);
+
+    for (var i = 0; i < 12; i += 1) {
+      var y = decadeStart + i;
+      var isFocused = (y === focusYear);
+      var minY = minIso ? parseInt(minIso.slice(0, 4), 10) : null;
+      var maxY = maxIso ? parseInt(maxIso.slice(0, 4), 10) : null;
+      var isDisabled = (minY != null && y < minY) || (maxY != null && y > maxY);
+      var classes = ['date-picker-year'];
+      if (isFocused) classes.push('date-picker-year--focused');
+
+      var attrs = {
+        type: 'button',
+        role: 'gridcell',
+        class: classes.join(' '),
+        dataset: { year: String(y) },
+        tabindex: isFocused ? '0' : '-1',
+        'aria-label': String(y),
+      };
+      if (isDisabled) {
+        attrs.disabled = true;
+        attrs['aria-label'] = y + ', unavailable';
+      }
+      attrs.text = String(y);
+      grid.appendChild(el('button', attrs));
+    }
+  }
+
   /* ----- Keyboard nav (Section G) -----
      Roving focus on the grid. Arrow keys move 1 day (with row-wrap
      for left/right). PgUp/PgDn shifts month. Shift+PgUp/PgDn shifts
@@ -573,7 +687,10 @@
 
   function _focusFocusedCell(state) {
     var grid = state.dlg.grid;
-    var focused = grid.querySelector('.date-picker-day--focused');
+    var selector = state.mode === 'months' ? '.date-picker-month--focused'
+                  : state.mode === 'years'  ? '.date-picker-year--focused'
+                  : '.date-picker-day--focused';
+    var focused = grid.querySelector(selector);
     if (focused && typeof focused.focus === 'function') {
       try { focused.focus(); } catch (_) {}
     }
@@ -583,9 +700,54 @@
     // Keydown is delegated on the dialog (capture-phase) so it works
     // even if a cell doesn't have focus initially. We route by event
     // target to the active state.
+    //
+    // Story 9.19.5 (inlined into 9.19.1 hotfix 4): keyboard behavior
+    // adapts to the active mode. In days mode, arrows move by day and
+    // PgUp/PgDn navigate months. In months mode, arrows move by month
+    // (3 across the 4-col grid) and PgUp/PgDn navigate years. In years
+    // mode, arrows move by year (3 across the 4-col grid) and PgUp/PgDn
+    // navigate decades. Enter/Space drill down or commit.
     function onKey(e) {
       if (!state.isOpen) return;
       var key = e.key;
+
+      // Mode-aware arrow keys.
+      if (state.mode === 'months') {
+        if (key === 'ArrowLeft')   { e.preventDefault(); _moveMonthFocus(state, -1); }
+        else if (key === 'ArrowRight')  { e.preventDefault(); _moveMonthFocus(state, 1); }
+        else if (key === 'ArrowUp')     { e.preventDefault(); _moveMonthFocus(state, -4); }
+        else if (key === 'ArrowDown')   { e.preventDefault(); _moveMonthFocus(state, 4); }
+        else if (key === 'PageUp')  { e.preventDefault(); state.view.y -= 1; _renderGrid(state); _focusFocusedCell(state); }
+        else if (key === 'PageDown'){ e.preventDefault(); state.view.y += 1; _renderGrid(state); _focusFocusedCell(state); }
+        else if (key === 'Home')    { e.preventDefault(); state.view.m = 1; _renderGrid(state); _focusFocusedCell(state); }
+        else if (key === 'End')     { e.preventDefault(); state.view.m = 12; _renderGrid(state); _focusFocusedCell(state); }
+        else if (key === 'Enter' || key === ' ') {
+          e.preventDefault();
+          // Drill into days mode for the current month.
+          state.mode = 'days';
+          _renderGrid(state); _focusFocusedCell(state);
+        }
+        return;
+      }
+      if (state.mode === 'years') {
+        if (key === 'ArrowLeft')   { e.preventDefault(); _moveYearFocus(state, -1); }
+        else if (key === 'ArrowRight')  { e.preventDefault(); _moveYearFocus(state, 1); }
+        else if (key === 'ArrowUp')     { e.preventDefault(); _moveYearFocus(state, -4); }
+        else if (key === 'ArrowDown')   { e.preventDefault(); _moveYearFocus(state, 4); }
+        else if (key === 'PageUp')  { e.preventDefault(); state.view.y -= 10; _renderGrid(state); _focusFocusedCell(state); }
+        else if (key === 'PageDown'){ e.preventDefault(); state.view.y += 10; _renderGrid(state); _focusFocusedCell(state); }
+        else if (key === 'Home')    { e.preventDefault(); state.view.y = state.view.y - (state.view.y % 10); _renderGrid(state); _focusFocusedCell(state); }
+        else if (key === 'End')     { e.preventDefault(); state.view.y = state.view.y - (state.view.y % 10) + 9; _renderGrid(state); _focusFocusedCell(state); }
+        else if (key === 'Enter' || key === ' ') {
+          e.preventDefault();
+          // Drill into months mode for the current year.
+          state.mode = 'months';
+          _renderGrid(state); _focusFocusedCell(state);
+        }
+        return;
+      }
+
+      // days mode (default)
       if (key === 'ArrowLeft')  { e.preventDefault(); _moveFocus(state, -1); }
       else if (key === 'ArrowRight') { e.preventDefault(); _moveFocus(state, 1); }
       else if (key === 'ArrowUp')    { e.preventDefault(); _moveFocus(state, -7); }
@@ -649,6 +811,24 @@
     state.dlg.dlg.addEventListener('keydown', onKey, true);
   }
 
+  // Move the focused month in months mode. Wraps Jan ↔ Dec.
+  function _moveMonthFocus(state, delta) {
+    var m = state.view.m + delta;
+    while (m < 1)  { m += 12; state.view.y -= 1; }
+    while (m > 12) { m -= 12; state.view.y += 1; }
+    state.view.m = m;
+    _renderGrid(state);
+    _focusFocusedCell(state);
+  }
+
+  // Move the focused year in years mode. Clamps to the current
+  // decade; PgUp/PgDn changes the decade.
+  function _moveYearFocus(state, delta) {
+    state.view.y = state.view.y + delta;
+    _renderGrid(state);
+    _focusFocusedCell(state);
+  }
+
   /* ----- Open / close / click-outside (Section H + I) -----
      On open: capture sourceEl (input), read min/max/value, set view
      to the value's month (or today), render grid, position dialog,
@@ -707,6 +887,8 @@
       }
       return;
     }
+    // Story 9.19.5 — always reset to days mode when (re)opening.
+    state.mode = 'days';
     state.sourceEl = (typeof document !== 'undefined' && document.activeElement) || state.input;
     // Read min/max/value from input. ISO source of truth.
     state.minIso = parseISO(state.input.getAttribute('min')) ? state.input.getAttribute('min') : null;
@@ -763,12 +945,37 @@
       if (st) _closeDialog(st);
     });
 
-    // Click on a day cell → select.
+    // Click on a grid cell — dispatch by mode (Story 9.19.5, inlined
+    // into 9.19.1 hotfix 4). Days mode commits; months/years drill
+    // down to the next mode.
     d.grid.addEventListener('click', function (e) {
       var st = _activeState();
       if (!st) return;
       var target = e.target;
       if (!target || typeof target.closest !== 'function') return;
+      if (st.mode === 'months') {
+        var mcell = target.closest('.date-picker-month');
+        if (!mcell || mcell.disabled) return;
+        var m = parseInt(mcell.getAttribute('data-month'), 10);
+        if (!isFinite(m)) return;
+        st.view.m = m;
+        st.mode = 'days';
+        _renderGrid(st);
+        _focusFocusedCell(st);
+        return;
+      }
+      if (st.mode === 'years') {
+        var ycell = target.closest('.date-picker-year');
+        if (!ycell || ycell.disabled) return;
+        var y = parseInt(ycell.getAttribute('data-year'), 10);
+        if (!isFinite(y)) return;
+        st.view.y = y;
+        st.mode = 'months';
+        _renderGrid(st);
+        _focusFocusedCell(st);
+        return;
+      }
+      // days mode (default)
       var cell = target.closest('.date-picker-day');
       if (!cell || cell.disabled) return;
       var iso = cell.getAttribute('data-date');
@@ -777,25 +984,41 @@
       }
     });
 
-    // Prev / Next month nav.
+    // Prev / Next — navigate by month/year/decade depending on mode.
     d.prevBtn.addEventListener('click', function () {
       var st = _activeState();
       if (!st) return;
-      st.view = addMonths(st.view, -1);
+      if (st.mode === 'years') {
+        st.view.y = st.view.y - 10;
+      } else if (st.mode === 'months') {
+        st.view.y = st.view.y - 1;
+      } else {
+        st.view = addMonths(st.view, -1);
+      }
       _renderGrid(st); _focusFocusedCell(st);
     });
     d.nextBtn.addEventListener('click', function () {
       var st = _activeState();
       if (!st) return;
-      st.view = addMonths(st.view, 1);
+      if (st.mode === 'years') {
+        st.view.y = st.view.y + 10;
+      } else if (st.mode === 'months') {
+        st.view.y = st.view.y + 1;
+      } else {
+        st.view = addMonths(st.view, 1);
+      }
       _renderGrid(st); _focusFocusedCell(st);
     });
 
-    // Title button — placeholder for year picker (Story 9.19.5). v1
-    // just toggles the year nav. We keep the button for layout but
-    // make it a no-op for now.
+    // Title button — drill UP one mode: days → months → years → days.
     d.titleBtn.addEventListener('click', function () {
-      // No-op v1; future Story 9.19.5 (decade jump) wires this.
+      var st = _activeState();
+      if (!st) return;
+      if (st.mode === 'days') st.mode = 'months';
+      else if (st.mode === 'months') st.mode = 'years';
+      else st.mode = 'days';
+      _renderGrid(st);
+      _focusFocusedCell(st);
     });
 
     // Today / Clear.
@@ -806,6 +1029,7 @@
       st.focusedIso = clampToBounds(today, st.minIso, st.maxIso) || today;
       var tp = parseISO(st.focusedIso);
       if (tp) st.view = { y: tp.y, m: tp.m };
+      st.mode = 'days';
       _renderGrid(st); _focusFocusedCell(st);
     });
     d.clearBtn.addEventListener('click', function () {
@@ -1817,20 +2041,40 @@
      Capture-phase mousedown listener on document. If the click is
      outside the dialog AND outside the source input, close. Mirrors
      help-overlay.js:539-551.
+
+     Native <dialog> backdrop quirk: clicking on the backdrop (the
+     dimmed area around the modal) sets e.target === dialog (NOT a
+     child of the dialog). The .closest('.date-picker-dialog')
+     check would still match (the dialog has the class) and we'd
+     incorrectly treat the backdrop click as "inside the dialog"
+     → no close. Fix: if e.target === dialog, the user clicked on
+     the backdrop area (between the dialog's bounding box and the
+     viewport edge), so close.
+
+     The global listener is attached ONCE and dispatches per-instance
+     via _activeState(). All three variants (date / time / date-time)
+     share the same backdrop close behavior.
   */
+  var _clickOutsideWired = false;
   function _wireClickOutside() {
-    if (_dlg && _dlg._clickOutsideWired) return;
+    if (_clickOutsideWired) return;
+    _clickOutsideWired = true;
     function onDocMouseDown(e) {
       var st = _activeState();
       if (!st) return;
       var target = e.target;
       if (!target || typeof target.closest !== 'function') return;
+      if (st.dlg && st.dlg.dlg && target === st.dlg.dlg) {
+        // Backdrop click — close (the dialog itself was clicked but
+        // not any of its children; e.target === dialog).
+        _closeDialog(st);
+        return;
+      }
       if (target.closest('.date-picker-dialog')) return;       // inside dialog
       if (st.input && target === st.input) return;             // source input
       _closeDialog(st);
     }
     document.addEventListener('mousedown', onDocMouseDown, true);
-    if (_dlg) _dlg._clickOutsideWired = true;
   }
 
   /* ----- Per-input wiring (Section J) -----
@@ -1892,6 +2136,12 @@
       dlg: _ensureDialog(),
       sourceEl: null,
       view: { y: 0, m: 1 },
+      // Story 9.19.5 (inlined into 9.19.1 hotfix 4): the title
+      // button cycles the grid through three modes — 'days' shows
+      // the month grid, 'months' shows the 12-month grid for the
+      // current year, 'years' shows the 12-year grid for the
+      // current decade. Click a month/year cell to drill down.
+      mode: 'days',
       selected: null,
       focusedIso: null,
       isOpen: false,

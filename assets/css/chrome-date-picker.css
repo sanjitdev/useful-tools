@@ -143,6 +143,23 @@
   padding: 2px;
 }
 
+/* Story 9.19.5 (inlined into 9.19.1 hotfix 4): 12-cell month/year
+   grids use a 4-column layout (3 rows × 4 cols). The
+   _renderMonths / _renderYears functions add this class to the grid
+   container AND to the dialog (so we can hide the weekday strip
+   without relying on the :has() selector — older browsers don't
+   support it). */
+.date-picker-grid--narrow {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Hide the weekday header strip in months/years mode; the picker
+   doesn't render it because the cells aren't day-aligned. We toggle
+   this via dialog-level class instead of :has() for broader support. */
+.date-picker-dialog.date-picker-dialog--month-year-mode .date-picker-weekdays {
+  display: none;
+}
+
 .date-picker-day {
   background: transparent;
   border: 1px solid transparent;
@@ -196,6 +213,57 @@
 .date-picker-day--disabled {
   color: var(--color-text-muted, rgba(26, 29, 41, 0.25));
   cursor: not-allowed;
+}
+
+/* Story 9.19.5 (inlined into 9.19.1 hotfix 4): month + year cells.
+   Same visual language as date-picker-day — transparent, rounded,
+   focus ring, primary-soft hover. The cells are 3×4 layouts (12
+   months per year, 12 years per decade), so they're sized larger
+   than the day cells (each day cell is 1/7 of the grid width). */
+.date-picker-month,
+.date-picker-year {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-text, #1a1d29);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 0;
+  height: 56px;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.date-picker-month:hover:not(:disabled),
+.date-picker-year:hover:not(:disabled) {
+  background: var(--color-primary-soft, rgba(48, 105, 232, 0.08));
+  border-color: var(--color-primary, #3169e8);
+}
+
+.date-picker-month:focus-visible,
+.date-picker-year:focus-visible {
+  outline: 2px solid var(--color-primary, #3169e8);
+  outline-offset: 2px;
+}
+
+.date-picker-month--focused,
+.date-picker-year--focused {
+  outline: 2px solid var(--color-primary, #3169e8);
+  outline-offset: -2px;
+}
+
+.date-picker-month:disabled,
+.date-picker-month--disabled,
+.date-picker-year:disabled,
+.date-picker-year--disabled {
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.25));
+  cursor: not-allowed;
+}
+
+:root[data-theme="dark"] .date-picker-month,
+:root[data-theme="dark"] .date-picker-year {
+  color: var(--color-text, #e8eaf0);
 }
 
 :root[data-theme="dark"] .date-picker-day {

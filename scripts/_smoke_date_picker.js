@@ -156,6 +156,73 @@ function buildCtx() {
             return node.getAttribute('data-' + k);
           },
         });
+        // classList stub (mirror browser's DOMTokenList). Story
+        // 9.19.5 (inlined into 9.19.1 hotfix 4) toggles
+        // .date-picker-grid--narrow on the grid element when the
+        // picker is in months/years mode. Reads from node.className
+        // (which the el() helper sets) so the stub stays consistent
+        // with the actual DOM.
+        const parseClasses = function () {
+          return (' ' + (node.className || '').trim() + ' ').split(/\s+/).filter(function (x) { return x; });
+        };
+        const writeClasses = function (arr) {
+          node.className = arr.join(' ');
+        };
+        node.classList = {
+          add: function (c) {
+            const cur = parseClasses();
+            if (cur.indexOf(c) < 0) cur.push(c);
+            writeClasses(cur);
+          },
+          remove: function (c) {
+            writeClasses(parseClasses().filter(function (x) { return x !== c; }));
+          },
+          contains: function (c) { return parseClasses().indexOf(c) >= 0; },
+          toggle: function (c, on) {
+            const has = parseClasses().indexOf(c) >= 0;
+            if (on === undefined) on = !has;
+            if (on) this.add(c); else this.remove(c);
+          },
+        };
+        // querySelector stub: real browsers traverse descendants
+        // looking for a class match. We walk childNodes and match on
+        // the literal className string. Used by _focusFocusedCell
+        // and the smoke tests in §XXIV-XXV.
+        node.querySelector = function (sel) {
+          const m = sel && sel.match(/^\.([\w-]+)$/);
+          if (!m) return null;
+          const target = m[1];
+          const stack = this.childNodes.slice();
+          while (stack.length) {
+            const cur = stack.shift();
+            if (!cur) continue;
+            if (cur.classList && cur.classList.contains(target)) return cur;
+            if (cur.childNodes && cur.childNodes.length) stack.push.apply(stack, cur.childNodes);
+          }
+          return null;
+        };
+        node.querySelectorAll = function (sel) {
+          const m = sel && sel.match(/^\.([\w-]+)$/);
+          if (!m) return [];
+          const target = m[1];
+          const out = [];
+          const stack = this.childNodes.slice();
+          while (stack.length) {
+            const cur = stack.shift();
+            if (!cur) continue;
+            if (cur.classList && cur.classList.contains(target)) out.push(cur);
+            if (cur.childNodes && cur.childNodes.length) stack.push.apply(stack, cur.childNodes);
+          }
+          return out;
+        };
+        // closest() stub: real browsers walk up the parent chain. The
+        // picker is flat (cells are direct children of the grid), so
+        // .closest('.date-picker-year') just checks self.
+        node.closest = function (sel) {
+          const m = sel && sel.match(/^\.([\w-]+)$/);
+          if (!m) return null;
+          return node.classList && node.classList.contains(m[1]) ? node : null;
+        };
         return node;
       },
       createDocumentFragment: function () {
@@ -206,6 +273,30 @@ function loadInto(ctx, src, label) {
     fail += 1;
     return false;
   }
+}
+
+// Story 9.19.5 (inlined into 9.19.1 hotfix 4) — module-scope
+// helper, used by §§XXIII–XXV. Builds an input stub with a real
+// addEventListener that records every handler so tests can call
+// them. The smoke buildCtx() stub's createElement(node) lacks
+// addEventListener on the input, so we provide our own.
+function makeInputStub(type, id, value) {
+  const listeners = {};
+  return {
+    tagName: 'INPUT', nodeName: 'INPUT', type: type,
+    id: id, name: id, value: value || '',
+    min: '', max: '', className: 'input js-' + (type === 'date' ? 'date' : (type === 'time' ? 'time' : 'date-time')) + '-picker',
+    attributes: { type: type, class: 'input js-' + (type === 'date' ? 'date' : (type === 'time' ? 'time' : 'date-time')) + '-picker', id: id, name: id },
+    setAttribute: function (k, v) { this.attributes[k] = String(v); },
+    getAttribute: function (k) { return this.attributes[k] || null; },
+    addEventListener: function (t, h) { (listeners[t] = listeners[t] || []).push(h); },
+    removeEventListener: function () {},
+    focus: function () {},
+    dispatchEvent: function () { return true; },
+    classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
+    getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
+    _fire: function (t, ev) { (listeners[t] || []).forEach(function (h) { h(ev || {}); }); },
+  };
 }
 
 // =============================================================
@@ -1761,27 +1852,6 @@ console.log('--- XXII. CSS URL resolution — repo-root base, not page URL ---')
 // test doesn't depend on the JSDOM dialog being perfectly rendered.
 console.log('--- XXIII. input click dispatch on state.type ---');
 {
-  // Helper: build an input stub with a real addEventListener that
-  // records every handler so the test can call them.
-  function makeInputStub(type, id, value) {
-    const listeners = {};
-    return {
-      tagName: 'INPUT', nodeName: 'INPUT', type: type,
-      id: id, name: id, value: value || '',
-      min: '', max: '', className: 'input js-' + (type === 'date' ? 'date' : (type === 'time' ? 'time' : 'date-time')) + '-picker',
-      attributes: { type: type, class: 'input js-' + (type === 'date' ? 'date' : (type === 'time' ? 'time' : 'date-time')) + '-picker', id: id, name: id },
-      setAttribute: function (k, v) { this.attributes[k] = String(v); },
-      getAttribute: function (k) { return this.attributes[k] || null; },
-      addEventListener: function (t, h) { (listeners[t] = listeners[t] || []).push(h); },
-      removeEventListener: function () {},
-      focus: function () {},
-      dispatchEvent: function () { return true; },
-      classList: { contains: function () { return false; }, add: function () {}, remove: function () {} },
-      getBoundingClientRect: function () { return { top: 0, left: 0, right: 100, bottom: 30, width: 100, height: 30 }; },
-      _fire: function (t, ev) { (listeners[t] || []).forEach(function (h) { h(ev || {}); }); },
-    };
-  }
-
   // --- TIME input click ---
   {
     const ctx = buildCtx();
@@ -1914,6 +1984,254 @@ console.log('--- XXIII. input click dispatch on state.type ---');
     dateTimeInput._fire('keydown', ev);
     check(handle.isOpen() === true, 'datetime-local: Enter keydown on input opens the date-time dialog (not the date one)');
   }
+}
+
+// =============================================================
+// XXIV. click-outside closes the dialog (backdrop + document click)
+// =============================================================
+//
+// Bug: native <dialog> backdrop click sets e.target === dialog.
+// _wireClickOutside() was checking `target.closest('.date-picker-
+// dialog')` which always matches the dialog itself, so the listener
+// incorrectly thought "click is inside the dialog" → never closed.
+//
+// Fix: detect e.target === dialog (a backdrop click) and close.
+//
+// This section verifies the backdrop-close logic by intercepting
+// the document.addEventListener call (the smoke stub drops them by
+// default; we replace with a recording stub).
+console.log('--- XXIV. click-outside closes the dialog ---');
+{
+  // buildCtx overrides: replace document.addEventListener with a
+  // recording stub. Returns the listeners registry so we can invoke
+  // the mousedown handler with a fake target.
+  function setupWithListenerCapture() {
+    const ctx = buildCtx();
+    ctx.document.currentScript = { src: 'http://127.0.0.1:5500/assets/js/date-picker.js' };
+    ctx.window.location = {
+      href: 'http://127.0.0.1:5500/tools/age-calculator/index.html',
+      origin: 'http://127.0.0.1:5500',
+      pathname: '/tools/age-calculator/index.html',
+    };
+    ctx.document.URL = ctx.window.location.href;
+    ctx.document._listeners = {};
+    ctx.document.addEventListener = function (type, handler /*, capture */) {
+      (ctx.document._listeners[type] = ctx.document._listeners[type] || []).push(handler);
+    };
+    loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XXIV capture)');
+    return ctx;
+  }
+
+  function fireMousedown(ctx, target) {
+    const ev = { type: 'mousedown', target: target, preventDefault: function () {} };
+    const ls = (ctx.document._listeners && ctx.document._listeners.mousedown) || [];
+    for (let i = 0; i < ls.length; i += 1) {
+      try { ls[i](ev); } catch (_) {}
+    }
+  }
+
+  // --- date picker: backdrop click closes ---
+  {
+    const ctx = setupWithListenerCapture();
+    const input = makeInputStub('date', 'dob', '2026-01-15');
+    const handle = ctx.HT.datePicker.enhance(input, {});
+    handle.open();
+    check(handle.isOpen() === true, 'date: dialog is open before backdrop click');
+    // Bug repro: with v1 code, target===dialog → closest('.date-picker-dialog')
+    // returns the dialog → "inside dialog" → no close. Fix: explicit
+    // target===dialog check fires first.
+    const dialogNode = handle._state.dlg.dlg;
+    dialogNode.closest = function (sel) {
+      if (sel === '.date-picker-dialog') return dialogNode;
+      return null;
+    };
+    fireMousedown(ctx, dialogNode);
+    check(handle.isOpen() === false, 'date: mousedown with target===<dialog> closes the dialog (backdrop click)');
+  }
+
+  // --- date picker: click on a child cell does NOT close ---
+  {
+    const ctx = setupWithListenerCapture();
+    const input = makeInputStub('date', 'dob', '2026-01-15');
+    const handle = ctx.HT.datePicker.enhance(input, {});
+    handle.open();
+    const dialogNode = handle._state.dlg.dlg;
+    const fakeChild = {
+      closest: function (sel) { return sel === '.date-picker-dialog' ? dialogNode : null; },
+    };
+    fireMousedown(ctx, fakeChild);
+    check(handle.isOpen() === true, 'date: mousedown on a child of the dialog does NOT close');
+  }
+
+  // --- date picker: mousedown outside the dialog (body) closes ---
+  {
+    const ctx = setupWithListenerCapture();
+    const input = makeInputStub('date', 'dob', '2026-01-15');
+    const handle = ctx.HT.datePicker.enhance(input, {});
+    handle.open();
+    const fakeBodyEl = { closest: function () { return null; } };
+    fireMousedown(ctx, fakeBodyEl);
+    check(handle.isOpen() === false, 'date: mousedown on body (outside dialog) closes');
+  }
+
+  // --- date picker: mousedown on the source input does NOT close ---
+  {
+    const ctx = setupWithListenerCapture();
+    const input = makeInputStub('date', 'dob', '2026-01-15');
+    const handle = ctx.HT.datePicker.enhance(input, {});
+    handle.open();
+    fireMousedown(ctx, input);
+    check(handle.isOpen() === true, 'date: mousedown on the source input does NOT close');
+  }
+}
+
+// =============================================================
+// XXV. month/year nav (Story 9.19.5 — inlined into 9.19.1 hotfix 4)
+// =============================================================
+//
+// User asked: "cannot choose month or year, need to add support
+// for that." Title button cycles days → months → years → days.
+// Prev/Next navigates by month/year/decade. Click drills down.
+//
+// Verifies:
+//   1. After open, mode === 'days' and grid renders 42 day cells.
+//   2. Click on title → mode === 'months', grid renders 12 cells.
+//   3. Click on title again → mode === 'years', grid renders 12 cells.
+//   4. Click on title again → back to 'days', 42 cells.
+//   5. Clicking a month cell drills down to days mode.
+//   6. Clicking a year cell drills into months mode.
+//   7. Prev in years mode shifts view.y -10 (decade).
+//   8. Next in months mode shifts view.y +1 (year).
+console.log('--- XXV. month/year nav (Story 9.19.5) ---');
+{
+  const ctx = buildCtx();
+  ctx.document.currentScript = { src: 'http://127.0.0.1:5500/assets/js/date-picker.js' };
+  ctx.window.location = {
+    href: 'http://127.0.0.1:5500/tools/age-calculator/index.html',
+    origin: 'http://127.0.0.1:5500',
+    pathname: '/tools/age-calculator/index.html',
+  };
+  ctx.document.URL = ctx.window.location.href;
+  loadInto(ctx, DATE_PICKER_SRC, 'date-picker.js (for XXV)');
+
+  const input = makeInputStub('date', 'dob', '2026-01-15');
+  const handle = ctx.HT.datePicker.enhance(input, {});
+  handle.open();
+
+  check(handle._state.mode === 'days', 'initial mode is "days"');
+  let dayCount = 0;
+  handle._state.dlg.grid.childNodes.forEach(function (n) { dayCount += 1; });
+  check(dayCount === 42, 'days mode renders 42 cells (got ' + dayCount + ')');
+
+  // Click on the title button → months mode.
+  const titleBtn = handle._state.dlg.titleBtn;
+  // Find a registered listener on the titleBtn for 'click'.
+  const titleListeners = (titleBtn._listeners && titleBtn._listeners.click) || [];
+  check(titleListeners.length > 0, 'title button has a click listener registered');
+  for (let i = 0; i < titleListeners.length; i += 1) {
+    try { titleListeners[i]({ preventDefault: function () {} }); } catch (_) {}
+  }
+  check(handle._state.mode === 'months', 'title click cycles days → months');
+  let monthCount = 0;
+  handle._state.dlg.grid.childNodes.forEach(function (n) { monthCount += 1; });
+  check(monthCount === 12, 'months mode renders 12 cells (got ' + monthCount + ')');
+
+  // Verify the month cells have data-month attribute and correct
+  // labels.
+  const monthCells = [];
+  handle._state.dlg.grid.childNodes.forEach(function (n) {
+    if (n.attributes && n.attributes['data-month']) monthCells.push(n);
+  });
+  check(monthCells.length === 12, 'months mode renders 12 .date-picker-month cells (got ' + monthCells.length + ')');
+  const firstMonthAttr = monthCells[0] && monthCells[0].attributes['data-month'];
+  check(firstMonthAttr === '1', 'first month cell has data-month="1" (got "' + firstMonthAttr + '")');
+  const lastMonthAttr = monthCells[11] && monthCells[11].attributes['data-month'];
+  check(lastMonthAttr === '12', 'last month cell has data-month="12" (got "' + lastMonthAttr + '")');
+
+  // Click on the title again → years mode.
+  for (let i = 0; i < titleListeners.length; i += 1) {
+    try { titleListeners[i]({ preventDefault: function () {} }); } catch (_) {}
+  }
+  check(handle._state.mode === 'years', 'title click cycles months → years');
+  let yearCount = 0;
+  handle._state.dlg.grid.childNodes.forEach(function (n) { yearCount += 1; });
+  check(yearCount === 12, 'years mode renders 12 cells (got ' + yearCount + ')');
+
+  // Year cells span 12 years starting at decadeStart. With view.y
+  // default = 2026, the cells are 2020..2031. The header shows the
+  // canonical decade span (2020–2029).
+  const yearCells = [];
+  handle._state.dlg.grid.childNodes.forEach(function (n) {
+    if (n.attributes && n.attributes['data-year']) yearCells.push(n);
+  });
+  check(yearCells.length === 12, 'years mode renders 12 .date-picker-year cells (got ' + yearCells.length + ')');
+  const yFirst = parseInt(yearCells[0].attributes['data-year'], 10);
+  const yLast = parseInt(yearCells[11].attributes['data-year'], 10);
+  check(yFirst === 2020 && yLast === 2031,
+    'years mode spans 12 years starting at decadeStart (got ' + yFirst + '..' + yLast + ')');
+  check(handle._state.dlg.yearLabel.textContent === '2020 – 2029',
+    'header shows the decade range (got "' + handle._state.dlg.yearLabel.textContent + '")');
+
+  // Click on the title again → days mode.
+  for (let i = 0; i < titleListeners.length; i += 1) {
+    try { titleListeners[i]({ preventDefault: function () {} }); } catch (_) {}
+  }
+  check(handle._state.mode === 'days', 'title click cycles years → days');
+
+// Drill-down: click a year in years mode.
+  // Current state: days (after the previous test step cycled back).
+  // Click title twice to walk days → months → years.
+  for (let i = 0; i < titleListeners.length; i += 1) {
+    try { titleListeners[i]({ preventDefault: function () {} }); } catch (_) {}
+  }
+  for (let i = 0; i < titleListeners.length; i += 1) {
+    try { titleListeners[i]({ preventDefault: function () {} }); } catch (_) {}
+  }
+  check(handle._state.mode === 'years', 'cycled back to years mode (title click ×2)');
+  // Now in years mode. Click the focused year cell (2026).
+  const focusedYear = handle._state.dlg.grid.querySelector('.date-picker-year--focused');
+  check(!!focusedYear, 'a year cell is focused (--focused class)');
+  if (focusedYear) {
+    const gridClickListeners = (handle._state.dlg.grid._listeners && handle._state.dlg.grid._listeners.click) || [];
+    const ev = { type: 'click', target: focusedYear, preventDefault: function () {} };
+    for (let i = 0; i < gridClickListeners.length; i += 1) {
+      try { gridClickListeners[i](ev); } catch (_) {}
+    }
+    check(handle._state.mode === 'months', 'clicking a year cell drills into months mode');
+    check(handle._state.view.y === 2026, 'drilled-into year is 2026 (got ' + handle._state.view.y + ')');
+  }
+
+  // Drill-down one more: click a month.
+  const focusedMonth = handle._state.dlg.grid.querySelector('.date-picker-month--focused');
+  check(!!focusedMonth, 'a month cell is focused (--focused class)');
+  if (focusedMonth) {
+    const gridClickListeners = (handle._state.dlg.grid._listeners && handle._state.dlg.grid._listeners.click) || [];
+    const ev2 = { type: 'click', target: focusedMonth, preventDefault: function () {} };
+    for (let i = 0; i < gridClickListeners.length; i += 1) {
+      try { gridClickListeners[i](ev2); } catch (_) {}
+    }
+    check(handle._state.mode === 'days', 'clicking a month cell drills into days mode');
+    check(handle._state.view.m === parseInt(focusedMonth.attributes['data-month'], 10),
+      'drilled-into month matches (' + handle._state.view.m + ')');
+  }
+
+  // Prev button: in years mode shifts by decade (-10).
+  // First switch back to years mode (days → months → years).
+  for (let i = 0; i < titleListeners.length; i += 1) {
+    try { titleListeners[i]({ preventDefault: function () {} }); } catch (_) {}
+  }
+  for (let i = 0; i < titleListeners.length; i += 1) {
+    try { titleListeners[i]({ preventDefault: function () {} }); } catch (_) {}
+  }
+  // Now in years. Click prev → view.y -10.
+  const prevBtn = handle._state.dlg.prevBtn;
+  const prevListeners = (prevBtn._listeners && prevBtn._listeners.click) || [];
+  const beforeY = handle._state.view.y;
+  for (let i = 0; i < prevListeners.length; i += 1) {
+    try { prevListeners[i]({ preventDefault: function () {} }); } catch (_) {}
+  }
+  check(handle._state.mode === 'years', 'still in years mode after prev click');
+  check(handle._state.view.y === beforeY - 10, 'prev in years mode shifts view.y -10 (got ' + (beforeY - 10) + ', now ' + handle._state.view.y + ')');
 }
 
 // =============================================================
