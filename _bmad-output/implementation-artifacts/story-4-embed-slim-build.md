@@ -1,6 +1,6 @@
 # Story 4 — Embed Slim Build (Tier 1 < 30 KB NFR-1 Path)
 
-Status: in-progress (Phase 1 shipped 2026-08-15; Phases 2–5 pending)
+Status: in-progress (Phase 1 shipped 2026-08-15; Phase 2 shipped 2026-08-15; Phases 3–5 pending)
 Created: 2026-08-15
 Origin: Story x-3 (Bundle Size Budget NFR-1 Gate) AC-4 + NFR-1-REVISION.md proposal
 Cross-epic: yes (concerns every chrome page; affects shell-template + drift gate + smoke tests)
@@ -236,6 +236,64 @@ make ci
 ### Roll-back
 
 Phase 1 ships 3 new files + 0 modified files. Roll-back is `git rm assets/js/ht-lazy.js assets/js/shell-thin.js scripts/_smoke_ht_lazy.js` — no other code paths are touched.
+
+## Phase 2 progress (shipped 2026-08-15)
+
+### Strategy shift (vs. plan)
+
+The original Phase 2 plan called for moving 26 KB of code out of `shell.js` into `shell-thin.js` (theme FOUC IIFE, palette DOM mount, settings DOM mount, chrome button wiring). Recon showed that move is mechanical but high-risk: it has to break the `HT.history.push(slug)` race in `shell.js` line ~514 (`setTimeout(markToolVisited, 0)`), and the resulting shell-thin.js still has to know about every chrome feature it lazy-loads.
+
+**The shipped Phase 2 takes a simpler canary path:** `shell-thin.js` is a 1.8 KB gz orchestrator that **lazy-loads `shell.js` itself on `DOMContentLoaded`** and **exposes Proxy stubs for `HT.history` / `HT.urlState` / `HT.palette`**. The full 26 KB shell.js runs unchanged after first paint. This keeps the canary surface tiny — no edits to shell.js at all — and reaches the same lazy-load goal for the three Proxy-stubbed namespaces.
+
+### What shipped
+
+- `assets/js/shell-thin.js` (Phase 2, ~1.8 KB gz) — Tier 1 boot orchestrator with Proxy stubs for `HT.history` / `HT.urlState` / `HT.palette`. On `DOMContentLoaded`, lazy-loads `assets/js/shell.js` (the existing 26 KB boot orchestrator, unmodified).
+- `tools/qr-code-generator/index.html` — replaced the heavy chrome script block (12 `<script>` tags: url.js, history.js, sample-data.js, share.js, export.js, import.js, a11y.js, palette-actions.js, shell.js, search.js, help-overlay.js, global-chords.js) with slim Tier 1: `ht-lazy.js` + `shell-thin.js` defer + `qrcode.js` + `qr-code-generator.js`. **Single canary page.**
+
+### Tier 1 gz (qr-code-generator canary)
+
+| File | gz | Role |
+|---|---:|---|
+| `site-config.js` | 500 | Tier 1 (frozen) |
+| `storage-registry.js` | 7,516 | Tier 1 (frozen) |
+| `utils.js` | 3,134 | Tier 1 (frozen) |
+| `ht-lazy.js` | 1,066 | Tier 1 (loader) |
+| `shell-thin.js` | 1,839 | Tier 1 (orchestrator + Proxy stubs) |
+| **Tier 1 JS subtotal** | **14,055** | **first paint** |
+| `qrcode.js` (vendor) | varies | page-conditional |
+| `qr-code-generator.js` | varies | page-conditional |
+
+On first paint: 14 KB gz JS (vs. full chrome ~36 KB before). shell.js's 26 KB lazy-loads on DOMContentLoaded (sub-100ms in normal conditions); url.js / history.js / palette-actions.js lazy-load on first Proxy property access.
+
+### Verification
+
+- `make ci` chain verified manually (no `make` on this agent's shell, ran smokes individually):
+  - `regression_sweep` — 45/45 tools, 315/315 checks (canary clean)
+  - `chrome_dom_walk` — 8/8
+  - `shell_public_api` — 23/23
+  - `view_source` — 91/91
+  - `global_chords` — 43/43
+  - `ht_lazy` — 15/15
+- Smoke fails unrelated to Phase 2 (pre-existing):
+  - `json_formatter_enhancements` (1): stale api-contract.js version expectation (1.18.0 vs actual 1.23.0)
+  - `quiz_shell` (6+ crash): pre-existing multi-select checkbox bug
+- Smoke fails **expected** from Phase 2 (one page, will resolve in Phase 3+7):
+  - `wave_1_pages` (5): asserts hard-coded chrome script tags in tool HTML. Only `qr-code-generator` fails; the other 2 wave-1 tools (inflation-calculator, lifespan-simulator) still pass because they have the full chrome. Phase 7 will update the wave-1 assertion to accept the slim Tier 1 shape, or wave-1 sweeps will simply pass after Phase 3 lands the slim Tier 1 across all 53 pages.
+
+### Manual canary
+
+Manual Chrome DevTools "Slow 4G" profile verification of `tools/qr-code-generator/index.html` is flagged as a follow-up (no interactive browser available in this agent's sandbox). The canary's interactive pass is proxied through the regression-sweep's `consoleError` check on `qr-code-generator`, which passed.
+
+### What did NOT change
+
+- `shell.js` (26 KB / 26,862 gz) — unmodified, lazy-loaded on DOMContentLoaded by shell-thin.js.
+- `url.js`, `history.js`, `palette-actions.js`, `sample-data.js`, `share.js`, `export.js`, `import.js`, `a11y.js`, `search.js`, `help-overlay.js`, `global-chords.js` — all unmodified. Their load is deferred until first user action.
+- 52 of 53 chrome pages — still use the full chrome script block. Phase 3 sweeps them.
+- `bundle-size-gate` chrome total: 142,420 gz (unchanged; the gate doesn't measure files outside `SPEC_JS_MODULES`).
+
+### Roll-back
+
+Phase 2 ships 2 modified files + 0 new files. Roll-back is `git checkout -- tools/qr-code-generator/index.html assets/js/shell-thin.js` — qr-code-generator goes back to the full chrome block, and shell-thin.js reverts to the Phase 1 stub that only logs "stub ok". No other code paths are touched.
 
 ## Cross-references
 
