@@ -16,7 +16,7 @@
     6. No-match query returns []
     7. Live region exists in static markup (UX-DR-18 / AC-7)
     8. Live region carries aria-live="polite"
-    9. Forced-colors 2px cursor border exists in components.css (AI-17 / AC-9)
+    9. Forced-colors 2px cursor border exists in components-core.css (AI-17 / AC-9)
    10. Palette options carry aria-selected initial state
    11. Palette footer carries the chord hints (AC-8)
    12. Warm-path perf <= 10ms/query (AC-12)
@@ -37,7 +37,7 @@
 <head>
   <meta charset="utf-8">
   <title>Palette Search Smoke Harness</title>
-  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/components-core.css">
   <script src="../assets/js/storage-registry.js"></script>
   <script src="../assets/js/utils.js"></script>
   <script src="../assets/js/url.js"></script>
@@ -202,10 +202,18 @@
           } catch (err) { fail('live region aria-live', err.message); }
 
           // ---- Test 9: forced-colors cursor border (AC-9 / AI-17) ----
+          // Story 4 Phase 5: the cursor border rule was moved from the
+          // monolithic components.css into chrome-palette.css. Fetch
+          // both the always-on core CSS and the lazy palette CSS so we
+          // verify the rule is reachable at runtime.
           try {
-            const cssText = await (await fetch('../assets/css/components.css')).text();
-            const hasSelector = /\[aria-selected=["']true["']\]/.test(cssText);
-            const hasBorder = /border\s*:\s*[^;}]*solid\s+CanvasText/.test(cssText);
+            const [coreCss, paletteCss] = await Promise.all([
+              fetch('../assets/css/components-core.css').then((r) => r.text()),
+              fetch('../assets/css/chrome-palette.css').then((r) => r.text()),
+            ]);
+            const combined = coreCss + paletteCss;
+            const hasSelector = /\[aria-selected=["']true["']\]/.test(combined);
+            const hasBorder = /border\s*:\s*[^;}]*solid\s+CanvasText/.test(combined);
             if (hasSelector && hasBorder) {
               pass('forced-colors 2px CanvasText border on [aria-selected="true"]');
             } else {

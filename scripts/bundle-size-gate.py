@@ -153,15 +153,31 @@ SPEC_JS_MODULES = [
 ]
 
 # CSS modules — the chrome stylesheets loaded on every page. Story 1.5
-# ships base + components + tools; Story 3.10 adds print; Story 9.12
-# adds quiz. Order is roughly load order on tool pages.
+# ships base + components-core + tools; Story 3.10 adds print; Story 9.12
+# adds quiz. Story 4 Phase 5 split the old monolithic components.css into
+# components-core.css (always-on) + 5 chrome-*.css chunks (lazy-loaded
+# via HT.lazyLoadCss — not declared in HTML, so they are measured
+# separately below as LAZY_CSS_MODULES).
 SPEC_CSS_MODULES = [
     "assets/css/base.css",
-    "assets/css/components.css",
+    "assets/css/components-core.css",
     "assets/css/tools.css",
     "assets/css/print.css",
     "assets/css/quiz.css",
 ]
+
+# Story 4 Phase 5 — lazy CSS chunks. NOT in SPEC_CSS_MODULES (they're
+# not on first paint), but the gate still measures them for budget
+# accounting. Summed gz must stay below LAZY_CSS_BUDGET_GZ or the gate
+# fails with a clear "lazy CSS budget exceeded" error.
+LAZY_CSS_MODULES = [
+    "assets/css/chrome-palette.css",
+    "assets/css/chrome-settings.css",
+    "assets/css/chrome-help.css",
+    "assets/css/chrome-confirm-share.css",
+    "assets/css/chrome-history.css",
+]
+LAZY_CSS_BUDGET_GZ = 12_000  # bytes gz (sum of all lazy chunks)
 
 # Story x-3 baseline — measured 2026-08-15 against the post-home-
 # redesign retrofit commit. Update this constant in the same commit
@@ -350,6 +366,30 @@ def main(argv: list[str]) -> int:
         css_delta = 0
         print("  (no CSS modules present — skipping CSS budget check)")
 
+    # Story 4 Phase 5 — measure lazy CSS chunks (chrome-palette, etc.).
+    # These are NOT in SPEC_CSS_MODULES (they're not on first paint),
+    # but the gate still verifies their total stays under budget.
+    print("")
+    print(
+        f"bundle-size-gate: measuring {len(LAZY_CSS_MODULES)} lazy CSS module(s)…"
+    )
+    lazy_css_present, lazy_css_missing = measure_set(root, LAZY_CSS_MODULES)
+    print(render_breakdown(lazy_css_present, lazy_css_missing))
+
+    if lazy_css_present:
+        lazy_css_total = sum(m["gz"] for m in lazy_css_present)
+        lazy_css_delta = lazy_css_total - LAZY_CSS_BUDGET_GZ
+        print("")
+        print(
+            f"  total lazy CSS (gzipped): {lazy_css_total:,d} bytes  "
+            f"(budget {LAZY_CSS_BUDGET_GZ:,d}  "
+            f"delta {lazy_css_delta:+,d})"
+        )
+    else:
+        lazy_css_total = 0
+        lazy_css_delta = 0
+        print("  (no lazy CSS modules present — skipping lazy CSS budget check)")
+
     # Decide pass / fail.
     failures: list[str] = []
     if js_total > js_limit:
@@ -364,6 +404,14 @@ def main(argv: list[str]) -> int:
         failures.append(
             f"CSS bundle is {css_total:,d} bytes — exceeds budget {args.css_budget:,d}. "
             f"Bump CSS_BUDGET with justification or split out tool-specific CSS."
+        )
+
+    if lazy_css_present and lazy_css_total > LAZY_CSS_BUDGET_GZ:
+        failures.append(
+            f"lazy CSS bundle is {lazy_css_total:,d} bytes — exceeds budget "
+            f"{LAZY_CSS_BUDGET_GZ:,d}. The chrome lazy CSS chunks (palette, "
+            f"settings, help, confirm/share, history) are loaded on first "
+            f"user action; trim the chunks or split out rarely-used rules."
         )
 
     if js_missing:
@@ -388,6 +436,11 @@ def main(argv: list[str]) -> int:
         "css_delta": css_delta if css_present else None,
         "css_modules": css_present,
         "css_missing": css_missing,
+        "lazy_css_total": lazy_css_total if lazy_css_present else None,
+        "lazy_css_budget": LAZY_CSS_BUDGET_GZ if lazy_css_present else None,
+        "lazy_css_delta": lazy_css_delta if lazy_css_present else None,
+        "lazy_css_modules": lazy_css_present,
+        "lazy_css_missing": lazy_css_missing,
         "failures": failures,
     }
     print("")

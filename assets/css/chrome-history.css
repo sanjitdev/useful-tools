@@ -1,0 +1,155 @@
+/* =============================================
+   Handy Tools — chrome-history.css
+   Story 4 Phase 5: lazy-loaded with history.js. History
+   panel + mobile sheet (Story 3.6).
+   ============================================= */
+
+/* ============================================
+   Story 3.6 — History panel + sheet
+   The Shell renders the panel as a sibling of
+   the tool body (desktop: always visible below;
+   mobile: hidden sheet toggled by History button).
+   Without this CSS the rows collapse into a single
+   wall of inline text — see the "30 seconds ago30,
+   male — 83.4 years…" rendering in the screenshot
+   review. The styling here matches the share
+   dialog surface + uses the cobalt accent for
+   row hover so it reads as the canonical
+   per-tool affordance.
+   ============================================ */
+
+aside.history-panel,
+aside.history-sheet {
+  margin-top: var(--space-6, 32px);
+  padding: var(--space-4, 16px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 10px);
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  margin-bottom: var(--space-3, 12px);
+  padding-bottom: var(--space-3, 12px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.history-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.history-clear {
+  padding: 4px 10px !important;
+  font-size: 0.8125rem !important;
+  border-radius: var(--radius-sm, 6px) !important;
+  /* Toned-down destructive — small ghost with hover hint.
+     The full destructive style would compete with the
+     tool's primary CTA. */
+  background: transparent !important;
+  color: var(--color-danger, #dc2626) !important;
+  border: 1px solid var(--color-border) !important;
+}
+.history-clear:hover,
+.history-clear:focus-visible {
+  background: var(--color-danger, #dc2626) !important;
+  color: #fff !important;
+  border-color: var(--color-danger, #dc2626) !important;
+}
+
+.history-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+button.history-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  width: 100%;
+  padding: var(--space-3, 12px);
+  background: var(--color-surface-2, #f1f3f8);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 6px);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+button.history-row:hover,
+button.history-row:focus-visible {
+  background: var(--color-primary-soft, #E5ECFF);
+  border-color: var(--color-primary-soft-strong, #C7D4FF);
+  outline: none;
+}
+button.history-row:focus-visible {
+  outline: 2px solid var(--color-primary, #2F5BFF);
+  outline-offset: 2px;
+}
+
+.history-row-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.history-row-ts {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.history-row-body {
+  font-size: 0.9rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-row-body--empty {
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+/* Mobile sheet — full-width pinned to viewport bottom */
+@media (max-width: 767px) {
+  aside.history-sheet {
+    margin-top: var(--space-4, 16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.history-row,
+  .history-clear {
+    transition: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  button.history-row,
+  .history-clear,
+  aside.history-panel,
+  aside.history-sheet {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+  button.history-row:focus-visible,
+  .history-clear:focus-visible {
+    outline: 3px solid Highlight;
+  }
+}
+

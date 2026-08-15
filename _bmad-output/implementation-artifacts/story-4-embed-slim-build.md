@@ -1,6 +1,6 @@
 # Story 4 — Embed Slim Build (Tier 1 < 30 KB NFR-1 Path)
 
-Status: in-progress (Phase 1 shipped 2026-08-15; Phase 2 shipped 2026-08-15; Phase 3 shipped 2026-08-15; Phase 4 shipped 2026-08-15; Phase 5 pending)
+Status: **complete** (Phase 1 shipped 2026-08-15; Phase 2 shipped 2026-08-15; Phase 3 shipped 2026-08-15; Phase 4 shipped 2026-08-15; Phase 5 shipped 2026-08-15)
 Created: 2026-08-15
 Origin: Story x-3 (Bundle Size Budget NFR-1 Gate) AC-4 + NFR-1-REVISION.md proposal
 Cross-epic: yes (concerns every chrome page; affects shell-template + drift gate + smoke tests)
@@ -424,6 +424,88 @@ The full shell.js decomposition into 6 `shell-*.js` chunks remains a future stor
 
 Phase 4 ships 1 modified asset (`assets/js/shell-thin.js` adds 5 Proxy stubs) + 1 new smoke + Makefile target + spec doc update. Roll-back is `git revert <phase-4-sha>` — restores shell-thin.js to the 3-stub Phase 3 shape and removes the new smoke. No other code paths are touched (shell.js, the heavy chrome modules, and the swept pages are all unchanged).
 
+## Phase 5 progress (shipped 2026-08-15)
+
+### What shipped
+
+- `assets/js/ht-lazy.js` (modified) — added `HT.lazyLoadCss(url) → Promise<void>` to the public API. Mirrors `HT.lazyLoad` exactly: deduplicating `<link rel="stylesheet" href="..." data-ht-lazy-css="true">` insertion into `<head>`, idempotent on already-loaded URLs, idempotent on a `<link href="...">` already declared in the page's HTML (via `document.querySelector('link[rel="stylesheet"][href="..."]')` short-circuit). Two reconcilable quirks drove additional resilience:
+  1. **`<link>` load events are unreliable across browsers** — Safari historically doesn't fire them, others fire only after next paint. The loader uses a 200 ms wall-clock `setTimeout` fallback that resolves on whichever event fires first (whichever of `onload` or the fallback wins, the other is short-circuited via a `settled` flag).
+  2. **Error path** — `onerror` rejects with `ht-lazy: failed to load css <url>`, symmetric with the existing `HT.lazyLoad` error format.
+
+- `assets/css/components-core.css` (NEW, 7,334 gz) — always-on Tier 1 CSS. Contains site header/footer, button base + variants, inputs (`.input`/`.select`/`.textarea`/`.field*`), tool cards (home + pack), hero, section-header, tabs, and toast styles. Loaded synchronously via the chrome `<head>` `<link rel="stylesheet">` tag.
+
+- `assets/css/chrome-palette.css` (NEW, 2,213 gz) — Command Palette (Story 1.7) overlay. Lazy-loaded with the `HT.palette` namespace.
+
+- `assets/css/chrome-settings.css` (NEW, 2,378 gz) — Settings Modal (Story 1.8). Lazy-loaded at DOMContentLoaded alongside `shell.js`.
+
+- `assets/css/chrome-help.css` (NEW, 2,198 gz) — Keyboard Shortcuts Help Overlay (Story 3.3). Lazy-loaded alongside the `HT.palette.openHelp()` call (palette Proxy covers it).
+
+- `assets/css/chrome-confirm-share.css` (NEW, 1,944 gz) — shared by the native `<dialog>` confirm modal (sample-data / reset / history delete) AND the share dialog. Both use the same `<dialog>` surface tokens (backdrop blur, dark-mode surface, forced-colors rule, mobile sheet), so they ship as a single CSS chunk to avoid splitting shared rules. Lazy-loaded whenever `HT.sampleData.mount()` or `HT.share.mount()` fires.
+
+- `assets/css/chrome-history.css` (NEW, 1,378 gz) — History panel + mobile sheet (Story 3.6). Lazy-loaded with the `HT.history` namespace.
+
+- `assets/css/components.css` (DELETED) — content fully distributed across `components-core.css` + the 5 chrome-*.css chunks. Verified that all 6 sections (header/footer/buttons/inputs/cards/hero/tabs/toast, palette, settings, help, confirm/share, history) land in their appropriate new files via the extractor script and the `bundle-size` measurement breakdown.
+
+- `assets/js/shell-thin.js` (modified) — added `TIER2_CSS` map and wired CSS lazy-loading into the `makeProxy` factory. The Proxy now does `Promise.all([HT.lazyLoad(url), HT.lazyLoadCss(cssUrl)])` on first property access, so the JS module and its CSS chunk arrive together. The `kickShellBoot()` function also lazy-loads `help-overlay.js`, `global-chords.js`, and `chrome-settings.css` (these don't have a Proxy stub but need to be available before first user interaction — `?` chord for help, `g <key>` for chords, settings button for settings modal).
+
+- 55 chrome HTML files (modified) — every page's `<link rel="stylesheet" href=".../components.css">` was rewritten to `components-core.css`. The lazy CSS chunks (`chrome-palette.css`, etc.) are NOT declared in HTML — `HT.lazyLoadCss` injects them at runtime.
+
+- `scripts/_extract_components_css.py` (NEW, ~50 lines pure-stdlib Python) — idempotent extractor that slices `components.css` into the 6 new files using explicit line-range boundaries. Self-documenting: each output starts with a `/* ==== ... ==== */` banner explaining its tier and lazy partner.
+
+- `scripts/_css_swap_core.py` (NEW, ~40 lines pure-stdlib Python) — recursive text-replace for the HTML `components.css` → `components-core.css` swap. The 55-file sweep was already applied; this script is idempotent (re-running it changes nothing) but kept for documentation + future drift-repair.
+
+- `scripts/bundle-size-gate.py` (modified) — added `LAZY_CSS_MODULES` (5 chrome-*.css files) and `LAZY_CSS_BUDGET_GZ = 12_000` constants. The gate now measures lazy CSS separately from always-on CSS (because lazy CSS is NOT on first paint and so is excluded from the always-on CSS budget — but it's still tracked for accountability).
+
+- `scripts/shell-a11y-check.py` (modified) — the AC-9 forced-colors cursor border check now reads from `assets/css/chrome-palette.css` instead of the deleted `components.css` (the rule landed there during extraction).
+
+- `scripts/palette-search-smoke-html.py` + `scripts/palette-search-smoke.html` (modified) — the smoke harness now fetches both `components-core.css` AND `chrome-palette.css` to verify the cursor-border rule is reachable (was previously just `components.css`).
+
+- `scripts/generate-pack-pages.py` (modified) — pack-page generator template updated from `components.css` to `components-core.css`.
+
+- `scripts/_smoke_ht_lazy.js` (extended) — added 18 Phase 5 assertions for `HT.lazyLoadCss` shape: function/exists, empty-string rejection, `<link>` insert shape (`rel`/`href`/`data-ht-lazy-css="true"`), idempotent on second call, dedupes concurrent callers, `onload` → resolve, post-load resolves immediately, existing `<link href="...">` short-circuit (page fallback), `onerror` rejection with `ht-lazy: failed to load css <url>`, and the 200 ms fallback that rescues browsers that don't fire `<link>` load events. **32/32 PASS** (was 14/14 in Phase 1).
+
+- `scripts/_smoke_shell_thin_proxies.js` (extended) — fake `HT.lazyLoadCss` mock added so the Proxy factory's `Promise.all([lazyLoad, lazyLoadCss])` resolves cleanly. **34/34 PASS** (unchanged count; the mock just removes a regression that the new shell-thin code would otherwise trigger).
+
+### Strategy
+
+The original Phase 5 plan called for **11 lazy CSS chunks** (palette, settings, help, confirm, share, history, plus 4 home-only and 1 pack-only). Recon showed the home-only and pack-only CSS files are already conditionally included by the home page and pack-page JS (home pages load `home-*.css` via `<link rel="stylesheet">` in the HTML, not via JS injection), so the 11-chunk split was overengineered.
+
+**Phase 5 ships the 6-file split** that's actually needed to remove chrome CSS from first paint:
+
+| File | gz | Tier | Trigger |
+|---|---:|---|---|
+| `components-core.css` | 7,334 | always-on | every chrome page (replaces monolithic `components.css`) |
+| `chrome-palette.css` | 2,213 | lazy | `HT.palette.*` first property access |
+| `chrome-settings.css` | 2,378 | lazy | `DOMContentLoaded` → `kickShellBoot()` (settings is opened from chrome button, no Proxy stub) |
+| `chrome-help.css` | 2,198 | lazy | `HT.palette.openHelp()` first call (palette Proxy covers it) |
+| `chrome-confirm-share.css` | 1,944 | lazy | `HT.sampleData.mount()` OR `HT.share.mount()` first call |
+| `chrome-history.css` | 1,378 | lazy | `HT.history.*` first property access |
+
+The home-only CSS chunks stay in their current eager-loaded locations (they're home-page-only and not loaded on tool pages). If a future Story 4b wants to also defer those, it can do so without touching Phase 5's split.
+
+The `chrome-confirm-share.css` file bundles the confirm and share modals together because they share surface tokens (backdrop blur, dark-mode, forced-colors, mobile sheet). Splitting them would have required either duplicating those shared rules in two files (debt) or restructuring the rules to live in a separate tokens file (out of scope). Bundling is the lowest-friction option.
+
+### Verification
+
+- `ht-lazy-smoke` — **32/32 PASS** (was 14/14 in Phase 1; +18 Phase 5 assertions)
+- `shell-thin-proxies-smoke` — **34/34 PASS** (fake lazyLoadCss added)
+- `shell-public-api-smoke` — 23/23 PASS (AD-14 frozen `HT.*` surface preserved)
+- `chrome-dom-smoke` — 8/8 PASS
+- `view-source-smoke` — 90/90 PASS (view-source has no chrome CSS so unaffected)
+- `shell-drift-check` — 54/54 pages in sync
+- `script-load-order` — 1/1 PASS
+- `shell-a11y-check` — PASS (forced-colors cursor border now verified in `chrome-palette.css`)
+- `palette-search-smoke-html` — PASS (Test 9 cursor border reaches the palette CSS chunk via fetch)
+- `bundle-size` (Tier 1 + Tier 2) — PASS at JS 142,420 / 147,420, always-on CSS **16,621 / 25,000** (delta −8,379: now under budget), lazy CSS **10,111 / 12,000** (delta −1,889)
+- `bundle-size-tier1` — 54/54 chrome pages under 30 KB gz (Tier 1 JS unchanged at 16,663 gz; Phase 5 doesn't change the JS footer)
+- `help-overlay-smoke`, `global-chords-smoke`, `settings-modal-smoke`, `palette-actions-smoke`, `share-dialog-smoke`, `history-smoke`, `sample-data-smoke`, `export-smoke`, `import-smoke`, `a11y-smoke` — all pass; the Proxy stubs now also `lazyLoadCss` their CSS partner but the JS-side behavior is identical
+
+### Roll-back
+
+Phase 5 ships 6 new CSS files + `ht-lazy.js` (modified) + `shell-thin.js` (modified) + 55 modified HTMLs + `components.css` (deleted) + 2 new scripts (`_extract_components_css.py`, `_css_swap_core.py`) + 4 modified gate/HTML-harness scripts.
+
+Roll-back is `git revert <phase-5-sha>` — restores `components.css` from git history, removes the 6 new CSS files, reverts the HTML `<link>` tags, reverts `ht-lazy.js` + `shell-thin.js` to their Phase 4 shapes, and restores `bundle-size-gate.py` + `shell-a11y-check.py` to single-`SPEC_CSS_MODULES` mode. The shell-thin proxies smoke must also be reverted (remove the `lazyLoadCss` mock) for a clean rollback.
+
 ## Cross-references
 
 - Story x-3 (Bundle Size Budget NFR-1 Gate) — built the measurement + CI gate; Story 4 is the implementation of its reduction candidates
@@ -447,7 +529,9 @@ Phase 4 ships 1 modified asset (`assets/js/shell-thin.js` adds 5 Proxy stubs) + 
 
 5 PRs, ~5 days total:
 - Phase 1: 0.5 day ✅ shipped 2026-08-15
-- Phase 2: 1 day (includes manual canary verification)
-- Phase 3: 1 day (sweep + bundle-size-tier1 new target)
+- Phase 2: 1 day (includes manual canary verification) ✅ shipped 2026-08-15
+- Phase 3: 1 day (sweep + bundle-size-tier1 new target) ✅ shipped 2026-08-15
 - Phase 4: 1.5 days (shell.js decomposition is the highest-risk) ✅ shipped 2026-08-15 (Proxy stub minimal path; full decomposition deferred)
-- Phase 5: 1 day (CSS split is mostly mechanical)
+- Phase 5: 1 day (CSS split is mostly mechanical) ✅ shipped 2026-08-15
+
+**Story 4 complete 2026-08-15** — all 5 phases shipped. Final Tier 1 budget: 16,663 gz (54/54 chrome pages under 30 KB PRD NFR-1 floor; 1.8× headroom).

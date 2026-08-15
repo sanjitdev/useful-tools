@@ -1,0 +1,355 @@
+/* =============================================
+   Handy Tools — chrome-help.css
+   Story 4 Phase 5: lazy-loaded with help-overlay.js.
+   Keyboard Shortcuts Help Overlay (Story 3.3).
+   ============================================= */
+
+/* ============================================
+   Keyboard Shortcuts Help Overlay (Story 3.3)
+   Overlay per UX-DR-3 (NOT modal — focus not trapped). The wrapper is
+   role="region" with aria-label="Keyboard shortcuts" and is rendered
+   with the same backdrop + panel pattern as the palette (Story 1.7) but
+   narrower (480px vs 640px) because help is a one-pane cheat sheet, not
+   a search-driven combobox.
+
+   The kbd glyphs render the platform-correct modifier (`⌘` on macOS,
+   `Ctrl` elsewhere) — the swap happens at render time in help-overlay.js
+   via the 'Mod' sentinel; CSS does not decide which glyph paints.
+
+   Hidden state: [hidden] wins (display:none) so the overlay is invisible
+   until help-overlay.js removes the attribute. The aria-hidden="true"
+   attribute is a parallel hard signal for AT — both must be cleared on
+   open, both must be set on close. Belt + suspenders per UX-DR-3.
+   ============================================ */
+
+.shell-help {
+  position: fixed;
+  inset: 0;
+  z-index: 1050; /* above the palette (1000), below the settings modal (1100) */
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 8vh 1rem 1rem;
+  background-color: rgba(15, 17, 23, 0.45);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.shell-help[hidden] {
+  display: none;
+}
+
+.shell-help-panel {
+  width: 100%;
+  max-width: 480px;
+  background-color: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, rgba(15, 17, 23, 0.12));
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(15, 17, 23, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+}
+
+:root[data-theme="dark"] .shell-help {
+  background-color: rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="dark"] .shell-help-panel {
+  background-color: var(--color-surface, #1a1d29);
+  border-color: var(--color-border, rgba(232, 234, 240, 0.12));
+}
+
+.shell-help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--color-border, rgba(15, 17, 23, 0.08));
+}
+
+:root[data-theme="dark"] .shell-help-header {
+  border-bottom-color: var(--color-border, rgba(232, 234, 240, 0.08));
+}
+
+.shell-help-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text, #1a1d29);
+  line-height: 1.4;
+}
+
+:root[data-theme="dark"] .shell-help-header h2 {
+  color: var(--color-text, #e8eaf0);
+}
+
+.shell-help-header h2:focus {
+  outline: none;
+}
+
+/* Close button — top-right × glyph. Uses a transparent border so the
+   2px forced-colors focus ring + 44px hit target render cleanly. The
+   button is .help-close (matches the selector help-overlay.js uses to
+   wire the click handler). */
+.help-close {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.help-close:hover {
+  background-color: var(--color-primary-soft, #E5ECFF);
+  color: var(--color-on-primary, #1a1d29);
+}
+
+.help-close:focus-visible {
+  outline: 2px solid var(--color-primary, #213BE9);
+  outline-offset: 2px;
+}
+
+:root[data-theme="dark"] .help-close {
+  color: var(--color-text-muted, rgba(232, 234, 240, 0.55));
+}
+
+.shell-help-search {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border, rgba(15, 17, 23, 0.12));
+  color: var(--color-text, #1a1d29);
+  outline: none;
+  font-family: inherit;
+}
+
+.shell-help-search::placeholder {
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
+}
+
+:root[data-theme="dark"] .shell-help-search {
+  color: var(--color-text, #e8eaf0);
+  border-bottom-color: var(--color-border, rgba(232, 234, 240, 0.12));
+}
+
+:root[data-theme="dark"] .shell-help-search::placeholder {
+  color: var(--color-text-muted, rgba(232, 234, 240, 0.55));
+}
+
+.shell-help-section {
+  padding: 0.5rem 0 0.25rem;
+}
+
+.shell-help-section[hidden] {
+  display: none;
+}
+
+.shell-help-section h3 {
+  margin: 0;
+  padding: 0.5rem 1rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-primary, #213BE9);
+}
+
+:root[data-theme="dark"] .shell-help-section h3 {
+  color: var(--color-primary, #6B86FF);
+}
+
+.shell-help-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.25rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.shell-help-list li[hidden] {
+  display: none;
+}
+
+.shell-help-row {
+  display: flex;
+  align-items: center;
+  padding: 0.375rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--color-text, #1a1d29);
+}
+
+:root[data-theme="dark"] .shell-help-row {
+  color: var(--color-text, #e8eaf0);
+}
+
+.shell-help-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.375rem;
+  margin: 0 0.125rem;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  background-color: var(--color-primary-soft, #E5ECFF);
+  color: var(--color-on-primary, #1a1d29);
+  border: 1px solid var(--color-border, rgba(15, 17, 23, 0.12));
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+:root[data-theme="dark"] .shell-help-kbd {
+  background-color: var(--color-primary-soft, #E5ECFF);
+  color: var(--color-on-primary, #1a1d29);
+  border-color: var(--color-border, rgba(232, 234, 240, 0.12));
+}
+
+.shell-help-sep {
+  margin: 0 0.125rem;
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+:root[data-theme="dark"] .shell-help-sep {
+  color: var(--color-text-muted, rgba(232, 234, 240, 0.55));
+}
+
+.shell-help-label {
+  margin-left: 0.5rem;
+}
+
+.shell-help-empty {
+  padding: 0.625rem 1rem;
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.shell-help-empty[hidden] {
+  display: none;
+}
+
+:root[data-theme="dark"] .shell-help-empty {
+  color: var(--color-text-muted, rgba(232, 234, 240, 0.55));
+}
+
+.shell-help-foot {
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--color-border, rgba(15, 17, 23, 0.08));
+  font-size: 0.75rem;
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
+  margin: 0;
+}
+
+:root[data-theme="dark"] .shell-help-foot {
+  border-top-color: var(--color-border, rgba(232, 234, 240, 0.08));
+  color: var(--color-text-muted, rgba(232, 234, 240, 0.55));
+}
+
+.shell-help-foot kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.25rem;
+  margin: 0 0.125rem;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  background-color: var(--color-primary-soft, #E5ECFF);
+  color: var(--color-on-primary, #1a1d29);
+  border: 1px solid var(--color-border, rgba(15, 17, 23, 0.12));
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+:root[data-embed="1"] .shell-help {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-help,
+  .shell-help-panel,
+  .shell-help-row {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .shell-help {
+    background-color: Canvas;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .shell-help-panel {
+    background-color: Canvas;
+    border: 1px solid CanvasText;
+  }
+  .shell-help-header {
+    border-bottom-color: CanvasText;
+  }
+  .shell-help-header h2 {
+    color: CanvasText;
+  }
+  .help-close {
+    color: CanvasText;
+    border-color: transparent;
+  }
+  .help-close:focus-visible {
+    outline-color: CanvasText;
+  }
+  .shell-help-search {
+    color: CanvasText;
+    border-bottom-color: CanvasText;
+  }
+  .shell-help-section h3 {
+    color: CanvasText;
+  }
+  .shell-help-row {
+    color: CanvasText;
+  }
+  .shell-help-kbd {
+    background-color: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+  }
+  .shell-help-sep {
+    color: CanvasText;
+  }
+  .shell-help-empty {
+    color: CanvasText;
+  }
+  .shell-help-foot {
+    border-top-color: CanvasText;
+    color: CanvasText;
+  }
+  .shell-help-foot kbd {
+    background-color: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+  }
+}
+

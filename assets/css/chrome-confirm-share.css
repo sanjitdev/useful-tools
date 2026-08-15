@@ -1,0 +1,240 @@
+/* =============================================
+   Handy Tools — chrome-confirm-share.css
+   Story 4 Phase 5: shared by confirm (sample-data / reset)
+   and share dialogs. Both use the same <dialog> surface
+   tokens (backdrop, dark mode, forced-colors, mobile sheet),
+   so they ship as a single CSS chunk to avoid splitting
+   shared rules.
+   ============================================= */
+
+/* ============================================
+   Native <dialog> confirm + share modals
+   (Story 2.2 sample-data + Story 2.3 history +
+    Story 2.5 share)
+   ============================================
+   These three callers all build a real <dialog>
+   and call showModal() — which gives them free
+   focus-trap + Esc-cancel + ::backdrop. Without
+   explicit CSS, the browser UA stylesheet paints
+   them with a tiny white box and an invisible
+   backdrop, so the dialog appears as ghost text
+   over the underlying page while the focus trap
+   is still active. The page is "blocked" but the
+   dialog is hard to see and the buttons look
+   broken — a real UX bug.
+
+   These rules style the dialog surface (panel,
+   form, header/body/actions), the backdrop (dim
+   + blur matching .shell-settings-modal), and
+   honor the cobalt palette + dark-mode surface
+   tokens. Forced-colors is also covered so the
+   dialog remains visible when the OS flips
+   Windows High Contrast on. */
+
+/* --- Shared surface (panel + form) --- */
+
+dialog.ht-confirm-dialog,
+dialog.share-dialog {
+  /* Reset the UA stylesheet defaults so our panel
+     truly looks like a panel. */
+  width: min(420px, calc(100vw - 32px));
+  max-width: var(--modal-width, 560px);
+  max-height: calc(100vh - 32px);
+  margin: auto;
+
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 12px 48px rgba(15, 17, 23, 0.25);
+
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+dialog.ht-confirm-dialog[open],
+dialog.share-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Confirm dialog (Story 2.2 + Story 2.3 + Story 3.6) --- */
+
+dialog.ht-confirm-dialog .ht-confirm-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  padding: var(--space-5, 24px) var(--space-5, 24px) var(--space-4, 16px);
+  margin: 0;
+}
+
+dialog.ht-confirm-dialog .ht-confirm-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+dialog.ht-confirm-dialog .ht-confirm-body {
+  margin: 0;
+  color: var(--color-text);
+  opacity: 0.85;
+  font-size: 0.95rem;
+}
+
+dialog.ht-confirm-dialog .ht-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  justify-content: flex-end;
+  margin-top: var(--space-2, 8px);
+}
+
+/* --- Share dialog (Story 2.5) --- */
+
+dialog.share-dialog .share-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  padding: var(--space-5, 24px);
+  margin: 0;
+  min-width: 0;
+}
+
+dialog.share-dialog .share-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+}
+
+dialog.share-dialog .share-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+dialog.share-dialog .share-header button[data-ht-action="share-close"] {
+  /* The close "×" button uses UA button styling by default —
+     give it the ghost button look so it reads as a dismiss
+     action. */
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+dialog.share-dialog .share-header button[data-ht-action="share-close"]:hover {
+  background: var(--color-surface-2, rgba(0, 0, 0, 0.05));
+}
+
+dialog.share-dialog .share-desc {
+  margin: 0;
+  color: var(--color-text);
+  opacity: 0.8;
+  font-size: 0.95rem;
+}
+
+dialog.share-dialog .share-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+dialog.share-dialog .share-section label {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
+dialog.share-dialog .share-section p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  opacity: 0.8;
+}
+
+dialog.share-dialog #share-url-input,
+dialog.share-dialog #share-embed-input {
+  width: 100%;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-2, rgba(0, 0, 0, 0.05));
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+dialog.share-dialog #share-embed-input {
+  resize: vertical;
+  min-height: 4.5em;
+}
+
+/* --- Backdrop (the page-dim layer) --- */
+
+dialog.ht-confirm-dialog::backdrop,
+dialog.share-dialog::backdrop {
+  background-color: rgba(15, 17, 23, 0.45);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+/* --- Dark mode surface --- */
+
+:root[data-theme="dark"] dialog.ht-confirm-dialog,
+:root[data-theme="dark"] dialog.share-dialog {
+  background: var(--color-surface, #181b24);
+  border-color: var(--color-border, #2a2f3c);
+  color: var(--color-text, #e8eaf0);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="dark"] dialog.ht-confirm-dialog::backdrop,
+:root[data-theme="dark"] dialog.share-dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.55);
+}
+
+/* --- Forced-colors (Story 1.6 / WCAG 1.4.3 + 2.4.7) --- */
+
+@media (forced-colors: active) {
+  dialog.ht-confirm-dialog,
+  dialog.share-dialog {
+    background: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+    box-shadow: none;
+  }
+  dialog.ht-confirm-dialog::backdrop,
+  dialog.share-dialog::backdrop {
+    background-color: Canvas;
+  }
+  dialog.ht-confirm-dialog .ht-confirm-actions button,
+  dialog.share-dialog .share-section button,
+  dialog.share-dialog .share-header button {
+    border-color: CanvasText;
+    color: CanvasText;
+    background: Canvas;
+  }
+}
+
+/* --- Mobile (≤600px) — full-width sheet, matching settings modal --- */
+
+@media (max-width: 600px) {
+  dialog.ht-confirm-dialog,
+  dialog.share-dialog {
+    width: calc(100vw - 16px);
+    max-width: none;
+  }
+}
+

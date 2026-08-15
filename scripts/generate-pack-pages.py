@@ -254,7 +254,7 @@ def build_pack_page(root: Path, pack: dict) -> str:
         # substring-matches it byte-for-byte.
         f"  {foc_iife}\n"
         '  <link rel="stylesheet" href="../assets/css/base.css">\n'
-        '  <link rel="stylesheet" href="../assets/css/components.css">\n'
+        '  <link rel="stylesheet" href="../assets/css/components-core.css">\n'
         '  <link rel="stylesheet" href="../assets/css/tools.css">\n'
         "</head>\n"
     )

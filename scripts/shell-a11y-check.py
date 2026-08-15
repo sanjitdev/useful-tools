@@ -458,18 +458,19 @@ def check_palette_aria(path: Path, root: Path) -> list[str]:
             "(UX-DR-18 / Story 3.1 AC-7: SR users must hear result counts)"
         )
     # Story 3.1 AC-9: forced-colors 2px cursor border. The rule lives
-    # in components.css; verify it's present so the JS-set
+    # in chrome-palette.css (extracted in Story 4 Phase 5 from the
+    # monolithic components.css); verify it's present so the JS-set
     # `aria-selected="true"` triggers the border under Windows
     # High-Contrast / forced-colors mode.
-    components_css = root / "assets" / "css" / "components.css"
+    palette_css = root / "assets" / "css" / "chrome-palette.css"
     try:
-        css_text = components_css.read_text(encoding="utf-8")
+        css_text = palette_css.read_text(encoding="utf-8")
     except OSError:
         css_text = ""
     if combos and css_text:
         if not PALETTE_FORCED_RULE_RE.search(css_text):
             violations.append(
-                "components.css is missing the forced-colors 2px cursor border "
+                "chrome-palette.css is missing the forced-colors 2px cursor border "
                 "on .shell-palette-list [role=\"option\"][aria-selected=\"true\"] "
                 "(AI-17 / Story 3.1 AC-9: non-cursor rows must remain "
                 "distinguishable from the Highlight+HighlightText cursor row)"

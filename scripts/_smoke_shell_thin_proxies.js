@@ -126,6 +126,7 @@ const URL_TO_NS = {
   'assets/js/a11y.js': 'a11y',
 };
 ctx.__htLazyLog = [];
+ctx.__htCssLog = [];
 ctx.__pendingMethod = null;
 ctx.window.HT = {
   lazyLoad: function (url) {
@@ -142,6 +143,12 @@ ctx.window.HT = {
         [method]: function () { return 'fake-' + ns + '.' + method; },
       };
     }
+    return Promise.resolve();
+  },
+  // Story 4 Phase 5: lazyLoadCss is also called by the Proxy factory.
+  // We log the URL but otherwise no-op (returns Promise.resolve()).
+  lazyLoadCss: function (url) {
+    ctx.__htCssLog.push(url);
     return Promise.resolve();
   },
 };

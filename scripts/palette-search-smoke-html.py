@@ -31,8 +31,8 @@ def main():
     text = HARNESS.read_text(encoding='utf-8')
 
     checks = [
-        ('loads components.css',
-         'href="../assets/css/components.css"' in text),
+        ('loads components-core.css',
+         'href="../assets/css/components-core.css"' in text),
         ('loads search.js',
          'src="../assets/js/search.js"' in text),
         ('loads shell.js deferred',

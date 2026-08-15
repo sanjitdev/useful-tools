@@ -1,0 +1,270 @@
+/* =============================================
+   Handy Tools — chrome-palette.css
+   Story 4 Phase 5: lazy-loaded alongside the palette Proxy
+   stub via HT.lazyLoadCss. Command Palette overlay
+   (UX-DR-3 + WAI-ARIA combobox pattern).
+   ============================================= */
+
+/* ============================================
+   Command Palette (Story 1.7)
+   Overlay per UX-DR-3 (not modal — focus not trapped).
+   WAI-ARIA 1.1 combobox + listbox pattern (UX-DR-19).
+   ============================================ */
+
+.shell-palette {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10vh 1rem 1rem;
+  background-color: rgba(15, 17, 23, 0.45);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.shell-palette[hidden] {
+  display: none;
+}
+
+.shell-palette-panel {
+  width: 100%;
+  max-width: 640px;
+  background-color: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, rgba(15, 17, 23, 0.12));
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(15, 17, 23, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+:root[data-theme="dark"] .shell-palette {
+  background-color: rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="dark"] .shell-palette-panel {
+  background-color: var(--color-surface, #1a1d29);
+  border-color: var(--color-border, rgba(232, 234, 240, 0.12));
+}
+
+.shell-palette-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border, rgba(15, 17, 23, 0.12));
+  color: var(--color-text, #1a1d29);
+  outline: none;
+  font-family: inherit;
+}
+
+.shell-palette-input::placeholder {
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
+}
+
+:root[data-theme="dark"] .shell-palette-input {
+  color: var(--color-text, #e8eaf0);
+  border-bottom-color: var(--color-border, rgba(232, 234, 240, 0.12));
+}
+
+:root[data-theme="dark"] .shell-palette-input::placeholder {
+  color: var(--color-text-muted, rgba(232, 234, 240, 0.55));
+}
+
+.shell-palette-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.shell-palette-list [role="option"] {
+  padding: 0.625rem 1rem;
+  cursor: pointer;
+  color: var(--color-text, #1a1d29);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+/* Story 3.2: action row layout. The icon is a 16×16 inline SVG that
+   sits in a flex-row before the action label; muted by default and
+   flips to the on-primary token when the row is the cursor row.
+   flex-shrink:0 keeps the label from squeezing the icon. */
+.shell-palette-action {
+  display: flex;
+  align-items: center;
+}
+.shell-palette-action .shell-palette-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+  color: var(--color-text-muted, #6b7280);
+}
+.shell-palette-action .shell-palette-icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+.shell-palette-action[aria-selected="true"] .shell-palette-icon {
+  color: var(--color-on-primary, #1a1d29);
+}
+
+/* Cursor row. WAI-ARIA 1.1: aria-selected marks the active option; the
+   input's aria-activedescendant stays the source of truth for "focused"
+   (Story 1.7). Both attributes are set together by moveActive(). */
+.shell-palette-list [role="option"][aria-selected="true"] {
+  background-color: var(--color-primary-soft, #E5ECFF);
+  color: var(--color-on-primary, #1a1d29);
+}
+
+:root[data-theme="dark"] .shell-palette-list [role="option"][aria-selected="true"] {
+  background-color: var(--color-primary-soft, #E5ECFF);
+  color: var(--color-on-primary, #1a1d29);
+}
+
+.shell-palette-list [role="option"]:hover {
+  background-color: var(--color-primary-soft, #E5ECFF);
+}
+
+:root[data-theme="dark"] .shell-palette-list [role="option"] {
+  color: var(--color-text, #e8eaf0);
+}
+
+:root[data-theme="dark"] .shell-palette-list [role="option"]:hover {
+  background-color: var(--color-primary-soft, #E5ECFF);
+  color: var(--color-on-primary, #1a1d29);
+}
+
+/* Group header (e.g., "Actions" sub-list separator). The header is a
+   presentation li — no ARIA option role — so the SR announces the next
+   option's label without a header artifact. */
+.shell-palette-group-header {
+  padding: 0.5rem 1rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
+  list-style: none;
+}
+
+:root[data-theme="dark"] .shell-palette-group-header {
+  color: var(--color-text-muted, rgba(232, 234, 240, 0.55));
+}
+
+/* Right-aligned match indicator for non-title matches (matched in
+   description, keywords, slug, category). Visually muted so the title
+   stays the primary scan target. */
+.shell-palette-match {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
+  margin-top: 0.125rem;
+}
+
+:root[data-theme="dark"] .shell-palette-match {
+  color: var(--color-text-muted, rgba(232, 234, 240, 0.55));
+}
+
+/* Visually-hidden but AT-available — used by the live region. */
+.shell-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.shell-palette-empty {
+  padding: 0.875rem 1rem;
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
+  font-size: 0.875rem;
+  list-style: none;
+}
+
+:root[data-theme="dark"] .shell-palette-empty {
+  color: var(--color-text-muted, rgba(232, 234, 240, 0.55));
+}
+
+.shell-palette-footer {
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--color-border, rgba(15, 17, 23, 0.08));
+  font-size: 0.75rem;
+  color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
+  min-height: 1.5rem;
+}
+
+:root[data-theme="dark"] .shell-palette-footer {
+  border-top-color: var(--color-border, rgba(232, 234, 240, 0.08));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-palette,
+  .shell-palette-panel,
+  .shell-palette-list [role="option"] {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .shell-palette {
+    background-color: Canvas;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .shell-palette-panel {
+    background-color: Canvas;
+    border: 1px solid CanvasText;
+  }
+  .shell-palette-input {
+    color: CanvasText;
+    border-bottom-color: CanvasText;
+  }
+  .shell-palette-list [role="option"]:hover {
+    background-color: Highlight;
+    color: HighlightText;
+    forced-color-adjust: none;
+  }
+  /* AI-17: the cursor row is the only one mapped to Highlight+HighlightText.
+     A 2px CanvasText border keeps the cursor row visually distinct from
+     non-cursor rows in forced-colors mode (where shape alone is the cue). */
+  .shell-palette-list [role="option"][aria-selected="true"] {
+    background-color: Highlight;
+    color: HighlightText;
+    border: 2px solid CanvasText;
+    box-sizing: border-box;
+    forced-color-adjust: none;
+  }
+  .shell-palette-empty {
+    color: CanvasText;
+  }
+  .shell-palette-footer {
+    border-top-color: CanvasText;
+    color: CanvasText;
+  }
+  /* Story 3.2: in forced-colors mode the action-icon SVG needs an
+     explicit CanvasText stroke override so the glyph stays visible
+     inside the Highlight+HighlightText cursor row (where the parent
+     color is already HighlightText — without this override the
+     currentColor resolution would paint the strokes as HighlightText
+     over a Highlight background, producing invisible glyphs). */
+  .shell-palette-action .shell-palette-icon svg {
+    stroke: CanvasText;
+    color: CanvasText;
+  }
+}
+

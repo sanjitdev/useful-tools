@@ -1,5 +1,5 @@
 /* ============================================
-   Handy Tools — shell-thin.js (Story 4, Phase 2 + Phase 4)
+   Handy Tools — shell-thin.js (Story 4, Phase 2 + Phase 4 + Phase 5)
    Tier 1 boot orchestrator. The slim shell that
    ships on every chrome page in place of
    shell.js. Strategy: lazy-load shell.js on
@@ -22,6 +22,14 @@
    hits the Proxy, fires `lazyLoad('assets/js/sample-data.js')`,
    and forwards to the real `mount` once the
    module is parsed.
+
+   Phase 5 wires CSS lazy-loading alongside the
+   existing JS lazy-load. Each Proxy stub also
+   triggers `HT.lazyLoadCss` for its chrome CSS
+   chunk (palette → chrome-palette.css, etc.),
+   so first paint no longer ships the chrome
+   stylesheets. ht-lazy.js (loaded before this
+   file) provides HT.lazyLoadCss.
 
    Story 4 — see _bmad-output/implementation-artifacts/
    story-4-embed-slim-build.md
@@ -83,6 +91,36 @@
     exportData: 'assets/js/export.js',
     importData: 'assets/js/import.js',
     a11y: 'assets/js/a11y.js',
+    // Story 4 Phase 5 — help-overlay and global-chords were also stripped
+    // from the eager block by the Phase 3 sweep and need to be wired
+    // into the lazy-load graph. help-overlay.js loads on first
+    // HT.palette.openHelp() call (Story 3.3 owns the listener that
+    // toggles the overlay). global-chords.js loads in kickShellBoot()
+    // alongside shell.js (it's a one-shot DOMContentLoaded listener).
+    helpOverlay: 'assets/js/help-overlay.js',
+    globalChords: 'assets/js/global-chords.js',
+  };
+
+  // Story 4 Phase 5 — chrome CSS chunks lazy-loaded alongside each
+  // chrome namespace's first property access. Multiple namespaces may
+  // share a CSS file (e.g., sampleData + share both use the
+  // confirm/share <dialog> surface); ht-lazy.js dedupes concurrent
+  // lazyLoadCss calls so the second one returns the in-flight
+  // Promise. urlState / export / import / a11y have no chrome CSS of
+  // their own (they reuse Tier 1 styles only), so they map to nothing.
+  // The palette Proxy also covers chrome-help.css because
+  // HT.palette.openHelp() opens the help overlay.
+  const TIER2_CSS = {
+    history:     'assets/css/chrome-history.css',
+    palette:     'assets/css/chrome-palette.css',
+    sampleData:  'assets/css/chrome-confirm-share.css',
+    share:       'assets/css/chrome-confirm-share.css',
+    exportData:  '',
+    importData:  '',
+    a11y:        '',
+    urlState:    '',
+    helpOverlay: 'assets/css/chrome-help.css',
+    globalChords: '',
   };
 
   function ensureLazy() {
@@ -92,13 +130,20 @@
   }
 
   function makeProxy(url, namespace) {
+    const cssUrl = TIER2_CSS[namespace] || '';
     return new Proxy({}, {
       get: function (_t, prop) {
         if (typeof prop === 'symbol') return undefined;
         return function () {
           ensureLazy();
           const args = Array.prototype.slice.call(arguments);
-          return HT.lazyLoad(url).then(function () {
+          // Story 4 Phase 5: kick off the CSS lazy-load in parallel
+          // with the JS lazy-load. lazyLoadCss is a no-op Promise when
+          // the URL is empty (namespaces without chrome CSS), so it's
+          // safe to call unconditionally.
+          const jsP  = HT.lazyLoad(url);
+          const cssP = cssUrl ? HT.lazyLoadCss(cssUrl) : Promise.resolve();
+          return Promise.all([jsP, cssP]).then(function () {
             const target = HT[namespace];
             if (!target || typeof target[prop] !== 'function') {
               throw new Error('shell-thin: ' + namespace + '.' + prop + ' is not a function after lazy-load');
@@ -136,17 +181,36 @@
   // that calls boot(); we don't want TWO boot() calls, so shell.js
   // gets the original event and we just kick off the lazy-load here.
   //
+  // Story 4 Phase 5: also kick off chrome modules that need to be
+  // available at first paint but aren't covered by Proxy stubs:
+  //   - help-overlay.js (Story 3.3 listener for the `?` chord)
+  //   - global-chords.js (Story 3.4 `g <key>` cross-page nav)
+  //   - chrome-settings.css (settings modal CSS — settings DOM is in
+  //     Tier 1 chrome HTML, but the styles aren't on first paint until
+  //     shell.js wireSettings() opens the modal)
+  //
   // If the document is already past 'loading' (e.g., shell-thin.js
   // loaded after DOMContentLoaded for some reason), kick off the
   // lazy-load synchronously.
   // ------------------------------------------------------------------
   function kickShellBoot() {
     if (typeof HT.lazyLoad !== 'function') return; // ht-lazy.js missing
-    HT.lazyLoad('assets/js/shell.js').catch(function (err) {
-      if (typeof console !== 'undefined' && console.warn) {
-        console.warn('shell-thin: lazy-load shell.js failed', err);
-      }
-    });
+
+    function safeLazyLoad(url) {
+      if (typeof HT.lazyLoad !== 'function') return Promise.resolve();
+      return HT.lazyLoad(url).catch(function (err) {
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('shell-thin: lazy-load ' + url + ' failed', err);
+        }
+      });
+    }
+
+    safeLazyLoad('assets/js/shell.js');
+    safeLazyLoad('assets/js/help-overlay.js');
+    safeLazyLoad('assets/js/global-chords.js');
+    if (typeof HT.lazyLoadCss === 'function') {
+      HT.lazyLoadCss('assets/css/chrome-settings.css').catch(function () {});
+    }
   }
 
   if (document.readyState === 'loading') {
