@@ -1927,7 +1927,16 @@ def regenerate_home(
         '<a class="shell-skip"' in source
         and 'class="site-header" role="banner"' in source
         and '<footer class="site-footer" role="contentinfo"' in source
-        and 'src="assets/js/shell.js"' in source
+        # Story 9.13.1 transition: shell-thin.js replaced the always-
+        # loaded shell.js as the Tier 1 chrome loader. Every page
+        # loads shell-thin.js (defer) and never the old shell.js.
+        # Accept either so the home-page regeneration can find its
+        # anchor even on pages that haven't migrated (e.g. legacy
+        # test pages). The home page itself uses shell-thin.js only.
+        and (
+            'src="assets/js/shell.js"' in source
+            or 'src="assets/js/shell-thin.js"' in source
+        )
     )
     palette_html_in_source = palette_html in source
     settings_html_in_source = settings_html in source

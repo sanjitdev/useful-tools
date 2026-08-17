@@ -172,6 +172,51 @@
   HT.lazyLoadCss = lazyLoadCss;
 
   // ------------------------------------------------------------------
+  // Extended-ready primitive (date-picker-v2 race fix).
+  //
+  // Some chrome modules (date-picker-v2 today, possibly more
+  // tomorrow) split their initialization across multiple script
+  // tags: the entry file parses and returns a Promise that
+  // resolves once downstream sub-modules finish loading and
+  // the real API is installed on HT.<namespace>. The
+  // shell-thin Proxy stub fires `lazyLoad(url)` first, then
+  // reads `HT[namespace]` and dispatches — but between those
+  // two steps the sub-modules may still be in flight, leaving
+  // the namespace as the Proxy itself. The next property
+  // access on the Proxy would re-enter the stub, producing
+  // unbounded promise chains and an apparent "infinite loop /
+  // memory issue" on the page.
+  //
+  // `lazyLoadReady(namespace, readyPromise)` lets the module
+  // tell the loader "this namespace is fully installed only
+  // once this Promise resolves." The shell-thin stub then
+  // `Promise.all`s the script-load + ready promises before
+  // dispatching, so dispatch never sees a half-installed
+  // namespace. Pass an already-resolved Promise to no-op.
+  //
+  // Idempotent — registering twice for the same namespace
+  // replaces the prior registration. A property access whose
+  // namespace has no registered ready Promise proceeds after
+  // the script-load promise resolves (the legacy behavior).
+  // ------------------------------------------------------------------
+  const readyPromises = new Map(); // namespace -> Promise
+  function lazyLoadReady(namespace, readyPromise) {
+    if (typeof namespace !== 'string' || namespace.length === 0) {
+      return Promise.reject(new Error('ht-lazy: lazyLoadReady namespace must be a non-empty string'));
+    }
+    if (!readyPromise || typeof readyPromise.then !== 'function') {
+      return Promise.reject(new Error('ht-lazy: lazyLoadReady readyPromise must be a thenable'));
+    }
+    readyPromises.set(namespace, Promise.resolve(readyPromise));
+    return Promise.resolve();
+  }
+  function getReadyPromise(namespace) {
+    return readyPromises.get(namespace) || null;
+  }
+  HT.lazyLoadReady    = lazyLoadReady;
+  HT._getReadyPromise = getReadyPromise; // shell-thin.js reads this
+
+  // ------------------------------------------------------------------
   // Per-tool handler lazy-load (Story 4b Phase 2).
   //
   // Tools that ship a <slug>-core.js (parse-time data + boot wiring)

@@ -245,6 +245,17 @@ SPEC_PAGE_CONDITIONAL_MODULES = [
     # 9.19.1 pilot tools: age-calculator, countdown-to-date, world-clock
     # (time), exam-countdown (datetime-local).
     "assets/js/date-picker.js",
+    # Phase 2b (2026-08-17) — date-picker-v2 rewrite. The new
+    # picker ships as four sub-modules + one entry file. CSS is
+    # JS-injected by css.js, so no LAZY_CSS entry is needed. The
+    # shell-thin Proxy factory lazy-loads date-picker.js on first
+    # HT.datePickerV2.enhance() call from the date-picker-lab test
+    # page (and, after Phase 3 sign-off, any tool that opts in).
+    "assets/js/date-picker-v2/date-picker.js",
+    "assets/js/date-picker-v2/utils.js",
+    "assets/js/date-picker-v2/css.js",
+    "assets/js/date-picker-v2/dialog.js",
+    "assets/js/date-picker-v2/core.js",
 ]
 
 # Story x-3 baseline — measured 2026-08-15 against the post-home-

@@ -746,6 +746,15 @@ TOOLS_DIR_REL = Path("tools")
 # under the byte-substring gate; the DOM walk covers it end-to-end).
 VIEW_SOURCE_REL = Path("view-source.html")
 
+# Developer surface pages that live inside tools/ but aren't actually
+# tools (they don't appear in tools.json, aren't indexed by the home
+# grid or palette search, and have no URL state schema). They still
+# need the full chrome to look like the rest of the site, but the
+# data-slug requirement (Story 1.12) is waived — the slug would
+# otherwise trigger urlState._loadSchema() and throw because no
+# tools.json entry exists.
+LAB_DIRS = frozenset({"date-picker-lab"})
+
 
 def iter_target_files(root: Path) -> list[Path]:
     """List every HTML page that carries the full Shell chrome.
@@ -797,8 +806,12 @@ ROOT_PAGES_WITH_CHROME = ("quality.html",)
 def page_kind(rel: Path) -> str:
     """Classify a target file path into a page kind.
 
-    Returns one of: 'home', 'view-source', 'tool', 'pack', 'quality'.
+    Returns one of: 'home', 'view-source', 'tool', 'pack', 'quality', 'lab'.
     Drives which chrome subtrees must be present + which per-page checks fire.
+    'lab' pages live inside tools/ but are developer surfaces, not real
+    tools (no tools.json entry, no home-grid card, no search hit). They
+    carry the same chrome as tool pages, but the data-slug requirement
+    is waived — see LAB_DIRS.
     """
     if rel == INDEX_REL:
         return "home"
@@ -808,6 +821,8 @@ def page_kind(rel: Path) -> str:
         return "quality"
     if rel.parent.name == "packs":
         return "pack"
+    if rel.parent.name in LAB_DIRS:
+        return "lab"
     return "tool"
 
 
@@ -960,6 +975,9 @@ def scan_page(
     # The data-slug is stripped from the page landmark before the
     # comparator runs (it's a per-page chrome rule, not chrome-vs-canonical
     # identity), so we read it directly from the page text via a regex.
+    # Lab pages (developer surfaces inside tools/<lab-dir>/) intentionally
+    # omit data-slug so shell-history/share/sample-data skip the schema
+    # lookup that would throw because no tools.json entry exists.
     if kind == "tool":
         slug = page_rel.parent.name
         slug_match = re.search(

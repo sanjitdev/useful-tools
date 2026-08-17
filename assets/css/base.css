@@ -196,7 +196,8 @@ a:hover {
 
 .shell-search-trigger,
 .shell-locale,
-.shell-settings {
+.shell-settings,
+.shell-header-lab {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -208,14 +209,21 @@ a:hover {
   font-weight: 500;
   cursor: pointer;
   transition: background-color 150ms ease, border-color 150ms ease;
+  text-decoration: none;
 }
 
 .shell-search-trigger:hover,
 .shell-locale:not([disabled]):hover,
-.shell-settings:hover {
+.shell-settings:hover,
+.shell-header-lab:hover {
   background: var(--color-primary-soft);
   border-color: var(--color-primary-soft-strong);
   color: var(--color-primary-pressed);
+}
+
+.shell-header-lab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .shell-locale[disabled] {
@@ -266,7 +274,8 @@ a:hover {
 @media (max-width: 767px) {
   .shell-search-trigger,
   .shell-locale,
-  .shell-settings {
+  .shell-settings,
+  .shell-header-lab {
     padding: var(--space-2);
   }
 }

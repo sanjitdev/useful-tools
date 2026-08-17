@@ -42,6 +42,25 @@ function check(cond, label) {
 }
 
 // =============================================================
+// Phase 1 rollback (2026-08-17) — picker reverted to native.
+//
+// shell-thin.js's `HT.datePicker = makeProxy(...)` Proxy stub is
+// commented out, so this smoke's Proxy-stub assertions (Section I)
+// and the lazy-load / enhance assertions (Sections II–XXX) no longer
+// represent reality. The old picker on disk is dormant — it will be
+// deleted in Phase 3 once the new picker is proven on the lab page.
+//
+// This smoke is dormant until Phase 2 lands. It is preserved so the
+// git diff is minimal and the test history stays locatable. The new
+// picker will be tested by _smoke_date_picker_v2.js (Phase 2c).
+// =============================================================
+console.log('--- 0. Phase 1 rollback notice ---');
+console.log('  SKIP  custom date picker reverted to native browser pickers');
+console.log('  SKIP  HT.datePicker Proxy stub is disabled in shell-thin.js');
+console.log('  SKIP  this smoke is dormant; _smoke_date_picker_v2.js will replace it in Phase 2');
+process.exit(0);
+
+// =============================================================
 // Minimal HT + dom stubs (mirror _smoke_quiz_proxy.js:57-115)
 // =============================================================
 

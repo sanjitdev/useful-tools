@@ -204,7 +204,36 @@
     // trip. First call to HT.datePicker.enhance(...) hits the Proxy,
     // fires lazyLoad + lazyLoadCss in parallel, and forwards to the
     // real API once date-picker.js parses.
-    datePicker: 'assets/js/date-picker.js',
+    // Phase 1 rollback (2026-08-17): disabled — tools now use the
+    // browser's native <input type="date|time|datetime-local"> pickers.
+    // The new picker will be re-introduced as datePickerV2 once the
+    // date-picker-lab test page proves it stable. Keep the entry (and
+    // the TIER2_CSS entry + the makeProxy call below) commented, not
+    // deleted, so the rollback is a one-line uncomment.
+    // datePicker: 'assets/js/date-picker.js',
+    // Phase 2b (2026-08-17): the rewrite is live. HT.datePickerV2
+    // is a brand-new module built from scratch in
+    // assets/js/date-picker-v2/ to fix the close/re-open bug class
+    // at the root (single source-of-truth open state, native
+    // <dialog> for focus trap + Escape, no restore.focus()). It is
+    // wired through the same shell-thin Proxy factory. The
+    // date-picker-lab test page exercises it end-to-end before any
+    // tool adopts it. CSS is JS-injected by date-picker-v2/css.js
+    // so the bundle gate's LAZY_CSS_MODULES list does NOT need an
+    // entry — the JS file ships its own <style> at first
+    // css.inject() call.
+    // Phase 2.7 (2026-08-17): `?v=5` — core.js now swaps the
+    // input's `type` from "date|time|datetime-local" to "text"
+    // on enhance() and restores it on destroy(), so the OS-native
+    // picker cannot race the v2 dialog and "look like the default
+    // one". `mousedown preventDefault` was unreliable across
+    // browsers (the native picker binds to `click`, which fires
+    // after mousedown, and some browsers open the native picker
+    // before the click event reaches the page). The type-swap is
+    // bulletproof — the native picker simply cannot launch
+    // without the type attribute. Bump in lockstep with the V
+    // constant in date-picker.js.
+    datePickerV2: 'assets/js/date-picker-v2/date-picker.js?v=5',
   };
 
   // Resolve relative paths against this script's own URL so the
@@ -248,7 +277,13 @@
     // first HT.datePicker.enhance() access. chrome-date-picker.css
     // lives in assets/css/ (chrome-* prefix); see scripts/bundle-
     // size-gate.py LAZY_CSS_MODULES for the gz budget.
-    datePicker: 'assets/css/chrome-date-picker.css',
+    // Phase 1 rollback (2026-08-17): disabled — see TIER2_URLS.datePicker.
+    // datePicker: 'assets/css/chrome-date-picker.css',
+    // Phase 2b (2026-08-17): the new picker is CSS-injected — no
+    // separate lazy CSS file to load. The TIER2_CSS entry is
+    // therefore an empty string, which the Proxy factory treats as
+    // "no CSS to load" (lazyLoadCss resolves immediately).
+    datePickerV2: '',
   };
 
   // Same path-resolution treatment as TIER2_URLS above. Empty-string
@@ -278,9 +313,16 @@
           // with the JS lazy-load. lazyLoadCss is a no-op Promise when
           // the URL is empty (namespaces without chrome CSS), so it's
           // safe to call unconditionally.
-          const jsP  = HT.lazyLoad(url);
-          const cssP = cssUrl ? HT.lazyLoadCss(cssUrl) : Promise.resolve();
-          return Promise.all([jsP, cssP]).then(function () {
+          const jsP   = HT.lazyLoad(url);
+          const cssP  = cssUrl ? HT.lazyLoadCss(cssUrl) : Promise.resolve();
+          // Date-picker-v2 race fix: some entry scripts register an
+          // extended-ready Promise via HT.lazyLoadReady(namespace, p).
+          // We must await it before reading HT[namespace], otherwise
+          // the namespace is still the Proxy itself and dispatch
+          // re-enters this stub — unbounded promise chains.
+          const readyP = (typeof HT._getReadyPromise === 'function'
+                          && HT._getReadyPromise(namespace)) || Promise.resolve();
+          return Promise.all([jsP, cssP, readyP]).then(function () {
             const target = HT[namespace];
             if (!target || typeof target[prop] !== 'function') {
               throw new Error('shell-thin: ' + namespace + '.' + prop + ' is not a function after lazy-load');
@@ -320,7 +362,15 @@
   // at module init, so the Proxy stub here is preserved across the lazy-load round-trip —
   // first call to HT.datePicker.enhance(...) hits the Proxy, fires lazyLoad + lazyLoadCss,
   // and forwards to the real API once date-picker.js parses.
-  HT.datePicker = makeProxy(TIER2_URLS.datePicker, 'datePicker');
+  // Phase 1 rollback (2026-08-17): disabled — see TIER2_URLS.datePicker.
+  // HT.datePicker = makeProxy(TIER2_URLS.datePicker, 'datePicker');
+  // Phase 2b (2026-08-17): the rewrite is live. date-picker-v2/
+  // date-picker.js does `Object.defineProperty(HT, 'datePickerV2',
+  // {value: api, ...})` after its four sub-modules parse — the same
+  // pattern as the old date-picker.js + quiz.js. Proxy factory
+  // forwards the first property access to that real API once the
+  // module has parsed.
+  HT.datePickerV2 = makeProxy(TIER2_URLS.datePickerV2, 'datePickerV2');
 
   // ------------------------------------------------------------------
   // DOMContentLoaded → lazy-load shell.js (the real boot orchestrator).
