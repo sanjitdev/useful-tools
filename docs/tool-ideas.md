@@ -69,3 +69,9 @@ Monetization: Affiliate links to retailers, or a small fee for “gift concierge
 Productivity & Time Zone Planner: An all-in-one tool to optimize your daily schedule. It suggests optimal meeting times across time zones, visualizes everyone’s working hours, and even recommends when to take breaks for peak energy. For example, it could integrate with Google Calendar, block off “deep work” periods, and sync multiple team calendars. With remote teams global, this reduces the friction of planning cross-border meetings.
 Enhancements: Dashboard view of all teammates’ availabilities (like World Clock plus calendars). Smart suggestions (“Team is most available between 3-5pm UTC”).
 Monetization: Offer as a plugin to calendars or as a paid team integration. Premium features could include analytics on meeting patterns and suggestions for habit changes to improve work-life balance.
+
+---
+
+# Quiz / personality / recommendation (deeper brainstorm)
+
+The single-paragraph list above is intentionally shallow. For the quiz / personality / "find me X" category, a deeper brainstorm lives at [`docs/quiz-tools-idea.md`](quiz-tools-idea.md). It covers ~20 candidate experiences, ranks them across viral / useful / repeatable axes, and proposes a data-driven quiz engine architecture (question → trait signal → scoring → archetype → share card → "challenge a friend" loop) so that new quizzes ship as content (JSON) rather than new applications. Three shortlist launches if we ever pursue it: (1) "What Kind of Person Are You, Really?", (2) "What Would Your Future Partner Be Like?", (3) "What Would You Do? — Real Life Situations" — all three share one engine, and the "Challenge a Friend" loop is the mandatory viral mechanic.
