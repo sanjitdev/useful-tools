@@ -1,7 +1,7 @@
 # Story 10.1 — Pack `disc` sibling in `tools.json` schema
 
 **Slug:** `pack-disc-schema`
-**Status:** backlog
+**Status:** done
 **Date:** 2026-08-17
 **Brainstorm:** `_bmad-output/brainstorming/brainstorm-discovery-engine-2026-08-17/`
 **AC gate (working tree):** `scripts/dc/dc-0-schema.py`
@@ -62,9 +62,9 @@ packs:
 
 ## Verification
 
-- `python scripts/dc/dc-0-schema.py` → PASS (discriminated union validated, 6 MVP quizzes × 4 kinds where applicable).
-- `make validate-tools-json` → existing 50 tool entries still PASS unchanged.
-- Brownfield clean: 50/50 tools validated, no schema regressions.
+- `python scripts/dc/dc-0-schema.py` → **13/13 PASS** (2026-08-17) — discriminated union validated across all 4 kinds; pack-entry / quiz-entry / scoring-config / results-config / challenge-config / catalog-config definitions all present; `additionalProperties: false` preserved on top level + `tool-entry`; existing 50 tools validate unchanged.
+- `python scripts/validate-tools-json.py` → `tools.json: OK` (50/50 tools validated, no schema regressions).
+- Brownfield clean: schema additions are **additive-only** — no existing tool entry modified.
 
 ## Out-of-scope (deferred)
 

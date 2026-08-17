@@ -1,5 +1,5 @@
 # generated: 2026-07-31
-# last_updated: 2026-08-17T20:00:00Z
+# last_updated: 2026-08-17T20:30:00Z
 # project: useful-tools
 # project_key: NOKEY
 # tracking_system: file-system
@@ -255,7 +255,7 @@ development_status:
   # UX-DRs: UX-DR-9 (6th pack composition), UX-DR-7 (Discover Me pack page surface)
   # =========================================================================
   epic-10: backlog
-  10-1-pack-disc-sibling-in-tools-json-schema: backlog
+  10-1-pack-disc-sibling-in-tools-json-schema: done  # WIP DC scaffold already landed packs/pack-entry/quiz-entry/module-def discriminated union + 4 config-schema definitions in tools.schema.json (commit f52554d). DC-0 gate (scripts/dc/dc-0-schema.py) → 13/13 PASS 2026-08-17; existing 50 tools still validate (validate-tools-json.py → OK). Schema work was foundational; no Story 10.1-specific code authored. Brownfield clean.
   10-2-data-driven-scoring-engine-assets-js-scoring-js: backlog
   10-3-results-module-ht-results-render-and-share-card-chrome: backlog
   10-4-challenge-module-ht-challenge-encode-decode-compare: backlog
@@ -268,7 +268,7 @@ development_status:
   10-11-share-card-chrome-png-url-print-fr-29: backlog
   10-12-challenge-ux-receiver-side-landing-page-privacy-default: backlog
   10-13-pii-lint-archetype-immutability-lint-fr-28-fr-31: backlog
-  10-14-accessibility-review-follow-ups-b1-b2-b3: backlog  # BLOCKING — must close before 10.10 + 10.12
+  10-14-accessibility-review-follow-ups-b1-b2-b3: done  # B1 (DESIGN.md §2.1 contrast table + darker palette variants) + B2 (EXPERIENCE.md §3.2 Challenge receiver contract) + B3 (EXPERIENCE.md §5.1 tools-for-you DOM shape) + H1 (800ms debounce) + H2 (focus-return) + H3 (OG SVG <title>) + H4 (skip-link smoke) + H5 (receiver H1) all closed 2026-08-17 — verdict flipped from Conditional → Unconditional pass; commit 63b9d07.
   10-15-discovery-engine-smoke-harness-dc-0-through-dc-12: backlog
   10-16-bundle-size-budget-enforcement-brownfield-clean: backlog
   10-17-discovery-engine-docs-authoring-taxonomy-privacy: backlog
