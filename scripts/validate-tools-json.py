@@ -71,6 +71,17 @@ SUPPORTED_KEYWORDS = {
     "description",
     "format",
     "default",
+    # draft-07 supports allOf/anyOf/oneOf/not. The Discovery Pack
+    # schema (DC-0) uses allOf as a discriminated-union mechanism on
+    # `module-def` (kind: scoring|results|challenge|catalog — each
+    # branch narrows `config` via `if`/`then`). The fallback walker
+    # only needs allOf + if/then for now; the others remain on the
+    # "jsonschema package required" side until a schema actually
+    # needs them.
+    "allOf",
+    "if",
+    "then",
+    "else",
 }
 
 PRIMITIVE_TYPES = {"string", "number", "integer", "boolean", "null", "array", "object"}
@@ -193,6 +204,15 @@ def validate_schema_wellformed(schema: dict, root: dict) -> list[str]:
         if "definitions" in node and isinstance(node["definitions"], dict):
             for k, v in node["definitions"].items():
                 visit(v, f"{path}.definitions.{k}", seen)
+        if "allOf" in node and isinstance(node["allOf"], list):
+            for i, branch in enumerate(node["allOf"]):
+                visit(branch, f"{path}.allOf[{i}]", seen)
+        if "if" in node and isinstance(node["if"], dict):
+            visit(node["if"], f"{path}.if", seen)
+        if "then" in node and isinstance(node["then"], dict):
+            visit(node["then"], f"{path}.then", seen)
+        if "else" in node and isinstance(node["else"], dict):
+            visit(node["else"], f"{path}.else", seen)
         if "$ref" in node:
             ref = node["$ref"]
             try:
@@ -378,6 +398,33 @@ class FallbackValidator:
 
         # Object constraints (gated by isinstance)
         if isinstance(instance, dict):
+            # allOf: validate against every branch. Errors are
+            # collected under the branch's own path so the reporter
+            # tells the author which branch failed. Used by DC-0
+            # (Discovery Pack schema) for `module-def`'s kind-driven
+            # narrowing of `config`.
+            if "allOf" in schema and isinstance(schema["allOf"], list):
+                for i, branch in enumerate(schema["allOf"]):
+                    if isinstance(branch, dict):
+                        self.validate(instance, branch, f"{path}.allOf[{i}]", errors)
+            # if/then/else: draft-07 conditional validation. If the
+            # `if` schema validates against the instance, the `then`
+            # schema must also validate. If `if` does NOT validate
+            # and `else` is present, `else` must validate. Used by
+            # DC-0 for the kind-driven discriminated union on
+            # `module-def`: kind=scoring => config:scoring-config,
+            # etc.
+            if "if" in schema and isinstance(schema["if"], dict):
+                branch_errors: list = []
+                self.validate(instance, schema["if"], f"{path}.if", branch_errors)
+                if not branch_errors:
+                    # if matched -> then must match
+                    if "then" in schema and isinstance(schema["then"], dict):
+                        self.validate(instance, schema["then"], f"{path}.then", errors)
+                else:
+                    # if did not match -> else must match (if present)
+                    if "else" in schema and isinstance(schema["else"], dict):
+                        self.validate(instance, schema["else"], f"{path}.else", errors)
             if "required" in schema:
                 for key in schema["required"]:
                     if key not in instance:

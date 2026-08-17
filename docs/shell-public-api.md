@@ -165,6 +165,7 @@ bumped from `1.13.0` by Story 3.8 for `HT.import`).
 | `HT_EXPORT_SCHEMA_VERSION` | internal | export.js (Story 3.7 / AD-14 — single source of truth for the JSON `version` field; Story 3.8 reads this) |
 | `HT.import` | stable | import.js (Story 3.8 / AD-4 + AD-14 — `HT.import.run()` + `HT.import.prompt()` alias opens a file picker, parses via `FileReader.readAsText`, validates against `HT_EXPORT_SCHEMA_VERSION` (Story 3.7's single source of truth), shows an overwrite-confirm dialog (`window.confirm` per Story 3.5 precedent) if any settings conflict, then writes settings → pins → favorites → recent → history.<slug> (merged) via the storage registry; hidden in embed mode; idempotent within page lifetime via `importInFlight` flag) |
 | `HT_IMPORT_DIALOG_VERSION` | internal | import.js (Story 3.8 / AD-14 — dialog-shape contract version; mirrors `HT_HISTORY_INIT` + `HT_EXPORT_SCHEMA_VERSION`) |
+| `HT.scoring.score` | stable | scoring.js (DC-1 / Discovery Pack — `(answers, spec) => {traits, archetype}`; spec shape declared by `definitions.scoring-config` in `tools.schema.json`; trait scores clamped to `[0, 100]`; skipped / unknown answers contribute zero; empty answers yields `spec.archetypes[*].default`; deterministic) |
 
 ---
 

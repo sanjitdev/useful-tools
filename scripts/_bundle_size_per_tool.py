@@ -132,6 +132,12 @@ def discover_tools(root: Path) -> list[tuple[str, Path]]:
     only enumerates `tools/<slug>/index.html`. Excludes the
     quiz-preview demo (it's a developer shell, not a real tool
     and ships its own scripts).
+
+    Also enumerates pack routes under `tools/packs/<pack>/<slug>/`
+    (added by DC-7 / Story 6). Each pack entry has its own
+    parse-time budget via the same TOOL_CORE_BUDGET_BYTES_GZ +
+    FIRST_PAINT_BUDGET_BYTES_GZ limits. The slug is namespaced
+    as `<pack>/<slug>` so reports stay unambiguous.
     """
     tools: list[tuple[str, Path]] = []
     tools_dir = root / "tools"
@@ -143,9 +149,28 @@ def discover_tools(root: Path) -> list[tuple[str, Path]]:
         slug = slug_dir.name
         if slug == "quiz-preview":
             continue
+        # Standalone tool page: tools/<slug>/index.html
         page = slug_dir / "index.html"
         if page.is_file():
             tools.append((slug, page))
+        # Pack route: tools/<pack>/<entry>/index.html (recursive).
+        # A "pack" directory is one whose immediate children are
+        # all entry folders (each with its own index.html). We
+        # only recurse one level — packs are not nested deeper.
+        packs_dir = slug_dir / "packs"
+        if not packs_dir.is_dir():
+            continue
+        for pack_dir in sorted(packs_dir.iterdir()):
+            if not pack_dir.is_dir():
+                continue
+            for entry_dir in sorted(pack_dir.iterdir()):
+                if not entry_dir.is_dir():
+                    continue
+                entry_page = entry_dir / "index.html"
+                if entry_page.is_file():
+                    # namespace: 'packs/<pack>/<entry>' so reports
+                    # distinguish pack entries from standalone tools
+                    tools.append((f"packs/{pack_dir.name}/{entry_dir.name}", entry_page))
     return tools
 
 

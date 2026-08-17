@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy check-pack-composition es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke script-load-order uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke budget-planner-smoke savings-goal-smoke currency-converter-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy check-pack-composition es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke script-load-order uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke budget-planner-smoke savings-goal-smoke currency-converter-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke dc-0-schema dc-1-scoring dc-2-results dc-3-challenge dc-4-recommend dc-5-loader dc-6-quizzes dc-7-tools-json dc-8-docs dc-9-smokes dc-10-pack-gate dc-11-bundle dc-12-retro dc-all
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -988,3 +988,22 @@ quiz-preview-smoke:
 # baseline bumped down.
 quiz-proxy-smoke:
 	@node scripts/_smoke_quiz_proxy.js
+
+# ----------------------------------------------------------------------------
+# Discovery Epic AC gates
+#
+# One gate per story (DC-0 schema → DC-12 retro). Each gate exits 0/1 and
+# prints PASS/FAIL labels mirroring the Story's AC. `make dc-all` runs every
+# gate and prints a table; the runner exits 1 if any story is RED.
+#
+# Today: only dc-0 (schema) and dc-11 (bundle) should be GREEN — both already
+# merged. Every other dc-* target is RED until the matching story ships.
+# Once all 13 land, `make dc-all` exits 0.
+# ----------------------------------------------------------------------------
+dc-all:
+	@$(PYTHON) scripts/dc/run-all.py
+
+# Pattern target: `make dc-<n>` runs the matching dc-<n>-*.py gate.
+# Examples: make dc-0-schema, make dc-1-scoring, make dc-12-retro
+dc-%:
+	@$(PYTHON) scripts/dc/dc-$*.py

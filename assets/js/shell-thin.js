@@ -194,6 +194,12 @@
     // HT.quiz.open(...) hits the Proxy, fires lazyLoad + lazyLoadCss,
     // and forwards to the real API once quiz.js parses.
     quiz: 'assets/js/quiz.js',
+    // DC-1 (Discovery Pack Epic) — quiz scoring engine. Loaded by
+    // the page-conditional Proxy factory on first HT.scoring.score()
+    // call from a Discovery quiz. Scoring.js is read-only data
+    // (answers + spec → {traits, archetype}); no DOM, no storage,
+    // no fetch — see shell-bounds-check.py.
+    scoring: 'assets/js/scoring.js',
     // Story 9.19 — custom date picker. date-picker.js is page-
     // conditional (only tools that opt inputs into HT.datePicker.enhance
     // — currently lifespan-simulator × 2 DOBs, age-calculator × 2,
@@ -358,6 +364,11 @@
   // `HT.quiz.open(...)` call fires lazyLoad('assets/js/quiz.js') + lazyLoadCss('assets/css/quiz.css')
   // in parallel, then `Promise.all`s and forwards to the real HT.quiz.open().
   HT.quiz       = makeProxy(TIER2_URLS.quiz, 'quiz');
+  // DC-1 — Discovery scoring engine. Same Proxy-factory pattern
+  // as HT.quiz above; scoring.js does Object.defineProperty(HT,
+  // 'scoring', { value, writable:false, configurable:false, ... })
+  // on load so the Proxy stub is preserved across the round-trip.
+  HT.scoring    = makeProxy(TIER2_URLS.scoring, 'scoring');
   // Story 9.19 — date picker Proxy. date-picker.js does `Object.defineProperty(window.HT, 'datePicker', {value: publicApi, writable: false, configurable: false, enumerable: true})`
   // at module init, so the Proxy stub here is preserved across the lazy-load round-trip —
   // first call to HT.datePicker.enhance(...) hits the Proxy, fires lazyLoad + lazyLoadCss,

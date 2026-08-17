@@ -256,6 +256,21 @@ SPEC_PAGE_CONDITIONAL_MODULES = [
     "assets/js/date-picker-v2/css.js",
     "assets/js/date-picker-v2/dialog.js",
     "assets/js/date-picker-v2/core.js",
+    # DC-11 (Epic: Discovery Pack) — five Shell modules + one pack
+    # loader + two CSS chunks. Loaded by the shell-thin Proxy factory
+    # on first call into a /tools/packs/discovery/* route. Each one
+    # has its own AC for size budget (see docs/discovery-platform.md).
+    # The "missing on disk" check below is the safety net (same
+    # posture as quiz.js above — if any of these is absent, the lazy-
+    # load silently breaks the runtime path).
+    "assets/js/scoring.js",
+    "assets/js/results.js",
+    "assets/js/challenge.js",
+    "assets/js/recommend.js",
+    "assets/js/catalog.js",
+    "assets/js/packs/discovery-loader.js",
+    "assets/css/result-card.css",
+    "assets/css/discovery.css",
 ]
 
 # Story x-3 baseline — measured 2026-08-15 against the post-home-

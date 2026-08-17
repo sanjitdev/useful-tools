@@ -30,6 +30,11 @@
       "description": "Array of tool entries. Adding a tool requires only an entry here (and a folder).",
       "type": "array",
       "items": { "$ref": "#/definitions/tool-entry" }
+    },
+    "packs": {
+      "description": "Optional object of pack entries (DC-0, Epic: Discovery Pack). Each pack is a sibling of `tools` and groups related quiz/recommendation experiences under a single route tree (e.g., packs.discovery hosts personality + recommendation quizzes). Packs are validated by scripts/pack-gate.py — independent of tool-contract-gate.py, so the existing 50 tool entries are unaffected.",
+      "type": "object",
+      "additionalProperties": { "$ref": "#/definitions/pack-entry" }
     }
   },
   "definitions": {
@@ -259,6 +264,249 @@
         "migrated": {
           "description": "Brownfield flag (AD-15). True if the tool has been promoted to the new contract. Inverse of legacy for migrated tools.",
           "type": "boolean"
+        }
+      }
+    },
+    "pack-entry": {
+      "description": "A pack is a sibling of `tools` and groups related experiences (quiz / recommendation / game) under one route tree + one Shell loader. The pack itself is gated by scripts/pack-gate.py — NOT tool-contract-gate.py. Each pack entry declares its loader script and an ordered list of quiz/recommendation entries.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slug", "title", "loader", "entries"],
+      "properties": {
+        "slug": {
+          "description": "Pack slug; kebab-case. Resolves to /packs/<slug>/ in the route tree.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+        },
+        "title": {
+          "description": "Display name. Surfaced on the pack landing page.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "description": {
+          "description": "One-line description of the pack. Surfaced under the title.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "loader": {
+          "description": "Path to the pack's bootstrap module. Loaded on first navigation into the pack route tree (Story 4b Proxy-factory pattern).",
+          "type": "string",
+          "pattern": "^assets/js/(packs/)?[a-z][a-z0-9/_-]*\\.js$"
+        },
+        "score-waiver": {
+          "description": "Per-pack waiver (mirror of tool-entry score-waiver). Allows a pack below the gate threshold to ship with justification. Same shape + expiry rules as tool-side waiver.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reason", "since-release", "reviewer", "expires-after-releases"],
+          "properties": {
+            "reason": { "type": "string", "minLength": 1 },
+            "since-release": {
+              "type": "string",
+              "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-z0-9.-]+)?(\\+[a-z0-9.-]+)?$"
+            },
+            "reviewer": { "type": "string", "minLength": 1 },
+            "expires-after-releases": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "entries": {
+          "description": "Ordered list of quiz / recommendation entries that belong to this pack. Each entry is a thin content declaration (data.json + route file), NOT bespoke code — the Shell modules (HT.scoring, HT.results, HT.challenge, HT.recommend) own the runtime.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/quiz-entry" }
+        }
+      }
+    },
+    "quiz-entry": {
+      "description": "One quiz / personality / recommendation experience inside a pack. The entry declares what content to load (data.json), how to score it, and which Shell modules to mount (modules[]).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slug", "title", "category", "data", "modules"],
+      "properties": {
+        "slug": {
+          "description": "Quiz slug; kebab-case. Resolves to tools/packs/<pack-slug>/<slug>/index.html.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+        },
+        "title": {
+          "description": "Display name.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "description": {
+          "description": "One-line description. Surfaced on the pack grid card.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "category": {
+          "description": "Quiz category — viral | utility | game. Drives the pack grid layout and lane prioritization.",
+          "type": "string",
+          "enum": ["viral", "utility", "game"]
+        },
+        "emoji": {
+          "description": "Hero emoji for the pack grid card.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4
+        },
+        "data": {
+          "description": "Path to the quiz's data.json — the single source of truth for questions, traits, archetypes, share-card copy, and challenge spec. Relative to the pack route directory.",
+          "type": "string",
+          "pattern": "^\\.?\\./[a-zA-Z0-9._-]+\\.json$"
+        },
+        "ready": {
+          "description": "True iff score >= 8 with no expired waiver (mirror of tool-entry semantics; gated by pack-gate.py).",
+          "type": "boolean"
+        },
+        "score": {
+          "description": "Quality score 0-10 against the 10-criterion rubric.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "modules": {
+          "description": "Closed set of Shell modules the quiz mounts. The kind enum is closed — adding a new kind is a schema-major bump. At least 'scoring' + 'results' are required for any quiz; viral + multiplayer-style quizzes also declare 'challenge'; recommendation quizzes also declare 'catalog'.",
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": { "$ref": "#/definitions/module-def" }
+        }
+      }
+    },
+    "module-def": {
+      "description": "Discriminated union (DC-0, Epic: Discovery Pack). `kind` is the closed enum; `config` is a per-kind object validated against the matching config schema in this $defs block.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "config"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["scoring", "results", "challenge", "catalog"]
+        },
+        "config": {
+          "description": "Per-kind config. Validated against scoring-config / results-config / challenge-config / catalog-config by the matching `kind`. Schema-1 validates only shape; pack-gate.py validates semantic correctness (e.g., catalog-config.domain matches an actual loaded catalog).",
+          "type": "object"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "scoring" } } },
+          "then": { "properties": { "config": { "$ref": "#/definitions/scoring-config" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "results" } } },
+          "then": { "properties": { "config": { "$ref": "#/definitions/results-config" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "challenge" } } },
+          "then": { "properties": { "config": { "$ref": "#/definitions/challenge-config" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "catalog" } } },
+          "then": { "properties": { "config": { "$ref": "#/definitions/catalog-config" } } }
+        }
+      ]
+    },
+    "scoring-config": {
+      "description": "Configuration for an HT.scoring mount. The spec lives in data.json; this object only declares the trait IDs the scoring spec is expected to surface (smoke gate cross-check).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trait-ids"],
+      "properties": {
+        "trait-ids": {
+          "description": "Ordered list of trait ids the scoring spec is expected to surface. The pack-gate cross-checks this list against `data.json` at validation time.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "uniqueItems": true
+        },
+        "default-archetype": {
+          "description": "Archetype id used when no `ifMin`/`ifMax` rule matches. Must match an archetype id in data.json.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "results-config": {
+      "description": "Configuration for an HT.results mount. Declares the result-card visual variant and the contrarian (unexpected trait) line policy.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["variant"],
+      "properties": {
+        "variant": {
+          "description": "Result-card visual variant. Drives the card chrome (emoji / bars / contrarian).",
+          "type": "string",
+          "enum": ["archetype", "ranking", "compatibility", "score-only"]
+        },
+        "trait-cap": {
+          "description": "Max number of trait bars shown on the card. Default 4. Bars beyond the cap are summarized in a single line.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "default": 4
+        },
+        "show-contrarian": {
+          "description": "Render the 'unexpected trait' line. Recommended true for viral quizzes; false for utility/recommendation.",
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "challenge-config": {
+      "description": "Configuration for an HT.challenge mount. Declares the comparison policy and the match-scorer used to compute friend agreement.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["match-scorer"],
+      "properties": {
+        "match-scorer": {
+          "description": "Algorithm used to compare self vs about-other-user answers.",
+          "type": "string",
+          "enum": ["exact", "jaccard", "weighted", "scoring-diff"]
+        },
+        "expiry-days": {
+          "description": "Days until a Challenge-a-Friend link expires. Default 30.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 365,
+          "default": 30
+        },
+        "show-axis-bars": {
+          "description": "When true, the comparison view shows one bar per scored trait (you vs them). When false, shows only the headline score.",
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "catalog-config": {
+      "description": "Configuration for an HT.recommend + HT.catalog mount. Declares which catalog the recommendation quiz matches against and the prose-template paths used for explain().",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domain"],
+      "properties": {
+        "domain": {
+          "description": "Catalog domain identifier. Must match a key in catalog-profiles.json.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "catalog-path": {
+          "description": "Path to the catalog JSON (relative to assets/data/). Default: <domain>.json.",
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9._/-]+\\.json$"
+        },
+        "prose-path": {
+          "description": "Optional path to a per-domain prose-stubs file (relative to assets/data/recommend-prose/). When absent, explain() falls back to a templated string.",
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9._/-]+\\.json$"
+        },
+        "top-n": {
+          "description": "Number of alternatives shown alongside the top match. Default 3.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 3
         }
       }
     }
