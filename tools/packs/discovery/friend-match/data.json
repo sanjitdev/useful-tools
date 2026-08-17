@@ -1,0 +1,213 @@
+{
+  "questions": [
+    {
+      "id": "q1-weekend-text",
+      "label": "Random weekend text",
+      "prompt": "A friend randomly texts you on a Saturday. You...",
+      "options": [
+        { "value": "drop-everything", "label": "Drop everything and meet them in an hour" },
+        { "value": "long-call",       "label": "Hop on a long voice call to catch up properly" },
+        { "value": "schedule",        "label": "Suggest a specific day next week to hang out" },
+        { "value": "kind-reply",      "label": "Reply warmly, share a thought, promise to follow up" }
+      ]
+    },
+    {
+      "id": "q2-friend-bad-news",
+      "label": "Bad news",
+      "prompt": "A friend tells you they're going through a hard time.",
+      "options": [
+        { "value": "show-up",  "label": "Show up at their door within the hour" },
+        { "value": "call",     "label": "Call them right away and just listen" },
+        { "value": "small",    "label": "Send a small care package and a note" },
+        { "value": "check-ins","label": "Set up a recurring check-in over the next weeks" }
+      ]
+    },
+    {
+      "id": "q3-friend-group",
+      "label": "Group hangout",
+      "prompt": "When the group hangs out, what's your role?",
+      "options": [
+        { "value": "host",     "label": "The one who organized it and keeps it moving" },
+        { "value": "anchor",   "label": "The quiet one in the corner everyone checks in with" },
+        { "value": "story",    "label": "The one with the story that turns into a second hangout" },
+        { "value": "wing",     "label": "The one making sure everyone has a ride home" }
+      ]
+    },
+    {
+      "id": "q4-gift",
+      "label": "Birthday gift",
+      "prompt": "Pick your friendship gift style.",
+      "options": [
+        { "value": "spot-on",  "label": "Something specific they mentioned once, three months ago" },
+        { "value": "experience","label": "An experience you can do together" },
+        { "value": "handmade", "label": "Something handmade or personal" },
+        { "value": "funny",    "label": "Something funny that only they would get" }
+      ]
+    },
+    {
+      "id": "q5-distance",
+      "label": "Friend moves away",
+      "prompt": "A close friend moves to another city. You...",
+      "options": [
+        { "value": "weekly",     "label": "Schedule weekly video calls and stick to them" },
+        { "value": "visit",      "label": "Plan to visit them within the next few months" },
+        { "value": "letters",    "label": "Commit to handwritten letters" },
+        { "value": "natural",    "label": "Let the rhythm find itself; reach out when it feels right" }
+      ]
+    },
+    {
+      "id": "q6-big-news",
+      "label": "Big personal news",
+      "prompt": "Your friend just got engaged. Your first instinct?",
+      "options": [
+        { "value": "cry-happy", "label": "Cry happy tears in person as fast as possible" },
+        { "value": "plan-party","label": "Start planning how you'll celebrate" },
+        { "value": "long-talk", "label": "Pull them aside for a long talk about how they feel" },
+        { "value": "love-note", "label": "Send a long, heartfelt message they can re-read" }
+      ]
+    },
+    {
+      "id": "q7-disagreement",
+      "label": "Friend disagreement",
+      "prompt": "You and a close friend disagree about something they care about.",
+      "options": [
+        { "value": "say-it",    "label": "Say it clearly; honesty is the bedrock" },
+        { "value": "let-it-go", "label": "Pick your battles; let it go this time" },
+        { "value": "ask",       "label": "Ask good questions until they hear themselves" },
+        { "value": "defer",     "label": "Yield; this matters more to them than to you" }
+      ]
+    },
+    {
+      "id": "q8-energy",
+      "label": "Friendship energy",
+      "prompt": "Honest check-in: how are you at showing up for friends lately?",
+      "options": [
+        { "value": "very",      "label": "Very on — I reach out before they do" },
+        { "value": "balanced",  "label": "Balanced — give and take, mostly even" },
+        { "value": "tired",     "label": "Tired — I want to, but my tank is low" },
+        { "value": "thinking",  "label": "Thinking about who I want to be closer to" }
+      ]
+    },
+    {
+      "id": "q9-secret",
+      "label": "A friend's secret",
+      "prompt": "A friend tells you something they've never told anyone else.",
+      "options": [
+        { "value": "vault",     "label": "Vault it forever, never speak of it again" },
+        { "value": "check",     "label": "Hold it, then quietly check on them about it later" },
+        { "value": "honor",     "label": "Honor it by living like you know — without saying" },
+        { "value": "thank",     "label": "Thank them for trusting you with it" }
+      ]
+    }
+  ],
+  "scoring-spec": {
+    "traits": ["warmth", "loyalty", "energy", "depth"],
+    "weights": {
+      "q1-weekend-text": {
+        "drop-everything": { "energy": 6, "warmth": 2 },
+        "long-call":       { "depth": 6, "warmth": 2 },
+        "schedule":        { "loyalty": 5, "warmth": 1 },
+        "kind-reply":      { "warmth": 6, "depth": 2 }
+      },
+      "q2-friend-bad-news": {
+        "show-up":   { "energy": 6, "warmth": 2 },
+        "call":      { "depth": 6, "warmth": 2 },
+        "small":     { "warmth": 5, "depth": 2 },
+        "check-ins": { "loyalty": 6, "depth": 2 }
+      },
+      "q3-friend-group": {
+        "host":  { "energy": 6, "warmth": 1 },
+        "anchor":{ "loyalty": 6, "warmth": 2 },
+        "story": { "depth": 5, "energy": 2 },
+        "wing":  { "loyalty": 5, "warmth": 3 }
+      },
+      "q4-gift": {
+        "spot-on":    { "depth": 6, "loyalty": 2 },
+        "experience": { "energy": 5, "warmth": 3 },
+        "handmade":   { "depth": 6, "warmth": 3 },
+        "funny":      { "energy": 4, "warmth": 4 }
+      },
+      "q5-distance": {
+        "weekly":    { "loyalty": 7 },
+        "visit":     { "energy": 5, "warmth": 2 },
+        "letters":   { "depth": 6, "loyalty": 2 },
+        "natural":   { "depth": 3, "warmth": 3 }
+      },
+      "q6-big-news": {
+        "cry-happy": { "warmth": 7 },
+        "plan-party":{ "energy": 6, "warmth": 2 },
+        "long-talk": { "depth": 6, "loyalty": 2 },
+        "love-note": { "depth": 6, "warmth": 2 }
+      },
+      "q7-disagreement": {
+        "say-it":    { "depth": 6, "loyalty": 1 },
+        "let-it-go": { "warmth": 4, "loyalty": 2 },
+        "ask":       { "depth": 6, "warmth": 2 },
+        "defer":     { "loyalty": 6, "warmth": 2 }
+      },
+      "q8-energy": {
+        "very":     { "energy": 7 },
+        "balanced": { "loyalty": 4, "warmth": 3 },
+        "tired":    { "depth": 4, "loyalty": 1 },
+        "thinking": { "depth": 5, "loyalty": 1 }
+      },
+      "q9-secret": {
+        "vault": { "loyalty": 7 },
+        "check": { "loyalty": 4, "depth": 3 },
+        "honor": { "depth": 6, "loyalty": 2 },
+        "thank": { "warmth": 5, "depth": 2 }
+      }
+    },
+    "archetypes": [
+      {
+        "id": "ride-or-die",
+        "label": "The Ride-or-Die",
+        "emoji": "🛡️",
+        "tagline": "Loyal, present, and the first one at the door when it matters.",
+        "blind-spot": "Loyalty can crowd out the friend you haven't met yet.",
+        "scores": { "warmth": 60, "loyalty": 95, "energy": 50, "depth": 45 }
+      },
+      {
+        "id": "confidant",
+        "label": "The Confidant",
+        "emoji": "🔐",
+        "tagline": "Deep, careful, and trusted with the things no one else hears.",
+        "blind-spot": "Holding space for everyone can quietly empty your own.",
+        "default": true,
+        "scores": { "warmth": 50, "loyalty": 70, "energy": 30, "depth": 95 }
+      },
+      {
+        "id": "spark",
+        "label": "The Spark",
+        "emoji": "✨",
+        "tagline": "High energy, big plans, and the reason the group showed up tonight.",
+        "blind-spot": "Energy can outpace follow-through when the moment passes.",
+        "scores": { "warmth": 55, "loyalty": 45, "energy": 95, "depth": 35 }
+      },
+      {
+        "id": "warm-presence",
+        "label": "The Warm Presence",
+        "emoji": "🌿",
+        "tagline": "Steady warmth, easy to be around, the room feels safer with you in it.",
+        "blind-spot": "Quiet can be mistaken for passive when actually showing up is what you do.",
+        "scores": { "warmth": 95, "loyalty": 60, "energy": 40, "depth": 55 }
+      },
+      {
+        "id": "memory-keeper",
+        "label": "The Memory Keeper",
+        "emoji": "📔",
+        "tagline": "You remember the small things and surface them at exactly the right time.",
+        "blind-spot": "Memory can become a way of holding on tighter than is healthy.",
+        "scores": { "warmth": 70, "loyalty": 75, "energy": 35, "depth": 75 }
+      },
+      {
+        "id": "playmaker",
+        "label": "The Playmaker",
+        "emoji": "🎈",
+        "tagline": "You turn ordinary Tuesdays into stories people retell.",
+        "blind-spot": "The spotlight can crowd out the quieter friend who needs you most.",
+        "scores": { "warmth": 65, "loyalty": 50, "energy": 80, "depth": 50 }
+      }
+    ]
+  }
+}

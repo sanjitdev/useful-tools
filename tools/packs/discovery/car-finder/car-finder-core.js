@@ -1,0 +1,329 @@
+/* ============================================
+   car-finder-core.js — Story 10.7
+   Discovery Quiz: Car Finder
+   ============================================ */
+'use strict';
+
+(function () {
+  var QUESTIONS = [
+    { id: 'q1-daily-drive', label: 'Daily drive',
+      prompt: 'Most days, your car is for...',
+      options: [
+        { value: 'commute',  label: 'A solo commute, predictable miles' },
+        { value: 'family',   label: 'School runs, groceries, kid stuff' },
+        { value: 'weekend',  label: 'Weekend trips and errands' },
+        { value: 'mixed',    label: 'A bit of everything, all of the above' }
+      ] },
+    { id: 'q2-priority', label: 'Top priority',
+      prompt: "Pick the one you'd least want to give up.",
+      options: [
+        { value: 'low-cost', label: 'Low monthly running cost' },
+        { value: 'low-emit', label: 'Low environmental impact' },
+        { value: 'space',    label: 'Space for people and gear' },
+        { value: 'tech',     label: 'Cutting-edge tech and screens' }
+      ] },
+    { id: 'q3-passengers', label: 'Passengers',
+      prompt: 'How many seats do you actually need, most days?',
+      options: [
+        { value: 'two',    label: 'Two, sometimes one' },
+        { value: 'five',   label: 'Five, comfortably' },
+        { value: 'seven',  label: 'Seven, occasionally more' },
+        { value: 'varies', label: 'Varies wildly week to week' }
+      ] },
+    { id: 'q4-terrain', label: 'Terrain',
+      prompt: 'Where does the car actually go?',
+      options: [
+        { value: 'paved',    label: 'Paved city and highway, mostly' },
+        { value: 'suburban', label: 'Suburbs, some gravel driveways' },
+        { value: 'mountain', label: 'Mountain roads, ski trips, weather' },
+        { value: 'rough',    label: 'Dirt roads, trails, the occasional muddy field' }
+      ] },
+    { id: 'q5-fuel', label: 'Fuel and power',
+      prompt: 'How do you feel about how the car is powered?',
+      options: [
+        { value: 'gas',    label: 'Gasoline, simple and familiar' },
+        { value: 'hybrid', label: 'Hybrid, ideally without plugging in' },
+        { value: 'ev',     label: 'Full EV, give me the charging' },
+        { value: 'open',   label: 'Whatever works best for my use case' }
+      ] },
+    { id: 'q6-budget', label: 'Budget shape',
+      prompt: 'How do you think about budget?',
+      options: [
+        { value: 'tight',    label: 'Tight — total cost matters more than features' },
+        { value: 'balanced', label: 'Balanced — fair value across the board' },
+        { value: 'stretch',  label: 'Stretch for the right one' },
+        { value: 'premium',  label: 'Premium — I want it done well, not cheaply' }
+      ] },
+    { id: 'q7-trip-style', label: 'Long trips',
+      prompt: 'Longest typical trip in your car is...',
+      options: [
+        { value: 'rare',    label: 'Rare — under 100 miles round trip' },
+        { value: 'monthly', label: 'A few hundred miles, a few times a year' },
+        { value: 'road',    label: 'Cross-state road trips are common' },
+        { value: 'epic',    label: 'Multi-day drives, sometimes into remote places' }
+      ] },
+    { id: 'q8-cargo', label: 'Cargo reality',
+      prompt: 'What goes in the back, regularly?',
+      options: [
+        { value: 'bags',  label: 'Laptop bag and groceries' },
+        { value: 'kids',  label: 'Car seats, strollers, snacks' },
+        { value: 'gear',  label: 'Camping, bikes, sports gear' },
+        { value: 'stuff', label: 'Whatever the week demands' }
+      ] },
+    { id: 'q9-tech-feel', label: 'Tech feel',
+      prompt: 'How much tech do you actually want?',
+      options: [
+        { value: 'minimal',  label: 'Less is more — buttons and dials, please' },
+        { value: 'smart',    label: 'Smart, but unobtrusive — safety over flash' },
+        { value: 'latest',   label: 'Latest — give me every screen and sensor' },
+        { value: 'familiar', label: 'Familiar — proven tech, not beta' }
+      ] },
+    { id: 'q10-climate', label: 'Climate',
+      prompt: 'What weather do you have to handle?',
+      options: [
+        { value: 'mild', label: 'Mild year-round' },
+        { value: 'hot',  label: 'Hot summers, mild winters' },
+        { value: 'cold', label: 'Real winters with snow and ice' },
+        { value: 'all',  label: 'All of it, often in the same week' }
+      ] },
+    { id: 'q11-style', label: 'Style vibe',
+      prompt: 'Pick the look that fits.',
+      options: [
+        { value: 'under',   label: 'Understated, blends in' },
+        { value: 'sleek',   label: 'Sleek and modern' },
+        { value: 'rugged',  label: 'Rugged, ready for anything' },
+        { value: 'classic', label: 'Classic and clean' }
+      ] },
+    { id: 'q12-replace', label: 'Replace in 10 years',
+      prompt: "If you had to replace this car in 10 years, the loss you'd feel most is...",
+      options: [
+        { value: 'running', label: 'How cheap it was to run' },
+        { value: 'planet',  label: 'How little it cost the planet' },
+        { value: 'people',  label: 'The memories made with people in it' },
+        { value: 'driving', label: 'How it felt to drive' }
+      ] }
+  ];
+
+  var SCORING_SPEC = {
+    traits: ['efficiency', 'capacity', 'adventure', 'comfort', 'tech'],
+    weights: {
+      'q1-daily-drive': {
+        'commute':  { efficiency: 6, tech: 1 },
+        'family':   { capacity: 6, comfort: 2 },
+        'weekend':  { adventure: 4, comfort: 3 },
+        'mixed':    { capacity: 3, adventure: 3, comfort: 2 }
+      },
+      'q2-priority': {
+        'low-cost': { efficiency: 7 },
+        'low-emit': { tech: 5, efficiency: 3 },
+        'space':    { capacity: 7 },
+        'tech':     { tech: 7 }
+      },
+      'q3-passengers': {
+        'two':    { efficiency: 3, comfort: 2 },
+        'five':   { capacity: 5, comfort: 2 },
+        'seven':  { capacity: 7 },
+        'varies': { capacity: 4, adventure: 3 }
+      },
+      'q4-terrain': {
+        'paved':    { efficiency: 3, comfort: 2 },
+        'suburban': { capacity: 2, comfort: 3 },
+        'mountain': { adventure: 6, comfort: 2 },
+        'rough':    { adventure: 7 }
+      },
+      'q5-fuel': {
+        'gas':    { efficiency: 3, adventure: 2 },
+        'hybrid': { efficiency: 5, tech: 2 },
+        'ev':     { tech: 5, efficiency: 4 },
+        'open':   { efficiency: 2, capacity: 2, comfort: 2 }
+      },
+      'q6-budget': {
+        'tight':    { efficiency: 7 },
+        'balanced': { efficiency: 3, comfort: 3 },
+        'stretch':  { comfort: 5, tech: 2 },
+        'premium':  { comfort: 7 }
+      },
+      'q7-trip-style': {
+        'rare':    { efficiency: 4, comfort: 2 },
+        'monthly': { comfort: 4, capacity: 3 },
+        'road':    { comfort: 5, capacity: 3 },
+        'epic':    { adventure: 6, capacity: 3 }
+      },
+      'q8-cargo': {
+        'bags':  { efficiency: 3, comfort: 2 },
+        'kids':  { capacity: 6, comfort: 2 },
+        'gear':  { adventure: 5, capacity: 4 },
+        'stuff': { capacity: 3, adventure: 3 }
+      },
+      'q9-tech-feel': {
+        'minimal':  { efficiency: 3 },
+        'smart':    { tech: 4, comfort: 2 },
+        'latest':   { tech: 7 },
+        'familiar': { comfort: 4, efficiency: 2 }
+      },
+      'q10-climate': {
+        'mild': { efficiency: 3, comfort: 2 },
+        'hot':  { comfort: 3, tech: 2 },
+        'cold': { adventure: 5, comfort: 2 },
+        'all':  { adventure: 4, comfort: 3 }
+      },
+      'q11-style': {
+        'under':   { efficiency: 2, comfort: 3 },
+        'sleek':   { tech: 4, comfort: 3 },
+        'rugged':  { adventure: 7 },
+        'classic': { comfort: 4, efficiency: 2 }
+      },
+      'q12-replace': {
+        'running':  { efficiency: 7 },
+        'planet':   { tech: 4, efficiency: 3 },
+        'people':   { capacity: 4, comfort: 3 },
+        'driving':  { comfort: 5, adventure: 3 }
+      }
+    },
+    archetypes: [
+      { id: 'commuter', label: 'The Commuter', emoji: '🚗',
+        tagline: 'Predictable miles, predictable bills, easy to live with.',
+        blindSpot: 'A commute-only car can leave the weekend feeling like a chore.',
+        default: true,
+        scores: { efficiency: 90, capacity: 35, adventure: 25, comfort: 60, tech: 45 } },
+      { id: 'family-hauler', label: 'The Family Hauler', emoji: '👨‍👩‍👧',
+        tagline: 'Seats, doors, and cup holders that make school runs painless.',
+        blindSpot: 'Built for everyone can quietly forget the driver.',
+        scores: { efficiency: 50, capacity: 95, adventure: 40, comfort: 70, tech: 45 } },
+      { id: 'road-tripper', label: 'The Road-Tripper', emoji: '🛣️',
+        tagline: 'Comfortable for hours, ready for the next state line.',
+        blindSpot: 'Long-trip bliss can hide a lack of daily practicality.',
+        scores: { efficiency: 55, capacity: 75, adventure: 60, comfort: 85, tech: 55 } },
+      { id: 'eco-conscious', label: 'The Eco-Conscious', emoji: '🌱',
+        tagline: 'Low impact, low running cost, easy on the planet.',
+        blindSpot: 'Optimized for the planet can mean compromised for the moment.',
+        scores: { efficiency: 95, capacity: 40, adventure: 30, comfort: 55, tech: 75 } },
+      { id: 'budget-first', label: 'The Budget-First', emoji: '💰',
+        tagline: 'Every dollar counted, every mile earned.',
+        blindSpot: 'Saving now can cost you later if the wrong thing fails first.',
+        scores: { efficiency: 95, capacity: 45, adventure: 35, comfort: 40, tech: 30 } },
+      { id: 'tech-lover', label: 'The Tech-Lover', emoji: '📱',
+        tagline: 'Screens, sensors, and software that make every drive feel new.',
+        blindSpot: 'The newest feature can become a maintenance story fastest.',
+        scores: { efficiency: 60, capacity: 45, adventure: 35, comfort: 65, tech: 95 } },
+      { id: 'adventure-ready', label: 'The Adventure-Ready', emoji: '🏔️',
+        tagline: 'Built for the road less paved, and everything it brings.',
+        blindSpot: 'Capability off-road can feel like overkill in the parking lot.',
+        scores: { efficiency: 45, capacity: 65, adventure: 95, comfort: 60, tech: 50 } },
+      { id: 'luxury-comfort', label: 'The Luxury-Comfort', emoji: '🛋️',
+        tagline: 'Quiet cabin, smooth ride, the errand feels like the destination.',
+        blindSpot: 'Refinement can be its own kind of quiet trap.',
+        scores: { efficiency: 50, capacity: 55, adventure: 35, comfort: 95, tech: 70 } }
+    ]
+  };
+
+  var TRAIT_LABELS = {
+    efficiency: 'Efficiency', capacity: 'Capacity', adventure: 'Adventure',
+    comfort: 'Comfort', tech: 'Tech'
+  };
+
+  function el(tag, attrs, children) {
+    var n = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (!Object.prototype.hasOwnProperty.call(attrs, k)) continue;
+      var v = attrs[k];
+      if (v === null || v === undefined || v === false) continue;
+      if (k === 'class') n.className = String(v);
+      else if (k === 'text') n.textContent = String(v);
+      else n.setAttribute(k, String(v));
+    }
+    if (children) for (var i = 0; i < children.length; i += 1) {
+      var c = children[i];
+      if (c == null) continue;
+      n.appendChild((typeof c === 'string' || typeof c === 'number')
+        ? document.createTextNode(String(c)) : c);
+    }
+    return n;
+  }
+
+  function renderReveal(answers, scored) {
+    var arch = (scored && scored.archetype) ? scored.archetype : null;
+    var traits = (scored && scored.traits) ? scored.traits : {};
+    var wrap = el('div', { class: 'disc-reveal', 'data-print': 'result' });
+    var hero = el('div', { class: 'disc-reveal-hero' });
+    hero.appendChild(el('div', { class: 'disc-reveal-emoji', text: arch ? arch.emoji : '✨' }));
+    hero.appendChild(el('h2', { class: 'disc-reveal-label', text: arch ? arch.label : 'Result' }));
+    if (arch && arch.tagline) hero.appendChild(el('p', { class: 'disc-reveal-tagline', text: arch.tagline }));
+    wrap.appendChild(hero);
+
+    var traitIds = SCORING_SPEC.traits;
+    var bars = el('ul', { class: 'disc-trait-bars' });
+    for (var i = 0; i < traitIds.length; i += 1) {
+      var tid = traitIds[i];
+      var pct = Math.round((typeof traits[tid] === 'number') ? traits[tid] : 0);
+      var row = el('li', { class: 'disc-trait-bar' });
+      var labelRow = el('div', { class: 'disc-trait-bar-label' });
+      labelRow.appendChild(el('span', { class: 'disc-trait-bar-name', text: TRAIT_LABELS[tid] || tid }));
+      labelRow.appendChild(el('span', { class: 'disc-trait-bar-pct', text: pct + '%' }));
+      row.appendChild(labelRow);
+      var track = el('div', { class: 'disc-trait-bar-track', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(pct) });
+      var fill = el('div', { class: 'disc-trait-bar-fill', 'data-pct': String(pct) });
+      fill.style.width = '0%';
+      track.appendChild(fill);
+      row.appendChild(track);
+      bars.appendChild(row);
+    }
+    wrap.appendChild(bars);
+
+    if (arch && arch.blindSpot) {
+      var bl = el('aside', { class: 'disc-blind-spot' });
+      bl.appendChild(el('h3', { class: 'disc-blind-spot-title', text: 'Blind spot' }));
+      bl.appendChild(el('p', { class: 'disc-blind-spot-body', text: arch.blindSpot }));
+      wrap.appendChild(bl);
+    }
+
+    var actions = el('div', { class: 'disc-actions', 'data-print': 'ignore' });
+    var resetBtn = el('button', { type: 'button', class: 'btn btn-primary', 'data-action': 'reset', text: 'Take it again' });
+    actions.appendChild(resetBtn);
+    wrap.appendChild(actions);
+    return wrap;
+  }
+
+  function animateBars(host) {
+    if (!host) return;
+    var reduced = false;
+    try { reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) {}
+    var fills = host.querySelectorAll('.disc-trait-bar-fill');
+    for (var i = 0; i < fills.length; i += 1) {
+      var f = fills[i];
+      var pct = parseFloat(f.getAttribute('data-pct') || '0');
+      if (reduced) { f.style.width = pct + '%'; }
+      else { (function (fill, target) { window.requestAnimationFrame(function () { fill.style.width = target + '%'; }); })(f, pct); }
+    }
+  }
+
+  function boot() {
+    var mount = document.getElementById('quiz-mount');
+    if (!mount) return;
+    if (!window.HT || !window.HT.quiz || typeof window.HT.quiz.open !== 'function') { mount.textContent = 'HT.quiz failed to load.'; return; }
+    if (!window.HT.scoring || typeof window.HT.scoring.score !== 'function') { mount.textContent = 'HT.scoring failed to load.'; return; }
+    var handle = window.HT.quiz.open({
+      mount: mount, questions: QUESTIONS,
+      onChange: function () {},
+      onComplete: function (answers) {
+        var scored = window.HT.scoring.score(answers, SCORING_SPEC);
+        var reveal = renderReveal(answers, scored);
+        var body = mount.querySelector('.quiz-reveal .quiz-reveal-body');
+        if (body) {
+          body.innerHTML = '';
+          body.appendChild(reveal);
+          var resetBtn = body.querySelector('[data-action="reset"]');
+          if (resetBtn) {
+            resetBtn.addEventListener('click', function () {
+              try { handle.close(); } catch (_) {}
+              boot();
+            });
+          }
+          animateBars(body);
+        }
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); } else { boot(); }
+})();
