@@ -160,3 +160,42 @@ _7 tools._
 ## Validation
 
 The `make pack-tags` target re-runs this script. It exits 1 if any tool's `pack` field is missing or contains a value not in the enum, or if any pack drops below the 3-tool minimum. `make pack-tags-smoke` runs the Node-side static smoke that verifies every `ready:true` entry has ≥ 1 valid pack value. `make check-pack-taxonomy` (Story 6.3) reads `tools.json` and posts a *suggestion* per missing/invalid pack entry using a hand-rolled keyword-to-pack map; it is not a gate (the schema is) and exits 0 on clean, 2 on repo-layout issues, 3 on I/O failure.
+
+## Pack composition (Story 9.16 / 9.17)
+
+`scripts/check-pack-composition.py` enforces the curated pack membership on every CI run:
+
+- **`travel`** contains EXACTLY these 5 tools, no more, no less (Story 9.16 AC-1):
+  `currency-converter`, `tip-calculator`, `unit-converter`, `recipe-scaler`, `exam-countdown`.
+- **`finance`** / **`study`** / **`developer`** / **`household`** each have ≥ 5 ready:true tools (Story 9.17 AC-1).
+
+### Dual-pack allowance
+
+Multi-pack is taxonomy-allowed (the `pack` field is a JSON array per the schema). One tool is currently dual-packed:
+
+- `recipe-scaler` → `["travel", "household"]` — satisfies both Story 9.16 (Travel pack 5-tool composition) and Story 9.17 (Household ≥ 5). Cooking-on-the-road is travel; cooking-at-home is household; the tool serves both.
+
+If you add a new tool, follow these rules:
+
+1. Pick the **primary** pack first (where the primary use case lives).
+2. If the tool genuinely serves two distinct use cases (e.g., on-the-road AND at-home), dual-pack it. Two-pack max — three-pack is a smell that the tool should be split.
+3. Never dual-pack to inflate a pack's count past its AC minimum. The minimum is a floor, not a target.
+
+### Pack taglines (AC verbatim)
+
+| Pack | Tagline |
+|---|---|
+| travel | Split bills, convert currencies, scale recipes abroad, handle time zones. |
+| finance | Budget, save, convert currencies, and track expenses. |
+| study | Flashcards, citations, countdowns, and formatting for papers. |
+| developer | JSON, JWT, UUID, and timestamps without uploading data. |
+| household | Paint, area, recipes, and grocery lists for home projects. |
+
+The Developer pack carries an additional acknowledgment line (rendered as a subtitle): "For most recipes, CyberChef remains the gold standard — Handy Tools' Developer pack covers the day-to-day tools with no upload."
+
+### Adding a new tool
+
+When you ship a new tool, run `make check-pack-composition` before opening the PR. If the gate fails because your new pack is below 5, either:
+
+1. Add more tools to the pack first (preferred — preserves the curated feel), or
+2. Bump the AC minimum in `scripts/check-pack-composition.py` after the AC change is approved in the spec doc.

@@ -46,3 +46,14 @@ The five packs are: `travel`, `finance`, `study`, `developer`, `household`. The 
 A tool lands in a pack when its primary use case matches **at least one** of the bullets above. Multi-pack tools (e.g., a calculator useful both at home and in finance) appear in both lists.
 
 The `travel` vs. `household` distinction is the most common question — see [docs/pack-taxonomy.md § Resolved definitions (PRD Open Q1)](docs/pack-taxonomy.md#resolved-definitions-prd-open-q1) for the decision rule.
+
+### Dual-pack allowance (Story 9.16 / 9.17)
+
+Multi-pack is taxonomy-allowed — `tools.json#/$defs/.../pack` is a JSON array. If a tool genuinely serves two distinct use cases (e.g., on-the-road AND at-home), dual-pack it. The canonical example is `recipe-scaler`, which is dual-packed to `["travel", "household"]` so it satisfies both the Travel AC (5-tool composition) and the Household AC (≥ 5 ready:true tools). Two-pack is the max — three-pack is a smell that the tool should be split.
+
+`scripts/check-pack-composition.py` (Story 9.16 / 9.17) is a CI gate that runs on every PR. It enforces:
+
+- `travel` = EXACTLY the 5 AC-mandated tools (`currency-converter`, `tip-calculator`, `unit-converter`, `recipe-scaler`, `exam-countdown`).
+- `finance` / `study` / `developer` / `household` ≥ 5 ready:true tools each.
+
+Run `make check-pack-composition` before opening a PR.

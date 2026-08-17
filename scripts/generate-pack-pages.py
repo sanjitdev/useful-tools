@@ -310,6 +310,7 @@ def render_body(pack: dict) -> str:
         '        <div>\n'
         '          <h1 class="pack-page-title" id="pack-page-title"></h1>\n'
         '          <p class="pack-page-tagline" id="pack-page-tagline"></p>\n'
+        + '          <p class="pack-page-subtitle" id="pack-page-subtitle"></p>\n'
         + '          <p class="pack-page-count" id="pack-page-count"></p>\n'
         "        </div>\n"
         "      </div>\n"

@@ -46,19 +46,20 @@
     },
     finance: {
       title: 'Finance',
-      tagline: 'For the numbers behind a decision.'
+      tagline: 'Budget, save, convert currencies, and track expenses.'
     },
     study: {
       title: 'Study',
-      tagline: 'For essays, notes, exams.'
+      tagline: 'Flashcards, citations, countdowns, and formatting for papers.'
     },
     developer: {
       title: 'Developer',
-      tagline: "For the bits that don't need a SaaS subscription."
+      tagline: 'JSON, JWT, UUID, and timestamps without uploading data.',
+      subtitle: 'For most recipes, CyberChef remains the gold standard — Handy Tools\u2019 Developer pack covers the day-to-day tools with no upload.'
     },
     household: {
       title: 'Household',
-      tagline: 'For the math of daily life.'
+      tagline: 'Paint, area, recipes, and grocery lists for home projects.'
     },
     fun: {
       title: 'Fun',
@@ -206,6 +207,23 @@
     if (countEl) {
       const label = pack.toolCount === 1 ? ' tool' : ' tools';
       countEl.textContent = pack.toolCount + label;
+    }
+    // Optional subtitle (Story 9.17 — Developer pack carries the CyberChef
+    // acknowledgment line). Inject as a sibling <p> if the descriptor has one
+    // and the page hosts the slot.
+    const subtitleHostId = 'pack-page-subtitle';
+    let subtitleEl = document.getElementById(subtitleHostId);
+    if (pack.subtitle) {
+      if (!subtitleEl) {
+        subtitleEl = document.createElement('p');
+        subtitleEl.id = subtitleHostId;
+        subtitleEl.className = 'pack-page-subtitle';
+        const taglineNode = taglineEl && taglineEl.parentNode;
+        if (taglineNode) taglineNode.appendChild(subtitleEl);
+      }
+      subtitleEl.textContent = pack.subtitle;
+    } else if (subtitleEl) {
+      subtitleEl.parentNode && subtitleEl.parentNode.removeChild(subtitleEl);
     }
   }
 

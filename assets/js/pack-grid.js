@@ -51,25 +51,26 @@
     {
       slug: 'finance',
       title: 'Finance',
-      description: 'For the numbers behind a decision.',
+      description: 'Budget, save, convert currencies, and track expenses.',
       icon: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 4 8-8"/><path d="M14 8h6v6"/></svg>'
     },
     {
       slug: 'study',
       title: 'Study',
-      description: 'For essays, notes, exams.',
+      description: 'Flashcards, citations, countdowns, and formatting for papers.',
       icon: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M4 4v12a4 4 0 0 0 4 4"/><path d="M9 8h6M9 12h6"/></svg>'
     },
     {
       slug: 'developer',
       title: 'Developer',
-      description: "For the bits that don't need a SaaS subscription.",
+      description: 'JSON, JWT, UUID, and timestamps without uploading data.',
+      subtitle: 'For most recipes, CyberChef remains the gold standard — Handy Tools\u2019 Developer pack covers the day-to-day tools with no upload.',
       icon: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6l-5 6 5 6M16 6l5 6-5 6M14 4l-4 16"/></svg>'
     },
     {
       slug: 'household',
       title: 'Household',
-      description: 'For the math of daily life.',
+      description: 'Paint, area, recipes, and grocery lists for home projects.',
       icon: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>'
     },
     {
