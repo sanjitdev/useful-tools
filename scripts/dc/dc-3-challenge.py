@@ -38,15 +38,22 @@ def main():
 
     js_src = read_text(js_path) or ""
 
-    # 2. api-contract defines HT.challenge (frozen)
+    # 2. challenge.js itself does the Object.defineProperty(HT, 'challenge',
+    # {value, writable:false, configurable:false, ...}) — api-contract.js
+    # is just the documentation table. The freeze lives in the module
+    # that owns the API (same pattern as scoring.js per dc-1 gate).
     api = read_text("assets/js/api-contract.js") or ""
+    challenge_src = read_text("assets/js/challenge.js") or ""
+    has_freeze = bool(re.search(
+        r'Object\.defineProperty\(\s*HT\s*,\s*[\'"]challenge[\'"]\s*,\s*\{[^}]*writable:\s*false[^}]*configurable:\s*false',
+        challenge_src,
+        re.DOTALL,
+    ))
+    has_doc = bool(api) and "HT.challenge" in api
     check(
-        bool(api) and re.search(
-            r'Object\.defineProperty\(\s*HT\s*,\s*[\'"]challenge[\'"]\s*,\s*\{[^}]*writable:\s*false[^}]*configurable:\s*false',
-            api,
-            re.DOTALL,
-        ),
-        "assets/js/api-contract.js defines HT.challenge (frozen: writable:false, configurable:false)",
+        has_freeze and has_doc,
+        "assets/js/challenge.js freezes HT.challenge (writable:false, configurable:false) "
+        "AND api-contract.js documents it",
     )
 
     # 3. shell-thin.js TIER2_URLS includes assets/js/challenge.js
@@ -71,16 +78,27 @@ def main():
     )
 
     # 6..14. Runtime: load challenge.js and exercise link/compare/expired.
-    fixture = r"""
+    # Path substitution (mirrors the dc-1 gate fix) so the file
+    # path works under `node -` (stdin) where __dirname is undefined.
+    fixture = (
+        r"""
 'use strict';
 const fs = require('fs');
-const path = require('path');
 const vm = require('vm');
 
-const REPO = path.resolve(__dirname, '..', '..');
-const src = fs.readFileSync(path.join(REPO, 'assets/js/challenge.js'), 'utf8');
+const CHALLENGE_PATH = __CHALLENGE_PATH__;
+const src = fs.readFileSync(CHALLENGE_PATH, 'utf8');
 
 const ctx = { HT: {}, console };
+// challenge.js uses window.HT || self.HT || {}; without those
+// aliases, the IIFE writes to a fresh local object. Mirror the
+// shape used by scripts/_smoke_challenge.js: expose window + self
+// + global aliases pointing at the shared HT so the writes land.
+ctx.window = ctx;
+ctx.self = ctx;
+ctx.global = ctx;
+ctx.atob = function (s) { return Buffer.from(s, 'base64').toString('binary'); };
+ctx.btoa = function (s) { return Buffer.from(s, 'binary').toString('base64'); };
 vm.createContext(ctx);
 vm.runInContext(src, ctx);
 const ch = ctx.HT.challenge;
@@ -106,7 +124,7 @@ try {
     try {
       const blob = url.split(/[?&]c=/)[1].split(/[&#]/)[0];
       const padded = blob + '='.repeat((4 - blob.length % 4) % 4);
-      decoded = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+      decoded = JSON.parse(atob(padded));
     } catch (e) {}
     out.blobShape = decoded
       && typeof decoded.v === 'number'
@@ -154,9 +172,9 @@ try {
   // Simulate by feeding a stale-shape payload to a verify/check function if one exists.
   let versionMsg = false;
   try {
-    const fake = Buffer.from(JSON.stringify({
+    const fake = btoa(JSON.stringify({
       v: 99, slug: 'x', self: {}, iat: 0, exp: 9999999999,
-    })).toString('base64').replace(/=+$/, '');
+    })).replace(/=+$/, '');
     const r = ch.verify ? ch.verify(fake) : null;
     if (r && /newer|older|version/i.test(String(r.message || r))) versionMsg = true;
     if (!ch.verify && src.indexOf('v: 99') !== -1) versionMsg = true;
@@ -167,6 +185,7 @@ try {
 
 process.stdout.write('JSON:' + JSON.stringify(out));
 """
+    ).replace("__CHALLENGE_PATH__", json.dumps(str((repo_root() / "assets/js/challenge.js").resolve())))
     rc, stdout, stderr = run_node(fixture)
     runtime = {}
     for line in stdout.splitlines()[::-1]:
@@ -245,10 +264,21 @@ process.stdout.write('JSON:' + JSON.stringify(out));
     # 19. scripts/_smoke_challenge.js exists and exits 0
     smoke = "scripts/_smoke_challenge.js"
     if file_exists(smoke):
-        rc, _, _ = run_node(
-            (repo_root() / smoke).read_text(encoding="utf-8") + "\n"
+        # Run the smoke file directly as a script entry point — NOT via
+        # stdin (`node -`), because the harness resolves asset paths
+        # relative to __dirname, and a stdin pipe leaves __dirname as
+        # the cwd (typically the repo root, not scripts/), causing the
+        # readFileSync on assets/js/challenge.js to crash with ENOENT
+        # before any assertions run (same fix as dc-1-scoring.py).
+        r = subprocess.run(
+            ["node", str(repo_root() / smoke)],
+            capture_output=True,
+            text=True,
+            timeout=20,
+            encoding="utf-8",
+            errors="replace",
         )
-        check(rc == 0, f"{smoke} exists and exits 0 via node (rc={rc})")
+        check(r.returncode == 0, f"{smoke} exists and exits 0 via node (rc={r.returncode})")
     else:
         check(False, f"{smoke} exists and exits 0 via node [missing]")
 

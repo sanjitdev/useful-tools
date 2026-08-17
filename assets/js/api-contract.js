@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.25.0',
+  version: '1.26.0',
   generated: '2026-08-17',
   entries: Object.freeze([
     Object.freeze({
@@ -726,6 +726,13 @@ window.HT.__apiContract = Object.freeze({
       stability: 'stable',
       module: 'assets/js/results.js',
       notes: 'DC-2 (Discovery Pack Epic / Story 10.3) — result-card chrome. Renders the canonical quiz-result-card (DESIGN.md §1.1 components.discovery-card) into a host element. Card root carries data-print="result" + role="region" + aria-live="polite" + aria-atomic="true" + aria-labelledby for screen-reader announcement; the action row carries data-print="ignore" so the print stylesheet strips Share/Challenge from the printed card. Contrarian line (the "you also said X" unexpected trait) uses .quiz-result-contrarian. Tab order on the rendered card: 1. button.share, 2. button.challenge. shareUrl() returns location with ?arch=<id>&quiz=<slug>. copyText() returns a canonical "<emoji> <label> — calm 80% / bold 30%" string capped at 280 chars. imageSnapshot() is the 1200×630 PNG export — currently throws Error("snapshot unavailable") per the smoke contract; Story 10.11 lands the OG SVG fallback that catches it. Read-only (Object.defineProperty writable:false configurable:false). Page-conditional — loaded by the shell-thin Proxy factory on first HT.results.render() call alongside assets/css/result-card.css. Bundle target: results.js ≤ 6 KB gz + result-card.css ≤ 4 KB gz. Smoke harness: scripts/_smoke_results.js.',
+    }),
+    Object.freeze({
+      name: 'HT.challenge',
+      signature: 'Readonly<{link: (spec: {slug: string, self: Readonly<{[qid: string]: string|number}>, iat?: number, exp?: number}) => string, compare: (selfA: Readonly<{[qid: string]: string|number}>, selfB: Readonly<{[qid: string]: string|number}>) => Readonly<{score: number, axes: ReadonlyArray<{qid: string, a: string|number|null, b: string|number|null, delta: 0|1}>}>, verify: (blob: string) => {ok: true} | {ok: false, code: "malformed"|"spec-mismatch"|"expired", message: string, version?: number, supported?: number, exp?: number}}>',
+      stability: 'stable',
+      module: 'assets/js/challenge.js',
+      notes: 'DC-3 (Discovery Pack Epic / Story 10.4) — Challenge-a-Friend viral-loop protocol. link() encodes the self-side quiz answers into a repo-relative URL containing ?c=<base64url-blob>; the blob is {v: 1, slug, self, iat, exp} with a default 30-day expiry. The URL only encodes `self` (no about-side answers until the friend submits); no free-text, no PII. compare() returns {score 0..100, axes [{qid, a, b, delta}]} where score is Jaccard-style agreement %; deterministic across calls. verify() returns one of {ok: true}, {ok: false, code: "malformed"}, {ok: false, code: "spec-mismatch", version, supported, message: "newer or older version of the quiz"}, {ok: false, code: "expired", exp, message: "this challenge has expired"}. Read-only (Object.defineProperty writable:false configurable:false). Page-conditional — loaded by the shell-thin Proxy factory on first HT.challenge.link() call. Bundle target: ≤ 7 KB gz. Smoke harness: scripts/_smoke_challenge.js.',
     }),
   ]),
 });

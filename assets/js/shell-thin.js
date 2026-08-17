@@ -212,6 +212,15 @@
     // action row carries data-print="ignore" so the print
     // stylesheet strips Share/Challenge from the printed card.
     results: 'assets/js/results.js',
+    // DC-3 (Story 10.4) — Challenge-a-Friend protocol. Loaded by
+    // the page-conditional Proxy factory on first HT.challenge.link()
+    // call from a Discovery quiz reveal flow. challenge.js does
+    // `Object.defineProperty(HT, 'challenge', {value: publicApi, ...})`
+    // so the Proxy stub here is preserved across the lazy-load
+    // round-trip. No CSS chunk — the chrome for the receiver page
+    // is owned by Story 10.12 (Stories 10.4 ships only the pure-
+    // function encode/compare/verify API).
+    challenge: 'assets/js/challenge.js',
     // Story 9.19 — custom date picker. date-picker.js is page-
     // conditional (only tools that opt inputs into HT.datePicker.enhance
     // — currently lifespan-simulator × 2 DOBs, age-calculator × 2,
@@ -393,6 +402,12 @@
   // 'results', { value, writable:false, configurable:false, ... })
   // on load so the Proxy stub is preserved across the round-trip.
   HT.results    = makeProxy(TIER2_URLS.results, 'results');
+  // DC-3 — Challenge-a-Friend protocol. Same Proxy-factory pattern
+  // as HT.results + HT.scoring above; challenge.js does
+  // Object.defineProperty(HT, 'challenge', { value, writable:false,
+  // configurable:false, ... }) on load so the Proxy stub is preserved
+  // across the round-trip.
+  HT.challenge  = makeProxy(TIER2_URLS.challenge, 'challenge');
   // Story 9.19 — date picker Proxy. date-picker.js does `Object.defineProperty(window.HT, 'datePicker', {value: publicApi, writable: false, configurable: false, enumerable: true})`
   // at module init, so the Proxy stub here is preserved across the lazy-load round-trip —
   // first call to HT.datePicker.enhance(...) hits the Proxy, fires lazyLoad + lazyLoadCss,
