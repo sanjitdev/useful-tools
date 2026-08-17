@@ -4,16 +4,16 @@
   <meta http-equiv="Permissions-Policy" content="unload=(*)">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Estimate paint needed for a room by wall dimensions, doors, and windows. Rounds up so you never under-buy.">
-  <title>Paint Calculator · Handy Tools</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EP%3C/text%3E%3C/svg%3E">
+  <meta name="description" content="Compute area for rectangles, triangles, circles, L-shapes and volume for boxes and cylinders. Toggle metric/imperial.">
+  <title>Area & Volume · Handy Tools</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%234f46e5'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
   <script> (function(){try{var t=localStorage.getItem("ht.theme");var mqd=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)");t=t==="light"||t==="dark"?t:(mqd&&mqd.matches?"dark":"light");var d=document.documentElement;d.setAttribute("data-theme",t);d.style.backgroundColor=t==="dark"?"#0f1117":"#f7f8fb";d.style.color=t==="dark"?"#e8eaf0":"#1a1d29";try{if(/[?&]embed=1(?:&|$)/.test(location.search)){d.setAttribute("data-embed","1");}}catch(_){}try{var po=window.PerformanceObserver?new PerformanceObserver(function(list){try{var e=list.getEntries().find(function(x){return x.name==="first-paint"});if(e){d.dispatchEvent(new CustomEvent("ht:fouc-resolved",{detail:{elapsedMs:e.startTime}}));po.disconnect();}}catch(_){}}):null;if(po){po.observe({type:"paint",buffered:true});}}catch(_){}}catch(e){document.documentElement.setAttribute("data-theme","light")}})(); </script>
 <!-- /shell:head-snippet -->
 
   <link rel="stylesheet" href="../../assets/css/base.css">
   <link rel="stylesheet" href="../../assets/css/components-core.css">
   <link rel="stylesheet" href="../../assets/css/tools.css">
-  <link rel="stylesheet" href="./paint-calculator.css">
+  <link rel="stylesheet" href="./area-volume.css">
   <link rel="stylesheet" href="../../assets/css/print.css" media="print">
 </head>
 <body>
@@ -45,31 +45,60 @@
     </nav>
   </div>
 </header>
-  <main id="main" class="shell-main" data-slug="paint-calculator" aria-label="Paint Calculator" tabindex="-1">
+  <main id="main" class="shell-main" data-slug="area-volume" aria-label="Area & Volume" tabindex="-1">
     <div id="top"></div>
     <header class="tool-header">
       <a href="../../index.html" class="back-link">← All tools</a>
-      <h1>Paint Calculator</h1>
-      <p class="tool-subtitle">Estimate paint needed by wall dimensions, doors, and windows — always rounds up so you never under-buy.</p>
+      <h1>Area &amp; Volume</h1>
+      <p class="tool-subtitle">Compute area for 2D shapes and volume for 3D shapes. Toggle metric/imperial.</p>
     </header>
 
     <div class="panel">
-      <div class="panel-title">Room dimensions</div>
-      <div class="paint-walls-list" data-pc-role="walls" id="pc-walls-list" aria-label="Wall list"></div>
-      <div class="paint-actions">
-        <button type="button" class="btn" data-action="add-wall">Add wall</button>
+      <div class="panel-title">Shape</div>
+      <div class="av-shape-tabs" role="radiogroup" aria-label="Shape">
+        <label><input type="radio" name="av-shape" data-av-shape="rectangle" checked><span class="tab-label">Rectangle</span></label>
+        <label><input type="radio" name="av-shape" data-av-shape="triangle"><span class="tab-label">Triangle</span></label>
+        <label><input type="radio" name="av-shape" data-av-shape="circle"><span class="tab-label">Circle</span></label>
+        <label><input type="radio" name="av-shape" data-av-shape="l-shape"><span class="tab-label">L-shape</span></label>
+        <label><input type="radio" name="av-shape" data-av-shape="box-3d"><span class="tab-label">Box 3D</span></label>
+        <label><input type="radio" name="av-shape" data-av-shape="cylinder-3d"><span class="tab-label">Cylinder 3D</span></label>
       </div>
-      <div class="paint-counts-grid" style="margin-top: var(--space-3);">
-        <div class="field">
-          <label class="field-label" for="pc-doors">Doors (each ≈ 21 sq ft)</label>
-          <input id="pc-doors" class="input" type="number" name="doors" min="0" value="1" step="1">
+
+      <div class="grid-2">
+        <div data-av-shape-group="rectangle">
+          <div class="field"><label class="field-label" for="av-rw">Width</label><input id="av-rw" class="input" data-av-key="w" type="number" min="0" step="any" value="12"></div>
+          <div class="field"><label class="field-label" for="av-rh">Height</label><input id="av-rh" class="input" data-av-key="h" type="number" min="0" step="any" value="10"></div>
         </div>
-        <div class="field">
-          <label class="field-label" for="pc-windows">Windows (each ≈ 12 sq ft)</label>
-          <input id="pc-windows" class="input" type="number" name="windows" min="0" value="1" step="1">
+        <div data-av-shape-group="triangle" hidden>
+          <div class="field"><label class="field-label" for="av-tb">Base</label><input id="av-tb" class="input" data-av-key="b" type="number" min="0" step="any" value="10"></div>
+          <div class="field"><label class="field-label" for="av-th">Height</label><input id="av-th" class="input" data-av-key="h" type="number" min="0" step="any" value="8"></div>
+        </div>
+        <div data-av-shape-group="circle" hidden>
+          <div class="field"><label class="field-label" for="av-cr">Radius</label><input id="av-cr" class="input" data-av-key="r" type="number" min="0" step="any" value="5"></div>
+        </div>
+        <div data-av-shape-group="l-shape" hidden>
+          <div class="field"><label class="field-label" for="av-r1w">Rect 1 width</label><input id="av-r1w" class="input" data-av-key="r1w" type="number" min="0" step="any" value="10"></div>
+          <div class="field"><label class="field-label" for="av-r1h">Rect 1 height</label><input id="av-r1h" class="input" data-av-key="r1h" type="number" min="0" step="any" value="8"></div>
+          <div class="field"><label class="field-label" for="av-r2w">Rect 2 width</label><input id="av-r2w" class="input" data-av-key="r2w" type="number" min="0" step="any" value="6"></div>
+          <div class="field"><label class="field-label" for="av-r2h">Rect 2 height</label><input id="av-r2h" class="input" data-av-key="r2h" type="number" min="0" step="any" value="4"></div>
+        </div>
+        <div data-av-shape-group="box-3d" hidden>
+          <div class="field"><label class="field-label" for="av-bw">Width</label><input id="av-bw" class="input" data-av-key="w" type="number" min="0" step="any" value="6"></div>
+          <div class="field"><label class="field-label" for="av-bh">Height</label><input id="av-bh" class="input" data-av-key="h" type="number" min="0" step="any" value="4"></div>
+          <div class="field"><label class="field-label" for="av-bd">Depth</label><input id="av-bd" class="input" data-av-key="d" type="number" min="0" step="any" value="3"></div>
+        </div>
+        <div data-av-shape-group="cylinder-3d" hidden>
+          <div class="field"><label class="field-label" for="av-cyr">Radius</label><input id="av-cyr" class="input" data-av-key="r" type="number" min="0" step="any" value="2"></div>
+          <div class="field"><label class="field-label" for="av-cyh">Height</label><input id="av-cyh" class="input" data-av-key="h" type="number" min="0" step="any" value="5"></div>
         </div>
       </div>
-      <div class="paint-actions">
+
+      <div class="av-unit-tabs" role="radiogroup" aria-label="Units">
+        <label><input type="radio" name="av-unit" data-av-unit="ft" checked> Imperial (ft)</label>
+        <label><input type="radio" name="av-unit" data-av-unit="m"> Metric (m)</label>
+      </div>
+
+      <div class="paint-actions" style="margin-top: var(--space-3);">
         <button type="button" class="btn btn-primary" data-action="sample">Load sample</button>
         <button type="button" class="btn" data-action="reset">Reset</button>
         <button type="button" class="btn" data-action="print">Print</button>
@@ -78,8 +107,8 @@
     </div>
 
     <div class="result-card">
-      <div class="result-card-title">Paint needed</div>
-      <div id="pc-result" aria-live="polite"></div>
+      <div class="result-card-title">Result</div>
+      <div id="av-result" aria-live="polite"></div>
     </div>
   </main>
   <!-- shell:print-footer (Story 3.10) -->
@@ -310,6 +339,6 @@
   <script src="../../assets/js/utils.js"></script>
   <script src="../../assets/js/ht-lazy.js"></script>
   <script src="../../assets/js/shell-thin.js" defer></script>
-  <script src="./paint-calculator-core.js"></script>
+  <script src="./area-volume-core.js"></script>
 </body>
 </html>

@@ -691,6 +691,17 @@ jobs:
         # guard catches hollow runs.
         run: make paint-calculator-smoke
 
+      - name: Area & Volume smoke (Story 9.12)
+        # Story 9.12: polygon + 3D calculator. Verifies rectangle,
+        # triangle, circle, L-shape, box-3d, cylinder-3d shapes; unit
+        # conversion (m² ↔ ft², m³ ↔ ft³); shape radio switching
+        # toggles input groups; URL state encode/decode/resolve for
+        # all shapes; sample + reset actions; reduced-motion CSS;
+        # privacy (no fetch / XHR / console.error on happy path);
+        # tab-order-canonical selector coverage. 36 PASS expected.
+        # Vacuous-pass guard catches hollow runs.
+        run: make area-volume-smoke
+
       - name: Quiz shell smoke (Story 9.12)
         # Story 9.12 — HT.quiz shell module. Loads assets/js/quiz.js
         # in a vm with Style B DOM stub and asserts: open() handle

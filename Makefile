@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke script-load-order uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke script-load-order uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -87,6 +87,7 @@ help: ## Show available targets
 	@echo "  make recipe-scaler-smoke Run the Node vm-context smoke for the Recipe Scaler tool (Story 9.9)"
 	@echo "  make grocery-list-smoke  Run the Node vm-context smoke for the Grocery List tool (Story 9.10)"
 	@echo "  make paint-calculator-smoke Run the Node vm-context smoke for the Paint Calculator tool (Story 9.11)"
+	@echo "  make area-volume-smoke  Run the Node vm-context smoke for the Area & Volume Calculator tool (Story 9.12)"
 	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + check-pack-taxonomy + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke + view-source-smoke + pins-recent-smoke + search-perf-smoke + ast-gates-self-test + ast-gates-negative + script-load-order + paint-calculator-smoke"
 
 validate: validate-tools-json
@@ -131,7 +132,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke script-load-order shell-a11y bundle-size bundle-size-tier1 bundle-size-per-tool verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative uuid-generator-smoke ht-lazy-smoke bd-tax-split-smoke animal-race-split-smoke recipe-scaler-split-smoke jwt-inspector-split-smoke timestamp-converter-split-smoke uuid-generator-split-smoke json-formatter-split-smoke grocery-list-split-smoke inflation-calculator-split-smoke lifespan-simulator-split-smoke shell-thin-proxies-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke script-load-order shell-a11y bundle-size bundle-size-tier1 bundle-size-per-tool verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative uuid-generator-smoke ht-lazy-smoke bd-tax-split-smoke animal-race-split-smoke recipe-scaler-split-smoke jwt-inspector-split-smoke timestamp-converter-split-smoke uuid-generator-split-smoke json-formatter-split-smoke grocery-list-split-smoke inflation-calculator-split-smoke lifespan-simulator-split-smoke shell-thin-proxies-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Story 1.18 (AI-E1-15) replaced the
@@ -928,6 +929,13 @@ grocery-list-smoke:
 # Vacuous-pass guard catches hollow runs.
 paint-calculator-smoke:
 	@node scripts/_smoke_paint_calculator.js
+
+# Story 9.12 — Area & Volume Calculator (rectangle, triangle, circle,
+# L-shape, box-3d, cylinder-3d; imperial ↔ metric conversion; shape radio
+# switching; URL state encode/decode/resolve; reduced-motion CSS; no fetch
+# / XHR / localStorage).
+area-volume-smoke:
+	@node scripts/_smoke_area_volume.js
 
 quiz-smoke:
 	@node scripts/_smoke_quiz_shell.js

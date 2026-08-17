@@ -10,27 +10,58 @@
       "title": "Quiz Pattern Preview",
       "description": "Reference implementation of the HT.quiz shell module: one-question-per-card with Skip, progress bar, and a reveal panel.",
       "category": "Developer",
-      "pack": ["developer"],
+      "pack": [
+        "developer"
+      ],
       "icon": "assets/icons/quiz-preview.svg",
-      "keywords": ["quiz", "pattern", "shell", "card", "demo", "developer"],
+      "keywords": [
+        "quiz",
+        "pattern",
+        "shell",
+        "card",
+        "demo",
+        "developer"
+      ],
       "last-updated": "2026-08-14T00:00:00Z",
       "ready": true,
       "score": 8,
       "urlState": {
         "default": {},
         "encode": [
-          { "key": "view", "type": "string", "from": "#quiz-mount" }
+          {
+            "key": "view",
+            "type": "string",
+            "from": "#quiz-mount"
+          }
         ],
         "decode": [
-          { "key": "view", "type": "string", "to": "#quiz-mount" }
+          {
+            "key": "view",
+            "type": "string",
+            "to": "#quiz-mount"
+          }
         ]
       },
       "shortcuts": [
-        { "key": "r", "label": "Reset quiz", "action": "reset" }
+        {
+          "key": "r",
+          "label": "Reset quiz",
+          "action": "reset"
+        }
       ],
-      "history-keys": ["quiz-mount"],
-      "view-source": { "enabled": true, "path": "tools/quiz-preview/index.html" },
-      "embed-snippet": { "enabled": false, "badge-default": false, "min-width": 320, "min-height": 280 },
+      "history-keys": [
+        "quiz-mount"
+      ],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/quiz-preview/index.html"
+      },
+      "embed-snippet": {
+        "enabled": false,
+        "badge-default": false,
+        "min-width": 320,
+        "min-height": 280
+      },
       "search-priority": 3
     },
     {
@@ -6117,7 +6148,9 @@
       "title": "Recipe Scaler",
       "description": "Multiply ingredient quantities by N and convert between metric and imperial units. Hand-rolled parser, fraction-aware, unit-allowlist safe.",
       "category": "Cooking",
-      "pack": ["travel"],
+      "pack": [
+        "travel"
+      ],
       "icon": "assets/icons/recipe-scaler.svg",
       "keywords": [
         "recipe",
@@ -6142,14 +6175,38 @@
           "rs-system": "metric"
         },
         "encode": [
-          { "key": "recipe", "type": "string", "from": "#rs-recipe" },
-          { "key": "multiplier", "type": "number", "from": "#rs-multiplier" },
-          { "key": "system", "type": "string", "from": "#rs-system" }
+          {
+            "key": "recipe",
+            "type": "string",
+            "from": "#rs-recipe"
+          },
+          {
+            "key": "multiplier",
+            "type": "number",
+            "from": "#rs-multiplier"
+          },
+          {
+            "key": "system",
+            "type": "string",
+            "from": "#rs-system"
+          }
         ],
         "decode": [
-          { "key": "recipe", "type": "string", "to": "#rs-recipe" },
-          { "key": "multiplier", "type": "number", "to": "#rs-multiplier" },
-          { "key": "system", "type": "string", "to": "#rs-system" }
+          {
+            "key": "recipe",
+            "type": "string",
+            "to": "#rs-recipe"
+          },
+          {
+            "key": "multiplier",
+            "type": "number",
+            "to": "#rs-multiplier"
+          },
+          {
+            "key": "system",
+            "type": "string",
+            "to": "#rs-system"
+          }
         ],
         "sample": {
           "rs-recipe": "1/2 cup flour\n2 tbsp sugar\n3 eggs\n350 °F oven",
@@ -6158,12 +6215,32 @@
         }
       },
       "shortcuts": [
-        { "key": "s", "label": "Load sample recipe", "action": "sample" },
-        { "key": "r", "label": "Reset", "action": "reset" },
-        { "key": "p", "label": "Print", "action": "embed" },
-        { "key": "c", "label": "Copy share URL", "action": "copy" }
+        {
+          "key": "s",
+          "label": "Load sample recipe",
+          "action": "sample"
+        },
+        {
+          "key": "r",
+          "label": "Reset",
+          "action": "reset"
+        },
+        {
+          "key": "p",
+          "label": "Print",
+          "action": "embed"
+        },
+        {
+          "key": "c",
+          "label": "Copy share URL",
+          "action": "copy"
+        }
       ],
-      "history-keys": ["rs-recipe", "rs-multiplier", "rs-system"],
+      "history-keys": [
+        "rs-recipe",
+        "rs-multiplier",
+        "rs-system"
+      ],
       "view-source": {
         "enabled": true,
         "path": "tools/recipe-scaler/index.html"
@@ -6194,7 +6271,9 @@
       "title": "Grocery List",
       "description": "Compose a categorized grocery list and share it via URL. Items grouped by category, hand-rolled base64 URL state, printable clean layout.",
       "category": "Household",
-      "pack": ["household"],
+      "pack": [
+        "household"
+      ],
       "icon": "assets/icons/grocery-list.svg",
       "keywords": [
         "grocery",
@@ -6214,20 +6293,38 @@
           "gl-list": ""
         },
         "encode": [
-          { "key": "list", "type": "string", "from": "#gl-list" }
+          {
+            "key": "list",
+            "type": "string",
+            "from": "#gl-list"
+          }
         ],
         "decode": [
-          { "key": "list", "type": "string", "to": "#gl-list" }
+          {
+            "key": "list",
+            "type": "string",
+            "to": "#gl-list"
+          }
         ],
         "sample": {
           "gl-list": "W10="
         }
       },
       "shortcuts": [
-        { "key": "/", "label": "Focus item input", "action": "embed" },
-        { "key": "p", "label": "Print list", "action": "embed" }
+        {
+          "key": "/",
+          "label": "Focus item input",
+          "action": "embed"
+        },
+        {
+          "key": "p",
+          "label": "Print list",
+          "action": "embed"
+        }
       ],
-      "history-keys": ["gl-list"],
+      "history-keys": [
+        "gl-list"
+      ],
       "view-source": {
         "enabled": true,
         "path": "tools/grocery-list/index.html"
@@ -6257,9 +6354,21 @@
       "title": "Paint Calculator",
       "description": "Estimate paint needed for a room by wall dimensions, doors, and windows. Rounds up so you never under-buy.",
       "category": "Household",
-      "pack": ["household"],
+      "pack": [
+        "household"
+      ],
       "icon": "assets/icons/paint-calculator.svg",
-      "keywords": ["paint", "calculator", "wall", "room", "household", "diy", "primer", "coverage", "gallon"],
+      "keywords": [
+        "paint",
+        "calculator",
+        "wall",
+        "room",
+        "household",
+        "diy",
+        "primer",
+        "coverage",
+        "gallon"
+      ],
       "last-updated": "2026-08-17T00:00:00Z",
       "ready": true,
       "score": 8,
@@ -6269,23 +6378,67 @@
           "pc-windows": "1"
         },
         "encode": [
-          { "key": "walls", "type": "string", "from": "#pc-walls-list" },
-          { "key": "doors", "type": "number", "from": "#pc-doors" },
-          { "key": "windows", "type": "number", "from": "#pc-windows" }
+          {
+            "key": "walls",
+            "type": "string",
+            "from": "#pc-walls-list"
+          },
+          {
+            "key": "doors",
+            "type": "number",
+            "from": "#pc-doors"
+          },
+          {
+            "key": "windows",
+            "type": "number",
+            "from": "#pc-windows"
+          }
         ],
         "decode": [
-          { "key": "walls", "type": "string", "to": "#pc-walls-list" },
-          { "key": "doors", "type": "number", "to": "#pc-doors" },
-          { "key": "windows", "type": "number", "to": "#pc-windows" }
+          {
+            "key": "walls",
+            "type": "string",
+            "to": "#pc-walls-list"
+          },
+          {
+            "key": "doors",
+            "type": "number",
+            "to": "#pc-doors"
+          },
+          {
+            "key": "windows",
+            "type": "number",
+            "to": "#pc-windows"
+          }
         ]
       },
       "shortcuts": [
-        { "key": "s", "label": "Load sample", "action": "sample" },
-        { "key": "r", "label": "Reset", "action": "reset" },
-        { "key": "p", "label": "Print", "action": "embed" },
-        { "key": "c", "label": "Copy share URL", "action": "copy" }
+        {
+          "key": "s",
+          "label": "Load sample",
+          "action": "sample"
+        },
+        {
+          "key": "r",
+          "label": "Reset",
+          "action": "reset"
+        },
+        {
+          "key": "p",
+          "label": "Print",
+          "action": "embed"
+        },
+        {
+          "key": "c",
+          "label": "Copy share URL",
+          "action": "copy"
+        }
       ],
-      "history-keys": ["pc-walls", "pc-doors", "pc-windows"],
+      "history-keys": [
+        "pc-walls",
+        "pc-doors",
+        "pc-windows"
+      ],
       "view-source": {
         "enabled": true,
         "path": "tools/paint-calculator/index.html"
@@ -6311,6 +6464,214 @@
         "[data-action=\"share\"]",
         "#pc-result"
       ]
+    },
+    {
+      "category": "Household",
+      "description": "Compute area for rectangles, triangles, circles, L-shapes and volume for boxes and cylinders. Toggle metric/imperial.",
+      "embed-snippet": {
+        "badge-default": true,
+        "enabled": true,
+        "min-height": 320,
+        "min-width": 320
+      },
+      "history-keys": [
+        "av-shape",
+        "av-w",
+        "av-h",
+        "av-b",
+        "av-r",
+        "av-r1w",
+        "av-r1h",
+        "av-r2w",
+        "av-r2h",
+        "av-d",
+        "av-unit"
+      ],
+      "icon": "assets/icons/area-volume.svg",
+      "id": "area-volume",
+      "keywords": [
+        "area",
+        "volume",
+        "rectangle",
+        "triangle",
+        "circle",
+        "l-shape",
+        "cylinder",
+        "box",
+        "geometry",
+        "household",
+        "converter"
+      ],
+      "last-updated": "2026-08-17T00:00:00Z",
+      "pack": [
+        "household"
+      ],
+      "ready": true,
+      "score": 8,
+      "search-priority": 6,
+      "shortcuts": [
+        {
+          "action": "sample",
+          "key": "s",
+          "label": "Load sample"
+        },
+        {
+          "action": "reset",
+          "key": "r",
+          "label": "Reset"
+        },
+        {
+          "action": "embed",
+          "key": "p",
+          "label": "Print"
+        },
+        {
+          "action": "copy",
+          "key": "c",
+          "label": "Copy share URL"
+        }
+      ],
+      "slug": "area-volume",
+      "tab-order-canonical": [
+        "#shell-skip",
+        "a.back-link",
+        "[data-av-shape=\"rectangle\"]",
+        "[data-av-shape=\"triangle\"]",
+        "[data-av-shape=\"circle\"]",
+        "[data-av-shape=\"l-shape\"]",
+        "[data-av-shape=\"box-3d\"]",
+        "[data-av-shape=\"cylinder-3d\"]",
+        "[data-av-key=\"w\"]",
+        "[data-av-key=\"h\"]",
+        "[data-av-key=\"b\"]",
+        "[data-av-key=\"r\"]",
+        "[data-av-key=\"r1w\"]",
+        "[data-av-key=\"r1h\"]",
+        "[data-av-key=\"r2w\"]",
+        "[data-av-key=\"r2h\"]",
+        "[data-av-key=\"d\"]",
+        "[data-av-unit=\"ft\"]",
+        "[data-av-unit=\"m\"]",
+        "[data-action=\"sample\"]",
+        "[data-action=\"reset\"]",
+        "[data-action=\"print\"]",
+        "[data-action=\"share\"]",
+        "#av-result"
+      ],
+      "title": "Area & Volume Calculator",
+      "urlState": {
+        "decode": [
+          {
+            "key": "shape",
+            "to": "[data-av-shape]",
+            "type": "string"
+          },
+          {
+            "key": "w",
+            "type": "number"
+          },
+          {
+            "key": "h",
+            "type": "number"
+          },
+          {
+            "key": "b",
+            "type": "number"
+          },
+          {
+            "key": "r",
+            "type": "number"
+          },
+          {
+            "key": "r1w",
+            "type": "number"
+          },
+          {
+            "key": "r1h",
+            "type": "number"
+          },
+          {
+            "key": "r2w",
+            "type": "number"
+          },
+          {
+            "key": "r2h",
+            "type": "number"
+          },
+          {
+            "key": "d",
+            "type": "number"
+          },
+          {
+            "key": "unit",
+            "type": "string"
+          }
+        ],
+        "default": {
+          "av-shape": "rectangle"
+        },
+        "encode": [
+          {
+            "from": "[data-av-shape]:checked",
+            "key": "shape",
+            "type": "string"
+          },
+          {
+            "from": "[data-av-key=\"w\"]",
+            "key": "w",
+            "type": "number"
+          },
+          {
+            "from": "[data-av-key=\"h\"]",
+            "key": "h",
+            "type": "number"
+          },
+          {
+            "from": "[data-av-key=\"b\"]",
+            "key": "b",
+            "type": "number"
+          },
+          {
+            "from": "[data-av-key=\"r\"]",
+            "key": "r",
+            "type": "number"
+          },
+          {
+            "from": "[data-av-key=\"r1w\"]",
+            "key": "r1w",
+            "type": "number"
+          },
+          {
+            "from": "[data-av-key=\"r1h\"]",
+            "key": "r1h",
+            "type": "number"
+          },
+          {
+            "from": "[data-av-key=\"r2w\"]",
+            "key": "r2w",
+            "type": "number"
+          },
+          {
+            "from": "[data-av-key=\"r2h\"]",
+            "key": "r2h",
+            "type": "number"
+          },
+          {
+            "from": "[data-av-key=\"d\"]",
+            "key": "d",
+            "type": "number"
+          },
+          {
+            "from": "[data-av-unit]:checked",
+            "key": "unit",
+            "type": "string"
+          }
+        ]
+      },
+      "view-source": {
+        "enabled": true,
+        "path": "tools/area-volume/index.html"
+      }
     }
   ]
 }
