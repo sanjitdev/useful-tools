@@ -1,5 +1,32 @@
 I dug into the current quiz/social landscape rather than just expanding the usual “What animal are you?” list. The pattern is pretty clear: **identity + curiosity + social comparison + a useful recommendation** is much stronger than trivia alone. Current quiz products are leaning heavily into shareable personality results, while recommendation quizzes can turn a short questionnaire into practical decisions. ([Jotform][1])
 
+---
+
+## Index — Discovery Engine (Epic 10) planning artifacts
+
+This document is the **raw research** behind the Discovery Engine. The 2026-08-17 fresh brainstorm pass + full bMAD cascade produced these canonical planning artifacts:
+
+| Artifact | Path |
+|---|---|
+| Brainstorm intent (fresh pass) | `_bmad-output/brainstorming/brainstorm-discovery-engine-2026-08-17/brainstorm-intent.md` |
+| Future tasks (companion) | `_bmad-output/brainstorming/brainstorm-discovery-engine-2026-08-17/discovery-engine-future-tasks.md` |
+| PRD (FR-22..33, UJ-5..8, NFR-11..14) | `_bmad-output/planning-artifacts/prds/prd-discovery-engine-2026-08-17/prd.md` |
+| Architecture spine (AD-16..19) | `_bmad-output/planning-artifacts/architecture/architecture-discovery-engine-2026-08-17/ARCHITECTURE-SPINE.md` |
+| UX design (visual) | `_bmad-output/planning-artifacts/ux-designs/ux-discovery-engine-2026-08-17/DESIGN.md` |
+| UX experience (behavioral) | `_bmad-output/planning-artifacts/ux-designs/ux-discovery-engine-2026-08-17/EXPERIENCE.md` |
+| UX review — rubric walker (9.5/10) | `_bmad-output/planning-artifacts/ux-designs/ux-discovery-engine-2026-08-17/review-rubric.md` |
+| UX review — accessibility (conditional pass; 3 blocking items) | `_bmad-output/planning-artifacts/ux-designs/ux-discovery-engine-2026-08-17/review-accessibility.md` |
+| Epics + stories (Epic 10 appended) | `_bmad-output/planning-artifacts/epics.md` |
+| Sprint status (Epic 10 block) | `_bmad-output/implementation-artifacts/sprint-status.yaml` |
+| Per-story docs (10.1..10.19) | `_bmad-output/implementation-artifacts/10-1-*.md` … `10-19-*.md` |
+| Implementation-readiness report | `_bmad-output/planning-artifacts/implementation-readiness-report-discovery-engine-2026-08-17.md` |
+
+**Scope:** 6-quiz MVP (Spirit Animal, Future Partner, What Would You Do, Decision Style, Friend Match, Car Finder) — see Story 10.7 for the authored roster. The full 20-candidate catalog lives in the brainstorm intent.
+
+**Verdict:** Conditional pass — gated on Story 10.14 (a11y blocking items B1/B2/B3 + H1..H5) before Stories 10.10 + 10.12 ship. Pack total ≤ 80 KB gz; home page unaffected.
+
+---
+
 Also, viral quiz content is currently appearing heavily around **friend groups, relationship archetypes, personality/vibe labels, and visually shareable results**. ([Snapchat][2])
 
 One caveat: nobody can honestly promise a quiz will “go viral.” What we can do is maximize the characteristics that make virality more likely.

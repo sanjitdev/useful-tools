@@ -239,6 +239,43 @@ development_status:
   epic-9-retrospective: optional
 
   # =========================================================================
+  # Epic 10: Discovery Engine — Data-driven personality / recommendation /
+  # game pack with Challenge-a-Friend viral loop
+  # Brainstorm source: _bmad-output/brainstorming/brainstorm-discovery-engine-2026-08-17/brainstorm-intent.md
+  # PRD: prd-discovery-engine-2026-08-17/prd.md (FR-22..33 + UJ-5..8 + NFR-11..14)
+  # Architecture: architecture-discovery-engine-2026-08-17/ARCHITECTURE-SPINE.md (AD-16..19)
+  # UX: ux-discovery-engine-2026-08-17/{DESIGN.md, EXPERIENCE.md, review-rubric.md, review-accessibility.md}
+  # Working-tree DC scaffold (WIP, formalized by Stories 10.1..10.13):
+  #   scripts/dc/dc-0-schema.py .. dc-12-retro.py (AC gates, partial)
+  #   assets/js/scoring.js (WIP scoring engine)
+  #   assets/js/shell-thin.js (Proxy wiring for HT.scoring)
+  #   tools.schema.json (packs additions, WIP)
+  # FRs: FR-22..33 (12 new FRs)
+  # ADs: AD-16 (pack sibling), AD-17 (data-driven runtime + module-def discriminated union), AD-18 (share-card chrome), AD-19 (Challenge URL fragment protocol)
+  # UX-DRs: UX-DR-9 (6th pack composition), UX-DR-7 (Discover Me pack page surface)
+  # =========================================================================
+  epic-10: backlog
+  10-1-pack-disc-sibling-in-tools-json-schema: backlog
+  10-2-data-driven-scoring-engine-assets-js-scoring-js: backlog
+  10-3-results-module-ht-results-render-and-share-card-chrome: backlog
+  10-4-challenge-module-ht-challenge-encode-decode-compare: backlog
+  10-5-recommendation-module-ht-recommend-match: backlog
+  10-6-discovery-loader-page-conditional-module-loader: backlog
+  10-7-6-quiz-mvp-spirit-animal-future-partner-etc: backlog
+  10-8-discover-me-lane-on-home-grid-packs-disc: backlog
+  10-9-discovery-pack-page-packs-disc-route: backlog
+  10-10-result-card-chrome-component-components-discovery-card: backlog
+  10-11-share-card-chrome-png-url-print-fr-29: backlog
+  10-12-challenge-ux-receiver-side-landing-page-privacy-default: backlog
+  10-13-pii-lint-archetype-immutability-lint-fr-28-fr-31: backlog
+  10-14-accessibility-review-follow-ups-b1-b2-b3: backlog  # BLOCKING — must close before 10.10 + 10.12
+  10-15-discovery-engine-smoke-harness-dc-0-through-dc-12: backlog
+  10-16-bundle-size-budget-enforcement-brownfield-clean: backlog
+  10-17-discovery-engine-docs-authoring-taxonomy-privacy: backlog
+  10-18-discover-me-pack-composition-gate-6-quizzes-5-ready: backlog
+  10-19-epic-10-retrospective: backlog
+
+  # =========================================================================
   # Cross-Epic Verification Stories (X.1, X.2, X.3)
   # =========================================================================
   epic-x: backlog
@@ -857,6 +894,7 @@ action_items:
 #   Epic 7 → depends on Epic 1 (catalogs keyed off Shell strings)
 #   Epic 8 → optional, depends on Epic 6 (6-pack taxonomy — schema enum bump)
 #   Epic 9 → depends on Epic 6 (pack taxonomy) + Epic 2 (35 tools already promoted)
+#   Epic 10 → depends on Epic 1 (schema + JSON Schema + Pack enum bump to add `disc`) + Epic 2 (tools.json with 50 entries for recommend) + Story 9.16/9.17 (pack-composition gate extended for disc)
 #   Cross-Epic X.* → after Epic 5 (need SW + embed mode for E2E tests)
 #
 # INSIDE EPIC 1 (recommended first sprint)
@@ -875,4 +913,13 @@ action_items:
 #   Story 2.8 → Wave-3 tools (16 tools)
 #   Story 2.10 → Shared layout/theme/utils migration
 #   Story 2.12 → Cross-cutting regression sweep
+#
+# INSIDE EPIC 10 (recommended when Epic 10 begins)
+#   Sprint A: 10.1 (schema), 10.2 (scoring), 10.13 (PII + immutability lints) — parallel
+#   Sprint B: 10.3 (results), 10.4 (challenge), 10.5 (recommend) — parallel
+#   Sprint C: 10.14 (a11y blocking items — must close before 10.10/10.12)
+#   Sprint D: 10.7 (6 MVP quizzes), 10.10 (chrome), 10.11 (share-card), 10.12 (challenge UX) — parallel
+#   Sprint E: 10.6 (loader), 10.8 (home grid lane), 10.9 (pack page), 10.18 (gate) — parallel
+#   Sprint F: 10.15 (smokes), 10.16 (bundle size), 10.17 (docs), 10.19 (retro)
+#   Caveat: 10.14 MUST land before 10.10 + 10.12 (B1/B2/B3 are blocking findings per review-accessibility.md).
 # -----------------------------------------------------------------------------

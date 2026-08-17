@@ -190,6 +190,18 @@ UX-DR-20: Responsive & platform — Mobile-first. Single-hand usable on 360px vi
 | FR-19 (Starter Locales) | Epic 7 | en/bn/hi/es/ar |
 | FR-20 (Pack Decomposition) | Epic 2 (existing-tool tags) + Epic 6 (new tools) | Site-data schema in 1, pack tags in 2 |
 | FR-21 (New Tools 12-15) | Epic 6 | Per-tool stories |
+| FR-22 (Pack `disc` sibling) | Epic 10 | `packs` sibling in `tools.json`; Discover Me lane on home grid |
+| FR-23 (Pack-route sub-tree) | Epic 10 | New `/packs/disc` route renders the discovery pack page |
+| FR-24 (Data-driven quiz runtime) | Epic 10 | Each quiz is a `module-def` entry; runtime scores, renders results, persists URL state |
+| FR-25 (Challenge URL protocol) | Epic 10 | Fragment-state URL ≤ 80 chars; deterministic seed from answers; compatibility computed on receive |
+| FR-26 (Share-card chrome) | Epic 10 | Emoji + trait bars + blind spot + Share/Challenge buttons (per FR-29) |
+| FR-27 (Score determinism) | Epic 10 | Pure `compute(state) → archetype + traits + blindSpot`; no I/O, no time, no PII |
+| FR-28 (PII lint) | Epic 10 | Build-time regex catches name/email/phone/IP patterns in prompts, options, archetype copy |
+| FR-29 (Share card) | Epic 10 | Download as PNG via canvas; Copy URL; Print (chrome-stripped) |
+| FR-30 (Recommendation engine) | Epic 10 | For recommendation quizzes, scored match against `tools.json` entries (FR-21 tools surface) |
+| FR-31 (Archetype immutability) | Epic 10 | Archetype + blind spot are author-declared strings, never user-derived |
+| FR-32 (Compatibility math) | Epic 10 | L1 distance between trait vectors; normalized to 0–100%; bands (Strong / Moderate / Low) |
+| FR-33 (Trust surface for Discovery) | Epic 10 | Privacy-default disclosure in `<aside>`; no analytics on result card; shareable URL reveals only archetype + blind spot, never free-text answers |
 
 **Cross-cutting NFRs:** Performance (NFR-1), Accessibility (NFR-2), Privacy (NFR-3), Compatibility (NFR-4), Reliability (NFR-5), Printability (NFR-6), i18n (NFR-7), Cost (NFR-8), Surface (NFR-9), Tech (NFR-10) — each is realized across all epics but is gated by Epic 1 (Shell tokens + CI guardrails). The PWA install browser-scope constraint (NFR-4 footnote from architecture AD-8) is enforced in Epic 5.
 
@@ -240,6 +252,12 @@ UX-DR-20: Responsive & platform — Mobile-first. Single-hand usable on 360px vi
 **FRs covered:** FR-17, FR-18, FR-19
 **Architecture ADs:** AD-10 (i18n + Intl), AD-5 (locale in URL state)
 **UX-DRs:** UX-DR-2 (Locale toggle), UX-DR-20 (RTL-safe layout)
+
+### Epic 10: Discovery Engine — Data-driven personality / recommendation / game pack with Challenge-a-Friend viral loop
+**User value:** Sanjit, Maya, Carlos, and Aisha can take a personality, recommendation, or game-style quiz from a 6th pack ("Discover Me"), get a result card with an emoji archetype + trait bars + a blind-spot conversation starter, share it as a PNG / URL / printed page, and challenge a friend. The receiver gets a side-by-side compatibility view (% match, agree/disagree, blind-spot delta) without revealing either party's free-text answers. The pack is data-driven (new quizzes are `module-def` entries in `packs`), deterministic (the same answers always produce the same archetype), offline-first (no fetch on baseline), privacy-default (the disclosure is in the `<aside>` on every quiz page; the share URL reveals archetype + blind spot only, never prompts).
+**FRs covered:** FR-22, FR-23, FR-24, FR-25, FR-26, FR-27, FR-28, FR-29, FR-30, FR-31, FR-32, FR-33
+**Architecture ADs:** AD-16 (pack sibling), AD-17 (data-driven runtime + `module-def` discriminated union), AD-18 (share-card chrome contract), AD-19 (Challenge URL fragment protocol — content-addressed seed, async compatibility computation)
+**UX-DRs:** UX-DR-9 (6th pack composition — Discover Me lane on home grid above utility packs), UX-DR-7 (Discover Me pack page surface, `/packs/disc`)
 
 ### Dependencies (each later epic builds on earlier)
 - Epic 2 depends on Epic 1 (Schema, Contract Gate, Shell bootstrap).
@@ -1795,6 +1813,343 @@ Top assets:
   ...
 ```
 **And** the comment includes a `Bundle size trend` link to a 30-day history chart generated from `bundle-size-history.json`
+
+---
+
+## Epic 10: Discovery Engine — Data-driven personality / recommendation / game pack with Challenge-a-Friend viral loop
+
+**Epic goal:** Ship a 6th pack ("Discover Me") that runs six standalone, data-driven quiz modules (Spirit Animal, Future Partner, What Would You Do, Decision Style, Friend Match, Car Finder), each scoring deterministically from user answers into a result card with an emoji archetype, four top trait bars, a blind-spot conversation starter, and a Share / Challenge action row. The Challenge tap generates a fragment-state URL ≤ 80 chars containing the seeder's content-addressed seed; the receiver pastes it into a browser, takes the same quiz blind, and sees a side-by-side compatibility view with a 3-band percentage (Strong / Moderate / Low). The entire pack is data-driven (new quizzes are `module-def` entries in `packs`), privacy-default (the disclosure is in the `<aside>` on every quiz page; the share URL reveals archetype + blind spot only, never prompts or free-text answers), and offline-first (no fetch on baseline; the receiver's quiz completes without any network call after the initial assets are cached). All animation honors `prefers-reduced-motion` at three levels (CSS media query, HTML attribute, JS runtime read). The pack total budget is ≤ 50 KB gzipped across all six quizzes + chrome.
+
+**FRs covered:** FR-22, FR-23, FR-24, FR-25, FR-26, FR-27, FR-28, FR-29, FR-30, FR-31, FR-32, FR-33
+**Architecture ADs:** AD-16 (pack sibling), AD-17 (data-driven runtime + `module-def` discriminated union), AD-18 (share-card chrome contract), AD-19 (Challenge URL fragment protocol)
+**UX-DRs:** UX-DR-9 (6th pack composition — Discover Me lane on home grid), UX-DR-7 (Discover Me pack page surface, `/packs/disc`)
+
+### Story 10.1: Pack `disc` sibling in `tools.json` schema
+
+As a developer adding a new quiz to the Discover Me pack,
+I want `tools.json` to accept a sibling `packs` object with `disc` entries (each quiz being a `module-def` with `kind: scoring|results|challenge|catalog`),
+So that adding a quiz is data-only and the schema validates the shape before merge.
+
+**Acceptance Criteria:**
+
+**Given** a new or edited `tools.json`
+**When** CI runs `validate-tools-json`
+**Then** the schema accepts a top-level `packs.disc` array of quiz entries; each quiz entry has `id, slug, title, emoji, category, questions[], archetypes[], scoring{weights,traits,blindSpotFor}, spec-version`
+**And** each quiz entry validates against a `module-def` discriminated union (`allOf + if/then`) keyed on `kind`: `kind=scoring` requires `compute(state) → archetype+traits` and `traitMax` map; `kind=results` requires `render(el, state, archetype)` + `download(state, archetype)` + `copy(state, archetype)`; `kind=challenge` requires `encode(state, archetype)` + `decode(seed)` + `compare(seeds)`; `kind=catalog` requires `recommend(state) → tools[]`
+**And** any schema violation fails with the field path and a one-line remediation note
+**And** the existing 50 tool entries remain unchanged and pass their existing schema unchanged (regression)
+
+### Story 10.2: Data-driven scoring engine (`assets/js/scoring.js`)
+
+As a quiz author,
+I want a single pure `HT.scoring.compute(answers, scoringDef)` function that returns `{ archetype, traits, blindSpot }` deterministically,
+So that every quiz module produces the same result for the same answers and the engine is reusable across all six quizzes.
+
+**Acceptance Criteria:**
+
+**Given** a `scoringDef` (`{ archetypeMap: [{archetype, weightMap}], traits: [{id, max}], blindSpotFor: archetype => text }`) and an `answers` object
+**When** `HT.scoring.compute(answers, scoringDef)` is called
+**Then** the function returns `{ archetype: string, traits: [{id, value, pct}], blindSpot: string }` with no I/O, no time, no random, no PII access
+**And** the same `answers + scoringDef` always returns the same triple (deterministic; verified across 100 random `answers`)
+**And** `HT.scoring.traitMax` is exported so authors can normalize `pct = value / traitMax[id]`
+**And** `HT.scoring` is registered in `assets/js/api-contract.js` as `stable` with the signature `{ compute, traitMax }` and a one-paragraph notes block
+
+### Story 10.3: Results module — `HT.results.render()` and share-card chrome
+
+As a user who just answered the last question,
+I want the result card to render with an emoji archetype, the top 4 trait bars, a blind-spot conversation starter, and Share / Challenge buttons,
+So that I have something to share and something to act on immediately.
+
+**Acceptance Criteria:**
+
+**Given** a completed quiz state (`answers` + `scoringDef` + computed `archetype/traits/blindSpot`)
+**When** `HT.results.render(el, state, archetype)` is called
+**Then** the result card chrome is rendered inside `el` per `components.discovery-card` (DESIGN.md §1.1): the emoji (64px system-emoji font stack), the archetype name (display-sm, 36px), an italic tagline, the top 4 trait bars (label/track/fill/value, 24px row height), the blind-spot box (cobalt-soft background, 4px left border), the Share / Challenge action row (≥ 44px touch targets), and the "Tools for you" section (1-3 tool cards from `tools.json`)
+**And** the rendered card is keyboard-complete: Tab cycles Share → Challenge → Tools for you → Print
+**And** the result card root is `role="region" + aria-live="polite" + aria-label="{archetype} result"` and announces once on mount (800 ms debounce per H1)
+**And** `HT.results.copy(state, archetype)` returns a ≤ 280-char text snippet; `HT.results.print(el)` opens the chrome-stripped print dialog; `HT.results.download(state, archetype)` generates a PNG via `HTMLCanvasElement.toBlob` (fallback to "Copy as text" if absent)
+
+### Story 10.4: Challenge module — `HT.challenge.encode()` / `decode()` / `compare()`
+
+As a seeder who taps the Challenge button,
+I want the app to generate a fragment-state URL ≤ 80 chars containing a content-addressed seed,
+So that I can paste it in any chat app and the receiver can take the quiz blind and see compatibility.
+
+**Acceptance Criteria:**
+
+**Given** a completed quiz state (`answers + archetype + traits`) and a known `spec` (quiz id + spec version)
+**When** `HT.challenge.encode(state, archetype, spec)` is called
+**Then** it returns a URL of the form `https://handy.tools/disc/<slug>/#seed=<base36>&spec=<quiz>@<version>` whose total length is ≤ 80 chars (verified across all 6 MVP quizzes)
+**And** `HT.challenge.decode(seed, spec)` round-trips to the same `archetype + traits` triple (deterministic)
+**And** `HT.challenge.compare(seedA, seedB, spec)` returns `{ compatibility: number (0–100), agree: traitId[], disagree: traitId[], blindSpotDelta: string }` computed via L1 distance over the trait vectors normalized by `traitMax`
+**And** the seed is computed as `base36(cyrb53(JSON.stringify(answers)))` — a 53-bit hash; no PII (the answers object contains only archetype-tagged numeric values, never free-text)
+**And** spec-version mismatch returns a structured error `{ code: 'spec-mismatch', version, supported }` (UX §3.2 step 2 failure path)
+
+### Story 10.5: Recommendation module — `HT.recommend.match()`
+
+As a user who just finished a recommendation quiz (Car Finder, Friend Match),
+I want the app to surface 1-3 tools from `tools.json` that match my answers,
+So that the Discovery Engine acts as a router to the utility surface, not a destination.
+
+**Acceptance Criteria:**
+
+**Given** a `catalog` (list of tool entries from `tools.json` with `id, slug, pack, category, keywords[]`) and an `answers` object + scoring
+**When** `HT.recommend.match(answers, catalog, scoring)` is called
+**Then** it returns the top 3 tools ranked by `Σ (answerMatch * weight) / Σ weight`, excluding tools the user already visits (read from `handy-tools.recent` via `HT.recent.list()`)
+**And** each returned tool carries `{ slug, title, displayName, score: number (0–100), categoryBadge: string }` so the result card can render it
+**And** the "Tools for you" section renders at most 3 cards per AD-18; empty recommendations render a single subtle line ("No recommended tools yet — try the quiz with more answers.")
+**And** each card links to `/tools/<slug>/` and includes a 1-line disclosure that the tool is in the same site (per B3)
+
+### Story 10.6: Discovery loader — page-conditional module loader (Shell public API extension)
+
+As a developer navigating to `/disc/<slug>/`,
+I want the Shell to page-conditionally load only the modules the current quiz needs (scoring + results + challenge, or + recommend),
+So that the home page does not pay the cost of any Discovery Engine bundle and the quiz page hydrates in ≤ 1s on Moto G Power.
+
+**Acceptance Criteria:**
+
+**Given** a navigation to `/disc/<slug>/`
+**When** the Shell's page-conditional loader runs
+**Then** it inserts exactly the module `<script>` tags the current quiz's `module-def` requires (one or more of `assets/js/scoring.js`, `assets/js/results.js`, `assets/js/challenge.js`, `assets/js/recommend.js`) via dynamic `<script>` insertion after first paint
+**And** if a quiz needs `recommend`, the loader also fetches `/packs/disc/<slug>/catalog.json` (a slice of `tools.json`) — no fetch in baseline otherwise
+**And** the loader registers the loaded module's public API on `HT.<domain>` via `HT.provide` and verifies against `assets/js/api-contract.js` (manifest-bound, per AI-E1-3)
+**And** the home page (`/`) does NOT load any Discovery Engine module — verified by inspecting `document.scripts` after home load (0 entries from `assets/js/scoring.js|results.js|challenge.js|recommend.js`)
+
+### Story 10.7: 6-quiz MVP — Spirit Animal, Future Partner, What Would You Do, Decision Style, Friend Match, Car Finder
+
+As a user landing on `/disc/<slug>/` for any of the 6 MVP quizzes,
+I want to see a 5-12 question quiz that takes ≤ 90 seconds to complete and produces a meaningful archetype,
+So that I can experience the Discovery Engine end-to-end on day one.
+
+**Acceptance Criteria:**
+
+**Given** the 6 MVP quizzes from the brainstorm intent (spirit-animal, future-partner, what-would-you-do, decision-style, friend-match, car-finder)
+**When** the author lands on `/disc/<slug>/` for each
+**Then** each quiz has 5-12 questions (verified across all 6); each question is multi-choice with 2-5 options; each option contributes 1-3 weights across 4-8 traits; archetype determination uses max-weight-then-stable-tiebreak (`Array.from(...).sort((a,b) => b.weight - a.weight || a.archetype.localeCompare(b.archetype))[0]`)
+**And** each archetype declaration has a hand-authored emoji (system-emoji font stack), a 1-3 word label, a 1-sentence tagline, and a 1-2 sentence blind spot text
+**And** the author runs `make score-disc-<slug>` and the rubric linter assigns ≥ 8/10 to each quiz (the 10 rubric criteria apply, with the privacy criterion specifically requiring the PII lint to pass — see Story 10.13)
+**And** no prompt or option contains a name / email / phone / IP regex match (PII lint PASS, per FR-28)
+
+### Story 10.8: Discover Me lane on home grid (`packs/disc`)
+
+As a user landing on the home page,
+I want to see a "Discover Me" lane above the 5 utility-pack lanes with 6 quiz cards,
+So that the Discovery Engine is discoverable from the home grid and the entry point is single-tap.
+
+**Acceptance Criteria:**
+
+**Given** a fresh home page render
+**When** the home grid renders
+**Then** a `<section class="discovery-lane" aria-label="Discover Me">` is rendered above the first utility-pack lane, containing 6 `<article class="discovery-lane-card">` entries (one per MVP quiz) per `components.discovery-lane-card` (DESIGN.md §1.3)
+**And** each card is a link to `/disc/<slug>/`; the card displays the emoji (48px), the quiz title (body-lg, 600), and a category badge (`{components.alert.soft-info}`, pill shape, 2px/8px padding)
+**And** the lane collapses to a single-row scroll on desktop, 2-column grid on tablet, 1-column stack on mobile (per DESIGN.md §4)
+**And** the home page total size is unaffected — the lane is rendered from the cached `packs/disc/index.json` (≤ 4 KB), not from any quiz's full data
+
+### Story 10.9: Discovery pack page — `/packs/disc` route
+
+As a user who taps "See all" on the Discover Me lane,
+I want to land on a pack page (`/packs/disc`) that lists all 6 quizzes with a pack description and a privacy disclosure,
+So that I can browse the pack's contents in one view and read the privacy posture before engaging.
+
+**Acceptance Criteria:**
+
+**Given** a navigation to `/packs/disc`
+**When** the pack page renders
+**Then** the page renders per the existing pack-page renderer (Story 6.2) with the Discover Me tagline, 6 quiz cards, and a `<aside class="quiz-aside">` containing the 2-line privacy disclosure: "Answers stay in your browser. Share URLs reveal only your archetype + blind spot — never your free-text answers. No analytics, no accounts."
+**And** the pack page is reachable from the home grid (Discover Me lane "See all" button) and from the command palette (FR-7 already routes to `/packs/<slug>`)
+**And** the page is keyboard-complete: Tab cycles the 6 cards; Esc returns to the home grid (focus management per the inherited focus-return-on-leave pattern)
+
+### Story 10.10: Result card chrome component (`components.discovery-card`)
+
+As a developer implementing any quiz,
+I want the result card chrome to be a single reusable component with a documented DOM shape (per the accessibility review's B3 finding),
+So that every quiz renders identically and WCAG 2.1 AA conformance is verified once.
+
+**Acceptance Criteria:**
+
+**Given** a computed `{ archetype, traits, blindSpot }` triple
+**When** `HT.results.render(el, state, archetype)` is called
+**Then** the rendered DOM matches the documented shape: `<article class="discovery-card" role="region" aria-live="polite" aria-label="Result: {archetype}">` → `<header class="discovery-card-header">` (emoji + archetype-name + tagline) → `<ol class="trait-bar-list">` (4 `<li>` trait-bars) → `<aside class="blind-spot-box">` (label + text) → `<div class="action-row">` (Share button + Challenge button) → `<section class="tools-for-you" aria-labelledby="tools-for-you-label">` → `<h2 id="tools-for-you-label" class="tools-for-you-label">Recommended tools for {archetype}</h2>` → `<ul class="tools-for-you-list">` (1-3 `<li>` tool cards)
+**And** contrast ratios for the 3 compatibility bands (`success`/`success-soft`, `primary.DEFAULT`/`primary.soft`, `text-soft`/`surface-2`) are computed and verified at AA per the accessibility review's B1 finding — light + dark, body + large text + non-text UI
+**And** the `tools-for-you` section is `region + h2 + ul + li` shape (not a bare region), per B3
+
+### Story 10.11: Share-card chrome — PNG / URL / Print (FR-29)
+
+As a user who taps Share,
+I want to choose between Copy URL, Download as PNG, and Print,
+So that I can share my result on any platform or save it for later.
+
+**Acceptance Criteria:**
+
+**Given** a rendered result card
+**When** the Share button is tapped
+**Then** the inherited `HT.share.open()` dialog opens with three actions: "Copy URL" (calls `HT.copyToClipboard(url)`), "Download as image" (calls `HT.results.download(el)` which renders the card to a 1200×630 canvas and downloads as PNG), "Print" (calls `HT.share.print(el)` which opens the print dialog with chrome stripped per Story 3.10)
+**And** the downloaded PNG is 1200×630 (Twitter / OG card size), preserves the cobalt palette via canvas `fillStyle = getComputedStyle(...)`, and includes the archetype name + blind spot text rendered as the SVG `<title>` element (per the accessibility review's H3 finding)
+**And** if `HTMLCanvasElement.toBlob` is unavailable, the "Download as image" action gracefully degrades to "Copy as text" with a toast: "Your browser doesn't support PNG export — copied as text instead."
+
+### Story 10.12: Challenge UX — receiver-side landing page + privacy default
+
+As a receiver who pastes a Challenge URL,
+I want to land on a page that clearly says "Challenge from {archetype or 'a friend'}" with a "Take the quiz blind" / "Show me what they got first" toggle,
+So that I understand what I'm about to do, can take it blind (the privacy default), and only reveal the seeder's archetype + blind spot if I choose.
+
+**Acceptance Criteria:**
+
+**Given** a navigation to `/disc/<slug>/#seed=<base36>&spec=<quiz>@<version>`
+**When** the receiver-side landing page renders
+**Then** the document `<title>` is "Challenge from {archetype or 'a friend'}: {quiz title}" (per the accessibility review's B2 finding)
+**And** an `aria-live="polite"` region announces on mount: "Challenge received from {archetype or 'a friend'}. The challenge is to take {quiz title} blind."
+**And** the page renders a H1 with the word "challenge" — "You've been challenged to take {quiz title}" (per H5)
+**And** a consent toggle is rendered: "Take the quiz blind" (default) / "Show me what they got first" — selecting "Show me what they got first" reveals the seeder's archetype + blind spot in a `<details>` above the quiz (per B2 + the rubric walker finding)
+**And** on quiz completion, the receiver is taken to `/disc/<slug>/compare/#seedA=<local>&seedB=<remote>` which renders the `components.compatibility-card` (DESIGN.md §1.2) with the 3-band percentage, agree/disagree list, and blind-spot delta
+
+### Story 10.13: PII lint + archetype immutability lint (FR-28 + FR-31)
+
+As a maintainer merging a new quiz or archetype copy,
+I want a build-time regex lint that catches PII patterns (name / email / phone / IP / street address) in `packs/disc/*/prompts.json` and `archetypes.json`,
+So that no quiz can ship with prompts that ask for personal data and no archetype label can be derived from user input.
+
+**Acceptance Criteria:**
+
+**Given** a PR that adds or edits `packs/disc/<slug>/*.json` or `packs/disc/_shared/archetypes.json`
+**When** the `scripts/check-disc-pii.py` and `scripts/check-archetype-immutability.py` lints run
+**Then** the PII lint fails the build if any prompt, option, archetype label, tagline, or blind-spot text matches the regex `EMAIL_RE` / `PHONE_RE` / `IPV4_RE` / `STREET_RE` (canonical, regex-anchored, with a 3-line allowlist for "what's your favorite [x]" patterns)
+**And** the immutability lint fails the build if any archetype label, emoji, or blind-spot text contains a templated user-input placeholder (`{{name}}`, `{user.name}`, `{{email}}`, etc.)
+**And** the lints run as part of the GitHub Actions `tool-contract-gate` workflow on PR + push and post their findings as a PR comment with file path + line number
+**And** the existing 50 tool entries remain unaffected (the lint only scans `packs/disc/**`)
+
+### Story 10.14: Accessibility review follow-ups — B1 contrast, B2 Challenge announcement, B3 Tools-for-you DOM shape
+
+As a maintainer landing the Discovery Engine at AA conformance,
+I want the 3 blocking accessibility findings (B1 / B2 / B3) from `ux-discovery-engine-2026-08-17/review-accessibility.md` addressed before any Story 10.x ships,
+So that the Discovery Engine passes WCAG 2.1 AA on first public release.
+
+**Acceptance Criteria:**
+
+**Given** the 3 blocking findings + 5 high-value items in `review-accessibility.md`
+**When** Story 10.14 is implemented
+**Then** B1 — DESIGN.md §2 has a contrast table per pairing (light + dark) with measured ratios and pass/fail outcome for the 3 compatibility bands + the blind-spot box
+**And** B2 — the receiver-side landing page sets `<title>` to "Challenge from {archetype}: {quiz title}"; an `aria-live="polite"` region announces on mount; a "Take the quiz blind" / "Show me what they got first" toggle is rendered with the privacy default
+**And** B3 — the result card DOM shape is documented as `<article role="region">` + `<header>` + `<ol class="trait-bar-list">` + `<aside class="blind-spot-box">` + `<div class="action-row">` + `<section class="tools-for-you">` containing `<h2 id="tools-for-you-label">Recommended tools for {archetype}</h2>` + `<ul class="tools-for-you-list">` + `<li>` tool cards (per B3)
+**And** the 5 high-value items (H1 live-region debounce, H2 focus-return, H3 OG SVG `<title>`, H4 skip-link contains aside smoke check, H5 receiver H1 includes "challenge") are all addressed in the same pass
+
+### Story 10.15: Discovery Engine smoke harness (DC-0 through DC-12)
+
+As a maintainer reviewing a Discovery Engine PR,
+I want a smoke harness that covers all 13 AC gates (DC-0 schema, DC-1 scoring, DC-2 results, DC-3 challenge, DC-4 recommend, DC-5 loader, DC-6 quiz MVP, DC-7 tools.json, DC-8 docs, DC-9 PII lint, DC-10 archetype immutability, DC-11 bundle size, DC-12 retro),
+So that any regression in the pack is caught at PR time.
+
+**Acceptance Criteria:**
+
+**Given** a PR that edits any file under `packs/disc/**`, `assets/js/scoring.js`, `assets/js/results.js`, `assets/js/challenge.js`, `assets/js/recommend.js`, or `packs/discovery-loader.js`
+**When** `make disc-smoke` runs
+**Then** DC-0 (schema validation — packs.disc + module-def discriminated union) PASS
+**And** DC-1 (scoring determinism — 100 random answer vectors, same input → same output) PASS
+**And** DC-2 (results.render DOM shape matches B3 spec) PASS
+**And** DC-3 (challenge encode round-trip + length ≤ 80 chars + spec-version mismatch error) PASS
+**And** DC-4 (recommend top-3 ranking + recent exclusion + empty fallback) PASS
+**And** DC-5 (page-conditional loader — home page has 0 Discovery scripts; quiz page has exactly the modules it needs) PASS
+**And** DC-6 (6-quiz MVP archetype count ≥ 3 per quiz + PII lint clean) PASS
+**And** DC-7 (tools.json regression — existing 50 entries unchanged) PASS
+**And** DC-8 (docs present — `docs/discovery-quiz-authoring.md`, `docs/discovery-pack-taxonomy.md`) PASS
+**And** DC-9 (PII lint — no EMAIL/PHONE/IP/STREET regex matches across packs/disc/**) PASS
+**And** DC-10 (archetype immutability — no `{{...}}` placeholders in archetype text) PASS
+**And** DC-11 (bundle size — total Discovery Engine ≤ 50 KB gz per quiz, ≤ 80 KB for the entire pack) PASS
+**And** DC-12 (retro doc — `_bmad-output/implementation-artifacts/epic-10-retro-<date>.md`) PASS
+**And** the harness posts its 13 status flags as a PR comment and blocks merge on any FAIL
+
+### Story 10.16: Bundle-size budget enforcement + brownfield clean
+
+As a maintainer claiming "small bundle",
+I want a CI check that the entire Discovery Engine pack (all 6 quizzes + chrome + 3 modules) is ≤ 80 KB gzipped,
+So that the pack budget is enforced and the home page is unaffected.
+
+**Acceptance Criteria:**
+
+**Given** the working tree after Story 10.7 lands all 6 quizzes
+**When** the bundle-size workflow runs
+**Then** the gzipped size of `assets/js/scoring.js`, `assets/js/results.js`, `assets/js/challenge.js`, `assets/js/recommend.js`, `packs/discovery-loader.js`, and all `packs/disc/<slug>/{index.html,prompts.json,archetypes.json,scoring.json}` is ≤ 80 KB total (verified by `gzip -9 -c`)
+**And** the home page (`/`) does NOT load any Discovery Engine module — verified by an integration smoke that loads `/` and asserts `Array.from(document.scripts).filter(s => /scoring|results|challenge|recommend/.test(s.src)).length === 0`
+**And** a per-quiz budget is enforced: each `packs/disc/<slug>/` slice is ≤ 8 KB gz (5 quizzes × 8 KB + chrome ≈ 40 KB + 3 modules ≈ 40 KB = 80 KB)
+**And** the workflow posts the per-asset breakdown as a PR comment per the format in Story X.3
+
+### Story 10.17: Discovery Engine docs (authoring guide + taxonomy + privacy posture)
+
+As a future contributor adding a 7th quiz,
+I want `docs/discovery-quiz-authoring.md` to walk through the `module-def` shape, the scoring DSL, the blind-spot pattern, the archetype immutability rule, and the PII lint allowlist,
+So that the next quiz can be authored in 1-2 hours without re-reading the architecture spine.
+
+**Acceptance Criteria:**
+
+**Given** the docs directory
+**When** Story 10.17 lands
+**Then** `docs/discovery-quiz-authoring.md` exists with sections: (1) module-def shape, (2) scoring DSL (weights, traits, archetype map), (3) archetype + blind-spot pattern, (4) PII lint allowlist with 3 example patterns and 2 counter-examples, (5) reduced-motion + a11y + keyboard contract checklist, (6) one worked example (the smallest quiz: spirit-animal, 5 questions, 4 archetypes)
+**And** `docs/discovery-pack-taxonomy.md` exists with sections: (1) what belongs in Discover Me (lighthearted / reflective / social-shareable — not utility math), (2) what does NOT belong (privacy-sensitive, factual, repeatable utility), (3) dual-pack allowance rules (a quiz can appear in Discover Me + one utility pack)
+**And** `docs/discovery-privacy-posture.md` exists with sections: (1) the 3-line disclosure copy, (2) what the Challenge URL reveals (archetype + blind spot only) and what it does NOT reveal (prompts, free-text answers, identifiers), (3) the PII + immutability lint rationale, (4) the "Take the quiz blind" default + the receiver consent toggle
+
+### Story 10.18: Discover Me pack-composition gate (6 quizzes ≥ 5 ready)
+
+As a maintainer keeping the pack healthy,
+I want a CI check (the existing `check-pack-composition.py` from Story 9.16, extended) that the Discover Me pack has ≥ 5 ready quizzes,
+So that the pack does not become a "lone quiz" pack or break the home grid lane.
+
+**Acceptance Criteria:**
+
+**Given** the working tree
+**When** `make check-pack-composition` runs
+**Then** `disc` is included in the pack enum (the existing `tools.schema.json` enum `["travel","finance","study","developer","household"]` is extended to `[...,"disc"]`)
+**And** the gate enforces `disc ≥ 5` ready quizzes; a disc pack with fewer than 5 ready quizzes fails the gate
+**And** the existing 5 packs remain unaffected (their ≥ 5 minimums are still enforced)
+**And** the gate's exit codes (0/2/3/4/5) cover the new pack identically
+
+### Story 10.19: Epic 10 retrospective
+
+As a project lead closing Epic 10,
+I want a retrospective document that captures the wins, surprises, deferred work, and forward-only commitments,
+So that Epic 11 (or the next pack) inherits the lessons and the open work is enumerated.
+
+**Acceptance Criteria:**
+
+**Given** all Stories 10.1–10.18 are `done` (or have documented residue)
+**When** the retro is run via the bmad retrospective workflow
+**Then** `_bmad-output/implementation-artifacts/epic-10-retro-<date>.md` exists with sections: (1) what shipped (6 quizzes, 3 modules, 4 ADs, 12 FRs), (2) what surprised us (likely: the seeder preview consent UX, the receiver-side title accessibility gap, the 3-band contrast math), (3) what we deferred (Story 10.14 high-value items if not closed, future quizzes 7+), (4) forward-only commitments (the next pack inherits the `module-def` pattern; the home grid lane pattern), (5) action items in the format `[AI-E10-N]` with severity + owner + revisit condition
+**And** any open action items are appended to `_bmad-output/implementation-artifacts/sprint-status.yaml` under the existing `action_items` block
+**And** the retro file is referenced from the next sprint planning session
+
+### Story Dependencies (within Epic 10)
+
+- Story 10.1 (schema) — must land first; Stories 10.2, 10.3, 10.4, 10.5 depend on it.
+- Story 10.2 (scoring) — independent of 10.3/10.4/10.5; can land in parallel after 10.1.
+- Story 10.3 (results) — depends on 10.2.
+- Story 10.4 (challenge) — depends on 10.2.
+- Story 10.5 (recommend) — depends on 10.2 + `tools.json` schema (already in 10.1).
+- Story 10.6 (loader) — depends on 10.2/10.3/10.4/10.5 being present in the API contract.
+- Story 10.7 (6 MVP quizzes) — depends on 10.1 + 10.2.
+- Story 10.8 (home grid lane) — depends on 10.7 (needs at least 1 quiz to render).
+- Story 10.9 (pack page) — depends on 10.7.
+- Story 10.10 (result card chrome) — depends on 10.3 + 10.14 (B3 DOM shape).
+- Story 10.11 (share-card chrome) — depends on 10.3 + 10.10.
+- Story 10.12 (challenge UX) — depends on 10.4 + 10.10 + 10.14 (B2).
+- Story 10.13 (PII + immutability lints) — independent; can land in parallel with 10.2-10.5.
+- Story 10.14 (a11y review follow-ups) — must land BEFORE 10.10/10.12.
+- Story 10.15 (smoke harness) — depends on 10.1-10.13.
+- Story 10.16 (bundle-size) — depends on 10.7.
+- Story 10.17 (docs) — depends on 10.7 + 10.13 + 10.14.
+- Story 10.18 (pack-composition gate) — depends on 10.7 + 10.8.
+- Story 10.19 (retro) — depends on all prior stories being `done`.
+
+### Suggested Sprint Sequencing (inside Epic 10)
+
+- Sprint A: 10.1, 10.2, 10.13 (parallel — schema, scoring, lints)
+- Sprint B: 10.3, 10.4, 10.5 (parallel — three modules)
+- Sprint C: 10.14 (a11y blocking items, must close before 10.10/10.12)
+- Sprint D: 10.7, 10.10, 10.11, 10.12 (parallel — quizzes + chrome + challenge UX)
+- Sprint E: 10.6, 10.8, 10.9, 10.18 (parallel — loader, home grid, pack page, gate)
+- Sprint F: 10.15, 10.16, 10.17, 10.19 (final — smokes, bundle, docs, retro)
+
+---
+
+*Epic 10 — Discovery Engine. 19 stories. 4 new ADs (AD-16, AD-17, AD-18, AD-19). 12 new FRs (FR-22..33). 4 new NFRs (NFR-11..14). 4 new UJs (UJ-5..8). 9 risks documented with mitigation. Pack total budget ≤ 80 KB gz. 3 blocking a11y items + 5 high-value items must close before Stories 10.10/10.12.*
 
 ---
 
