@@ -559,6 +559,12 @@
     schema: 'object',
     owner: 'quiz-preview.js',
   });
+  register('handy-tools.budget-planner.budget', {
+    purpose: 'Persisted monthly budget (income + categories) for the Budget Planner — Story 9.13',
+    lifetime: 'persistent',
+    schema: 'object',
+    owner: 'budget-planner.js',
+  });
 
   // handy-tools.* user-data keys owned by shell.js. Story 3.12 will
   // populate recent/pins; Epic 6 favorites/dashboard. The registry

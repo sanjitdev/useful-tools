@@ -702,6 +702,16 @@ jobs:
         # Vacuous-pass guard catches hollow runs.
         run: make area-volume-smoke
 
+      - name: Budget Planner smoke (Story 9.13)
+        # Story 9.13: finance budget tracker. Verifies income +
+        # 5 default categories; compute totalExpenses / savings /
+        # savingsRate / discretionary; addCategory UUID stability;
+        # removeCategory / updateCategory; base64 URL state round-trip;
+        # reduced-motion CSS; privacy (no fetch / XHR / console.error);
+        # tab-order-canonical selector coverage. 71 PASS expected.
+        # Vacuous-pass guard catches hollow runs.
+        run: make budget-planner-smoke
+
       - name: Quiz shell smoke (Story 9.12)
         # Story 9.12 — HT.quiz shell module. Loads assets/js/quiz.js
         # in a vm with Style B DOM stub and asserts: open() handle
