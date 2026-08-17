@@ -721,6 +721,18 @@ jobs:
         # Vacuous-pass guard catches hollow runs.
         run: make savings-goal-smoke
 
+      - name: Currency Converter smoke (Story 9.15)
+        # Story 9.15: travel FX tool. Verifies DEFAULTS, convert
+        # cross-rate math (USD base), bundled fx-rates.json baseline
+        # (40+ currencies), encode/decode round-trip, resolveState,
+        # handlers init, privacy (no fetch on baseline boot; fetch
+        # only fires on explicit refresh click), reduced-motion CSS,
+        # shell-bounds escape hatch comment for api.exchangerate.host,
+        # 60-min debounce constant, populateSelects, and
+        # tab-order-canonical selector coverage. 60+ PASS expected.
+        # Vacuous-pass guard catches hollow runs.
+        run: make currency-converter-smoke
+
       - name: Quiz shell smoke (Story 9.12)
         # Story 9.12 — HT.quiz shell module. Loads assets/js/quiz.js
         # in a vm with Style B DOM stub and asserts: open() handle

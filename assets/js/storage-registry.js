@@ -571,6 +571,12 @@
     schema: 'object',
     owner: 'savings-goal.js',
   });
+  register('handy-tools.currency-converter.last-codes', {
+    purpose: 'Last selected from/to currencies for the Currency Converter tool — Story 9.15',
+    lifetime: 'persistent',
+    schema: 'object',
+    owner: 'currency-converter.js',
+  });
 
   // handy-tools.* user-data keys owned by shell.js. Story 3.12 will
   // populate recent/pins; Epic 6 favorites/dashboard. The registry

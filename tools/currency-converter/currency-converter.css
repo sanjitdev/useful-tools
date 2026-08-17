@@ -1,0 +1,22 @@
+.cc-currency-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: var(--space-2); align-items: end; }
+@media (max-width: 640px) { .cc-currency-row { grid-template-columns: 1fr; } }
+
+.cc-amount-row { display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-2); }
+@media (max-width: 640px) { .cc-amount-row { grid-template-columns: 1fr; } }
+
+.cc-result-wrap { margin-top: var(--space-3); padding: var(--space-3); border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-secondary); }
+.cc-result-label { font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+.cc-result-value { font-size: 2rem; font-weight: 700; color: var(--accent-color); margin-top: 0.3rem; font-variant-numeric: tabular-nums; }
+.cc-note { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem; font-family: var(--font-mono); }
+.cc-status { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem; font-style: italic; }
+
+[data-reduced-motion="true"] .cc-result-value,
+[data-reduced-motion="true"] .input,
+[data-reduced-motion="true"] select { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .cc-result-value, .input, select { transition: none; }
+}
+
+@media print {
+  [data-action="refresh"], [data-action="swap"], [data-action="print"], [data-action="share"], select { display: none !important; }
+}
