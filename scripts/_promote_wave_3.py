@@ -46,10 +46,10 @@ WAVE_3_SLUGS = (
 WAVE_3_PACKS: dict[str, list[str]] = {
     "json-formatter":          ["developer"],
     "color-tools":             ["fun"],
-    "date-difference":         ["travel"],
+    "date-difference":         ["study"],
     "lorem-ipsum":             ["fun"],
     "pros-cons":               ["fun"],
-    "unit-converter":          ["developer"],
+    "unit-converter":          ["developer", "travel"],
     "password-strength":       ["developer"],
     "pomodoro-timer":          ["study"],
     "habit-tracker":           ["fun"],
@@ -59,7 +59,7 @@ WAVE_3_PACKS: dict[str, list[str]] = {
     "word-counter":            ["study"],
     "percentage-calculator":   ["finance"],
     "base64-codec":            ["developer"],
-    "tip-calculator":          ["finance"],
+    "tip-calculator":          ["finance", "travel"],
     "url-codec":               ["developer"],
 }
 

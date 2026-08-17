@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke script-load-order uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke budget-planner-smoke savings-goal-smoke currency-converter-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy check-pack-composition es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke script-load-order uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke budget-planner-smoke savings-goal-smoke currency-converter-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -91,7 +91,8 @@ help: ## Show available targets
 	@echo "  make budget-planner-smoke Run the Node vm-context smoke for the Budget Planner tool (Story 9.13)"
 	@echo "  make savings-goal-smoke  Run the Node vm-context smoke for the Savings Goal tool (Story 9.14)"
 	@echo "  make currency-converter-smoke Run the Node vm-context smoke for the Currency Converter tool (Story 9.15)"
-	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + check-pack-taxonomy + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke + view-source-smoke + pins-recent-smoke + search-perf-smoke + ast-gates-self-test + ast-gates-negative + script-load-order + paint-calculator-smoke + budget-planner-smoke + savings-goal-smoke + currency-converter-smoke"
+	@echo "  make check-pack-composition Run the pack-composition gate (Story 9.16 / 9.17) — asserts travel=5 + finance/study/developer/household ≥ 5 + taxonomy"
+	@echo "  make ci                  Run validate + rubric-all + gate + site-config + site-config-smoke + storage-registry + shell-drift + shell-a11y + verify-compound + compound-smoke + shell-bounds + shell-bounds-self-test + shell-public-api-smoke + sample-data-smoke + a11y-smoke + a11y-audit + history-smoke + share-dialog-smoke + wave-1-smoke + wave-2-smoke + wave-3-smoke + pack-tags-smoke + check-pack-taxonomy + check-pack-composition + quality-smoke + regression-sweep + regression-sweep-negative + palette-search-smoke + palette-search-smoke-html + palette-actions-smoke + help-overlay-smoke + global-chords-smoke + print-smoke + view-source-smoke + pins-recent-smoke + search-perf-smoke + ast-gates-self-test + ast-gates-negative + script-load-order + paint-calculator-smoke + budget-planner-smoke + savings-goal-smoke + currency-converter-smoke"
 
 validate: validate-tools-json
 
@@ -963,6 +964,15 @@ savings-goal-smoke:
 # tab-order-canonical coverage.
 currency-converter-smoke:
 	@node scripts/_smoke_currency_converter.js
+
+# Story 9.16 / 9.17 — pack composition gate. Asserts the Travel pack
+# contains EXACTLY the 5 AC-mandated tools (currency-converter,
+# tip-calculator, unit-converter, recipe-scaler, exam-countdown) and
+# Finance / Study / Developer / Household packs each have ≥ 5 ready
+# tools. Pure-stdlib Python, exits 0 (pass), 2 (missing required),
+# 3 (vacuous), 4 (taxonomy), 5 (below-minimum).
+check-pack-composition:
+	@python scripts/check-pack-composition.py
 
 quiz-smoke:
 	@node scripts/_smoke_quiz_shell.js

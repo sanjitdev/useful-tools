@@ -45,7 +45,7 @@
     {
       slug: 'travel',
       title: 'Travel',
-      description: 'For the road, the flight, the family trip.',
+      description: 'Split bills, convert currencies, scale recipes abroad, handle time zones.',
       icon: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16v-2l-9-5V5a1.5 1.5 0 0 0-3 0v4l-9 5v2l9-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L12 19v-5.5z"/></svg>'
     },
     {

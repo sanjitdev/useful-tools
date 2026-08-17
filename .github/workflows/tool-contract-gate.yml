@@ -38,6 +38,7 @@ on:
       - "scripts/_pack_tags.py"
       - "scripts/_smoke_pack_tags.js"
       - "scripts/check-pack-taxonomy.py"
+      - "scripts/check-pack-composition.py"
       - "scripts/_es5_grep.py"
       - "scripts/_smoke_quality.js"
       - "scripts/_smoke_regression_sweep.js"
@@ -120,6 +121,7 @@ on:
       - "scripts/_pack_tags.py"
       - "scripts/_smoke_pack_tags.js"
       - "scripts/check-pack-taxonomy.py"
+      - "scripts/check-pack-composition.py"
       - "scripts/_es5_grep.py"
       - "scripts/_smoke_quality.js"
       - "scripts/_smoke_regression_sweep.js"
@@ -732,6 +734,16 @@ jobs:
         # tab-order-canonical selector coverage. 60+ PASS expected.
         # Vacuous-pass guard catches hollow runs.
         run: make currency-converter-smoke
+
+      - name: Pack composition gate (Story 9.16 / 9.17)
+        # Story 9.16: Travel pack must contain EXACTLY the 5 AC-mandated
+        # tools (currency-converter, tip-calculator, unit-converter,
+        # recipe-scaler, exam-countdown). Story 9.17: Finance / Study /
+        # Developer / Household packs each have ≥ 5 ready:true tools.
+        # Also asserts no tool has a pack value outside the enum.
+        # Pure-stdlib Python gate; exits 0 (pass), 2 (missing required),
+        # 3 (vacuous), 4 (taxonomy), 5 (below-minimum).
+        run: make check-pack-composition
 
       - name: Quiz shell smoke (Story 9.12)
         # Story 9.12 — HT.quiz shell module. Loads assets/js/quiz.js

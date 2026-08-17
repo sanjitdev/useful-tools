@@ -42,7 +42,7 @@
   const PACK_DEFINITIONS = {
     travel: {
       title: 'Travel',
-      tagline: 'For the road, the flight, the family trip.'
+      tagline: 'Split bills, convert currencies, scale recipes abroad, handle time zones.'
     },
     finance: {
       title: 'Finance',
