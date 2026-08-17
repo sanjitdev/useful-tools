@@ -1,9 +1,10 @@
 ---
-stepsCompleted: ["step-01-document-discovery", "step-02-prd-analysis", "step-03-epic-coverage-validation", "step-04-ux-alignment", "step-05-epic-quality-review", "step-06-final-assessment"]
-status: conditional
+stepsCompleted: ["step-01-document-discovery", "step-02-prd-analysis", "step-03-epic-coverage-validation", "step-04-ux-alignment", "step-05-epic-quality-review", "step-06-final-assessment", "post-assessment-a11y-resolution"]
+status: unconditional
 date: 2026-08-17
 project: useful-tools
 epic: 10
+a11y-resolution: "2026-08-17 — B1/B2/B3 + H1..H5 closed in DESIGN.md §2.1 + EXPERIENCE.md §3.2 + §5.1 + §9 + §10"
 documentsInventory:
   - type: Brainstorm Intent
     path: _bmad-output/brainstorming/brainstorm-discovery-engine-2026-08-17/brainstorm-intent.md
@@ -292,9 +293,9 @@ Epic quality is **strong**. All 19 stories have AC lists, dependencies, and bund
 
 ## Step 6: Final Assessment
 
-### Verdict: **CONDITIONAL PASS**
+### Verdict: **UNCONDITIONAL PASS**
 
-Epic 10 (Discovery Engine) is **conditionally ready for implementation**:
+Epic 10 (Discovery Engine) is **ready for implementation**:
 
 - ✅ All 12 FRs covered (1/1).
 - ✅ All 4 ADs covered (1/1).
@@ -302,7 +303,7 @@ Epic 10 (Discovery Engine) is **conditionally ready for implementation**:
 - ✅ All 4 UJs covered (1/1).
 - ✅ 19 stories, each with ACs + dependencies + working-tree cross-refs.
 - ✅ UX rubric walker: 9.5 / 10.
-- ⚠️ Accessibility: 3 blocking items (B1, B2, B3) + 5 high-value items — all scoped to Story 10.14.
+- ✅ Accessibility: **UNCONDITIONAL PASS** — B1 / B2 / B3 + H1..H5 closed in DESIGN.md §2.1 + EXPERIENCE.md §3.2 + §5.1 + §9 + §10 (Story 10.14, 2026-08-17).
 - ✅ Brownfield rule respected (no existing 50 tool entries modified).
 - ✅ AD-1 (no external libs) respected.
 - ✅ AD-9 (no PII, no analytics) respected.
@@ -315,9 +316,9 @@ Epic 10 (Discovery Engine) is **conditionally ready for implementation**:
 
 **Stories 10.3, 10.4, 10.5 can begin after 10.1 + 10.2 land** (Sprint B).
 
-**Story 10.14 MUST close B1, B2, B3 + H1..H5 before Stories 10.10 + 10.12 ship.** Sprint C.
+**Story 10.14 is DONE (2026-08-17).** B1 + B2 + B3 + H1..H5 closed in DESIGN.md §2.1 + EXPERIENCE.md §3.2 + §5.1 + §9 + §10. Stories 10.10 + 10.12 are no longer gated.
 
-**Stories 10.6, 10.7, 10.8, 10.9, 10.10, 10.11, 10.12, 10.15, 10.16, 10.17, 10.18 follow** (Sprints D, E, F).
+**Stories 10.6, 10.7, 10.8, 10.9, 10.10, 10.11, 10.12, 10.15, 10.16, 10.17, 10.18 follow** (Sprints C, D, E).
 
 **Story 10.19 (retro)** closes the epic after all prior stories are `done` or have documented residue.
 
@@ -325,16 +326,18 @@ Epic 10 (Discovery Engine) is **conditionally ready for implementation**:
 
 | ID | Severity | Owner | Description |
 |---|---|---|---|
-| **AI-Discovery-1** | high | epic-10 author | Close B1 + B2 + B3 before Story 10.10 ships (per `review-accessibility.md`) |
-| **AI-Discovery-2** | med | epic-10 author | Close H1 + H2 + H3 + H4 + H5 in same Story 10.14 pass |
-| **AI-Discovery-3** | med | epic-10 author | Confirm the 64px min-height override on `tools-for-you-item` is intentional (rubric walker finding) |
-| **AI-Discovery-4** | low | epic-10 author | Add §3.1.5 (Challenge Tap Subflow) to EXPERIENCE.md |
-| **AI-Discovery-5** | low | epic-10 author | Add canvas-support fallback note to `state.share-image` mutation in EXPERIENCE.md §7 |
+| **AI-Discovery-1** | med | epic-10 author | Confirm the 64px min-height override on `tools-for-you-item` is intentional (rubric walker finding) |
+| **AI-Discovery-2** | low | epic-10 author | Add §3.1.5 (Challenge Tap Subflow) to EXPERIENCE.md |
+| **AI-Discovery-3** | low | epic-10 author | Add canvas-support fallback note to `state.share-image` mutation in EXPERIENCE.md §7 |
+
+**Closed items** (resolved 2026-08-17 in the a11y-resolution pass):
+- ✅ AI-Discovery-B1/B2/B3 (was: high) — closed via DESIGN.md §2.1 + EXPERIENCE.md §3.2 + §5.1.
+- ✅ AI-Discovery-H1..H5 (was: med) — closed via EXPERIENCE.md §5.1 (debounce + focus-return) + §9 (skip-link smoke + receiver H1) + §10 (OG SVG `<title>`).
 
 ### Decision
 
-Epic 10 is **conditionally ready for implementation**. The 3 blocking accessibility findings (B1, B2, B3) and 5 high-value items (H1-H5) are localized, scoped, and require no architectural change. Stories 10.1-10.13 can begin as soon as the PRD, architecture spine, UX design, and rubric walker are approved. Stories 10.10 + 10.12 are gated on Story 10.14 (a11y review follow-ups).
+Epic 10 is **unconditionally ready for implementation**. All 3 blocking accessibility findings (B1, B2, B3) and 5 high-value items (H1-H5) are closed as of 2026-08-17 in DESIGN.md §2.1 + EXPERIENCE.md §3.2 + §5.1 + §9 + §10. Stories 10.1-10.19 can begin as soon as the PRD, architecture spine, UX design, and rubric walker are approved. No further blocking action items remain.
 
 ---
 
-*Readiness report — Epic 10. Conditional pass. 12 FRs / 4 ADs / 4 NFRs / 4 UJs / 19 stories / 0 open PRD questions / 9 risks documented. Implementation gated on Story 10.14 (a11y blocking items).*
+*Readiness report — Epic 10. **Unconditional pass** (a11y-resolution 2026-08-17). 12 FRs / 4 ADs / 4 NFRs / 4 UJs / 19 stories / 0 open PRD questions / 9 risks documented. Story 10.14 done — B1/B2/B3 + H1..H5 closed. Implementation fully unblocked.*

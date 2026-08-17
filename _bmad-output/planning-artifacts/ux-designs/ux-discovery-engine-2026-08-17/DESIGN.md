@@ -285,11 +285,42 @@ The Discovery Engine consumes the inherited palette. The **only** color addition
 
 | Match band | Percentage | Background | Foreground | Used for |
 |---|---|---|---|---|
-| Strong | ≥ 75% | `{colors.semantic.success-soft}` | `{colors.semantic.success}` | "Strong match" callout |
-| Moderate | 50–74% | `{colors.primary.soft}` | `{colors.primary.DEFAULT}` | "Moderate match" callout |
-| Low | < 50% | `{colors.neutral-light.surface-2}` | `{colors.neutral-light.text-soft}` | "Different paths" callout |
+| Strong | ≥ 75% | `{colors.semantic.success-soft}` (`#E2F4EB`) | `{colors.semantic-dark.success-on}` (`#06231A`) | "Strong match" callout |
+| Moderate | 50–74% | `{colors.primary.soft}` (`#E5ECFF`) | `{colors.primary.hover}` (`#1F46DB`) | "Moderate match" callout |
+| Low | < 50% | `{colors.neutral-light.surface-2}` (`#F0F2F8`) | `{colors.neutral-light.text-soft}` (`#3D4456`) | "Different paths" callout |
+| Blind-spot box | n/a | `{colors.primary.soft}` (`#E5ECFF`) | `{colors.neutral-light.text}` (`#10131C`) | Blind-spot conversation starter |
 
-These three bands are rendered by `HT.challenge.compare()` based on the L1 distance between the two trait vectors (mapped to 0–100% via the existing `traitMax` normalization). No new hex tokens are introduced.
+These three bands are rendered by `HT.challenge.compare()` based on the L1 distance between the two trait vectors (mapped to 0–100% via the existing `traitMax` normalization. No new hex tokens are introduced.
+
+### 2.1 Contrast ratios — WCAG 2.1 AA conformance
+
+Computed against the canonical cobalt palette per `ux-useful-tools-2026-07-31/DESIGN.md` §tokens. **AA threshold: 4.5:1 for body text (< 18px or < 14px bold); 3:1 for large text (≥ 18px or ≥ 14px bold) and non-text UI.** The compatibility percentage (`display-lg`, 48px, 700 weight) qualifies as large text; the band labels (`label-caps`, 11px, 700 weight) are body text and require 4.5:1.
+
+| Pairing | Foreground | Background | Ratio | Body text (4.5:1) | Large text / non-text (3:1) |
+|---|---|---|---:|:-:|:-:|
+| **Light — Strong label** | `#06231A` | `#E2F4EB` | **14.55:1** | ✓ PASS | ✓ PASS |
+| **Light — Strong % (display-lg)** | `#06231A` | `#E2F4EB` | 14.55:1 | ✓ PASS | ✓ PASS |
+| **Light — Moderate label** | `#1F46DB` | `#E5ECFF` | **6.01:1** | ✓ PASS | ✓ PASS |
+| **Light — Moderate % (display-lg)** | `#1F46DB` | `#E5ECFF` | 6.01:1 | ✓ PASS | ✓ PASS |
+| **Light — Low label** | `#3D4456` | `#F0F2F8` | **8.69:1** | ✓ PASS | ✓ PASS |
+| **Light — Low % (display-lg)** | `#3D4456` | `#F0F2F8` | 8.69:1 | ✓ PASS | ✓ PASS |
+| **Light — Blind-spot text** | `#10131C` | `#E5ECFF` | **15.70:1** | ✓ PASS | ✓ PASS |
+| **Light — Blind-spot label** | `#10131C` | `#E5ECFF` | 15.70:1 | ✓ PASS | ✓ PASS |
+| **Dark — Strong label** | `#41D38A` | `#0F2E22` | **7.61:1** | ✓ PASS | ✓ PASS |
+| **Dark — Moderate label** | `#7B95FF` | `#16234A` | **5.52:1** | ✓ PASS | ✓ PASS |
+| **Dark — Low label** | `#C6CCD9` | `#1C2130` | **9.96:1** | ✓ PASS | ✓ PASS |
+| **Dark — Blind-spot text** | `#ECEFF7` | `#16234A` | **13.29:1** | ✓ PASS | ✓ PASS |
+
+**Findings.**
+
+- The original light-theme Strong tokens (`{colors.semantic.success}` `#0E8A56` on `{colors.semantic.success-soft}` `#E2F4EB`) measured **3.84:1** — **FAILS AA** for the 11px body label. The 48px percentage passed AA as large text (3:1).
+- The original light-theme Moderate tokens (`{colors.primary.DEFAULT}` `#2F5BFF` on `{colors.primary.soft}` `#E5ECFF`) measured **4.38:1** — **FAILS AA** for the 11px body label. The 48px percentage passed AA as large text (3:1).
+
+**Resolution.** The light-theme Strong and Moderate band labels use a darker foreground variant that is already in the palette (`{colors.semantic-dark.success-on}` for Strong; `{colors.primary.hover}` for Moderate). The palette percentage (`display-lg`, 48px) keeps the lighter foreground because it qualifies as large text and the lighter weight reads as more "celebratory" / less heavy. The visual hierarchy is preserved — the callout background is still `success-soft` / `primary-soft`, but the label is darker so the body text passes AA.
+
+**Verification.** `scripts/dc/dc-9-chrome.py` reads this table at PR time, computes the ratios from the published hex values, and asserts every cell is ≥ 4.5:1 for body text and ≥ 3:1 for large text / non-text UI. The smoke harness fails the build if any future palette change introduces a sub-AA pairing.
+
+**Contrast math source of truth.** The WCAG 2.1 relative luminance formula per W3C: `L = 0.2126·R + 0.7152·G + 0.0722·B` where each channel is sRGB-decoded (`c ≤ 0.03928: c/12.92; else ((c+0.055)/1.055)^2.4`). Contrast ratio = `(L1 + 0.05) / (L2 + 0.05)` for the lighter over darker of the two colors.
 
 ## 3. Typography (no new roles; reference existing)
 

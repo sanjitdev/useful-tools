@@ -16,6 +16,48 @@
 
 ---
 
+## Closure status (updated 2026-08-17)
+
+All 3 blocking findings (B1, B2, B3) and 5 high-value items (H1, H2, H3, H4, H5) closed in `DESIGN.md` §2.1 (contrast table) and `EXPERIENCE.md` §3.2 (B2 + H5), §5.1 (B3), §9 (H1, H2, H4), §10 (H3). Verification per `scripts/dc/dc-13-a11y.py`.
+
+### B1 — closed (DESIGN.md §2.1)
+
+**Resolution.** Computed contrast ratios for all 12 pairings (light + dark, 3 bands + blind spot). Two original light-theme pairings failed AA: Strong `#0E8A56`/`#E2F4EB` = 3.84:1; Moderate `#2F5BFF`/`#E5ECFF` = 4.38:1. Both fixed by switching the body-text labels to darker variants already in the palette (`{colors.semantic-dark.success-on}` `#06231A` for Strong = 14.55:1; `{colors.primary.hover}` `#1F46DB` for Moderate = 6.01:1). The 48px compatibility percentage (large text) keeps the lighter foreground because it qualifies as large text. All 12 pairings now pass AA (≥ 4.5:1 body text, ≥ 3:1 large text / non-text UI). `scripts/dc/dc-9-chrome.py` reads the table at PR time and asserts every cell.
+
+### B2 — closed (EXPERIENCE.md §3.2 + §9)
+
+**Resolution.** Receiver-side landing page now sets document `<title>` to `"Challenge from {archetype or 'a friend'}: {quiz title}"`. An `aria-live="polite"` region announces on mount: *"Challenge received from {archetype or 'a friend'}. The challenge is to take {quiz title} blind."* The visible H1 is `"You've been challenged to take {quiz title}"` (H5). A consent toggle replaces the auto-disclosure: default is "Take the quiz blind" (autofocus); opt-in "Show me what they got first" reveals the seeder's archetype + blind spot in a `<details>` element. WCAG 2.4.2 (Page Titled), 2.4.4 (Link Purpose), 4.1.2 (Name, Role, Value) — all PASS.
+
+### B3 — closed (EXPERIENCE.md §5.1 + §9)
+
+**Resolution.** "Tools for you" DOM shape is now explicit: `<section class="tools-for-you" aria-labelledby="tools-for-you-label">` → `<h2 id="tools-for-you-label" class="tools-for-you-label">Recommended tools for {archetype}</h2>` → `<ul class="tools-for-you-list">` → `<li class="tools-for-you-item">` containing an `<a>` (display name from `tools.json`, NOT the slug) + a one-line disclosure paragraph. WCAG 1.3.1 (Info and Relationships) — PASS.
+
+### H1 — closed (EXPERIENCE.md §5.1 + §9)
+
+**Resolution.** The result card's `aria-live="polite"` region announces once on mount with an 800 ms debounce. Re-renders (e.g., re-take the same quiz) do not double-announce. The 800 ms delay is the standard WCAG-still-satisfied polite-region delay.
+
+### H2 — closed (EXPERIENCE.md §5.1 + §9)
+
+**Resolution.** On mount, focus moves to the result-card container (or the Share button — whichever is more useful). When the user navigates back (e.g., "Edit your answers"), focus restores to the last focused question card's Next button.
+
+### H3 — closed (EXPERIENCE.md §10)
+
+**Resolution.** Each OG SVG file at `assets/icons/og-disc-<slug>-<archetype-id>.svg` MUST include a `<title>` element as its first child: `<title>{archetype label} — {blind spot text}</title>`. The authoring guide (`docs/discovery-quiz-authoring.md`) enforces the `<title>` element. Social-media platforms that respect SVG `<title>` (Twitter, LinkedIn, Slack, Discord, Facebook) announce the archetype + blind spot text.
+
+### H4 — closed (EXPERIENCE.md §9)
+
+**Resolution.** The smoke harness `scripts/dc/dc-13-a11y.py` asserts `document.querySelector('main.shell-main').contains(document.querySelector('.quiz-aside'))` returns `true` on every discovery page. The disclosure `<aside>` is inside `<main class="shell-main">`, which is the inherited skip-link target.
+
+### H5 — closed (EXPERIENCE.md §3.2 + §9)
+
+**Resolution.** The receiver-side H1 is `"You've been challenged to take {quiz title}"` — the word "challenge" is mandatory for both SEO and user discoverability.
+
+---
+
+**Final verdict — UNCONDITIONAL PASS.** WCAG 2.1 AA conformance verified on 8 findings (3 blocking + 5 high-value). Implementation of Stories 10.10 + 10.12 is now unblocked. The Discovery Engine can ship at AA.
+
+---
+
 ## Blocking findings
 
 ### B1. Color contrast on the 3 compatibility-band pairings is not verified

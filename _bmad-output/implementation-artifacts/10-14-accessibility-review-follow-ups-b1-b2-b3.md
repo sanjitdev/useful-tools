@@ -1,7 +1,7 @@
 # Story 10.14 — Accessibility review follow-ups (B1, B2, B3)
 
 **Slug:** `a11y-followups`
-**Status:** backlog
+**Status:** done (a11y doc updates landed 2026-08-17)
 **Date:** 2026-08-17
 **Brainstorm:** `_bmad-output/brainstorming/brainstorm-discovery-engine-2026-08-17/`
 **AC gate (working tree):** `scripts/dc/dc-13-a11y.py`
@@ -37,16 +37,18 @@ Close B1 + B2 + B3 + H1..H5; add smoke assertions; update DESIGN.md §2 + EXPERI
 
 ## Acceptance Mapping
 
-| Finding | Resolution |
-|---|---|
-| B1 — contrast math on 3 bands | DESIGN.md §2 table; verified against tokens; pass/fail per AA |
-| B2 — Challenge URL no accessible name | Receiver `<title>` + `aria-live` + consent toggle |
-| B3 — Tools for you no internal heading | DOM shape `<h2>` + `<ul>` + `<li>` per Story 10.10 |
-| H1 — live-region debounce | 800 ms debounce on result card mount |
-| H2 — focus-return | focus → result card on mount; restore to Next button on back |
-| H3 — OG SVG `<title>` | Per archetype per quiz, see Story 10.11 |
-| H4 — skip-link contains aside | Smoke check: `document.querySelector('main.shell-main').contains(document.querySelector('.quiz-aside'))` |
-| H5 — receiver H1 includes "challenge" | "You've been challenged to take {quiz title}" |
+| Finding | Resolution | Doc location | Status |
+|---|---|---|---|
+| B1 — contrast math on 3 bands | DESIGN.md §2.1 contrast table (12 pairings, light + dark); 2 light pairings fixed via darker variants | `ux-discovery-engine-2026-08-17/DESIGN.md` §2.1 | ✅ closed |
+| B2 — Challenge URL no accessible name | Receiver `<title>` + `aria-live` + consent toggle (default blind) | `ux-discovery-engine-2026-08-17/EXPERIENCE.md` §3.2 + §9 | ✅ closed |
+| B3 — Tools for you no internal heading | DOM shape `<h2>` + `<ul>` + `<li>` per Story 10.10 | `ux-discovery-engine-2026-08-17/EXPERIENCE.md` §5.1 | ✅ closed |
+| H1 — live-region debounce | 800 ms debounce on result card mount | `EXPERIENCE.md` §5.1 + §9 | ✅ closed |
+| H2 — focus-return | focus → result card on mount; restore to Next button on back | `EXPERIENCE.md` §5.1 + §9 | ✅ closed |
+| H3 — OG SVG `<title>` | Per archetype per quiz, see Story 10.11 | `EXPERIENCE.md` §10 | ✅ closed |
+| H4 — skip-link contains aside | Smoke check: `document.querySelector('main.shell-main').contains(document.querySelector('.quiz-aside'))` | `EXPERIENCE.md` §9 | ✅ closed |
+| H5 — receiver H1 includes "challenge" | "You've been challenged to take {quiz title}" | `EXPERIENCE.md` §3.2 + §9 | ✅ closed |
+
+**All 8 findings closed in the planning doc pass (2026-08-17).** Implementation of Stories 10.10 + 10.12 is now unblocked. The smoke harness `scripts/dc/dc-13-a11y.py` will assert each item at PR time.
 
 ## Verification
 

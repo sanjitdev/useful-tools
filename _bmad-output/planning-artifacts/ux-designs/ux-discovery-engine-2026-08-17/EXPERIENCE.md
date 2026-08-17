@@ -67,10 +67,13 @@ The fifth surface (`Tools for you`) is shared with the inherited components; it 
 
 **Trigger.** Maya opens the URL in a browser, on phone, in a Signal chat.
 **Steps.**
-1. **Landing.** The URL has fragment `#seed=<base36>&spec=personality@v1`. The loader fetches `data.json` (cached after first load), reads `spec=personality@v1`, picks the modules.
-2. **Seeding UX.** A small banner appears: *"Your friend Sanjit is "The Quiet Strategist". Take the quiz to see how compatible you are."* Sanjit's archetype + blind spot are visible (NOT his answers). The user taps "Take the quiz" (or "Show me what they got first").
-3. **Quiz.** Same 12-question loop; Maya is blind to Sanjit's answers.
-4. **Compatibility reveal.** After Maya's last question, `HT.challenge.compare(mayaResult, sanSeed, spec)` runs locally; the compatibility card renders (compatibility %, agree[], disagree[], blind spot).
+1. **Landing — accessible-name contract (B2).** The URL has fragment `#seed=<base36>&spec=personality@v1`. The loader fetches `data.json` (cached after first load), reads `spec=personality@v1`, picks the modules. The receiver-side landing page sets the document `<title>` to `"Challenge from {archetype or 'a friend'}: {quiz title}"` so a screen-reader user hears the purpose from the page title, not just the fragment. An `aria-live="polite"` region announces on mount: *"Challenge received from {archetype or 'a friend'}. The challenge is to take {quiz title} blind."* The visible H1 is `"You've been challenged to take {quiz title}"` — the word "challenge" is mandatory for SEO and user discoverability (H5).
+2. **Seeding UX — privacy default + consent toggle (B2).** A small banner appears above the quiz with two mutually exclusive choices:
+   - **"Take the quiz blind"** (default, autofocus, privacy-first). The receiver proceeds to the quiz with no preview of Sanjit's archetype + blind spot.
+   - **"Show me what they got first"** (opt-in disclosure). Reveals the seeder's archetype + blind spot in a `<details>` element above the quiz; the user can collapse it back.
+   Sanjit's archetype + blind spot are NEVER auto-disclosed without consent. The seeder's free-text answers are NEVER revealed — only the content-addressed seed (FR-25, FR-33).
+3. **Quiz.** Same 12-question loop; Maya is blind to Sanjit's answers regardless of consent choice.
+4. **Compatibility reveal.** After Maya's last question, `HT.challenge.compare(mayaResult, sanSeed, spec)` runs locally; the compatibility card renders (compatibility %, agree[], disagree[], blind spot). The compatibility card respects the 3-band contrast table in DESIGN.md §2.1 (Strong = `{colors.semantic-dark.success-on}` on `{colors.semantic.success-soft}`; Moderate = `{colors.primary.hover}` on `{colors.primary.soft}`; Low = `{colors.neutral-light.text-soft}` on `{colors.neutral-light.surface-2}`).
 5. **Reverse share.** Maya can tap Share to send her compatibility back to Sanjit.
 
 **Climax.** Maya learns she and Sanjit have a 62% compatibility, agree on curiosity + ambition, differ on risk + decision-making style.
@@ -78,6 +81,7 @@ The fifth surface (`Tools for you`) is shared with the inherited components; it 
 - **Sanjit's URL uses an old spec version (`@v0`).** The loader detects the version mismatch and offers "your friend used an older version of this quiz — the archetypes might differ." A "Take the new version" link is offered; the original result is not shown to avoid confusion.
 - **Maya's `data.json` is stale.** The loader fetches the latest `data.json`; the seeder's spec version is preserved.
 - **PII in the seeder's answers is somehow exposed.** AD-9 + FR-31 prevent this; the seeder's answers hash is opaque.
+- **Receiver is on a screen reader and skips the title.** The `aria-live` region (B2) is the second-channel announcement; the title alone is not relied on.
 
 ### 3.3 Flow UJ-7 — Carlos uses a recommendation quiz to inform a real decision
 
@@ -146,10 +150,42 @@ The Disclosure is mandatory on every Discovery page. It is **two lines**, top-of
 
 ### 5.1 `discovery-card` (DESIGN §1.1) — the result card
 
-- **Behavior.** Mounts on `HT.results.render()`. Animations entrance; trait bars fill; the blind-spot box appears.
+- **Behavior.** Mounts on `HT.results.render()`. Animations entrance; trait bars fill; the blind-spot box appears. Live-region announcement debounced 800 ms (H1) so re-renders do not double-announce.
 - **State.** Pure: takes `result` + `variant`. Renders into the host element. Respects `prefers-reduced-motion`.
-- **Keyboard.** Tab → Share → Challenge → Tools for you → next focusable outside the card (focus is NOT trapped on the result; it's the climax, not a modal).
-- **A11y role.** `region` + `aria-label="Your result: {archetype label}"`.
+- **Keyboard.** Tab → Share → Challenge → Tools for you → next focusable outside the card (focus is NOT trapped on the result; it's the climax, not a modal). On mount, focus moves to the result-card container (or the Share button — whichever is more useful) so a keyboard user is positioned correctly without re-tabbing (H2). When the user navigates back (e.g., "Edit your answers"), focus restores to the last focused question card's Next button (H2).
+- **A11y role.** `region` + `aria-live="polite"` + `aria-label="Your result: {archetype label}"`. The 800 ms debounce (H1) prevents double-announcements on re-render.
+- **DOM shape (canonical — required by Story 10.10).** Every `HT.results.render()` call produces this exact structure:
+  ```html
+  <article class="discovery-card" role="region" aria-live="polite" aria-label="Result: {archetype}">
+    <header class="discovery-card-header">
+      <span class="archetype-emoji" aria-hidden="true">{emoji}</span>
+      <h1 class="archetype-name">{name}</h1>
+      <p class="tagline">{tagline}</p>
+    </header>
+    <ol class="trait-bar-list">
+      <li class="trait-bar">…</li>  <!-- top 4 -->
+    </ol>
+    <aside class="blind-spot-box">
+      <p class="blind-spot-label">Your blind spot</p>
+      <p class="blind-spot-text">{blindSpot}</p>
+    </aside>
+    <div class="action-row">
+      <button class="share-button">Share</button>
+      <button class="challenge-button">Challenge a friend</button>
+    </div>
+    <section class="tools-for-you" aria-labelledby="tools-for-you-label">  <!-- B3 — region + heading -->
+      <h2 id="tools-for-you-label" class="tools-for-you-label">Recommended tools for {archetype}</h2>
+      <ul class="tools-for-you-list">
+        <li class="tools-for-you-item">
+          <a href="/tools/{slug}/">{displayName}</a>  <!-- display name from tools.json, NOT the slug -->
+          <p class="tools-for-you-disclosure">In the Handy Tools suite — no third-party redirect.</p>
+        </li>
+        ... 1-2 more ...
+      </ul>
+    </section>
+  </article>
+  ```
+  The "Tools for you" surface is `region` + `h2` + `ul` + `li` (B3 fix). Each surfaced tool renders its `displayName` from `tools.json` (not the kebab-case slug) so a screen reader announces "Loan Calculator", not "loan-calculator". Each card includes a one-line disclosure that the tool is in the same site, not a third-party redirect. The contrast ratios for the 3 compatibility bands (when present on the compatibility card) are verified per DESIGN.md §2.1.
 
 ### 5.2 `compatibility-card` (DESIGN §1.2) — the Challenge receiver's result
 
@@ -208,17 +244,21 @@ Per the brainstorm pre-mortem (9 risks), each gets an explicit recovery path:
 |---|---|---|
 | Discover Me lane | "Discovery, region, 6 quizzes" | Tab cycles cards; Enter launches |
 | Question card | "Question {n} of {total}" then "{prompt}" then "{option label}, radio button, {n} of {count}" | Tab cycles options; 1-9 picks option N; Enter advances; Esc pops one card |
-| Result card | "Your result: {archetype name}. {tagline}. {blind spot text}" | Tab → Share → Challenge → Tools for you (focus not trapped) |
+| Result card | "Your result: {archetype name}. {tagline}. {blind spot text}" (announced once on mount, 800 ms debounce per H1) | Tab → Share → Challenge → Tools for you (focus not trapped); focus moves to result-card container or Share button on mount (H2); focus restores to last question card's Next button on "Edit your answers" (H2) |
 | Compatibility card | "Your compatibility with {their archetype}: {percent}. {breakdown row 1}. {breakdown row 2}. {breakdown row 3}." | Tab cycles breakdown rows; Enter expands |
-| Tools for you | "Recommended tools, region, {n} tools" | Tab cycles; Enter launches |
+| Tools for you (B3) | "Recommended tools for {archetype}, region, {n} tools" (heading announced before list per WCAG 1.3.1) | Tab cycles `<li>` cards; Enter launches |
 | Disclosure | "No analytics. No tracking. No PII. The Challenge URL is a fragment, never sent to a server. Link: how your data is handled." | Tab to link; Enter expands `/privacy#discovery` |
+| Challenge receiver landing (B2, H5) | Document `<title>` is "Challenge from {archetype or 'a friend'}: {quiz title}"; `aria-live="polite"` region announces "Challenge received from {archetype or 'a friend'}. The challenge is to take {quiz title} blind." on mount | H1 visible: "You've been challenged to take {quiz title}" (H5 — word "challenge" is mandatory); consent toggle is the first focusable element (default: "Take the quiz blind") |
 
 The Discovery Engine consumes the inherited `HT.a11y.auditTool(slug, rootEl)` and `HT.a11y.prefersReducedMotion` surface (per AD-4 Story 2.4 extension). No new a11y primitives are introduced.
+
+**Skip-link target smoke check (H4).** The inherited skip-link target is `<main class="shell-main">` (per `HT.a11y` extension). The discovery pages must contain the disclosure `<aside class="quiz-aside">` INSIDE `<main class="shell-main">` so the skip-link does not skip the disclosure. The smoke harness asserts `document.querySelector('main.shell-main').contains(document.querySelector('.quiz-aside'))` returns `true` on every discovery page.
 
 ## 10. Print, Share, Embed, History
 
 - **Print.** The result card has a `HT.share.print()` entry point via the `Print` button in the inherited share dialog (per FR-13 extension). Print strips the chrome and renders the archetype + trait bars + blind spot on a single page.
 - **Share.** The result card's Share button calls `HT.share.open(slug)` (inherited). The share dialog gains a pre-populated message: `"{archetype emoji} {archetype label} — {tagline}. {blind spot} [Challenge URL]"` (≤ 280 chars).
+- **Share-card OG image (H3).** Each archetype per quiz has a static OG SVG file at `assets/icons/og-disc-<slug>-<archetype-id>.svg`. Each SVG MUST include a `<title>` element as its first child: `<title>{archetype label} — {blind spot text}</title>`. Social-media platforms that respect SVG `<title>` (Twitter, LinkedIn, Slack, Discord, Facebook) announce the archetype + blind spot text instead of the platform-default "image". The authoring guide (`docs/discovery-quiz-authoring.md`) enforces the `<title>` element as the first child.
 - **Embed.** The Discovery Engine does **not** ship embed mode (per AD-7 the embed is a Shell flag). Embedding a quiz on a 3rd-party site is explicitly out-of-scope for Epic 10 (deferred to Epic 11 if requested).
 - **History.** The Discovery Engine declares **no `history-keys`**. The Challenge URL is the only persistence layer. The `/privacy` page lists this explicitly under the "Discover Me" section (per FR-33).
 
