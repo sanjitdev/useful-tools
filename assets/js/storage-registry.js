@@ -565,6 +565,12 @@
     schema: 'object',
     owner: 'budget-planner.js',
   });
+  register('handy-tools.savings-goal.inputs', {
+    purpose: 'Persisted savings goal inputs (target / months / starting / rate) for the Savings Goal tool — Story 9.14',
+    lifetime: 'persistent',
+    schema: 'object',
+    owner: 'savings-goal.js',
+  });
 
   // handy-tools.* user-data keys owned by shell.js. Story 3.12 will
   // populate recent/pins; Epic 6 favorites/dashboard. The registry

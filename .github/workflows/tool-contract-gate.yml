@@ -712,6 +712,15 @@ jobs:
         # Vacuous-pass guard catches hollow runs.
         run: make budget-planner-smoke
 
+      - name: Savings Goal smoke (Story 9.14)
+        # Story 9.14: finance annuity-due calculator. Verifies compound
+        # math (rate>0), linear math (rate=0), validation rejects bad
+        # shapes, URL state encode/decode/resolve for all 4 keys,
+        # reduced-motion CSS, privacy (no fetch / XHR / console.error),
+        # tab-order-canonical selector coverage. 70+ PASS expected.
+        # Vacuous-pass guard catches hollow runs.
+        run: make savings-goal-smoke
+
       - name: Quiz shell smoke (Story 9.12)
         # Story 9.12 — HT.quiz shell module. Loads assets/js/quiz.js
         # in a vm with Style B DOM stub and asserts: open() handle
