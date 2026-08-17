@@ -1,5 +1,5 @@
 # generated: 2026-07-31
-# last_updated: 2026-08-17T20:30:00Z
+# last_updated: 2026-08-17T20:45:00Z
 # project: useful-tools
 # project_key: NOKEY
 # tracking_system: file-system
@@ -256,7 +256,7 @@ development_status:
   # =========================================================================
   epic-10: backlog
   10-1-pack-disc-sibling-in-tools-json-schema: done  # WIP DC scaffold already landed packs/pack-entry/quiz-entry/module-def discriminated union + 4 config-schema definitions in tools.schema.json (commit f52554d). DC-0 gate (scripts/dc/dc-0-schema.py) → 13/13 PASS 2026-08-17; existing 50 tools still validate (validate-tools-json.py → OK). Schema work was foundational; no Story 10.1-specific code authored. Brownfield clean.
-  10-2-data-driven-scoring-engine-assets-js-scoring-js: backlog
+  10-2-data-driven-scoring-engine-assets-js-scoring-js: done  # WIP DC scaffold landed assets/js/scoring.js (HT.scoring.score pure + deterministic + frozen) + shell-thin Proxy wiring (Story 4c pattern) + bundle-gate page-conditional entry + api-contract.js stable registration + docs entry + scripts/_smoke_scoring.js (16/16 PASS). DC-1 gate fixed and at 15/15 PASS 2026-08-17 — three gate-only bugs (vm context missing window/self aliases; __dirname resolution via `node -` stdin pipes; smoke harness same ENOENT) all fixed, no scoring.js changes needed.
   10-3-results-module-ht-results-render-and-share-card-chrome: backlog
   10-4-challenge-module-ht-challenge-encode-decode-compare: backlog
   10-5-recommendation-module-ht-recommend-match: backlog

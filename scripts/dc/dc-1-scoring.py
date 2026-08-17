@@ -79,19 +79,26 @@ def main():
     # run a small set of fixtures. Only meaningful if scoring.js exists
     # AND exports the expected API. If scoring.js isn't on disk yet,
     # all 7 runtime checks stay FAIL (RED until DC-1 lands).
-    fixture = r"""
+    fixture = (
+        r"""
 'use strict';
 const fs = require('fs');
-const path = require('path');
 const vm = require('vm');
 
-const REPO = path.resolve(__dirname, '..', '..');
-const src = fs.readFileSync(path.join(REPO, 'assets/js/scoring.js'), 'utf8');
+const SCORING_PATH = __SCORING_PATH__;
+const src = fs.readFileSync(SCORING_PATH, 'utf8');
 
 const ctx = { HT: {}, console };
+// scoring.js is an IIFE that picks `window.HT` || `self.HT` || {}. With
+// neither window nor self in the vm sandbox, it falls through to a
+// fresh local `{}` and writes HT.scoring to that object — invisible
+// to the caller. Mirror the shape used by scripts/_smoke_scoring.js:
+// expose `window` and `self` aliases pointing at the shared HT so the
+// IIFE's `window.HT = HT` writes back to ctx.HT.
+ctx.window = ctx;
+ctx.self = ctx;
+ctx.global = ctx;
 vm.createContext(ctx);
-// scoring.js is a Shell module — it does HT.scoring = { ... } on
-// the global HT. We provide an HT object and capture the result.
 vm.runInContext(src, ctx);
 const scoring = ctx.HT.scoring;
 
@@ -153,6 +160,7 @@ try {
 }
 process.stdout.write('JSON:' + JSON.stringify(out));
 """
+    ).replace("__SCORING_PATH__", json.dumps(str((repo_root() / "assets/js/scoring.js").resolve())))
     rc, stdout, stderr = run_node(fixture)
     runtime = {}
     for line in stdout.splitlines()[::-1]:
@@ -209,10 +217,22 @@ process.stdout.write('JSON:' + JSON.stringify(out));
     # 15. scripts/_smoke_scoring.js exists and exits 0 via node
     smoke = "scripts/_smoke_scoring.js"
     if file_exists(smoke):
-        rc, _, _ = run_node(
-            (repo_root() / smoke).read_text(encoding="utf-8") + "\n"
+        # Run the smoke file directly as a script entry point — NOT via
+        # stdin (`node -`), because the harness resolves asset paths
+        # relative to __dirname, and a stdin pipe leaves __dirname as
+        # the cwd (typically the repo root, not scripts/), causing the
+        # readFileSync on assets/js/shell-thin.js to crash with ENOENT
+        # before any assertions run.
+        import subprocess
+        r = subprocess.run(
+            ["node", str(repo_root() / smoke)],
+            capture_output=True,
+            text=True,
+            timeout=20,
+            encoding="utf-8",
+            errors="replace",
         )
-        check(rc == 0, f"{smoke} exists and exits 0 via node (rc={rc})")
+        check(r.returncode == 0, f"{smoke} exists and exits 0 via node (rc={r.returncode})")
     else:
         check(False, f"{smoke} exists and exits 0 via node [missing]")
 

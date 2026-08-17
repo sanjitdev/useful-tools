@@ -1,7 +1,7 @@
 # Story 10.2 — Data-driven scoring engine (`assets/js/scoring.js`)
 
 **Slug:** `scoring-engine`
-**Status:** backlog
+**Status:** done
 **Date:** 2026-08-17
 **Brainstorm:** `_bmad-output/brainstorming/brainstorm-discovery-engine-2026-08-17/`
 **AC gate (working tree):** `scripts/dc/dc-1-scoring.py`
@@ -46,9 +46,22 @@ HT.scoring.traitMax: { [traitId: string]: number }
 
 ## Verification
 
-- `python scripts/dc/dc-1-scoring.py` → PASS (100 random vectors all deterministic).
-- `HT.scoring` registered in `api-contract.js` at version `1.22.0`.
+- `python scripts/dc/dc-1-scoring.py` → **15/15 PASS** (2026-08-17) — file exists, frozen surface (`writable:false, configurable:false`), shell-thin Proxy wiring, bundle-gate page-conditional, docs entry, 7 runtime assertions on the spec fixture (returnsShape, clamped, skippedZero, defaultArchetype, deterministic, unknownIgnored), shell-bounds clean, gzipped size 2757 bytes (≤ 4000 budget), Node smoke harness `scripts/_smoke_scoring.js` exits 0.
+- `HT.scoring` registered in `assets/js/api-contract.js` at version `1.22.0` as stable.
 - 0 fetch / XHR / localStorage calls inside scoring.js (AD-9 + AD-14 boundary).
+- Determinism: `score(answers, spec)` is a pure function — same `answers + spec` always returns the same `{traits, archetype}`. Archetype picker is deterministic (ties broken by `default` flag, then index, then id).
+
+## Gate bug fixes (2026-08-17, same commit as Story 10.2)
+
+The dc-1-scoring.py gate had two pre-existing bugs that masked DC-1 as failing:
+
+1. **vm context missing `window`/`self` aliases** — scoring.js is an IIFE that picks `window.HT || self.HT || {}`. With neither in the gate's vm sandbox, the IIFE created a fresh local `{}` and wrote `HT.scoring` to that object (invisible to the caller). Fixed by aliasing `ctx.window = ctx; ctx.self = ctx; ctx.global = ctx;` so the IIFE's `window.HT = HT` writes back to the shared object.
+
+2. **`__dirname` resolves to cwd under `node -` (stdin)** — the gate's runtime fixture used `path.resolve(__dirname, '..', '..')` to find `assets/js/scoring.js`. When piped via stdin, `__dirname` is the cwd (typically one level above the repo), so `readFileSync` opened a non-existent path and the script threw before emitting any `JSON:` output (gate saw all 7 runtime checks FAIL because `runtime = {}` was the parse-failure default). Fixed by passing the absolute path as `__SCORING_PATH__` from Python via string-substitution.
+
+The smoke-harness check (#15) had a similar `__dirname` problem — when the gate piped the smoke file via `node -`, `__dirname` was cwd, `path.resolve(__dirname, '..')` landed at the repo root instead of `scripts/`, and `readFileSync` on `assets/js/shell-thin.js` crashed with ENOENT. Fixed by running the smoke file as an entry point (`node scripts/_smoke_scoring.js`) instead of piping via stdin.
+
+These are gate-only fixes; no scoring.js changes were needed.
 
 ## Out-of-scope (deferred)
 
