@@ -200,6 +200,18 @@
     // (answers + spec → {traits, archetype}); no DOM, no storage,
     // no fetch — see shell-bounds-check.py.
     scoring: 'assets/js/scoring.js',
+    // DC-2 (Story 10.3) — result-card chrome. Loaded by the page-
+    // conditional Proxy factory on first HT.results.render() call
+    // from a Discovery quiz reveal flow. results.js does
+    // `Object.defineProperty(HT, 'results', {value: publicApi, ...})`
+    // so the Proxy stub here is preserved across the lazy-load
+    // round-trip — first render() call hits the Proxy, fires
+    // lazyLoad + lazyLoadCss in parallel, and forwards to the
+    // real API once results.js parses. Card root carries
+    // data-print="result" + role="region" + aria-live="polite";
+    // action row carries data-print="ignore" so the print
+    // stylesheet strips Share/Challenge from the printed card.
+    results: 'assets/js/results.js',
     // Story 9.19 — custom date picker. date-picker.js is page-
     // conditional (only tools that opt inputs into HT.datePicker.enhance
     // — currently lifespan-simulator × 2 DOBs, age-calculator × 2,
@@ -279,6 +291,13 @@
     // after the JS has parsed, but lazy-loading both in parallel keeps
     // the round-trip to one network event.
     quiz: 'assets/css/quiz.css',
+    // DC-2 (Story 10.3) — result-card CSS, co-loaded with
+    // results.js on first HT.results.render() call. The card chrome
+    // (trait bars, contrarian line, action row, @media print
+    // strip) lives here; the JS module only emits DOM. Strip the
+    // Share / Challenge buttons from the printed card via the
+    // data-print="ignore" attribute on .quiz-result-actions.
+    results: 'assets/css/result-card.css',
     // Story 9.19 — date picker CSS, co-loaded with date-picker.js on
     // first HT.datePicker.enhance() access. chrome-date-picker.css
     // lives in assets/css/ (chrome-* prefix); see scripts/bundle-
@@ -369,6 +388,11 @@
   // 'scoring', { value, writable:false, configurable:false, ... })
   // on load so the Proxy stub is preserved across the round-trip.
   HT.scoring    = makeProxy(TIER2_URLS.scoring, 'scoring');
+  // DC-2 — result-card chrome. Same Proxy-factory pattern as
+  // HT.scoring above; results.js does Object.defineProperty(HT,
+  // 'results', { value, writable:false, configurable:false, ... })
+  // on load so the Proxy stub is preserved across the round-trip.
+  HT.results    = makeProxy(TIER2_URLS.results, 'results');
   // Story 9.19 — date picker Proxy. date-picker.js does `Object.defineProperty(window.HT, 'datePicker', {value: publicApi, writable: false, configurable: false, enumerable: true})`
   // at module init, so the Proxy stub here is preserved across the lazy-load round-trip —
   // first call to HT.datePicker.enhance(...) hits the Proxy, fires lazyLoad + lazyLoadCss,

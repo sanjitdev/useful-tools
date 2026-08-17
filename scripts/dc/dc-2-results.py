@@ -43,15 +43,22 @@ def main():
     js_src = read_text(js_path) or ""
     css_src = read_text(css_path) or ""
 
-    # 3. assets/js/api-contract.js defines HT.results (frozen)
+    # 3. results.js itself does the Object.defineProperty(HT, 'results',
+    # {value, writable:false, configurable:false, ...}) — api-contract.js
+    # is just the documentation table. The freeze lives in the module
+    # that owns the API (same pattern as scoring.js per dc-1 gate).
     api = read_text("assets/js/api-contract.js") or ""
+    results_src = read_text("assets/js/results.js") or ""
+    has_freeze = bool(re.search(
+        r'Object\.defineProperty\(\s*HT\s*,\s*[\'"]results[\'"]\s*,\s*\{[^}]*writable:\s*false[^}]*configurable:\s*false',
+        results_src,
+        re.DOTALL,
+    ))
+    has_doc = bool(api) and "HT.results" in api
     check(
-        bool(api) and re.search(
-            r'Object\.defineProperty\(\s*HT\s*,\s*[\'"]results[\'"]\s*,\s*\{[^}]*writable:\s*false[^}]*configurable:\s*false',
-            api,
-            re.DOTALL,
-        ),
-        "assets/js/api-contract.js defines HT.results (frozen: writable:false, configurable:false)",
+        has_freeze and has_doc,
+        "assets/js/results.js freezes HT.results (writable:false, configurable:false) "
+        "AND api-contract.js documents it",
     )
 
     # 4. shell-thin.js TIER2_URLS / TIER2_CSS list both files
@@ -85,119 +92,162 @@ def main():
 
     # Runtime checks — only meaningful if results.js exists.
     # We use jsdom-less fixture that stubs HTMLElement minimally.
-    fixture = r"""
+    # Path substitution (mirrors the dc-1 gate fix) so the file
+    # path works under `node -` (stdin) where __dirname is undefined.
+    fixture = (
+        r"""
 'use strict';
 const fs = require('fs');
-const path = require('path');
 const vm = require('vm');
 
-const REPO = path.resolve(__dirname, '..', '..');
-const src = fs.readFileSync(path.join(REPO, 'assets/js/results.js'), 'utf8');
+const RESULTS_PATH = __RESULTS_PATH__;
+const src = fs.readFileSync(RESULTS_PATH, 'utf8');
 
-// Minimal DOM stub
+// Minimal DOM stub — classList.add must mutate attrs.class so the
+// .button / .share / .challenge classes added by results.js render
+// visible to the assertions below. createTextNode must exist (results.js
+// calls it for string children).
 class FakeEl {
-  constructor() {
+  constructor(tag) {
+    this.tag = tag;
     this.dataset = {};
     this.attrs = {};
-    this.classList = { add: () => {}, remove: () => {}, contains: () => false };
     this.children = [];
     this.style = {};
-    this.attrs.role = '';
-    this.attrs['aria-live'] = '';
+    this.classList = {
+      _add: [],
+      _remove: [],
+      _baseClass: '',
+      _owner: this,
+      add: function () {
+        for (let i = 0; i < arguments.length; i++) {
+          if (this._add.indexOf(arguments[i]) === -1) this._add.push(arguments[i]);
+        }
+        this._owner._writeClass();
+      },
+      remove: function () {
+        for (let i = 0; i < arguments.length; i++) {
+          let idx = this._add.indexOf(arguments[i]);
+          if (idx !== -1) this._add.splice(idx, 1);
+          if (this._remove.indexOf(arguments[i]) === -1) this._remove.push(arguments[i]);
+        }
+        this._owner._writeClass();
+      },
+      contains: function (c) { return this._add.indexOf(c) !== -1; },
+    };
   }
-  setAttribute(k, v) { this.attrs[k] = v; }
+  _writeClass() {
+    const parts = this.classList._baseClass
+      ? this.classList._baseClass.split(' ').filter(Boolean)
+      : [];
+    parts.push.apply(parts, this.classList._add);
+    if (this.classList._remove.length) {
+      for (let i = 0; i < this.classList._remove.length; i++) {
+        const idx = parts.indexOf(this.classList._remove[i]);
+        if (idx !== -1) parts.splice(idx, 1);
+      }
+    }
+    this.attrs.class = parts.join(' ');
+  }
+  setAttribute(k, v) {
+    this.attrs[k] = v;
+    if (k === 'class') this.classList._baseClass = String(v);
+  }
   appendChild(c) { this.children.push(c); return c; }
   addEventListener() {}
 }
 
-// Capture the constructed root element
-let lastRenderRoot = null;
-
-const ctx = {
-  HT: {},
-  document: {
-    createElement(tag) {
-      const el = new FakeEl();
-      el.tag = tag;
-      return el;
-    },
-  },
-  URLSearchParams: URLSearchParams,
-  console,
+const ctx = { HT: {}, console };
+// results.js is an IIFE that picks `window.HT` || `self.HT` || {}.
+// With neither window nor self in the vm sandbox, it falls through
+// to a fresh local `{}` and writes HT.results to that object —
+// invisible to the caller. Mirror the shape used by
+// scripts/_smoke_results.js: expose window + self + global aliases
+// pointing at the shared HT so the IIFE's writes land back here.
+ctx.window = ctx;
+ctx.self = ctx;
+ctx.global = ctx;
+ctx.URLSearchParams = URLSearchParams;
+ctx.location = { href: 'http://localhost/?arch=zen&quiz=zen-test', protocol: 'http:', pathname: '/' };
+ctx.document = {
+  createElement: function (tag) { return new FakeEl(tag); },
+  createTextNode: function (t) { return { nodeType: 3, text: String(t) }; },
 };
 vm.createContext(ctx);
 vm.runInContext(src, ctx);
-
 const results = ctx.HT.results;
+
 const out = {};
-
-// 7. render returns HTMLElement with data-print="result"
 try {
-  const el = results.render(
-    { traits: { calm: 80, bold: 30 }, archetype: { id: 'zen', label: 'Zen', emoji: '🧘' } },
-    { title: 'You scored', conflict: 'You also said bold', slug: 'zen-test' }
-  );
-  out.rendered = !!el;
-  out.hasDataPrint = el && el.attrs && el.attrs['data-print'] === 'result';
-  out.role = el && el.attrs && el.attrs.role === 'region';
-  out.ariaLive = el && el.attrs && el.attrs['aria-live'] === 'polite';
-  lastRenderRoot = el;
-} catch (e) { out.renderErr = String(e && e.message || e); }
+  out.hasRender = typeof results.render === 'function';
+  out.hasShareUrl = typeof results.shareUrl === 'function';
+  out.hasCopyText = typeof results.copyText === 'function';
+  out.hasImageSnapshot = typeof results.imageSnapshot === 'function';
 
-// 8 + 9 are covered by the structural grep below, not the runtime fixture.
-// 10 (contrarian class) is also structural — see the check() call below.
-
-// 11. shareUrl returns URL containing ?arch=<id>
-try {
-  const u = results.shareUrl(
-    { id: 'zen', label: 'Zen', emoji: '🧘' },
-    { slug: 'zen-test' }
-  );
-  out.shareUrl = typeof u === 'string' && u.indexOf('arch=zen') !== -1;
-} catch (e) { out.shareErr = String(e && e.message || e); }
-
-// 12. copyText returns string with canonical format
-try {
-  const t = results.copyText(
-    { traits: { calm: 80, bold: 30 }, archetype: { id: 'zen', label: 'Zen', emoji: '🧘' } },
-    { slug: 'zen-test' }
-  );
-  out.copyText = typeof t === 'string'
-    && /Zen/.test(t)
-    && /🧘/.test(t)
-    && /\d+%/.test(t);
-} catch (e) { out.copyErr = String(e && e.message || e); }
-
-// 13. imageSnapshot either returns Promise<Blob> OR throws 'snapshot unavailable'
-try {
-  let threw = false;
-  let ok = false;
-  try {
-    const r = results.imageSnapshot(lastRenderRoot || {});
-    if (r && typeof r.then === 'function') ok = true;
-  } catch (e) {
-    if (/snapshot unavailable/i.test(String(e && e.message || e))) {
-      threw = true;
-      ok = true;
-    }
+  if (out.hasRender) {
+    const el = results.render(
+      { traits: { calm: 80, bold: 30 }, archetype: { id: 'zen', label: 'Zen', emoji: '🧘' } },
+      { title: 'You scored', conflict: 'You also said bold', slug: 'zen-test', traitCap: 4 }
+    );
+    out.rendered = !!el && !!el.attrs;
+    out.hasDataPrint = el && el.attrs && el.attrs['data-print'] === 'result';
+    out.role = el && el.attrs && el.attrs.role === 'region';
+    out.ariaLive = el && el.attrs && el.attrs['aria-live'] === 'polite';
   }
-  out.snapshotContract = ok || threw;
-} catch (e) {}
 
+  // shareUrl returns URL containing ?arch=<id>
+  if (out.hasShareUrl) {
+    const u = results.shareUrl(
+      { id: 'zen', label: 'Zen', emoji: '🧘' },
+      { slug: 'zen-test' }
+    );
+    out.shareUrl = typeof u === 'string' && u.indexOf('arch=zen') !== -1;
+  }
+
+  // copyText returns canonical format
+  if (out.hasCopyText) {
+    const t = results.copyText(
+      { traits: { calm: 80, bold: 30 }, archetype: { id: 'zen', label: 'Zen', emoji: '🧘' } },
+      { slug: 'zen-test' }
+    );
+    out.copyText = typeof t === 'string'
+      && /Zen/.test(t)
+      && /🧘/.test(t)
+      && /\d+%/.test(t);
+  }
+
+  // imageSnapshot contract — throws 'snapshot unavailable'
+  if (out.hasImageSnapshot) {
+    let threw = false;
+    let ok = false;
+    try {
+      const r = results.imageSnapshot({});
+      if (r && typeof r.then === 'function') ok = true;
+    } catch (e) {
+      if (/snapshot unavailable/i.test(String(e && e.message || e))) {
+        threw = true;
+        ok = true;
+      }
+    }
+    out.snapshotContract = ok || threw;
+  }
+} catch (e) {
+  out.error = String(e && e.message || e);
+}
 process.stdout.write('JSON:' + JSON.stringify(out));
 """
+    ).replace("__RESULTS_PATH__", json.dumps(str((repo_root() / "assets/js/results.js").resolve())))
+    rc, stdout, stderr = run_node(fixture)
+    runtime = {}
+    for line in stdout.splitlines()[::-1]:
+        if line.startswith("JSON:"):
+            try:
+                runtime = json.loads(line[5:])
+            except Exception:
+                runtime = {}
+            break
 
     if file_exists(js_path):
-        rc, stdout, stderr = run_node(fixture)
-        runtime = {}
-        for line in stdout.splitlines()[::-1]:
-            if line.startswith("JSON:"):
-                try:
-                    runtime = json.loads(line[5:])
-                except Exception:
-                    runtime = {}
-                break
-
         check(runtime.get("rendered"), "HT.results.render returns an HTMLElement")
         check(runtime.get("hasDataPrint"), "Card root has data-print='result'")
         check(runtime.get("role"), "Card root has role='region'")
@@ -274,10 +324,21 @@ process.stdout.write('JSON:' + JSON.stringify(out));
     # 19. scripts/_smoke_results.js exists and exits 0
     smoke = "scripts/_smoke_results.js"
     if file_exists(smoke):
-        rc, _, _ = run_node(
-            (repo_root() / smoke).read_text(encoding="utf-8") + "\n"
+        # Run the smoke file directly as a script entry point — NOT via
+        # stdin (`node -`), because the harness resolves asset paths
+        # relative to __dirname, and a stdin pipe leaves __dirname as
+        # the cwd (typically the repo root, not scripts/), causing the
+        # readFileSync on assets/js/shell-thin.js to crash with ENOENT
+        # before any assertions run (same fix as dc-1-scoring.py).
+        r = subprocess.run(
+            ["node", str(repo_root() / smoke)],
+            capture_output=True,
+            text=True,
+            timeout=20,
+            encoding="utf-8",
+            errors="replace",
         )
-        check(rc == 0, f"{smoke} exists and exits 0 via node (rc={rc})")
+        check(r.returncode == 0, f"{smoke} exists and exits 0 via node (rc={r.returncode})")
     else:
         check(False, f"{smoke} exists and exits 0 via node [missing]")
 

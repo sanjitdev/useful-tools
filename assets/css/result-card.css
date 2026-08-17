@@ -1,0 +1,227 @@
+/* ============================================================
+   Handy Tools — result-card.css (Story 10.3, Discovery Pack Epic)
+
+   Chrome for the canonical result card (HT.results.render).
+   The card mounts inside any host element on Discovery quiz
+   pages and on the share-card receiver. The same chrome is
+   reused across all 6 quizzes — variants only change the
+   trait-bar count and the contrarian line policy.
+
+   B1 contrast — all foreground/background pairs verified at
+   ≥ 4.5:1 in light + dark themes per the DESIGN.md §2.1 table.
+
+   AD-1   — Pure CSS, no third-party libs.
+   AD-9   — No PII / no fetch / no analytics. Pure visual
+            chrome — data comes from the immutable archetype
+            object the shell hands to HT.results.render.
+   AD-12  — ES2018 vanilla CSS; no preprocessor.
+   AD-14  — Surface is `class="quiz-result-card …"` —
+            styles are scoped via this root.
+
+   Reduced-motion respected under both the media-query and
+   the shell's data-reduced-motion attribute (mirrors the
+   quiz.css contract).
+
+   Bundle target: ≤ 4 KB gz (Story 10.3 budget).
+   ============================================================ */
+
+/* ----- Card root ----- */
+
+.quiz-result-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-5, 24px);
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e3e6ee);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--shadow-md, 0 4px 10px rgba(15, 18, 33, 0.06), 0 8px 24px rgba(15, 18, 33, 0.06));
+  box-sizing: border-box;
+  color: var(--color-text, #1a1d29);
+}
+
+/* ----- Archetype header ----- */
+
+.quiz-result-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  text-align: center;
+}
+
+.quiz-result-emoji {
+  font-size: 3rem;
+  line-height: 1;
+  /* emoji glyphs render with their own color — no fill here
+     so iOS/Windows/Android/Noto-colors all show through. */
+}
+
+.quiz-result-archetype {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--color-primary, #2F5BFF);
+  letter-spacing: -0.01em;
+}
+
+.quiz-result-tagline {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-muted, #5b6373);
+  max-width: 52ch;
+}
+
+/* ----- Contrarian line (the "you also said X" unexpected trait) ----- */
+
+.quiz-result-contrarian {
+  margin: 0;
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  background: color-mix(in srgb, var(--color-primary, #2F5BFF) 8%, var(--color-surface, #ffffff));
+  border: 1px solid color-mix(in srgb, var(--color-primary, #2F5BFF) 25%, var(--color-border, #e3e6ee));
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-text, #1a1d29);
+}
+
+/* ----- Trait bars ----- */
+
+.quiz-result-trait-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quiz-result-trait-bar {
+  display: grid;
+  grid-template-columns: minmax(80px, 30%) 1fr auto;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.quiz-result-trait-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text, #1a1d29);
+  text-transform: capitalize;
+  letter-spacing: 0.01em;
+  /* truncate long trait ids to keep the bar grid balanced */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quiz-result-trait-track {
+  position: relative;
+  display: block;
+  height: 10px;
+  background: color-mix(in srgb, var(--color-border, #e3e6ee) 100%, transparent);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.quiz-result-trait-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-primary, #2F5BFF);
+  border-radius: 999px;
+  /* smooth width fill on mount (skipped under reduced-motion) */
+  transition: width 320ms ease-out;
+}
+
+.quiz-result-trait-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-muted, #5b6373);
+  font-variant-numeric: tabular-nums;
+  min-width: 3ch;
+  text-align: right;
+}
+
+/* ----- Action row (Share / Challenge) ----- */
+
+.quiz-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3, 12px);
+  padding-top: var(--space-3, 12px);
+  border-top: 1px solid var(--color-border, #e3e6ee);
+  margin-top: var(--space-1, 4px);
+}
+
+.quiz-result-action {
+  flex: 1 1 auto;
+  min-width: 140px;
+}
+
+/* ----- Mobile ----- */
+
+@media (max-width: 600px) {
+  .quiz-result-card {
+    padding: var(--space-4, 16px);
+  }
+  .quiz-result-archetype {
+    font-size: 1.25rem;
+  }
+  .quiz-result-emoji {
+    font-size: 2.5rem;
+  }
+  .quiz-result-trait-bar {
+    grid-template-columns: 1fr;
+    gap: var(--space-1, 4px);
+  }
+  .quiz-result-trait-value {
+    text-align: left;
+  }
+}
+
+/* ============================================================
+   Reduced motion — both media-query and the shell's
+   data-reduced-motion attribute. Mirrors quiz.css:375.
+   The card mounts instantly under either signal.
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .quiz-result-trait-fill,
+  .quiz-result-card {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+:root:where([data-reduced-motion="true"]) .quiz-result-trait-fill,
+:root:where([data-reduced-motion="true"]) .quiz-result-card {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* ============================================================
+   Print — strip action row, keep card content. The print
+   stylesheet scopes this to data-print="result" so other
+   .quiz-result-card uses are unaffected (DC-2 AC-9).
+   ============================================================ */
+
+@media print {
+  .quiz-result-card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+    page-break-inside: avoid;
+  }
+  .quiz-result-actions[data-print="ignore"] {
+    display: none !important;
+  }
+  .quiz-result-trait-fill {
+    /* print fallback — keep the solid fill (no transition) */
+    transition: none !important;
+    background: #1a1d29;
+  }
+}

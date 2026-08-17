@@ -10,8 +10,8 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.24.0',
-  generated: '2026-08-15',
+  version: '1.25.0',
+  generated: '2026-08-17',
   entries: Object.freeze([
     Object.freeze({
       name: 'HT.boot',
@@ -719,6 +719,13 @@ window.HT.__apiContract = Object.freeze({
       stability: 'stable',
       module: 'assets/js/scoring.js',
       notes: 'DC-1 (Discovery Pack Epic) — pure-function trait-scoring engine. Spec shape is declared by definitions.scoring-config in tools.schema.json. Trait scores are clamped to [0, 100]. Skipped questions (answers[id] === undefined) contribute zero weight. Unknown answer values are silently ignored — no throw. Empty answers yields spec.archetypes[*].default (or the first non-default, or the first archetype, or null). Archetype resolution is deterministic: L1 (Manhattan) distance on the trait vector, tie-broken by default-flag then index then id alphabetic. Read-only (Object.defineProperty writable:false configurable:false). Page-conditional — loaded by the shell-thin Proxy factory on first HT.scoring.score() call. Bundle target: ≤ 4 KB gz (Story x-3 budget). Smoke harness: scripts/_smoke_scoring.js.',
+    }),
+    Object.freeze({
+      name: 'HT.results',
+      signature: 'Readonly<{render: (state: {traits: Readonly<{[id: string]: number}>, archetype: Readonly<{id: string, label?: string, emoji?: string}>}, opts?: {title?: string, conflict?: string, slug?: string, traitCap?: number}) => HTMLElement, shareUrl: (archetype: Readonly<{id: string, label?: string, emoji?: string}>, opts?: {slug?: string}) => string, copyText: (state: Readonly<{traits: Readonly<{[id: string]: number}>, archetype: Readonly<{id: string, label?: string, emoji?: string}>}>, opts?: {slug?: string}) => string, imageSnapshot: (el: HTMLElement) => Promise<Blob>}>',
+      stability: 'stable',
+      module: 'assets/js/results.js',
+      notes: 'DC-2 (Discovery Pack Epic / Story 10.3) — result-card chrome. Renders the canonical quiz-result-card (DESIGN.md §1.1 components.discovery-card) into a host element. Card root carries data-print="result" + role="region" + aria-live="polite" + aria-atomic="true" + aria-labelledby for screen-reader announcement; the action row carries data-print="ignore" so the print stylesheet strips Share/Challenge from the printed card. Contrarian line (the "you also said X" unexpected trait) uses .quiz-result-contrarian. Tab order on the rendered card: 1. button.share, 2. button.challenge. shareUrl() returns location with ?arch=<id>&quiz=<slug>. copyText() returns a canonical "<emoji> <label> — calm 80% / bold 30%" string capped at 280 chars. imageSnapshot() is the 1200×630 PNG export — currently throws Error("snapshot unavailable") per the smoke contract; Story 10.11 lands the OG SVG fallback that catches it. Read-only (Object.defineProperty writable:false configurable:false). Page-conditional — loaded by the shell-thin Proxy factory on first HT.results.render() call alongside assets/css/result-card.css. Bundle target: results.js ≤ 6 KB gz + result-card.css ≤ 4 KB gz. Smoke harness: scripts/_smoke_results.js.',
     }),
   ]),
 });
