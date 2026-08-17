@@ -1,0 +1,132 @@
+[
+  {
+    "id": "trek-domane-sl-7",
+    "domain": "bike",
+    "attrs": {
+      "style": "road",
+      "frame": "carbon",
+      "wheels": "700c"
+    },
+    "why": "Endurance road bike with carbon frame, vibration-damping IsoSpeed, and a smooth Shimano Ultegra groupset."
+  },
+  {
+    "id": "specialized-tarmac-sl7",
+    "domain": "bike",
+    "attrs": {
+      "style": "road",
+      "frame": "carbon",
+      "wheels": "700c"
+    },
+    "why": "Race-ready road bike with one of the lightest frames in the peloton and razor-sharp handling."
+  },
+  {
+    "id": "cannondale-topstone-4",
+    "domain": "bike",
+    "attrs": {
+      "style": "gravel",
+      "frame": "aluminum",
+      "wheels": "700c"
+    },
+    "why": "Versatile gravel bike with comfortable geometry, generous tire clearance, and road-bike efficiency."
+  },
+  {
+    "id": "santa-cruz-hightower",
+    "domain": "bike",
+    "attrs": {
+      "style": "mountain",
+      "frame": "carbon",
+      "wheels": "29in"
+    },
+    "why": "All-mountain trail bike with 145mm of travel, 29-inch wheels, and a flip-chip for mixed-wheel setups."
+  },
+  {
+    "id": "specialized-rockhopper-expert",
+    "domain": "bike",
+    "attrs": {
+      "style": "mountain",
+      "frame": "aluminum",
+      "wheels": "29in"
+    },
+    "why": "Capable hardtail mountain bike with hydraulic disc brakes and a smooth air-sprung fork."
+  },
+  {
+    "id": "trek-fx-3-disc",
+    "domain": "bike",
+    "attrs": {
+      "style": "hybrid",
+      "frame": "aluminum",
+      "wheels": "700c"
+    },
+    "why": "Lightweight hybrid with hydraulic disc brakes, comfortable geometry, and mounts for racks and fenders."
+  },
+  {
+    "id": "linus-dutchi-7",
+    "domain": "bike",
+    "attrs": {
+      "style": "city",
+      "frame": "steel",
+      "wheels": "700c"
+    },
+    "why": "Classic Dutch-style city bike with a relaxed steel frame, internal hub, and full fenders."
+  },
+  {
+    "id": "brompton-t-line",
+    "domain": "bike",
+    "attrs": {
+      "style": "city",
+      "frame": "titanium",
+      "wheels": "650b"
+    },
+    "why": "Premium folding bike with a titanium frame and steel parts, light enough to carry one-handed."
+  },
+  {
+    "id": "all-city-space-horse",
+    "domain": "bike",
+    "attrs": {
+      "style": "gravel",
+      "frame": "steel",
+      "wheels": "700c"
+    },
+    "why": "Steel gravel all-rounder with clearance for 700×47mm tires and a comfortable, stable ride."
+  },
+  {
+    "id": "orbea-orka-m21",
+    "domain": "bike",
+    "attrs": {
+      "style": "mountain",
+      "frame": "aluminum",
+      "wheels": "26in"
+    },
+    "why": "XC mountain bike built around 26-inch wheels for nimble handling on tight singletrack."
+  },
+  {
+    "id": "giant-revolt-advanced-2",
+    "domain": "bike",
+    "attrs": {
+      "style": "gravel",
+      "frame": "carbon",
+      "wheels": "700c"
+    },
+    "why": "Carbon gravel bike with flip-chip dropout geometry and a smooth, race-tuned carbon frame."
+  },
+  {
+    "id": "canyon-ultimate-cf-sl-7",
+    "domain": "bike",
+    "attrs": {
+      "style": "road",
+      "frame": "carbon",
+      "wheels": "700c"
+    },
+    "why": "Lightweight climbing road bike with a race geometry and Shimano 105 Di2 wireless shifting."
+  },
+  {
+    "id": "kona-rove-nr",
+    "domain": "bike",
+    "attrs": {
+      "style": "gravel",
+      "frame": "steel",
+      "wheels": "650b"
+    },
+    "why": "Steel all-road adventurer with 650b wheels, wide tires, and mounts for a full bikepacking setup."
+  }
+]

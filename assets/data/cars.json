@@ -1,0 +1,145 @@
+[
+  {
+    "id": "toyota-corolla-hybrid",
+    "domain": "car",
+    "attrs": {
+      "fuel": "hybrid",
+      "body": "sedan",
+      "drivetrain": "fwd",
+      "seats": 5
+    },
+    "why": "Best-in-class fuel economy with a comfortable ride and Toyota's reputation for reliability."
+  },
+  {
+    "id": "honda-civic-hybrid",
+    "domain": "car",
+    "attrs": {
+      "fuel": "hybrid",
+      "body": "sedan",
+      "drivetrain": "fwd",
+      "seats": 5
+    },
+    "why": "Sleek sedan styling with hybrid efficiency and Honda's renowned build quality."
+  },
+  {
+    "id": "tesla-model-3",
+    "domain": "car",
+    "attrs": {
+      "fuel": "electric",
+      "body": "sedan",
+      "drivetrain": "rwd",
+      "seats": 5
+    },
+    "why": "Pure electric performance sedan with instant torque and zero tailpipe emissions."
+  },
+  {
+    "id": "ford-f-150-lightning",
+    "domain": "car",
+    "attrs": {
+      "fuel": "electric",
+      "body": "suv",
+      "drivetrain": "awd",
+      "seats": 5
+    },
+    "why": "All-electric full-size truck with massive cargo bed and impressive towing capacity."
+  },
+  {
+    "id": "subaru-outback",
+    "domain": "car",
+    "attrs": {
+      "fuel": "gas",
+      "body": "wagon",
+      "drivetrain": "awd",
+      "seats": 5
+    },
+    "why": "Rugged wagon with standard AWD, generous ground clearance, and a roomy cargo area."
+  },
+  {
+    "id": "mazda-cx-5",
+    "domain": "car",
+    "attrs": {
+      "fuel": "gas",
+      "body": "suv",
+      "drivetrain": "awd",
+      "seats": 5
+    },
+    "why": "Compact SUV with upscale interior, sharp handling, and a punchy turbocharged engine."
+  },
+  {
+    "id": "bmw-m440i",
+    "domain": "car",
+    "attrs": {
+      "fuel": "gas",
+      "body": "coupe",
+      "drivetrain": "rwd",
+      "seats": 4
+    },
+    "why": "Sporty grand-touring coupe with a silky inline-six and rear-wheel drive dynamics."
+  },
+  {
+    "id": "porsche-911-gt3",
+    "domain": "car",
+    "attrs": {
+      "fuel": "gas",
+      "body": "coupe",
+      "drivetrain": "rwd",
+      "seats": 2
+    },
+    "why": "Track-focused rear-engined sports car with a naturally aspirated flat-six and PDK gearbox."
+  },
+  {
+    "id": "volkswagen-golf-gti",
+    "domain": "car",
+    "attrs": {
+      "fuel": "gas",
+      "body": "hatchback",
+      "drivetrain": "fwd",
+      "seats": 5
+    },
+    "why": "Iconic hot hatch with a turbocharged engine, sharp chassis, and practical hatchback layout."
+  },
+  {
+    "id": "honda-cr-v-hybrid",
+    "domain": "car",
+    "attrs": {
+      "fuel": "hybrid",
+      "body": "suv",
+      "drivetrain": "awd",
+      "seats": 5
+    },
+    "why": "Spacious hybrid SUV with excellent fuel economy and a comfortable, refined ride."
+  },
+  {
+    "id": "kia-sorento-phev",
+    "domain": "car",
+    "attrs": {
+      "fuel": "hybrid",
+      "body": "suv",
+      "drivetrain": "awd",
+      "seats": 7
+    },
+    "why": "Three-row plug-in hybrid SUV with family-friendly seating and a usable electric range."
+  },
+  {
+    "id": "mini-cooper-se",
+    "domain": "car",
+    "attrs": {
+      "fuel": "electric",
+      "body": "hatchback",
+      "drivetrain": "fwd",
+      "seats": 4
+    },
+    "why": "Compact electric hatchback with go-kart handling and a customizable interior."
+  },
+  {
+    "id": "jeep-grand-cherokee-4xe",
+    "domain": "car",
+    "attrs": {
+      "fuel": "hybrid",
+      "body": "suv",
+      "drivetrain": "awd",
+      "seats": 5
+    },
+    "why": "Plug-in hybrid SUV blending off-road capability with electric-only commuting range."
+  }
+]

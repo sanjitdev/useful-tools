@@ -1,0 +1,70 @@
+{
+  "$schema": "https://handy.tools/schemas/catalog-profiles.v1.json",
+  "domains": {
+    "car": {
+      "attrMap": {
+        "fuel": {
+          "hybrid": { "efficiency": 0.85, "cost": 0.6 },
+          "electric": { "efficiency": 0.95, "cost": 0.4 },
+          "gas": { "efficiency": 0.4, "cost": 0.7 },
+          "diesel": { "efficiency": 0.55, "cost": 0.7 }
+        },
+        "body": {
+          "sedan": { "comfort": 0.7, "sportiness": 0.4 },
+          "suv": { "comfort": 0.8, "space": 0.9, "sportiness": 0.3 },
+          "hatchback": { "comfort": 0.6, "space": 0.5, "sportiness": 0.5 },
+          "coupe": { "comfort": 0.5, "sportiness": 0.9 },
+          "wagon": { "comfort": 0.7, "space": 0.85 }
+        },
+        "drivetrain": {
+          "fwd": { "efficiency": 0.7, "comfort": 0.7 },
+          "rwd": { "sportiness": 0.9, "comfort": 0.5 },
+          "awd": { "sportiness": 0.7, "comfort": 0.7, "space": 0.6 }
+        },
+        "seats": {
+          "2": { "sportiness": 0.9, "space": 0.1 },
+          "4": { "comfort": 0.7, "space": 0.5 },
+          "5": { "comfort": 0.7, "space": 0.7 },
+          "7": { "comfort": 0.8, "space": 0.95 }
+        }
+      },
+      "traitMax": {
+        "efficiency": 100,
+        "comfort": 100,
+        "sportiness": 100,
+        "space": 100,
+        "cost": 100
+      }
+    },
+    "bike": {
+      "attrMap": {
+        "style": {
+          "road": { "speed": 0.9, "comfort": 0.4, "offroad": 0.1 },
+          "mountain": { "speed": 0.5, "comfort": 0.5, "offroad": 0.95 },
+          "hybrid": { "speed": 0.6, "comfort": 0.75, "offroad": 0.5 },
+          "gravel": { "speed": 0.7, "comfort": 0.7, "offroad": 0.7 },
+          "city": { "speed": 0.4, "comfort": 0.9, "offroad": 0.1 }
+        },
+        "frame": {
+          "aluminum": { "weight": 0.6, "cost": 0.6 },
+          "carbon": { "weight": 0.9, "cost": 0.3 },
+          "steel": { "weight": 0.4, "comfort": 0.8, "cost": 0.7 },
+          "titanium": { "weight": 0.85, "comfort": 0.9, "cost": 0.2 }
+        },
+        "wheels": {
+          "700c": { "speed": 0.85, "offroad": 0.3 },
+          "650b": { "speed": 0.6, "offroad": 0.7 },
+          "26in": { "speed": 0.4, "offroad": 0.9 },
+          "29in": { "speed": 0.7, "offroad": 0.8 }
+        }
+      },
+      "traitMax": {
+        "speed": 100,
+        "comfort": 100,
+        "offroad": 100,
+        "weight": 100,
+        "cost": 100
+      }
+    }
+  }
+}

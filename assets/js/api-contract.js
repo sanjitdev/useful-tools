@@ -10,7 +10,7 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.26.0',
+  version: '1.27.0',
   generated: '2026-08-17',
   entries: Object.freeze([
     Object.freeze({
@@ -733,6 +733,20 @@ window.HT.__apiContract = Object.freeze({
       stability: 'stable',
       module: 'assets/js/challenge.js',
       notes: 'DC-3 (Discovery Pack Epic / Story 10.4) — Challenge-a-Friend viral-loop protocol. link() encodes the self-side quiz answers into a repo-relative URL containing ?c=<base64url-blob>; the blob is {v: 1, slug, self, iat, exp} with a default 30-day expiry. The URL only encodes `self` (no about-side answers until the friend submits); no free-text, no PII. compare() returns {score 0..100, axes [{qid, a, b, delta}]} where score is Jaccard-style agreement %; deterministic across calls. verify() returns one of {ok: true}, {ok: false, code: "malformed"}, {ok: false, code: "spec-mismatch", version, supported, message: "newer or older version of the quiz"}, {ok: false, code: "expired", exp, message: "this challenge has expired"}. Read-only (Object.defineProperty writable:false configurable:false). Page-conditional — loaded by the shell-thin Proxy factory on first HT.challenge.link() call. Bundle target: ≤ 7 KB gz. Smoke harness: scripts/_smoke_challenge.js.',
+    }),
+    Object.freeze({
+      name: 'HT.recommend',
+      signature: 'Readonly<{match: (profile: Readonly<{traits: Readonly<{[trait: string]: number}>, weights?: Readonly<{[trait: string]: number}>}>, domain: "car"|"bike") => Readonly<{top: Readonly<{id: string, domain: "car"|"bike", attrs: Readonly<Record<string, string|number>>, why: string, score: number}>, alternatives: readonly Array<Readonly<{id: string, domain: "car"|"bike", attrs: Readonly<Record<string, string|number>>, why: string, score: number}>>, explain: Readonly<{whyMatch: readonly string[], whyNot: readonly string[]}>}>>}>',
+      stability: 'stable',
+      module: 'assets/js/recommend.js',
+      notes: 'DC-4 (Discovery Pack Epic / Story 10.5) — recommendation engine. Pairs a profile (traits + weights) against a domain catalog (cars / bikes) and returns {top, alternatives, explain}. Scoring is dot-product style: profile.traits (weight 0..1) dot entryTraitVector (built from the catalog-profiles attrMap), normalized to [0, 100]. Tie-break by id alphabetic for determinism. Returns top: null when the domain catalog is empty; alternatives is always length >= 1 when the catalog has >= 2 entries. explain.whyMatch is the top-2 trait contributions; explain.whyNot is the bottom-1 trait. Read-only (Object.defineProperty writable:false configurable:false). Page-conditional — loaded by the shell-thin Proxy factory on first HT.recommend.match() call. Bundle target: ≤ 4 KB gz. Smoke harness: scripts/_smoke_recommend.js.',
+    }),
+    Object.freeze({
+      name: 'HT.catalog',
+      signature: 'Readonly<{list: () => Readonly<{car: number, bike: number}>, lazyLoad: (domain: "car"|"bike") => readonly Array<Readonly<{id: string, domain: "car"|"bike", attrs: Readonly<Record<string, string|number>>, why: string}>>, _entries: (domain: "car"|"bike") => readonly Array<...>, _profiles: () => Readonly<{domains: Readonly<Record<string, Readonly<{attrMap: ..., traitMax: ...}>>}>}>}>',
+      stability: 'stable',
+      module: 'assets/js/catalog.js',
+      notes: 'DC-4 (Discovery Pack Epic / Story 10.5) — domain catalog lookup. list() returns the canonical {car: N, bike: N} count map (>= 10 each per the DC-4 contract). lazyLoad(domain) returns the frozen entry list for a single domain. The data is bundled as JSON in assets/data/ (cars.json, bikes.json, catalog-profiles.json) — the catalog is intentionally local (no fetch, no http URLs) so the offline file:// path works the same as the GitHub Pages path. _entries + _profiles are internal handles used by HT.recommend.match; tools should call HT.recommend.match, not HT.catalog directly. Read-only (Object.defineProperty writable:false configurable:false). Page-conditional — loaded by the shell-thin Proxy factory alongside HT.recommend on first match() call. Bundle target: ≤ 4 KB gz. Smoke harness: scripts/_smoke_recommend.js.',
     }),
   ]),
 });

@@ -221,6 +221,17 @@
     // is owned by Story 10.12 (Stories 10.4 ships only the pure-
     // function encode/compare/verify API).
     challenge: 'assets/js/challenge.js',
+    // DC-4 (Story 10.5) — Recommendation module pair. recommend.js
+    // (the matching engine) + catalog.js (the domain lookup) are
+    // both page-conditional: they only matter on Discovery quizzes
+    // that surface a "Top match" section (currently the future
+    // Car Finder / Bike Finder quizzes from Story 10.7). Each does
+    // its own `Object.defineProperty(HT, '<name>', {value: api, ...})`
+    // on load so the Proxy stub here is preserved across the round-
+    // trip. No CSS chunks — the result chrome for the top-match
+    // card is owned by Story 10.10 (result-card chrome extension).
+    recommend: 'assets/js/recommend.js',
+    catalog:   'assets/js/catalog.js',
     // Story 9.19 — custom date picker. date-picker.js is page-
     // conditional (only tools that opt inputs into HT.datePicker.enhance
     // — currently lifespan-simulator × 2 DOBs, age-calculator × 2,
@@ -307,6 +318,12 @@
     // Share / Challenge buttons from the printed card via the
     // data-print="ignore" attribute on .quiz-result-actions.
     results: 'assets/css/result-card.css',
+    // DC-4 (Story 10.5) — recommend.js + catalog.js are pure
+    // logic / data; no chrome CSS of their own. The "Top match"
+    // card chrome lives in the result-card.css extension owned
+    // by Story 10.10.
+    recommend: '',
+    catalog:   '',
     // Story 9.19 — date picker CSS, co-loaded with date-picker.js on
     // first HT.datePicker.enhance() access. chrome-date-picker.css
     // lives in assets/css/ (chrome-* prefix); see scripts/bundle-
@@ -408,6 +425,15 @@
   // configurable:false, ... }) on load so the Proxy stub is preserved
   // across the round-trip.
   HT.challenge  = makeProxy(TIER2_URLS.challenge, 'challenge');
+  // DC-4 (Story 10.5) — recommend + catalog Proxy stubs. Both
+  // modules do Object.defineProperty(HT, '<name>', {value: api,
+  // writable:false, configurable:false}) on load so the stubs
+  // here are preserved across the lazy-load round-trip. First
+  // call to HT.recommend.match(...) or HT.catalog.list() fires
+  // the parallel lazyLoad of both files; both share the same
+  // HT.__data cache populated by the Shell before match() runs.
+  HT.recommend   = makeProxy(TIER2_URLS.recommend, 'recommend');
+  HT.catalog     = makeProxy(TIER2_URLS.catalog,   'catalog');
   // Story 9.19 — date picker Proxy. date-picker.js does `Object.defineProperty(window.HT, 'datePicker', {value: publicApi, writable: false, configurable: false, enumerable: true})`
   // at module init, so the Proxy stub here is preserved across the lazy-load round-trip —
   // first call to HT.datePicker.enhance(...) hits the Proxy, fires lazyLoad + lazyLoadCss,

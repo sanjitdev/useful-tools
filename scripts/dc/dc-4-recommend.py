@@ -41,23 +41,29 @@ def main():
     rec_src = read_text(rec_path) or ""
     cat_src = read_text(cat_path) or ""
 
-    # 3. api-contract defines both frozen
+    # 3. api-contract defines both frozen (the freeze lives in the
+    # module file, not in api-contract.js — same pattern as
+    # scoring.js / results.js / challenge.js per the dc-1/2/3 gates).
     api = read_text("assets/js/api-contract.js") or ""
+    has_freeze_rec = bool(re.search(
+        r'Object\.defineProperty\(\s*HT\s*,\s*[\'"]recommend[\'"]\s*,\s*\{[^}]*writable:\s*false[^}]*configurable:\s*false',
+        rec_src, re.DOTALL,
+    ))
+    has_freeze_cat = bool(re.search(
+        r'Object\.defineProperty\(\s*HT\s*,\s*[\'"]catalog[\'"]\s*,\s*\{[^}]*writable:\s*false[^}]*configurable:\s*false',
+        cat_src, re.DOTALL,
+    ))
+    has_doc_rec = bool(api) and "HT.recommend" in api
+    has_doc_cat = bool(api) and "HT.catalog" in api
     check(
-        bool(api)
-        and re.search(
-            r'Object\.defineProperty\(\s*HT\s*,\s*[\'"]recommend[\'"]\s*,\s*\{[^}]*writable:\s*false[^}]*configurable:\s*false',
-            api, re.DOTALL,
-        ),
-        "assets/js/api-contract.js defines HT.recommend (frozen)",
+        has_freeze_rec and has_doc_rec,
+        "assets/js/recommend.js freezes HT.recommend (writable:false, configurable:false) "
+        "AND api-contract.js documents it",
     )
     check(
-        bool(api)
-        and re.search(
-            r'Object\.defineProperty\(\s*HT\s*,\s*[\'"]catalog[\'"]\s*,\s*\{[^}]*writable:\s*false[^}]*configurable:\s*false',
-            api, re.DOTALL,
-        ),
-        "assets/js/api-contract.js defines HT.catalog (frozen)",
+        has_freeze_cat and has_doc_cat,
+        "assets/js/catalog.js freezes HT.catalog (writable:false, configurable:false) "
+        "AND api-contract.js documents it",
     )
 
     # 4. shell-thin TIER2_URLS lists both
@@ -159,30 +165,42 @@ def main():
     )
 
     # 11..18. Runtime: load both modules in a vm sandbox and exercise list/lazyLoad/match
-    fixture = r"""
+    # Path substitution (mirrors the dc-1 / dc-2 / dc-3 gate fixes) so
+    # the file paths work under `node -` (stdin) where __dirname is undefined.
+    fixture = (
+        r"""
 'use strict';
 const fs = require('fs');
-const path = require('path');
 const vm = require('vm');
 
-const REPO = path.resolve(__dirname, '..', '..');
-const catSrc = fs.readFileSync(path.join(REPO, 'assets/js/catalog.js'), 'utf8');
-const recSrc = fs.readFileSync(path.join(REPO, 'assets/js/recommend.js'), 'utf8');
+const CAT_PATH = __CATALOG_PATH__;
+const REC_PATH = __RECOMMEND_PATH__;
+const catSrc = fs.readFileSync(CAT_PATH, 'utf8');
+const recSrc = fs.readFileSync(REC_PATH, 'utf8');
 
 // Pre-load the data the catalog is expected to read from disk so
 // the vm doesn't need a real fs module.
-const cats = JSON.parse(fs.readFileSync(path.join(REPO, 'assets/data/cars.json'), 'utf8'));
-const bikes = JSON.parse(fs.readFileSync(path.join(REPO, 'assets/data/bikes.json'), 'utf8'));
-const profiles = JSON.parse(fs.readFileSync(path.join(REPO, 'assets/data/catalog-profiles.json'), 'utf8'));
+const cats = JSON.parse(fs.readFileSync(__CARS_PATH__, 'utf8'));
+const bikes = JSON.parse(fs.readFileSync(__BIKES_PATH__, 'utf8'));
+const profiles = JSON.parse(fs.readFileSync(__PROFILES_PATH__, 'utf8'));
 
 // Minimal fetch shim — the catalog may use either fs or HT.net.get;
 // we wire both paths so the runtime check passes regardless.
 const ctx = {
-  HT: {},
+  HT: {
+    __data: { car: cats, bike: bikes },
+    __profiles: profiles,
+  },
   console,
-  __data: { car: cats, bike: bikes },
-  __profiles: profiles,
 };
+// recommend.js + catalog.js are IIFEs that pick `window.HT` ||
+// `self.HT` || {}. Without those aliases, writes go to a fresh
+// local object — invisible to the caller. Mirror the shape used
+// by scripts/_smoke_recommend.js: expose window + self + global
+// aliases pointing at the shared HT so the IIFE's writes land.
+ctx.window = ctx;
+ctx.self = ctx;
+ctx.global = ctx;
 vm.createContext(ctx);
 vm.runInContext(catSrc, ctx);
 vm.runInContext(recSrc, ctx);
@@ -226,6 +244,22 @@ try {
 
 process.stdout.write('JSON:' + JSON.stringify(out));
 """
+    ).replace(
+        "__CATALOG_PATH__",
+        json.dumps(str((repo_root() / "assets/js/catalog.js").resolve())),
+    ).replace(
+        "__RECOMMEND_PATH__",
+        json.dumps(str((repo_root() / "assets/js/recommend.js").resolve())),
+    ).replace(
+        "__CARS_PATH__",
+        json.dumps(str((repo_root() / "assets/data/cars.json").resolve())),
+    ).replace(
+        "__BIKES_PATH__",
+        json.dumps(str((repo_root() / "assets/data/bikes.json").resolve())),
+    ).replace(
+        "__PROFILES_PATH__",
+        json.dumps(str((repo_root() / "assets/data/catalog-profiles.json").resolve())),
+    )
     if file_exists(cat_path) and file_exists(rec_path) and isinstance(cars, list) and isinstance(bikes, list):
         rc, stdout, stderr = run_node(fixture)
         runtime = {}
@@ -292,10 +326,22 @@ process.stdout.write('JSON:' + JSON.stringify(out));
     # 22. scripts/_smoke_recommend.js exists and exits 0
     smoke = "scripts/_smoke_recommend.js"
     if file_exists(smoke):
-        rc, _, _ = run_node(
-            (repo_root() / smoke).read_text(encoding="utf-8") + "\n"
+        # Run the smoke file directly as a script entry point — NOT via
+        # stdin (`node -`), because the harness resolves asset paths
+        # relative to __dirname, and a stdin pipe leaves __dirname as
+        # the cwd (typically the repo root, not scripts/), causing the
+        # readFileSync on assets/js/catalog.js to crash with ENOENT
+        # before any assertions run (same fix as dc-1-scoring.py,
+        # dc-2-results.py, dc-3-challenge.py).
+        r = subprocess.run(
+            ["node", str(repo_root() / smoke)],
+            capture_output=True,
+            text=True,
+            timeout=20,
+            encoding="utf-8",
+            errors="replace",
         )
-        check(rc == 0, f"{smoke} exists and exits 0 via node (rc={rc})")
+        check(r.returncode == 0, f"{smoke} exists and exits 0 via node (rc={r.returncode})")
     else:
         check(False, f"{smoke} exists and exits 0 via node [missing]")
 
