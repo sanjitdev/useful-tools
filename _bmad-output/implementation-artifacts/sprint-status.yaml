@@ -1,5 +1,5 @@
 # generated: 2026-07-31
-# last_updated: 2026-08-17T20:45:00Z
+# last_updated: 2026-08-17T21:00:00Z
 # project: useful-tools
 # project_key: NOKEY
 # tracking_system: file-system
@@ -267,7 +267,7 @@ development_status:
   10-10-result-card-chrome-component-components-discovery-card: backlog
   10-11-share-card-chrome-png-url-print-fr-29: backlog
   10-12-challenge-ux-receiver-side-landing-page-privacy-default: backlog
-  10-13-pii-lint-archetype-immutability-lint-fr-28-fr-31: backlog
+  10-13-pii-lint-archetype-immutability-lint-fr-28-fr-31: done  # FR-28 PII lint + FR-31 archetype immutability lint shipped 2026-08-17. New scripts: scripts/check-disc-pii.py (email/phone/IPv4/street regex over packs/disc/**/*.json + per-quiz allowlist via tools.json pii-allowlist), scripts/check-archetype-immutability.py ({{...}} + {user.x}/{answers.x} regex), scripts/dc/dc-12-lints.py (combined AC gate, 14/14 PASS — vacuous until Story 10.7 lands). Wired into .github/workflows/tool-contract-gate.yml (2 new steps + 2 path triggers for packs/disc/** + 3 file paths) + Makefile (.PHONY + ci: chain + help + target bodies). Both lints fall back to <cwd>/packs/disc/ when the script's own repo has none — gates the DC-12 negative-fixture test runs against a sandboxed tmp tree. Vacuous-pass guards fire cleanly until 6 quiz entries land.
   10-14-accessibility-review-follow-ups-b1-b2-b3: done  # B1 (DESIGN.md §2.1 contrast table + darker palette variants) + B2 (EXPERIENCE.md §3.2 Challenge receiver contract) + B3 (EXPERIENCE.md §5.1 tools-for-you DOM shape) + H1 (800ms debounce) + H2 (focus-return) + H3 (OG SVG <title>) + H4 (skip-link smoke) + H5 (receiver H1) all closed 2026-08-17 — verdict flipped from Conditional → Unconditional pass; commit 63b9d07.
   10-15-discovery-engine-smoke-harness-dc-0-through-dc-12: backlog
   10-16-bundle-size-budget-enforcement-brownfield-clean: backlog

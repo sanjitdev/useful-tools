@@ -1,7 +1,7 @@
 # Story 10.13 — PII lint + archetype immutability lint [FR-28, FR-31]
 
 **Slug:** `pii-immutability-lints`
-**Status:** backlog
+**Status:** done
 **Date:** 2026-08-17
 **Brainstorm:** `_bmad-output/brainstorming/brainstorm-discovery-engine-2026-08-17/`
 **AC gate (working tree):** `scripts/dc/dc-12-lints.py`
@@ -48,9 +48,9 @@ Allowlist: 3 patterns ("what's your favorite color", "what's your favorite seaso
 
 ## Verification
 
-- `python scripts/check-disc-pii.py` → PASS (no PII in `packs/disc/**`).
-- `python scripts/check-archetype-immutability.py` → PASS (no placeholders in archetype text).
-- `python scripts/dc/dc-12-lints.py` → PASS.
+- `python scripts/check-disc-pii.py` → **PASS** (vacuous — `packs/disc/` does not exist yet; Story 10.7 not landed). The lint scans `packs/disc/**/*.json` and fails on email / phone / IPv4 / street-address patterns. Allowlist via `pii-allowlist` per quiz entry in `tools.json → packs.disc[*]`.
+- `python scripts/check-archetype-immutability.py` → **PASS** (vacuous — same reason). The lint fails on `{{...}}` Mustache placeholders and `{user.x}` / `{answers.x}` dot-notation refs in any string field.
+- `python scripts/dc/dc-12-lints.py` → **14/14 PASS** (2026-08-17) — both scripts exist, parse as Python, run cleanly, brownfield safe (don't scan `tools/`), and exit non-zero against negative fixtures (PII fixture with `user@example.com` + `555-867-5309`; placeholder fixture with `{{user.name}}`). Workflow + Makefile wiring verified.
 - Brownfield clean: existing 50 tools not scanned.
 
 ## Out-of-scope (deferred)

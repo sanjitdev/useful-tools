@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy check-pack-composition es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke script-load-order uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke budget-planner-smoke savings-goal-smoke currency-converter-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke dc-0-schema dc-1-scoring dc-2-results dc-3-challenge dc-4-recommend dc-5-loader dc-6-quizzes dc-7-tools-json dc-8-docs dc-9-smokes dc-10-pack-gate dc-11-bundle dc-12-retro dc-all
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy check-pack-composition disc-pii-lint disc-immutability-lint es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke script-load-order uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke budget-planner-smoke savings-goal-smoke currency-converter-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke dc-0-schema dc-1-scoring dc-2-results dc-3-challenge dc-4-recommend dc-5-loader dc-6-quizzes dc-7-tools-json dc-8-docs dc-9-smokes dc-10-pack-gate dc-11-bundle dc-12-lints dc-12-retro dc-all
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -59,6 +59,8 @@ help: ## Show available targets
 	@echo "  make pack-tags           Audit every ready:true tool's pack tags and regenerate docs/pack-taxonomy.md (Story 2.9)"
 	@echo "  make pack-tags-smoke     Run the static Node smoke verifying every ready:true entry has a valid pack array (Story 2.9)"
 	@echo "  make check-pack-taxonomy Suggest a pack for tools with missing/invalid pack tags (Story 6.3 — not a gate; the schema is)"
+	@echo "  make disc-pii-lint        Build-time PII lint (email/phone/IPv4/street) over packs/disc/**/*.json (Story 10.13 / FR-28; vacuous if packs/disc/ is empty)"
+	@echo "  make disc-immutability-lint Build-time placeholder lint (FR-31) over packs/disc/**/*.json archetype text (Story 10.13)"
 	@echo "  make es5-grep            Scan assets/js/** for ES5 anti-patterns (`var` declarations + `.concat(` calls). Story 2.10 gate."
 	@echo "  make quality-smoke       Run the Node smoke harness for quality.html + assets/js/quality.js (Story 2.11 /quality inventory view)"
 	@echo "  make regression-sweep    Run the cross-cutting tool-JS regression sweep (Story 2.12 — vm-context Node harness + Python wrapper; emits .regression-sweep-output.txt)"
@@ -136,7 +138,7 @@ gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke script-load-order shell-a11y bundle-size bundle-size-tier1 bundle-size-per-tool verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke check-pack-taxonomy es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative uuid-generator-smoke ht-lazy-smoke bd-tax-split-smoke animal-race-split-smoke recipe-scaler-split-smoke jwt-inspector-split-smoke timestamp-converter-split-smoke uuid-generator-split-smoke json-formatter-split-smoke grocery-list-split-smoke inflation-calculator-split-smoke lifespan-simulator-split-smoke shell-thin-proxies-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke budget-planner-smoke savings-goal-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke script-load-order shell-a11y bundle-size bundle-size-tier1 bundle-size-per-tool verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke check-pack-taxonomy disc-pii-lint disc-immutability-lint es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative uuid-generator-smoke ht-lazy-smoke bd-tax-split-smoke animal-race-split-smoke recipe-scaler-split-smoke jwt-inspector-split-smoke timestamp-converter-split-smoke uuid-generator-split-smoke json-formatter-split-smoke grocery-list-split-smoke inflation-calculator-split-smoke lifespan-simulator-split-smoke shell-thin-proxies-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke budget-planner-smoke savings-goal-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Story 1.18 (AI-E1-15) replaced the
@@ -585,6 +587,21 @@ pack-tags-smoke:
 # vacuous run (no ready:true entries). Never exits 1 by design.
 check-pack-taxonomy:
 	@$(PYTHON) scripts/check-pack-taxonomy.py
+
+# Story 10.13 / FR-28 — Discovery Pack PII lint.
+# Vacuous-pass: exits 0 if packs/disc/ is empty (Story 10.7 not yet
+# landed). Once 6 quiz entries land, scans all *.json files under
+# packs/disc/ for email/phone/IPv4/street patterns. Brownfield safe
+# — existing tools under tools/ are not walked.
+disc-pii-lint:
+	@$(PYTHON) scripts/check-disc-pii.py
+
+# Story 10.13 / FR-31 — Discovery Pack archetype immutability lint.
+# Scans archetype text for placeholders that would indicate
+# user-derived content (a privacy + integrity violation). Brownfield
+# safe (packs/disc/ only).
+disc-immutability-lint:
+	@$(PYTHON) scripts/check-archetype-immutability.py
 
 # Story 2.10 — ES5 anti-pattern gate.
 # `es5-grep` scans assets/js/** for two ES5 anti-patterns that the

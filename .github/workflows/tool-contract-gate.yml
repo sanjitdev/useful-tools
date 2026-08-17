@@ -39,6 +39,9 @@ on:
       - "scripts/_smoke_pack_tags.js"
       - "scripts/check-pack-taxonomy.py"
       - "scripts/check-pack-composition.py"
+      - "scripts/check-disc-pii.py"
+      - "scripts/check-archetype-immutability.py"
+      - "scripts/dc/dc-12-lints.py"
       - "scripts/_es5_grep.py"
       - "scripts/_smoke_quality.js"
       - "scripts/_smoke_regression_sweep.js"
@@ -91,6 +94,7 @@ on:
       - "docs/ci-gate.md"
       - ".github/workflows/tool-contract-gate.yml"
       - "tools/**"
+      - "packs/disc/**"
       - "Makefile"
   push:
     branches: [ main ]
@@ -122,6 +126,9 @@ on:
       - "scripts/_smoke_pack_tags.js"
       - "scripts/check-pack-taxonomy.py"
       - "scripts/check-pack-composition.py"
+      - "scripts/check-disc-pii.py"
+      - "scripts/check-archetype-immutability.py"
+      - "scripts/dc/dc-12-lints.py"
       - "scripts/_es5_grep.py"
       - "scripts/_smoke_quality.js"
       - "scripts/_smoke_regression_sweep.js"
@@ -174,6 +181,7 @@ on:
       - "docs/ci-gate.md"
       - ".github/workflows/tool-contract-gate.yml"
       - "tools/**"
+      - "packs/disc/**"
       - "Makefile"
   workflow_dispatch:
 
@@ -389,6 +397,22 @@ jobs:
         # 2 = repo layout issue, 3 = I/O or vacuous run. Never exits
         # 1 by design.
         run: make check-pack-taxonomy
+
+      - name: Discovery Pack PII lint (Story 10.13 / FR-28)
+        # Story 10.13: build-time PII lint over packs/disc/**/*.json
+        # (email / phone / IPv4 / street-address). Fail-closed; the
+        # existing 50 tool entries live under tools/ and are not
+        # scanned (brownfield safe). Vacuous-pass guard: if no
+        # packs/disc/* files exist yet, exits 0.
+        run: make disc-pii-lint
+
+      - name: Discovery Pack archetype immutability lint (Story 10.13 / FR-31)
+        # Story 10.13: scans archetype text for placeholders
+        # ({{name}}, {user.x}, {answers.x}). Archetypes are
+        # author-declared strings; user-derived text in an archetype
+        # is a privacy + integrity violation. Vacuous-pass guard
+        # exits 0 if packs/disc/ is empty.
+        run: make disc-immutability-lint
 
       - name: Enforce ES5 anti-pattern gate (Story 2.10)
         # Story 2.10: scans assets/js/** for ES5 anti-patterns
