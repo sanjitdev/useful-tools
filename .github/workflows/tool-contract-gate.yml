@@ -678,6 +678,19 @@ jobs:
         # 30+ PASS expected. Vacuous-pass guard catches hollow runs.
         run: make grocery-list-smoke
 
+      - name: Paint Calculator smoke (Story 9.11)
+        # Story 9.11: paint quantity estimator. Verifies calcGallons
+        # math (350 sq ft/gallon coverage, Math.ceil round-up, 21 sq ft
+        # per door, 12 sq ft per window, negative-area clamp to 0),
+        # add-wall + remove-wall button wiring, base64 JSON walls in
+        # URL state (btoa(unescape(encodeURIComponent())) with unicode
+        # safety), debounced 120ms doors/windows inputs, sample +
+        # reset + print + share actions, reduced-motion CSS, privacy
+        # (no fetch / XHR / console.error on happy path), tab-order-
+        # canonical selector coverage. 53 PASS expected. Vacuous-pass
+        # guard catches hollow runs.
+        run: make paint-calculator-smoke
+
       - name: Quiz shell smoke (Story 9.12)
         # Story 9.12 — HT.quiz shell module. Loads assets/js/quiz.js
         # in a vm with Style B DOM stub and asserts: open() handle

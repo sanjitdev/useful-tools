@@ -1,0 +1,125 @@
+/* ============================================
+   Paint Calculator — Story 9.11
+   Tool-specific styles for the wall list +
+   doors/windows + result rendering. Reuses
+   shared tokens from assets/css/components.css.
+   ============================================ */
+
+.paint-walls-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.paint-wall-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--space-2);
+  align-items: end;
+  padding: 8px 12px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.paint-wall-row .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.paint-wall-row .input {
+  width: 100%;
+  min-width: 0;
+}
+
+.paint-wall-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.paint-wall-remove {
+  align-self: end;
+  margin-bottom: 2px;
+}
+
+.paint-counts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+@media (max-width: 720px) {
+  .paint-counts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.paint-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+
+.paint-result {
+  font-size: 16px;
+  color: var(--color-text);
+  margin: 0;
+  padding: var(--space-3);
+  background: color-mix(in srgb, var(--color-accent, #4f46e5) 6%, transparent);
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid color-mix(in srgb, var(--color-accent, #4f46e5) 25%, transparent);
+}
+
+.paint-result strong {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-accent, #4f46e5);
+  font-variant-numeric: tabular-nums;
+}
+
+.paint-result-empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.paint-result-detail {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-top: 6px;
+}
+
+/* ============================================
+   Reduced motion: no transitions on result updates.
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .paint-result {
+    transition: none;
+  }
+}
+
+:root:where([data-reduced-motion="true"]) .paint-result {
+  transition: none;
+}
+
+/* ============================================
+   Print: drop the input rows + buttons, keep
+   the result clean for a printed quote.
+   ============================================ */
+@media print {
+  .paint-walls-list,
+  .paint-counts-grid,
+  .paint-actions {
+    display: none;
+  }
+  .paint-result {
+    border-color: #ccc;
+    background: transparent;
+  }
+}

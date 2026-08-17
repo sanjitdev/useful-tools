@@ -2,7 +2,7 @@
   "$schema": "tools.schema.json",
   "schemaVersion": "1",
   "releaseVersion": "0.0.0",
-  "generated": "2026-08-14T00:00:00Z",
+  "generated": "2026-08-17T00:00:00Z",
   "tools": [
     {
       "id": "quiz-preview",
@@ -6249,6 +6249,67 @@
         "#gl-share",
         "#gl-reset",
         "#gl-output"
+      ]
+    },
+    {
+      "id": "paint-calculator",
+      "slug": "paint-calculator",
+      "title": "Paint Calculator",
+      "description": "Estimate paint needed for a room by wall dimensions, doors, and windows. Rounds up so you never under-buy.",
+      "category": "Household",
+      "pack": ["household"],
+      "icon": "assets/icons/paint-calculator.svg",
+      "keywords": ["paint", "calculator", "wall", "room", "household", "diy", "primer", "coverage", "gallon"],
+      "last-updated": "2026-08-17T00:00:00Z",
+      "ready": true,
+      "score": 8,
+      "urlState": {
+        "default": {
+          "pc-doors": "1",
+          "pc-windows": "1"
+        },
+        "encode": [
+          { "key": "walls", "type": "string", "from": "#pc-walls-list" },
+          { "key": "doors", "type": "number", "from": "#pc-doors" },
+          { "key": "windows", "type": "number", "from": "#pc-windows" }
+        ],
+        "decode": [
+          { "key": "walls", "type": "string", "to": "#pc-walls-list" },
+          { "key": "doors", "type": "number", "to": "#pc-doors" },
+          { "key": "windows", "type": "number", "to": "#pc-windows" }
+        ]
+      },
+      "shortcuts": [
+        { "key": "s", "label": "Load sample", "action": "sample" },
+        { "key": "r", "label": "Reset", "action": "reset" },
+        { "key": "p", "label": "Print", "action": "embed" },
+        { "key": "c", "label": "Copy share URL", "action": "copy" }
+      ],
+      "history-keys": ["pc-walls", "pc-doors", "pc-windows"],
+      "view-source": {
+        "enabled": true,
+        "path": "tools/paint-calculator/index.html"
+      },
+      "embed-snippet": {
+        "enabled": true,
+        "badge-default": true,
+        "min-width": 320,
+        "min-height": 320
+      },
+      "search-priority": 6,
+      "tab-order-canonical": [
+        "#shell-skip",
+        "a.back-link",
+        "#pc-walls-list .js-pc-wall-width:first",
+        "#pc-walls-list .js-pc-wall-height:first",
+        "#pc-doors",
+        "#pc-windows",
+        "[data-action=\"add-wall\"]",
+        "[data-action=\"sample\"]",
+        "[data-action=\"reset\"]",
+        "[data-action=\"print\"]",
+        "[data-action=\"share\"]",
+        "#pc-result"
       ]
     }
   ]
