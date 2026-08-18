@@ -1,0 +1,120 @@
+/* ============================================
+   dream-job.css — Story 10.7 followup
+   Minimal reveal-panel + trait-bar styles.
+   Honors prefers-reduced-motion and print.
+   ============================================ */
+
+/* Reveal container — laid out as a vertical card. */
+.disc-reveal {
+  display: grid;
+  gap: var(--space-4, 1rem);
+  padding: var(--space-3, 0.75rem) 0;
+}
+
+/* Hero: emoji + label + tagline, centered. */
+.disc-reveal-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-2, 0.5rem);
+}
+.disc-reveal-emoji {
+  font-size: 4rem;
+  line-height: 1;
+}
+.disc-reveal-label {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+}
+.disc-reveal-tagline {
+  font-size: 1rem;
+  color: var(--text-muted, #555);
+  margin: 0;
+  max-width: 32rem;
+}
+
+/* Trait bars: stacked rows with track + fill. */
+.disc-trait-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2, 0.5rem);
+}
+.disc-trait-bar {
+  display: grid;
+  gap: var(--space-1, 0.25rem);
+}
+.disc-trait-bar-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.875rem;
+}
+.disc-trait-bar-name {
+  font-weight: 600;
+}
+.disc-trait-bar-pct {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted, #555);
+}
+.disc-trait-bar-track {
+  position: relative;
+  width: 100%;
+  height: 0.5rem;
+  background: var(--bg-elevated, #e8eaef);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.disc-trait-bar-fill {
+  height: 100%;
+  background: var(--accent, #4f46e5);
+  border-radius: inherit;
+  transition: width 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .disc-trait-bar-fill {
+    transition: none;
+  }
+  :root[data-reduced-motion="true"] .disc-trait-bar-fill {
+    transition: none;
+  }
+}
+
+/* Blind-spot box: subdued background, italic body. */
+.disc-blind-spot {
+  border: 1px solid var(--border, #d6d9e0);
+  border-radius: 12px;
+  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+  background: var(--bg-subtle, #f7f8fb);
+}
+.disc-blind-spot-title {
+  margin: 0 0 var(--space-1, 0.25rem) 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted, #555);
+}
+.disc-blind-spot-body {
+  margin: 0;
+  font-style: italic;
+}
+
+/* Print rules — reveal only. */
+@media print {
+  .shell-skip,
+  .site-header,
+  .shell-footer,
+  .tool-header,
+  .tool-subtitle,
+  .quiz-header,
+  .quiz-footer {
+    display: none !important;
+  }
+  .disc-reveal {
+    page-break-inside: avoid;
+  }
+}

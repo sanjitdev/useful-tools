@@ -1,0 +1,92 @@
+name: Pack Gate
+
+# Application-layer enforcement of the Discovery Pack contract (DC-10
+# / Story 10.18). The workflow runs on every PR that touches anything
+# that affects the gate: tools.json, the schema, the pack-gate script,
+# the discovery pack quiz folders, the docs §8, the workflow itself,
+# and the Makefile. It also runs on push to main as a safety net.
+#
+# Source of truth: docs/ci-gate.md §8 (Pack Gate)
+#                 docs/discovery-platform.md (DC-8 — authoring guide)
+
+on:
+  pull_request:
+    paths:
+      - "tools.json"
+      - "tools.schema.json"
+      - "scripts/pack-gate.py"
+      - "scripts/dc/dc-10-pack-gate.py"
+      - "tools/packs/discovery/**"
+      - "docs/ci-gate.md"
+      - ".github/workflows/pack-gate.yml"
+      - "Makefile"
+  push:
+    branches: [ main ]
+    paths:
+      - "tools.json"
+      - "tools.schema.json"
+      - "scripts/pack-gate.py"
+      - "scripts/dc/dc-10-pack-gate.py"
+      - "tools/packs/discovery/**"
+      - "docs/ci-gate.md"
+      - ".github/workflows/pack-gate.yml"
+      - "Makefile"
+  workflow_dispatch:
+
+# Read-only against the repo. The gate does not modify tools.json; it
+# only inspects it. If a future change needs write access, scope it to
+# the narrowest permission set possible (e.g., `contents: write` only
+# for a release-tag job).
+permissions:
+  contents: read
+
+# Don't cancel a running gate if a new commit lands on the same PR —
+# cancellation can produce a misleading "cancelled" status in the PR
+# check UI and obscure the real failure.
+concurrency:
+  group: pack-gate
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Pack Gate
+    runs-on: ubuntu-latest
+
+    # Bounded runtime: the gate is pure-stdlib Python + a workflow file
+    # parse; 10 minutes is generous (a fresh checkout + setup-python
+    # install finishes in ~30s) and protects the runner from a hung
+    # script.
+    timeout-minutes: 10
+
+    # The gate is a required status check on main (per Story 10.18 /
+    # FR-22). It is wired in the repo's branch-protection settings;
+    # not in code.
+
+    steps:
+      # actions/checkout is pinned to a commit SHA for supply-chain
+      # safety. The mutable tag v4.2.2 resolves to:
+      #   11bd71901bbe5b1630ceea73d27597364c9af683
+      # Bump the SHA only after auditing the new tag's diff against
+      # the previously-pinned version.
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # actions/setup-python is pinned to a commit SHA. The mutable tag
+      # v5.3.0 resolves to:
+      #   0b93645e9fea7318ecaed2b359559ac225c90a2b
+      - name: Setup Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.11"
+
+      - name: Enforce Pack Gate (Story 10.18 / DC-10)
+        # Story 10.18 / DC-10: the standalone pack gate reproduces the
+        # Discovery Pack contract (DC-10 AC) at the application layer.
+        # Walks every entry in tools.json → packs.discovery.entries[]
+        # and validates: slug regex, non-empty title, allowed category,
+        # data path rooted at ./tools/packs/discovery/<slug>/data.json,
+        # modules[] contains scoring+results (and catalog for utility),
+        # questions[].length 3..30 (read from on-disk data.json).
+        # Exit 0 = every entry passes; 1 = at least one entry violates;
+        # 2 = tools.json missing or unparseable.
+        run: make pack-gate

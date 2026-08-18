@@ -1,0 +1,196 @@
+{
+  "questions": [
+    {
+      "id": "q1-crack",
+      "label": "First crack",
+      "prompt": "You crack open the cookie and lift the slip. What's the first thing you notice?",
+      "options": [
+        { "value": "warm",   "label": "How warm the ink feels, almost like it's thinking" },
+        { "value": "sharp",  "label": "That the words are unusually direct" },
+        { "value": "soft",   "label": "That it begins softly, like a thought you almost had" },
+        { "value": "twist",  "label": "That it ends with a turn you didn't expect" }
+      ]
+    },
+    {
+      "id": "q2-trick",
+      "label": "The trick",
+      "prompt": "A friend swears every fortune in their cookie is a setup. You...",
+      "options": [
+        { "value": "laugh",   "label": "Laugh and crack yours open slowly" },
+        { "value": "decode",  "label": "Read it three times until it fits" },
+        { "value": "share",   "label": "Compare slips to find the hidden thread" },
+        { "value": "flip",    "label": "Turn it over — the back is the real message" }
+      ]
+    },
+    {
+      "id": "q3-notebook",
+      "label": "The notebook",
+      "prompt": "You've been collecting fortunes in a notebook for years. What's it become?",
+      "options": [
+        { "value": "mirror",  "label": "A mirror — you can see who you were that year" },
+        { "value": "map",     "label": "A map — themes keep circling back to the same streets" },
+        { "value": "treasure","label": "A treasure box you open only on hard mornings" },
+        { "value": "game",    "label": "A game — you read them backward for jokes" }
+      ]
+    },
+    {
+      "id": "q4-empty",
+      "label": "Empty cookie",
+      "prompt": "You crack one open and there's no slip inside. You...",
+      "options": [
+        { "value": "sign",    "label": "Take it as a sign — silence is the message" },
+        { "value": "laugh",   "label": "Laugh and assume the kitchen is having a moment" },
+        { "value": "write",   "label": "Write your own fortune, fold it, and slip it back" },
+        { "value": "share",   "label": "Pass the empty shell to whoever's next to you" }
+      ]
+    },
+    {
+      "id": "q5-advice",
+      "label": "Friend's fortune",
+      "prompt": "A friend's fortune is gloomy. They've read it like it's already true. You...",
+      "options": [
+        { "value": "soften",  "label": "Crack yours open next to theirs as a counterweight" },
+        { "value": "reframe", "label": "Point out how fortunes read better sideways" },
+        { "value": "story",   "label": "Tell them the one your grandmother always quoted" },
+        { "value": "hold",    "label": "Sit with them and let the slip stay where it is" }
+      ]
+    },
+    {
+      "id": "q6-tradition",
+      "label": "The tradition",
+      "prompt": "When you eat the cookie itself, the flavor is...",
+      "options": [
+        { "value": "ritual",  "label": "A ritual that tastes like a small holiday" },
+        { "value": "memory",  "label": "A memory of every table you've ever sat at" },
+        { "value": "treat",   "label": "A treat — the slip is the excuse" },
+        { "value": "joke",    "label": "A joke — you're here for the crumbs and the laughter" }
+      ]
+    },
+    {
+      "id": "q7-bad",
+      "label": "Bad fortune",
+      "prompt": "You crack one open: 'You will fail in a way that surprises you.' You...",
+      "options": [
+        { "value": "save",    "label": "Save it — surprises are how you meet yourself" },
+        { "value": "reframe", "label": "Re-read it as 'fail freely, without costume'" },
+        { "value": "laugh",   "label": "Crack it in half and read the question mark" },
+        { "value": "toss",    "label": "Toss it — some cookies came in a bad mood" }
+      ]
+    },
+    {
+      "id": "q8-last",
+      "label": "Last cookie",
+      "prompt": "It's the last cookie from the bag. Who gets the slip?",
+      "options": [
+        { "value": "self",    "label": "Whoever asked first — usually you" },
+        { "value": "friend",  "label": "Whoever's nearest — slips belong in pairs" },
+        { "value": "later",   "label": "Whoever needs it later in the week" },
+        { "value": "stranger","label": "Whoever's forgotten to ask" }
+      ]
+    }
+  ],
+  "scoring-spec": {
+    "traits": ["warmth", "mischief", "wisdom", "surprise"],
+    "weights": {
+      "q1-crack": {
+        "warm":   { "warmth": 6, "wisdom": 2 },
+        "sharp":  { "wisdom": 5, "mischief": 2 },
+        "soft":   { "warmth": 5, "wisdom": 3 },
+        "twist":  { "surprise": 6, "mischief": 2 }
+      },
+      "q2-trick": {
+        "laugh":   { "warmth": 4, "surprise": 3 },
+        "decode":  { "wisdom": 6, "mischief": 2 },
+        "share":   { "warmth": 5, "wisdom": 2 },
+        "flip":    { "mischief": 6, "surprise": 3 }
+      },
+      "q3-notebook": {
+        "mirror":   { "warmth": 5, "wisdom": 3 },
+        "map":      { "wisdom": 6, "warmth": 2 },
+        "treasure": { "warmth": 5, "wisdom": 4 },
+        "game":     { "mischief": 5, "surprise": 3 }
+      },
+      "q4-empty": {
+        "sign":    { "wisdom": 6, "warmth": 2 },
+        "laugh":   { "warmth": 4, "mischief": 3 },
+        "write":   { "wisdom": 4, "surprise": 4 },
+        "share":   { "warmth": 5, "mischief": 2 }
+      },
+      "q5-advice": {
+        "soften":  { "warmth": 6, "wisdom": 2 },
+        "reframe": { "wisdom": 5, "mischief": 3 },
+        "story":   { "warmth": 4, "wisdom": 4 },
+        "hold":    { "warmth": 5, "wisdom": 3 }
+      },
+      "q6-tradition": {
+        "ritual":  { "warmth": 5, "wisdom": 3 },
+        "memory":  { "warmth": 6, "wisdom": 2 },
+        "treat":   { "mischief": 3, "warmth": 3 },
+        "joke":    { "mischief": 6, "surprise": 2 }
+      },
+      "q7-bad": {
+        "save":    { "wisdom": 5, "surprise": 3 },
+        "reframe": { "wisdom": 5, "surprise": 4 },
+        "laugh":   { "mischief": 5, "surprise": 3 },
+        "toss":    { "mischief": 4, "warmth": 2 }
+      },
+      "q8-last": {
+        "self":     { "warmth": 2, "wisdom": 4 },
+        "friend":   { "warmth": 6, "mischief": 2 },
+        "later":    { "wisdom": 5, "warmth": 3 },
+        "stranger": { "warmth": 4, "surprise": 4 }
+      }
+    },
+    "archetypes": [
+      {
+        "id": "classic",
+        "label": "Classic",
+        "emoji": "🥠",
+        "tagline": "Warm, plain, and quietly wise — like the slip you save in a coat pocket.",
+        "blindSpot": "Familiarity can read as comfort when a sharper edge would help.",
+        "default": true,
+        "scores": { "warmth": 90, "mischief": 40, "wisdom": 70, "surprise": 35 }
+      },
+      {
+        "id": "zen",
+        "label": "Zen",
+        "emoji": "🍵",
+        "tagline": "Spare, calm, and certain the empty slip is the point.",
+        "blindSpot": "Stillness can become abstention when the room needs a word.",
+        "scores": { "warmth": 60, "mischief": 30, "wisdom": 90, "surprise": 40 }
+      },
+      {
+        "id": "rebels",
+        "label": "Rebel's",
+        "emoji": "🔥",
+        "tagline": "Loud, sharp, and unafraid to tell the cookie it got it wrong.",
+        "blindSpot": "Defiance can miss the moment where the small slip was also true.",
+        "scores": { "warmth": 35, "mischief": 90, "wisdom": 50, "surprise": 70 }
+      },
+      {
+        "id": "scholars",
+        "label": "Scholar's",
+        "emoji": "📜",
+        "tagline": "Careful, archival, and curious about what the words actually mean.",
+        "blindSpot": "Analysis can outrun the part of the slip that only wants to be felt.",
+        "scores": { "warmth": 50, "mischief": 35, "wisdom": 90, "surprise": 50 }
+      },
+      {
+        "id": "hearts",
+        "label": "Heart's",
+        "emoji": "💌",
+        "tagline": "Soft, generous, and inclined to read love into every line.",
+        "blindSpot": "Tenderness can paper over the joke that would have made you both laugh.",
+        "scores": { "warmth": 95, "mischief": 35, "wisdom": 55, "surprise": 45 }
+      },
+      {
+        "id": "tricksters",
+        "label": "Trickster's",
+        "emoji": "🎭",
+        "tagline": "Playful, sideways, and delighted by fortunes that fold back on themselves.",
+        "blindSpot": "Cleverness can keep a friend waiting for the real line that never comes.",
+        "scores": { "warmth": 45, "mischief": 85, "wisdom": 55, "surprise": 90 }
+      }
+    ]
+  }
+}

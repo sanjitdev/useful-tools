@@ -1,0 +1,171 @@
+{
+  "questions": [
+    {
+      "id": "q1-table",
+      "label": "The table",
+      "prompt": "It's your last meal. Who's at the table?",
+      "options": [
+        { "value": "alone",    "label": "Just you, with the radio on low" },
+        { "value": "chosen",   "label": "Three people, chosen carefully, no agenda" },
+        { "value": "full",     "label": "Anyone who can make it — kids, cousins, the loud ones" },
+        { "value": "missing",  "label": "The people who can't be there, named and set for" }
+      ]
+    },
+    {
+      "id": "q2-room",
+      "label": "The room",
+      "prompt": "Where do you eat it?",
+      "options": [
+        { "value": "kitchen",  "label": "Your grandmother's kitchen — the same one" },
+        { "value": "counter",  "label": "A quiet sushi counter with a chef who says little" },
+        { "value": "table",    "label": "A long table in a loud, family-run trattoria" },
+        { "value": "blanket",  "label": "A blanket in a park at the hour the light goes soft" }
+      ]
+    },
+    {
+      "id": "q3-clock",
+      "label": "The hour",
+      "prompt": "What hour of day?",
+      "options": [
+        { "value": "morning",  "label": "Just after sunrise, when the kitchen is still cool" },
+        { "value": "noon",     "label": "Midday, the room at its loudest" },
+        { "value": "evening",  "label": "Early evening, with candles lit one by one" },
+        { "value": "midnight", "label": "Past midnight, at a counter that never closes" }
+      ]
+    },
+    {
+      "id": "q4-detail",
+      "label": "One detail",
+      "prompt": "There's one detail you'd insist on. Pick it.",
+      "options": [
+        { "value": "salt",     "label": "The salt is passed hand to hand, never left on the table" },
+        { "value": "bread",    "label": "Bread that was baked the same morning" },
+        { "value": "music",    "label": "The music is a person playing, not a speaker" },
+        { "value": "silence",  "label": "One full minute of silence before anyone eats" }
+      ]
+    },
+    {
+      "id": "q5-drink",
+      "label": "What you drink",
+      "prompt": "What's in your glass?",
+      "options": [
+        { "value": "tea",      "label": "Tea in a chipped cup you've had since childhood" },
+        { "value": "wine",     "label": "A bottle someone brought, opened but not talked up" },
+        { "value": "water",    "label": "Cold water, refilled without asking" },
+        { "value": "coffee",   "label": "Coffee, dark, in a cup you hold the whole meal" }
+      ]
+    },
+    {
+      "id": "q6-leftover",
+      "label": "The leftover",
+      "prompt": "What you do with the leftovers says a lot. You...",
+      "options": [
+        { "value": "box",      "label": "Box them up for whoever left last" },
+        { "value": "trash",    "label": "Leave them — this was meant to be finished tonight" },
+        { "value": "giveaway", "label": "Hand them to a stranger on the way home" },
+        { "value": "recipe",   "label": "Write down the recipe so it can be made again" }
+      ]
+    },
+    {
+      "id": "q7-lastbite",
+      "label": "The last bite",
+      "prompt": "The last bite. You're...",
+      "options": [
+        { "value": "shared",   "label": "Breaking it in half and giving one piece away" },
+        { "value": "savored",  "label": "Holding it in your mouth longer than you need to" },
+        { "value": "photographed","label": "Asking someone to photograph the plate before you finish" },
+        { "value": "left",     "label": "Leaving it on the plate, on purpose, so it isn't gone" }
+      ]
+    }
+  ],
+  "scoring-spec": {
+    "traits": ["simplicity", "generosity", "memory", "indulgence"],
+    "weights": {
+      "q1-table": {
+        "alone":    { "simplicity": 6, "memory": 2 },
+        "chosen":   { "generosity": 5, "memory": 3 },
+        "full":     { "generosity": 6, "indulgence": 2 },
+        "missing":  { "memory": 6, "generosity": 2 }
+      },
+      "q2-room": {
+        "kitchen": { "memory": 6, "generosity": 2 },
+        "counter": { "simplicity": 6, "indulgence": 2 },
+        "table":   { "indulgence": 5, "generosity": 3 },
+        "blanket": { "simplicity": 4, "memory": 4 }
+      },
+      "q3-clock": {
+        "morning":  { "simplicity": 5, "memory": 3 },
+        "noon":     { "indulgence": 5, "generosity": 2 },
+        "evening":  { "memory": 5, "indulgence": 4 },
+        "midnight": { "indulgence": 6, "simplicity": 2 }
+      },
+      "q4-detail": {
+        "salt":     { "simplicity": 4, "generosity": 4 },
+        "bread":    { "memory": 5, "simplicity": 3 },
+        "music":    { "indulgence": 5, "generosity": 3 },
+        "silence":  { "simplicity": 5, "memory": 4 }
+      },
+      "q5-drink": {
+        "tea":     { "memory": 6, "simplicity": 2 },
+        "wine":    { "indulgence": 5, "generosity": 3 },
+        "water":   { "simplicity": 5, "generosity": 3 },
+        "coffee":  { "indulgence": 5, "simplicity": 3 }
+      },
+      "q6-leftover": {
+        "box":      { "generosity": 6, "memory": 2 },
+        "trash":    { "indulgence": 5, "simplicity": 3 },
+        "giveaway": { "generosity": 6, "simplicity": 2 },
+        "recipe":   { "memory": 6, "simplicity": 2 }
+      },
+      "q7-lastbite": {
+        "shared":       { "generosity": 6, "memory": 2 },
+        "savored":      { "indulgence": 6, "memory": 2 },
+        "photographed": { "memory": 5, "indulgence": 4 },
+        "left":         { "memory": 6, "simplicity": 2 }
+      }
+    },
+    "archetypes": [
+      {
+        "id": "grandmother",
+        "label": "Grandmother's Kitchen",
+        "emoji": "🥣",
+        "tagline": "A warm, plain table that tastes like every meal you've ever been loved at.",
+        "blindSpot": "Memory can become a museum when a new kitchen would have been the point.",
+        "default": true,
+        "scores": { "simplicity": 85, "generosity": 75, "memory": 90, "indulgence": 55 }
+      },
+      {
+        "id": "sushi-counter",
+        "label": "Quiet Sushi Counter",
+        "emoji": "🍣",
+        "tagline": "A few perfect pieces, eaten slowly, with no one asking how it was.",
+        "blindSpot": "Restraint can read as coldness when the table needed a little noise.",
+        "scores": { "simplicity": 90, "generosity": 45, "memory": 55, "indulgence": 75 }
+      },
+      {
+        "id": "trattoria",
+        "label": "Loud Trattoria",
+        "emoji": "🍝",
+        "tagline": "A long table, second helpings, and a conversation that runs past the candles.",
+        "blindSpot": "Generosity can spill over into spectacle when a quiet night would have done.",
+        "scores": { "simplicity": 50, "generosity": 90, "memory": 60, "indulgence": 85 }
+      },
+      {
+        "id": "picnic",
+        "label": "Picnic Blanket",
+        "emoji": "🧺",
+        "tagline": "A blanket, a paper bag, and an hour the light goes soft in.",
+        "blindSpot": "Romance can skip the part where someone still has to pack the bag.",
+        "scores": { "simplicity": 80, "generosity": 65, "memory": 85, "indulgence": 55 }
+      },
+      {
+        "id": "diner",
+        "label": "Midnight Diner",
+        "emoji": "🥞",
+        "tagline": "A counter that never closes, a stranger who nods, and the comfort of last call.",
+        "blindSpot": "Solitude can harden into lonerdom when a table of three would have been warmer.",
+        "scores": { "simplicity": 60, "generosity": 50, "memory": 55, "indulgence": 90 }
+      }
+    ]
+  }
+}
