@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="assets/css/base.css">
   <link rel="stylesheet" href="assets/css/components-core.css">
   <link rel="stylesheet" href="assets/css/tools.css">
+  <link rel="stylesheet" href="assets/css/discovery.css">
   <link rel="stylesheet" href="assets/css/print.css" media="print">
   <style>
     .tool-card[data-feature="anchor"] {
@@ -114,6 +115,17 @@
         <p class="home-section-sub">Curated groups of tools for common workflows.</p>
       </div>
       <div id="home-grid-packs" data-mounted="false"></div>
+    </section>
+
+    <section class="home-grid-section home-discover" id="home-grid-discovery-section" role="region" aria-labelledby="home-grid-discovery-heading" hidden>
+      <div class="home-section-header">
+        <div>
+          <span class="home-section-eyebrow">Discover</span>
+          <h2 id="home-grid-discovery-heading">Discover Me</h2>
+        </div>
+        <p class="home-section-sub">Six hand-written personality and recommendation quizzes — find your archetype.</p>
+      </div>
+      <div class="discovery-pack-grid" id="home-grid-discovery" data-mounted="false"></div>
     </section>
 
     <section class="home-grid-section home-tools" id="home-grid-tools-json-section" hidden>
@@ -396,5 +408,6 @@
   <script src="assets/js/pins.js" defer></script>
   <script src="assets/js/home-sidebar.js" defer></script>
   <script src="assets/js/pack-grid.js" defer></script>
+  <script src="assets/js/discover-lane.js" defer></script>
 </body>
 </html>
