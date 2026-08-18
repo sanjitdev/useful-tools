@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-check-pack-composition.py — Story 9.16 / 9.17 pack-composition gate.
+check-pack-composition.py — Story 9.16 / 9.17 / 10.18 pack-composition gate.
 
 Reads tools.json and asserts:
 
@@ -14,6 +14,14 @@ Story 9.17 (Finance / Study / Developer / Household packs):
   - study pack has ≥ 5 ready:true tools
   - developer pack has ≥ 5 ready:true tools
   - household pack has ≥ 5 ready:true tools
+
+Story 10.18 (Discovery pack):
+  - The Discovery pack (data.packs.discovery.entries[]) declares
+    ≥ DISCOVERY_MIN_READY ready quizzes. "Ready" = entry has the
+    canonical shape (slug, title, modules[]) AND a real on-disk
+    directory at tools/packs/discovery/<slug>/. The Discovery block
+    lives in a sibling of `tools`, so this check is independent of
+    the travel/finance/etc. ready:true count.
 
 Taxonomy:
   - no tool has a `pack` value not in the enum
@@ -30,6 +38,7 @@ Exit codes:
     3 — vacuous run (no tools to check)
     4 — taxonomy violation (pack value not in enum)
     5 — below-minimum pack size (e.g. finance has < 5 ready tools)
+    6 — below-minimum Discovery ready count (Story 10.18)
 """
 from __future__ import annotations
 
@@ -64,6 +73,12 @@ PACK_MIN_SIZE: dict[str, int] = {
     "household": 5,
 }
 
+# Story 10.18: minimum ready Discovery quiz entries. The Discovery pack
+# lives at data.packs.discovery.entries[] (NOT inside tools[].pack) and
+# has its own readiness criteria — see disc_ready_entries() below.
+DISCOVERY_MIN_READY: int = 5
+DISCOVERY_PACK_ROOT: str = "tools/packs/discovery"
+
 # Mirrored from tools.schema.json pack.items.enum.
 PACK_ENUM: frozenset[str] = frozenset({
     "travel", "finance", "study", "developer", "household", "fun"
@@ -82,7 +97,10 @@ def find_repo_root(start: Path) -> Path:
     sys.exit(2)
 
 
-def load_tools(root: Path) -> list[dict]:
+def load_tools(root: Path) -> tuple[list[dict], dict]:
+    """Read tools.json and return (tools_list, full_payload). The full
+    payload is needed for Story 10.18 — Discovery lives at
+    payload.packs.discovery.entries[], not inside the `tools` array."""
     tools_path = root / TOOLS_JSON_FILENAME
     if not tools_path.is_file():
         sys.stderr.write(
@@ -113,7 +131,7 @@ def load_tools(root: Path) -> list[dict]:
             "check-pack-composition: tools.json 'tools' must be an array\n"
         )
         sys.exit(2)
-    return tools
+    return tools, payload
 
 
 def by_pack(tools: list[dict]) -> dict[str, list[str]]:
@@ -136,9 +154,56 @@ def by_pack(tools: list[dict]) -> dict[str, list[str]]:
     return out
 
 
+def disc_ready_entries(root: Path, payload: dict) -> list[dict]:
+    """Return the list of Discovery entries that count as "ready".
+
+    A Discovery entry is ready iff:
+      1. It has the canonical shape (slug, title, modules[] non-empty)
+      2. Its `ready` field is not explicitly false (matches the lane
+         renderer's filter — Story 10.8).
+      3. A real on-disk directory exists at tools/packs/discovery/<slug>/
+
+    The function does NOT enforce the per-quiz rubric (questions,
+    scoring-spec, etc.) — that's the dc-6-quizzes gate's job. This
+    helper only enforces "Discovery pack composition" (≥ 5 entries),
+    matching Story 10.18's AC."""
+    packs = payload.get("packs") or {}
+    if not isinstance(packs, dict):
+        return []
+    disc = packs.get("discovery") or {}
+    if not isinstance(disc, dict):
+        return []
+    entries = disc.get("entries") or []
+    if not isinstance(entries, list):
+        return []
+    out: list[dict] = []
+    for e in entries:
+        if not isinstance(e, dict):
+            continue
+        slug = e.get("slug")
+        title = e.get("title")
+        modules = e.get("modules")
+        if not isinstance(slug, str) or not slug:
+            continue
+        if not isinstance(title, str) or not title:
+            continue
+        if not isinstance(modules, list) or len(modules) == 0:
+            continue
+        if e.get("ready") is False:
+            continue
+        # On-disk directory check — a quiz that hasn't been authored
+        # yet (no per-quiz route bundle) doesn't count as ready even
+        # if the tools.json entry exists.
+        on_disk = root / DISCOVERY_PACK_ROOT / slug
+        if not on_disk.is_dir():
+            continue
+        out.append(e)
+    return out
+
+
 def main() -> int:
     root = find_repo_root(Path(__file__).parent)
-    tools = load_tools(root)
+    tools, payload = load_tools(root)
 
     if not any(isinstance(t, dict) and t.get("ready") is True for t in tools):
         sys.stderr.write(
@@ -213,6 +278,20 @@ def main() -> int:
             return 5
 
     # ---------------------------------------------------------------
+    # Story 10.18: Discovery pack must have >= DISCOVERY_MIN_READY
+    # ready quizzes. The Discovery block lives in payload.packs.discovery
+    # (NOT inside tools[].pack) and is a sibling of the curated packs.
+    # ---------------------------------------------------------------
+    ready_disc = disc_ready_entries(root, payload)
+    if len(ready_disc) < DISCOVERY_MIN_READY:
+        sys.stderr.write(
+            f"check-pack-composition: disc pack has {len(ready_disc)} "
+            f"ready quizzes (< {DISCOVERY_MIN_READY} minimum): "
+            f"{[e.get('slug') for e in ready_disc]}\n"
+        )
+        return 6
+
+    # ---------------------------------------------------------------
     # Diagnostic summary.
     # ---------------------------------------------------------------
     print(f"check-pack-composition: {total_ready} ready tools across "
@@ -220,6 +299,8 @@ def main() -> int:
     for pack_slug in sorted(roster):
         members = roster[pack_slug]
         print(f"  {pack_slug:11s} {len(members):>2d} tool(s): {sorted(members)}")
+    disc_slugs = sorted(e.get("slug", "?") for e in ready_disc)
+    print(f"  {'disc':11s} {len(ready_disc):>2d} quiz(zes): {disc_slugs}")
     print("check-pack-composition: all checks pass")
     return 0
 
