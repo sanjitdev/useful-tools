@@ -3,13 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="For essays, notes, exams.">
-  <title>Study · Handy Tools</title>
+  <meta name="description" content="Six hand-written personality and recommendation quizzes — find your archetype.">
+  <title>Discover Me · Handy Tools</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%232F5BFF'/%3E%3Ctext x='50' y='66' font-family='Arial,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
   <script>(function(){try{var t=localStorage.getItem("ht.theme");var mqd=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)");t=t==="light"||t==="dark"?t:(mqd&&mqd.matches?"dark":"light");var d=document.documentElement;d.setAttribute("data-theme",t);d.style.backgroundColor=t==="dark"?"#0f1117":"#f7f8fb";d.style.color=t==="dark"?"#e8eaf0":"#1a1d29";try{if(/[?&]embed=1(?:&|$)/.test(location.search)){d.setAttribute("data-embed","1");}}catch(_){}try{var po=window.PerformanceObserver?new PerformanceObserver(function(list){try{var e=list.getEntries().find(function(x){return x.name==="first-paint"});if(e){d.dispatchEvent(new CustomEvent("ht:fouc-resolved",{detail:{elapsedMs:e.startTime}}));po.disconnect();}}catch(_){}}):null;if(po){po.observe({type:"paint",buffered:true});}}catch(_){}}catch(e){document.documentElement.setAttribute("data-theme","light")}})();</script>
   <link rel="stylesheet" href="../assets/css/base.css">
   <link rel="stylesheet" href="../assets/css/components-core.css">
   <link rel="stylesheet" href="../assets/css/tools.css">
+  <link rel="stylesheet" href="../assets/css/discovery.css">
 </head>
 <body>
 <!-- shell:chrome -->
@@ -240,23 +241,21 @@
     <p class="shell-help-foot">Press <kbd>?</kbd> to close · <kbd>/</kbd> to filter · <kbd>Esc</kbd> to leave the filter</p>
   </div>
 </div>
-<!-- /shell:help -->  <main id="main" class="shell-main" aria-label="Study" tabindex="-1">
+<!-- /shell:help -->  <main id="main" class="shell-main" aria-label="Discover Me" tabindex="-1">
     <a id="top"></a>
-    <header class="pack-page-header" data-pack-slug="study">
+    <header class="pack-page-header" data-pack-slug="disc" data-pack-kind="discovery">
       <a href="../index.html" class="back-link">← All tools</a>
       <div class="pack-page-header-row">
-        <span class="pack-page-icon" id="pack-page-icon"></span>
         <div>
           <h1 class="pack-page-title" id="pack-page-title"></h1>
           <p class="pack-page-tagline" id="pack-page-tagline"></p>
-          <p class="pack-page-subtitle" id="pack-page-subtitle"></p>
           <p class="pack-page-count" id="pack-page-count"></p>
         </div>
       </div>
     </header>
 
-    <section class="pack-page-tools" id="pack-page-tools" data-mounted="false">
-      <div class="tool-grid" id="pack-page-tool-grid"></div>
+    <section class="pack-page-discovery-section" id="pack-page-discovery-section">
+      <div class="discovery-pack-grid" id="pack-page-discovery-host" data-mounted="false"></div>
     </section>
   </main>
 <!-- shell:footer -->
@@ -294,6 +293,6 @@
   <script src="../assets/js/shell-thin.js" defer></script>
   <script src="../assets/js/search.js" defer></script>
   <script src="../assets/js/help-overlay.js" defer></script>
-  <script src="../assets/js/pack-page.js" defer></script>
+  <script src="../assets/js/disc-page.js" defer></script>
 </body>
 </html>

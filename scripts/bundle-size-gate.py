@@ -269,6 +269,8 @@ SPEC_PAGE_CONDITIONAL_MODULES = [
     "assets/js/recommend.js",
     "assets/js/catalog.js",
     "assets/js/packs/discovery-loader.js",
+    "assets/js/disc-page.js",
+    "assets/js/discover-lane.js",
     "assets/css/result-card.css",
     "assets/css/discovery.css",
 ]

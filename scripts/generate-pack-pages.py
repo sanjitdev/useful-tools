@@ -1,13 +1,19 @@
 """
-generate-pack-pages.py — Generate the 5 pack pages from the canonical Shell
-chrome plus a pack-page body template.
+generate-pack-pages.py — Generate the 6 utility pack pages AND the Discovery
+pack page from the canonical Shell chrome plus a pack-page body template.
 
-Story 6.2: Each pack page lives at packs/<slug>.html. The 5 pages are
-mechanical variants of one template, with the slug, title, and tagline
+Story 6.2: Each utility pack page lives at packs/<slug>.html. The 5 pages
+are mechanical variants of one template, with the slug, title, and tagline
 swapped. The drift check (scripts/shell-drift-check.py) byte-matches the
 chrome across every page, so the chrome is sourced from the canonical
 chrome.html + settings.html + palette.html (the same sources shell-template.py
 uses for tool pages).
+
+Story 10.9: A 7th page, packs/disc.html, is generated from the same chrome
+but uses a different body template (discovery-pack-grid instead of tool-grid)
+and the renderer is assets/js/disc-page.js instead of pack-page.js. The disc
+page reads data.packs.discovery.entries[] (NOT tools[].pack[]), so the body
+template diverges.
 
 Idempotent: re-running this script produces no change on already-aligned pages.
 
@@ -100,8 +106,23 @@ PACKS = [
     },
 ]
 
+# Story 10.9 — Discovery pack page descriptor. Uses the discovery-pack-grid
+# chrome (assets/css/discovery.css) and a different renderer (disc-page.js).
+# No `icon` — the discovery lane uses emoji per entry, not a single pack
+# header icon. The body template branches on `kind == "discovery"`.
+DISCOVERY_PACK = {
+    "slug": "disc",
+    "title": "Discover Me",
+    "tagline": (
+        "Six hand-written personality and recommendation quizzes — "
+        "find your archetype."
+    ),
+    "kind": "discovery",
+}
+
 # Markers expected in chrome.html (and its sub-parts). Mirrors the markers
 # the drift check uses.
+CHROME_OPEN = "<!-- shell:chrome -->"
 HEADER_OPEN = "<!-- shell:header -->"
 HEADER_CLOSE = "<!-- /shell:header -->"
 FOOTER_OPEN = "<!-- shell:footer -->"
@@ -210,6 +231,10 @@ def build_pack_page(root: Path, pack: dict) -> str:
     # load_chrome() which reads the same sub-parts separately.
     header_block = extract_region(chrome_html, HEADER_OPEN, HEADER_CLOSE)
     footer_block = extract_region(chrome_html, FOOTER_OPEN, FOOTER_CLOSE)
+    # shell-drift-check expects a shell-skip landmark. The skip link lives
+    # in chrome.html between <!-- shell:chrome --> and <!-- shell:header -->
+    # — extract that region verbatim.
+    skip_block = extract_region(chrome_html, CHROME_OPEN, HEADER_OPEN)
     palette_block = read_part(root, "assets/shell/palette.html")
     settings_block = read_part(root, "assets/shell/settings.html")
     # Story 3.3: help overlay (non-modal, role=region, no aria-modal).
@@ -231,7 +256,7 @@ def build_pack_page(root: Path, pack: dict) -> str:
     # Pack pages are one level deep (packs/<slug>.html). Asset paths are
     # `../assets/...`, tool paths are `../tools/<slug>/index.html`. Build
     # the body using pack-page.js to filter tools.json on the client.
-    body = render_body(pack)
+    body = render_body(pack) if pack.get("kind") != "discovery" else render_body_discovery(pack)
     title = f"{pack['title']} · Handy Tools"
     description = pack["tagline"]
 
@@ -263,8 +288,20 @@ def build_pack_page(root: Path, pack: dict) -> str:
     # are sourced from chrome.html verbatim (byte-equivalence with tool pages
     # after the drift normalizer rewrites hrefs). The settings modal lives
     # inside <body> per chrome.html's structure.
+    # Story 10.9 — for the discovery kind we swap pack-page.js → disc-page.js
+    # and add discovery.css to the <head>.
+    is_disc = pack.get("kind") == "discovery"
+    page_script = "../assets/js/disc-page.js" if is_disc else "../assets/js/pack-page.js"
+    discovery_css_link = (
+        '  <link rel="stylesheet" href="../assets/css/discovery.css">\n'
+        if is_disc else ""
+    )
     body_html = (
         "<body>\n"
+        # shell-drift-check expects the shell-skip landmark. chrome.html
+        # has it between shell:chrome and shell:header; we extract that
+        # region verbatim so drift-check byte-matches it.
+        + skip_block
         + header_block
         + settings_block
         + palette_block
@@ -287,14 +324,20 @@ def build_pack_page(root: Path, pack: dict) -> str:
         + f'  {INLINE_CLOSE}\n'
         + "\n"
         + '  <script src="../assets/js/shell.js" defer></script>\n'
+        + '  <script src="../assets/js/ht-lazy.js"></script>\n'
+        + '  <script src="../assets/js/shell-thin.js" defer></script>\n'
         + '  <script src="../assets/js/search.js" defer></script>\n'
         + '  <script src="../assets/js/help-overlay.js" defer></script>\n'
-        + '  <script src="../assets/js/pack-page.js" defer></script>\n'
+        + f'  <script src="{page_script}" defer></script>\n'
         + "</body>\n"
         + "</html>\n"
     )
 
-    return head + body_html
+    head_with_css = head.replace(
+        "</head>", discovery_css_link + "</head>"
+    ) if is_disc else head
+
+    return head_with_css + body_html
 
 
 def render_body(pack: dict) -> str:
@@ -322,6 +365,32 @@ def render_body(pack: dict) -> str:
     )
 
 
+def render_body_discovery(pack: dict) -> str:
+    """Story 10.9 — Discovery pack-page body. Mirrors render_body's
+    pack-page-header skeleton (so disc-page.js can fill the same
+    #pack-page-title / #pack-page-tagline / #pack-page-count slots)
+    but swaps the tools section for a discovery-pack-grid mounted
+    by assets/js/disc-page.js into #pack-page-discovery-host."""
+    return (
+        '    <header class="pack-page-header" data-pack-slug="'
+        + pack["slug"]
+        + '" data-pack-kind="discovery">\n'
+        '      <a href="../index.html" class="back-link">← All tools</a>\n'
+        '      <div class="pack-page-header-row">\n'
+        '        <div>\n'
+        '          <h1 class="pack-page-title" id="pack-page-title"></h1>\n'
+        '          <p class="pack-page-tagline" id="pack-page-tagline"></p>\n'
+        '          <p class="pack-page-count" id="pack-page-count"></p>\n'
+        "        </div>\n"
+        "      </div>\n"
+        "    </header>\n"
+        "\n"
+        '    <section class="pack-page-discovery-section" id="pack-page-discovery-section">\n'
+        '      <div class="discovery-pack-grid" id="pack-page-discovery-host" data-mounted="false"></div>\n'
+        "    </section>\n"
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true")
@@ -333,7 +402,7 @@ def main() -> int:
     packs_dir.mkdir(parents=True, exist_ok=True)
 
     failures = 0
-    for pack in PACKS:
+    for pack in PACKS + [DISCOVERY_PACK]:
         target = packs_dir / f"{pack['slug']}.html"
         rendered = build_pack_page(root, pack)
         if target.is_file():
