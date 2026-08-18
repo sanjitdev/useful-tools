@@ -1,5 +1,5 @@
 /* ============================================================
-   Handy Tools — results.js (Story 10.3, Discovery Pack Epic)
+   Handy Tools — results.js (Story 10.3 + Story 10.10, Discovery Pack Epic)
 
    Result-card chrome for quiz / personality / recommendation
    outcomes. Renders the canonical DOM shape from DESIGN.md §1.1
@@ -16,10 +16,15 @@
    Public API (frozen, stable):
      HT.results.render(state, opts) → HTMLElement
        state: { traits: {[id]: number}, archetype: {id, label, emoji} }
-       opts:  { title?: string, conflict?: string, slug?: string }
+       opts:  { title?: string, conflict?: string, slug?: string,
+               wireActions?: boolean, answers?: {[qid]: value} }
      HT.results.shareUrl(archetype, opts) → string  // ?arch=<id>
      HT.results.copyText(state, opts) → string       // canonical format
      HT.results.imageSnapshot(el) → Promise<Blob>    // throws 'snapshot unavailable'
+     HT.results.wireActions(card, state, opts) → void
+       // Story 10.10 — wires the rendered card's Share / Challenge
+       // buttons. Idempotent (uses data-wired="1" guard so re-rendering
+       // the card or re-mounting the panel does not double-bind).
 
    Tab order on the rendered card:
      1. button.share
@@ -35,9 +40,9 @@
    motion: reduce)`. The card mounts instantly under either signal.
 
    AD-14 boundary — no bare localStorage / fetch / HT.provide.
-   Bundle target: ≤ 6 KB gz (Story 10.3 budget).
+   Bundle target: ≤ 6 KB gz (Story 10.3 + 10.10 budget).
 
-   ES2018. ~3.5 KB gz.
+   ES2018. ~4 KB gz after Story 10.10.
    ============================================================ */
 
 (function () {
@@ -199,6 +204,20 @@
     actions.appendChild(challengeBtn);
     root.appendChild(actions);
 
+    // Story 10.10 — wire the buttons unless the caller explicitly
+    // opts out (e.g. embed mode where we don't want the toast
+    // notifications). Default: wire.
+    if (opts.wireActions !== false) {
+      // Defer to a microtask so the caller can appendChild the root
+      // before wireActions walks the DOM. (In render()'s synchronous
+      // path the caller hasn't appended yet; the wireActions code
+      // walks via querySelectorAll which the caller's host element
+      // only sees once appended. Defer to give the caller that slot.)
+      try {
+        Promise.resolve().then(function () { wireActions(root, state, opts); });
+      } catch (_) {}
+    }
+
     return root;
   }
 
@@ -256,11 +275,120 @@
     throw err;
   }
 
+  // ---- Story 10.10 — wire the action buttons -------------------
+
+  // Find the .quiz-result-actions node inside a rendered card.
+  function findActionsNode(card) {
+    if (!card || typeof card.querySelectorAll !== 'function') return null;
+    var nodes = card.querySelectorAll('[data-print="ignore"]');
+    return (nodes && nodes[0]) || null;
+  }
+
+  // Find a button inside the actions node by its data-action attr.
+  function findActionBtn(actionsNode, name) {
+    if (!actionsNode || typeof actionsNode.querySelectorAll !== 'function') return null;
+    var nodes = actionsNode.querySelectorAll('[data-action="' + name + '"]');
+    return (nodes && nodes[0]) || null;
+  }
+
+  // Wire the rendered card's Share + Challenge buttons. Idempotent:
+  // a card that already has data-wired="1" is skipped, so re-rendering
+  // the reveal panel does not double-bind click listeners.
+  //
+  // Share button  — invokes HT.share.copy(state, opts) which is the
+  //                 canonical shell API (not bare navigator.clipboard).
+  //                 Falls back to HT.results.copyText + HT.toast.
+  // Challenge btn — invokes HT.challenge.link(spec) to produce the
+  //                 shareable challenge URL. The link encodes only
+  //                 the sender's answers (no traits, no archetype) per
+  //                 AD-9 + the privacy contract in challenge.js.
+  //                 If HT.challenge is absent (viral-category quiz
+  //                 only), the button is hidden.
+  //
+  // AD-14 boundary — no bare navigator.clipboard / window.print /
+  // localStorage / fetch. All routing goes through HT.*.
+  function wireActions(card, state, opts) {
+    if (!card) return;
+    if (card.getAttribute && card.getAttribute('data-wired') === '1') return;
+    state = state && typeof state === 'object' ? state : {};
+    opts  = opts  && typeof opts  === 'object' ? opts  : {};
+
+    var actionsNode = findActionsNode(card);
+    if (!actionsNode) return;
+
+    var shareBtn = findActionBtn(actionsNode, 'share');
+    var challengeBtn = findActionBtn(actionsNode, 'challenge');
+
+    // Share button — wire only if HT.share.copy is exposed.
+    if (shareBtn && HT.share && typeof HT.share.copy === 'function') {
+      var ariaLabel = (opts.slug
+        ? 'Copy share link for ' + opts.slug + ' result'
+        : 'Copy share link for this result');
+      shareBtn.setAttribute('aria-label', ariaLabel);
+      shareBtn.addEventListener('click', function () {
+        try {
+          HT.share.copy(state, opts).then(function () {
+            if (HT.toast) HT.toast('Share link copied');
+          }, function () {
+            if (HT.toast) HT.toast('Copy failed');
+          });
+        } catch (_) {}
+      });
+    } else if (shareBtn && HT.copyToClipboard) {
+      // Defensive fallback — if HT.share.copy is absent but
+      // HT.copyToClipboard is exposed, fall back to direct clipboard
+      // copy of the canonical copyText output. (Rare — every Shell
+      // boots HT.share with .copy.)
+      shareBtn.addEventListener('click', function () {
+        try {
+          HT.copyToClipboard(HT.results.copyText(state, opts));
+          if (HT.toast) HT.toast('Copied');
+        } catch (_) {}
+      });
+    }
+
+    // Challenge button — wire only if HT.challenge.link is exposed.
+    // Hide the button entirely if HT.challenge is absent (utility-
+    // category quizzes that don't opt into challenge).
+    if (challengeBtn) {
+      if (HT.challenge && typeof HT.challenge.link === 'function') {
+        var cAriaLabel = (opts.slug
+          ? 'Challenge a friend on the ' + opts.slug + ' quiz'
+          : 'Challenge a friend');
+        challengeBtn.setAttribute('aria-label', cAriaLabel);
+        challengeBtn.addEventListener('click', function () {
+          try {
+            var url = HT.challenge.link({
+              slug: opts.slug || '',
+              self: opts.answers || {},
+            });
+            if (HT.share && typeof HT.share.copy === 'function') {
+              HT.share.copy({ archetype: state.archetype }, { shareUrl: url }).then(function () {
+                if (HT.toast) HT.toast('Challenge link copied');
+              });
+            } else if (HT.copyToClipboard) {
+              HT.copyToClipboard(url);
+              if (HT.toast) HT.toast('Challenge link copied');
+            }
+          } catch (_) {}
+        });
+      } else {
+        // No challenge module — hide the button so tab-order skips it.
+        challengeBtn.setAttribute('hidden', '');
+        challengeBtn.setAttribute('aria-hidden', 'true');
+      }
+    }
+
+    // Mark the card as wired so re-renders don't double-bind.
+    try { card.setAttribute('data-wired', '1'); } catch (_) {}
+  }
+
   var publicApi = Object.freeze({
     render: render,
     shareUrl: shareUrl,
     copyText: copyText,
     imageSnapshot: imageSnapshot,
+    wireActions: wireActions,
   });
 
   // ---- AD-14 freeze (writable:false, configurable:false) ---------

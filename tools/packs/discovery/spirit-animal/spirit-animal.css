@@ -103,13 +103,6 @@
   font-style: italic;
 }
 
-/* Actions row. */
-.disc-actions {
-  display: flex;
-  justify-content: center;
-  gap: var(--space-2, 0.5rem);
-}
-
 /* Print rules — reveal only. */
 @media print {
   .shell-skip,

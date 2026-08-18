@@ -72,7 +72,7 @@ def node_check(label, script_path):
 
 
 def main():
-    print("DC-9 — 5 new smoke harnesses + _smoke_quiz_proxy update (6 checks)")
+    print("DC-9 — 6 smoke harnesses + _smoke_quiz_proxy update (6 checks)")
 
     smokes = [
         ("scripts/_smoke_scoring.js", "scripts/_smoke_scoring.js exists, parses as JS, exits 0 via node"),
@@ -80,6 +80,8 @@ def main():
         ("scripts/_smoke_challenge.js", "scripts/_smoke_challenge.js exists, parses as JS, exits 0 via node"),
         ("scripts/_smoke_recommend.js", "scripts/_smoke_recommend.js exists, parses as JS, exits 0 via node"),
         ("scripts/_smoke_discovery_pack.js", "scripts/_smoke_discovery_pack.js exists, parses as JS, exits 0 via node"),
+        ("scripts/_smoke_challenge_receiver.js", "scripts/_smoke_challenge_receiver.js exists, parses as JS, exits 0 via node (Story 10.12)"),
+        ("scripts/_smoke_discovery_result.js", "scripts/_smoke_discovery_result.js exists, parses as JS, exits 0 via node (Story 10.10 close)"),
     ]
     for path, label in smokes:
         node_check(label, path)

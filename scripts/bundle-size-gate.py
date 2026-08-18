@@ -270,9 +270,10 @@ SPEC_PAGE_CONDITIONAL_MODULES = [
     "assets/js/catalog.js",
     "assets/js/packs/discovery-loader.js",
     "assets/js/disc-page.js",
-    "assets/js/discover-lane.js",
+    "assets/js/challenge-receiver.js",
     "assets/css/result-card.css",
     "assets/css/discovery.css",
+    "assets/css/compatibility-card.css",
 ]
 
 # Story x-3 baseline — measured 2026-08-15 against the post-home-

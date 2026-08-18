@@ -323,7 +323,6 @@ def build_pack_page(root: Path, pack: dict) -> str:
         + f"  {inline_tools_json}\n"
         + f'  {INLINE_CLOSE}\n'
         + "\n"
-        + '  <script src="../assets/js/shell.js" defer></script>\n'
         + '  <script src="../assets/js/ht-lazy.js"></script>\n'
         + '  <script src="../assets/js/shell-thin.js" defer></script>\n'
         + '  <script src="../assets/js/search.js" defer></script>\n'
@@ -369,8 +368,11 @@ def render_body_discovery(pack: dict) -> str:
     """Story 10.9 — Discovery pack-page body. Mirrors render_body's
     pack-page-header skeleton (so disc-page.js can fill the same
     #pack-page-title / #pack-page-tagline / #pack-page-count slots)
-    but swaps the tools section for a discovery-pack-grid mounted
-    by assets/js/disc-page.js into #pack-page-discovery-host."""
+    but swaps the tools section for the regular .tool-grid mounted
+    by assets/js/disc-page.js into #pack-page-discovery-host. The
+    Discovery quiz cards share the .tool-card chrome with every other
+    pack — only the icon glyph differs (the entry's emoji rather than
+    a stroke icon)."""
     return (
         '    <header class="pack-page-header" data-pack-slug="'
         + pack["slug"]
@@ -386,7 +388,7 @@ def render_body_discovery(pack: dict) -> str:
         "    </header>\n"
         "\n"
         '    <section class="pack-page-discovery-section" id="pack-page-discovery-section">\n'
-        '      <div class="discovery-pack-grid" id="pack-page-discovery-host" data-mounted="false"></div>\n'
+        '      <div class="tool-grid" id="pack-page-discovery-host" data-mounted="false"></div>\n'
         "    </section>\n"
     )
 

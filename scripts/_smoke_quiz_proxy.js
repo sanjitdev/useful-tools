@@ -394,6 +394,86 @@ console.log('--- VII. home-page scenario (regression guard) ---');
 }
 
 // =============================================================
+// VIII. DC-9 — 5 new Discovery API Proxy-loads
+//
+// The Discovery pack epic (DC-1..DC-5) introduced five new Shell
+// Public API namespaces — HT.scoring, HT.results, HT.challenge,
+// HT.recommend, HT.catalog — all wired through shell-thin.js's
+// makeProxy factory with the same Proxy-stub pattern as HT.quiz.
+// This section asserts each of the 5 namespaces:
+//   (a) is exposed on HT.
+//   (b) is callable for every property access (Proxy factory default).
+//   (c) fires lazyLoad on first call to its public method, pointing
+//       at the correct TIER2_URLS entry (assets/js/<name>.js).
+//   (d) shell-thin.js does NOT eagerly import any of the 5 modules —
+//       the file lives on disk, but the Proxy only lazy-loads it on
+//       first property access, mirroring the Story 4c quiz posture.
+//
+// Mirrors the regression-protection scope of dc-9-smokes.py
+// (Story 10.15) and stays in this file so the smoke harness covers
+// both the quiz lazy-load AND the Discovery pack lazy-load paths.
+// =============================================================
+console.log('--- VIII. 5 new Discovery API Proxy-loads (DC-9 / Story 10.15) ---');
+{
+  // Maps API namespace -> (TIER2_URLS key, default public method name).
+  // The 5 proxies are wired in shell-thin.js lines 412..436.
+  const apis = [
+    ['scoring',   'score'],
+    ['results',   'render'],
+    ['challenge', 'link'],
+    ['recommend', 'match'],
+    ['catalog',   'list'],
+  ];
+  // Each proxy expects to be called like HT.<ns>.<method>(...). The
+  // factory returns a function for any prop access, so we can pass
+  // an arbitrary payload here; the stub isn't required to resolve
+  // successfully — only the lazy-load side effect matters.
+  function callAll(ctx, ns) {
+    if (ns === 'scoring')   return ctx.HT.scoring.score({ q1: 'a' }, { traits: ['t'] });
+    if (ns === 'results')   return ctx.HT.results.render({ archetype: { id: 'x' } }, {});
+    if (ns === 'challenge') return ctx.HT.challenge.link({ slug: 's', self: {} });
+    if (ns === 'recommend') return ctx.HT.recommend.match({}, 'car');
+    if (ns === 'catalog')   return ctx.HT.catalog.list();
+  }
+
+  for (let i = 0; i < apis.length; i++) {
+    const ns = apis[i][0];
+    const ctx = buildCtx();
+    loadInto(ctx, SHELL_THIN_SRC, 'shell-thin.js (for ' + ns + ')');
+
+    check(!!ctx.HT[ns], 'HT.' + ns + ' is exposed by shell-thin.js');
+    check(typeof ctx.HT[ns].anyProp === 'function',
+      'HT.' + ns + '.<prop> is callable (Proxy factory returns function for any key)');
+    check(ctx.HT._lazyLog.js.length === 0,
+      'no lazy-load fired before HT.' + ns + '.<method>() called');
+
+    callAll(ctx, ns);
+
+    const expected = 'assets/js/' + ns + '.js';
+    const fired = ctx.HT._lazyLog.js.filter(function (u) { return u === expected; });
+    check(fired.length >= 1,
+      'HT.lazyLoad("' + expected + '") fired on first HT.' + ns + '.<method>() call (got ' + fired.length + ' hits)');
+  }
+
+  // Standalone guard: the 5 modules are NOT eagerly loaded at boot —
+  // a regression would surface as a top-level fetch / dynamic import
+  // in shell-thin.js. We grep the source instead of running another
+  // vm sandbox (cleaner + faster).
+  for (let i = 0; i < apis.length; i++) {
+    const ns = apis[i][0];
+    // Look for a declaration like `HT.<ns> = makeProxy(...)` — the
+    // proxy is wired lazily. A FETCH or IMPORT at top-level would
+    // indicate eager loading.
+    const eagerImport = new RegExp('fetch\\([^)]*"assets/js/' + ns + '\\.js"', 'i');
+    const eagerDynamic = new RegExp('import\\([^)]*"assets/js/' + ns + '\\.js"', 'i');
+    check(!eagerImport.test(SHELL_THIN_SRC),
+      'shell-thin.js does NOT eagerly fetch "assets/js/' + ns + '.js"');
+    check(!eagerDynamic.test(SHELL_THIN_SRC),
+      'shell-thin.js does NOT dynamic-import "assets/js/' + ns + '.js"');
+  }
+}
+
+// =============================================================
 // Vacuous-pass guard
 // =============================================================
 if (pass === 0 && fail === 0) {

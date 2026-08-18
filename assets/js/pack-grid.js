@@ -78,6 +78,13 @@
       title: 'Fun',
       description: 'For breaks, decisions, and color.',
       icon: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l2.4 5.6L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.6-1.4z"/></svg>'
+    },
+    {
+      slug: 'discovery',
+      title: 'Discover Me',
+      description: 'Six hand-written personality and recommendation quizzes — find your archetype.',
+      href: '/packs/disc.html',
+      icon: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'
     }
   ];
 
@@ -142,10 +149,14 @@
     });
   }
 
-  function groupByPack(entries) {
+  function groupByPack(data) {
     // Preserves PACK_DEFINITIONS order (travel, finance, study, developer,
-    // household). A pack is rendered iff at least one ready tool lists it.
+    // household, fun, disc). A pack is rendered iff at least one ready
+    // tool lists it (tools[].pack[]), OR it has entries under
+    // `packs.<slug>.entries[]` (the latter is how Discovery is shipped
+    // — see tools.json → packs.discovery.entries[]).
     const toolsByPack = Object.create(null);
+    const entries = (data && Array.isArray(data.tools)) ? data.tools : [];
     for (let i = 0; i < entries.length; i += 1) {
       const entry = entries[i];
       if (!isValidEntry(entry) || entry.ready !== true) continue;
@@ -153,6 +164,25 @@
         const slug = entry.pack[j];
         if (!toolsByPack[slug]) toolsByPack[slug] = [];
         toolsByPack[slug].push({ slug: entry.slug, title: entry.title });
+      }
+    }
+    // Also pick up packs whose entries live in the `packs.<slug>.entries[]`
+    // location. Adds to toolsByPack only when entries.length > 0, so it
+    // doesn't shadow the existing tools[].pack[] path for travel / finance
+    // / etc.
+    const packsContainer = (data && data.packs) || {};
+    for (const packSlug in packsContainer) {
+      const packData = packsContainer[packSlug];
+      if (!packData || !Array.isArray(packData.entries)) continue;
+      if (packData.entries.length === 0) continue;
+      if (!toolsByPack[packSlug]) toolsByPack[packSlug] = [];
+      for (let i = 0; i < packData.entries.length; i += 1) {
+        const entry = packData.entries[i];
+        if (!entry || typeof entry !== 'object') continue;
+        if (typeof entry.slug !== 'string' || entry.slug.length === 0) continue;
+        if (typeof entry.title !== 'string' || entry.title.length === 0) continue;
+        if (entry.ready === false) continue;
+        toolsByPack[packSlug].push({ slug: entry.slug, title: entry.title });
       }
     }
     const out = [];
@@ -165,6 +195,7 @@
         title: def.title,
         description: def.description,
         icon: def.icon,
+        href: def.href || null,
         toolCount: tools.length,
         tools: tools
       });
@@ -182,10 +213,14 @@
 
   function buildPackCard(pack) {
     const labelSuffix = pack.toolCount === 1 ? ' tool' : ' tools';
+    // Allow PACK_DEFINITIONS to override the href (used by the
+    // Discovery pack, whose page lives at /packs/disc.html while
+    // the JSON slug is "discovery"). Default: `/packs/<slug>.html`.
+    const href = pack.href || ('/packs/' + pack.slug + '.html');
     return (
-      '<a class="pack-card" href="/packs/' +
-      escapeAttr(pack.slug) +
-      '.html" data-pack-slug="' +
+      '<a class="pack-card" href="' +
+      escapeAttr(href) +
+      '" data-pack-slug="' +
       escapeAttr(pack.slug) +
       '" data-pack-count="' +
       String(pack.toolCount) +
@@ -223,7 +258,7 @@
       return;
     }
 
-    const packs = groupByPack(data.tools);
+    const packs = groupByPack(data);
     if (packs.length === 0) {
       section.setAttribute('hidden', '');
       host.setAttribute('data-mounted', 'false');
@@ -253,7 +288,7 @@
     if (isEmbedMode()) return Promise.resolve(null);
     return loadTools().then(function (data) {
       if (data && Array.isArray(data.tools)) {
-        livePacks = groupByPack(data.tools);
+        livePacks = groupByPack(data);
       } else {
         livePacks = null;
       }

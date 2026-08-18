@@ -590,6 +590,40 @@ try { share.print('Invalid'); } catch (_) { /* expected */ }
 check('HT.share.print: throws on invalid slug',
   (function () { try { share.print('Invalid'); return false; } catch (e) { return true; } })());
 
+// === HT.share.copy (Story 10.11 — Promise-returning clipboard helper) ===
+// Synchronously check the synchronously-observable surface:
+//   1. Is a function.
+//   2. Returns a Promise on success path (when HT.copyToClipboard is
+//      available and inputs are valid).
+//   3. Returns a Promise on challenge-link path.
+//   4. Returns a Promise on missing-arg path (rejected).
+// The promise resolution values are not asserted here — that would
+// require microtask flushing. The .then/.catch resolution contract
+// is independently verified by the unit tests in scripts/_check_share_copy.js.
+
+check('HT.share.copy: exists as function',
+  typeof share.copy === 'function');
+
+// Stub HT.copyToClipboard for these synchronous assertions.
+const realCopyToClipboard = ctx.HT.copyToClipboard;
+let lastCopyText = null;
+ctx.HT.copyToClipboard = function (text) { lastCopyText = text; return Promise.resolve(); };
+
+const p1 = share.copy({ archetype: 'fox' }, { slug: 'spirit-animal' });
+check('HT.share.copy: success-path returns a thenable',
+  p1 && typeof p1.then === 'function');
+
+const p2 = share.copy({}, { shareUrl: 'https://example.com/c?b=xyz' });
+check('HT.share.copy: challenge-link-path returns a thenable',
+  p2 && typeof p2.then === 'function');
+
+const p3 = share.copy({}, {});
+check('HT.share.copy: missing-arg-path returns a thenable (rejected)',
+  p3 && typeof p3.then === 'function');
+
+// Restore real HT.copyToClipboard.
+ctx.HT.copyToClipboard = realCopyToClipboard;
+
 // === Button factory (3 assertions) ===
 
 const btn = share.button(slugEmbed, { variant: 'icon' });
@@ -626,6 +660,7 @@ const requiredEntries = [
   'HT.share.hasShare',
   'HT.share.mount',
   'HT.share.print',
+  'HT.share.copy',
   'HT.share._loadSchema',
 ];
 let allEntriesFound = true;
@@ -635,10 +670,10 @@ for (const name of requiredEntries) {
     console.log('  missing contract entry: ' + name);
   }
 }
-check('api-contract.js: all 10 HT.share.* entries registered (9 stable + 1 internal)',
+check('api-contract.js: all 11 HT.share.* entries registered (10 stable + 1 internal — Story 10.11 adds HT.share.copy)',
   allEntriesFound);
-check('api-contract.js: version bumped to 1.23.0 (Story 1.11 follow-up bumped 1.22.0 → 1.23.0 for the 11 utils.js helpers promoted to HT.*; Story 3.12 + 3.11 — HT.recent + HT.pins + HT.homeSidebar + HT.viewSource + HT.highlight + HT.zipStore added; Story 3.7 + 3.8 — HT.export + HT.import added; Story 3.6 — history panel shape migration + cap 50; Story 3.3 superseded)',
-  /version:\s*['"]1\.23\.0['"]/.test(CONTRACT_SRC));
+check('api-contract.js: version bumped to 1.28.0 (Story 10.11 — HT.share.copy added for the Discovery result card wireActions flow; bumps 1.27.0 → 1.28.0)',
+  /version:\s*['"]1\.28\.0['"]/.test(CONTRACT_SRC));
 
 // === Vacuous-pass guard ===
 

@@ -86,12 +86,6 @@
 }
 .disc-blind-spot-body { margin: 0; font-style: italic; }
 
-.disc-actions {
-  display: flex;
-  justify-content: center;
-  gap: var(--space-2, 0.5rem);
-}
-
 @media print {
   .shell-skip, .site-header, .shell-footer, .tool-header, .tool-subtitle,
   .quiz-header, .quiz-footer { display: none !important; }

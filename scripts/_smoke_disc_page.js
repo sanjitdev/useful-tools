@@ -159,12 +159,12 @@ function buildCtx(inlineEntries) {
 // Run the renderer IIFE in the sandbox with 6 valid entries.
 // =============================================================
 const fixture = [
-  { slug: 'spirit-animal', title: 'Spirit Animal', emoji: '🦊', category: 'viral', data: 'tools/packs/discovery/spirit-animal/data.json', modules: [{ kind: 'scoring' }] },
-  { slug: 'future-partner', title: 'Future Partner', emoji: '💞', category: 'viral', data: 'tools/packs/discovery/future-partner/data.json', modules: [{ kind: 'scoring' }] },
-  { slug: 'what-would-you-do', title: 'What Would You Do?', emoji: '🤔', category: 'viral', data: 'tools/packs/discovery/what-would-you-do/data.json', modules: [{ kind: 'scoring' }] },
-  { slug: 'decision-style', title: 'Decision Style', emoji: '🎯', category: 'viral', data: 'tools/packs/discovery/decision-style/data.json', modules: [{ kind: 'scoring' }] },
-  { slug: 'friend-match', title: 'Friend Match', emoji: '�', category: 'viral', data: 'tools/packs/discovery/friend-match/data.json', modules: [{ kind: 'scoring' }] },
-  { slug: 'car-finder', title: 'Car Finder', emoji: '🚗', category: 'utility', data: 'tools/packs/discovery/car-finder/data.json', modules: [{ kind: 'catalog' }] },
+  { slug: 'spirit-animal', title: 'Spirit Animal', description: 'Eight questions reveal which animal archetype fits.', emoji: '🦊', category: 'viral', data: 'tools/packs/discovery/spirit-animal/data.json', modules: [{ kind: 'scoring' }] },
+  { slug: 'future-partner', title: 'Future Partner', description: 'Ten questions reveal the partner archetype that fits.', emoji: '💞', category: 'viral', data: 'tools/packs/discovery/future-partner/data.json', modules: [{ kind: 'scoring' }] },
+  { slug: 'what-would-you-do', title: 'What Would You Do?', description: 'Moral dilemmas reveal your decision style.', emoji: '🤔', category: 'viral', data: 'tools/packs/discovery/what-would-you-do/data.json', modules: [{ kind: 'scoring' }] },
+  { slug: 'decision-style', title: 'Decision Style', description: 'How you decide under pressure.', emoji: '🎯', category: 'viral', data: 'tools/packs/discovery/decision-style/data.json', modules: [{ kind: 'scoring' }] },
+  { slug: 'friend-match', title: 'Friend Match', description: 'Which friend role suits you.', emoji: '👯', category: 'viral', data: 'tools/packs/discovery/friend-match/data.json', modules: [{ kind: 'scoring' }] },
+  { slug: 'car-finder', title: 'Car Finder', description: 'Which car archetype matches your life.', emoji: '🚗', category: 'utility', data: 'tools/packs/discovery/car-finder/data.json', modules: [{ kind: 'catalog' }] },
 ];
 const built = buildCtx(fixture);
 const ctx = built.ctx;
@@ -193,15 +193,26 @@ check(Object.isFrozen(ctx.HT.discPage),
 // 5. render() resolves after mounting (Promise resolves inline since
 //    loadTools() resolves via the inline block).
 ctx.HT.discPage.render().then(function () {
-  // 6. The mounted host carries the canonical discovery-pack-card markup.
+  // 6. The mounted host carries the canonical .tool-card markup
+//    (Discovery cards share the same chrome as every other tool).
   const html = built.mountedHost.innerHTML;
-  check(html.indexOf('discovery-pack-card') !== -1,
-        'mounted host contains discovery-pack-card class');
+  check(html.indexOf('class="tool-card"') !== -1,
+        'mounted host contains tool-card class (Discovery cards match regular tool chrome)');
 
   // 7. Exactly 6 cards (one per fixture entry).
-  const cardCount = (html.match(/class="discovery-pack-card"/g) || []).length;
+  const cardCount = (html.match(/class="tool-card"/g) || []).length;
   check(cardCount === 6,
-        'mounted host has exactly 6 discovery-pack-card nodes (got ' + cardCount + ')');
+        'mounted host has exactly 6 tool-card nodes (got ' + cardCount + ')');
+
+  // 7b. Each card uses the emoji glyph as its icon (.tool-card-icon--emoji).
+  const emojiIcons = (html.match(/tool-card-icon--emoji/g) || []).length;
+  check(emojiIcons === 6,
+        'each card has a .tool-card-icon--emoji glyph (got ' + emojiIcons + ')');
+
+  // 7c. Each card has the .tool-card-desc slot populated (entry.description).
+  const descSlots = (html.match(/class="tool-card-desc"/g) || []).length;
+  check(descSlots === 6,
+        'each card has a .tool-card-desc description (got ' + descSlots + ')');
 
   // 8. Each slug appears as data-quiz-slug.
   const expectedSlugs = ['spirit-animal', 'future-partner', 'what-would-you-do', 'decision-style', 'friend-match', 'car-finder'];
@@ -211,13 +222,13 @@ ctx.HT.discPage.render().then(function () {
   check(allSlugsPresent,
         'every fixture slug is rendered as a data-quiz-slug attribute');
 
-  // 9. Each card link points at /packs/discovery/<slug>/index.html
-  //    (relative from the depth-1 page).
+  // 9. Each card link points at /tools/packs/discovery/<slug>/index.html
+  //    (relative from the depth-1 packs/disc.html page).
   const linkOk = expectedSlugs.every(function (s) {
-    return html.indexOf('href="./discovery/' + s + '/index.html"') !== -1;
+    return html.indexOf('href="../tools/packs/discovery/' + s + '/index.html"') !== -1;
   });
   check(linkOk,
-        'every card href is ./discovery/<slug>/index.html');
+        'every card href is ../tools/packs/discovery/<slug>/index.html');
 
   // 10. fetch is the PRIMARY read path; the inline block is the fallback
   //     when fetch fails (file:// CORS in Story 1.9). The assertion

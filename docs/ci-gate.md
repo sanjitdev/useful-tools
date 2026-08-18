@@ -179,6 +179,65 @@ The doc is checked into the repo alongside `tools.schema.json` and
 `docs/quality-rubric.md` so the three sources of truth cannot drift
 in version control.
 
+## Pack Gate
+
+The Discovery Engine (Epic 10) ships a sibling content pack whose
+entries live at `tools.json → packs.discovery.entries[]` instead of
+under the `tools[]` array. The Pack Gate (`scripts/pack-gate.py`) is
+the standalone application-layer enforcement of the Discovery Pack
+contract — Story 10.18 / DC-10 AC.
+
+The gate walks every entry in `packs.discovery.entries[]` and applies
+the contract truth table:
+
+| Check | Outcome |
+|---|---|
+| `slug` matches `^[a-z][a-z0-9-]*[a-z0-9]$` | required |
+| `title` is a non-empty string | required |
+| `category` is one of `viral` or `utility` | required |
+| `data` path is rooted at `./tools/packs/discovery/<slug>/data.json` | required |
+| `modules[]` declares `scoring` + `results` | required |
+| `modules[]` declares `catalog` (utility category only) | required |
+| `questions[]` length 3..30 (read from on-disk `data.json`) | required |
+
+### Exit codes
+
+| Code | Meaning |
+|---|---|
+| 0 | Every entry in `packs.discovery.entries[]` satisfies the contract. |
+| 1 | At least one entry violates the contract. |
+| 2 | `tools.json` is missing or unparseable. |
+
+### Local reproduction
+
+```bash
+# Run the gate against the current tools.json:
+make pack-gate
+
+# Print the gate's contract one-liner:
+make pack-gate-list
+
+# Or invoke directly with an alternate tools.json:
+python scripts/pack-gate.py --tools-json /path/to/tools.json
+```
+
+### Synthesizing a violation
+
+To verify the gate locally, build a synthetic `tools.json` whose
+`packs.discovery.entries[]` contains one bad entry (e.g., uppercase
+slug, missing `title`, wrong `category`, empty `modules[]`). Running
+`python scripts/pack-gate.py --tools-json <bad>` exits 1 with a
+"FAIL" row in the Markdown report. Restore the file when done; the
+seed file's clean Discovery entries produce exit 0 and are the only
+path checked into the repo.
+
+### See also
+
+- Story 10.18 / DC-10 — `_bmad-output/implementation-artifacts/epic-discovery-shipped.md`
+- Pack authoring guide — `docs/discovery-platform.md`
+- Companion script — `scripts/pack-gate.py`
+- GitHub Actions workflow — `.github/workflows/pack-gate.yml`
+
 ## See also
 
 - PRD §4.1 FR-2 (Tool Contract Gate) — `_bmad-output/planning-artifacts/prds/prd-useful-tools-2026-07-31/prd.md`

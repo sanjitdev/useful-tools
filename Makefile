@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy check-pack-composition disc-pii-lint disc-immutability-lint es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke script-load-order uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke budget-planner-smoke savings-goal-smoke currency-converter-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke dc-0-schema dc-1-scoring dc-2-results dc-3-challenge dc-4-recommend dc-5-loader dc-6-quizzes dc-7-tools-json dc-8-docs dc-9-smokes dc-10-pack-gate dc-11-bundle dc-12-lints dc-12-retro dc-all
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list pack-gate pack-gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy check-pack-composition disc-pii-lint disc-immutability-lint es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke script-load-order uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke budget-planner-smoke savings-goal-smoke currency-converter-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke dc-0-schema dc-1-scoring dc-2-results dc-3-challenge dc-4-recommend dc-5-loader dc-6-quizzes dc-7-tools-json dc-8-docs dc-9-smokes dc-10-pack-gate dc-11-bundle dc-12-lints dc-12-retro dc-all
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -25,6 +25,8 @@ help: ## Show available targets
 	@echo "  make rubric-all          Print a summary table for every tools.json entry"
 	@echo "  make gate                Enforce the Tool Contract gate (AD-2) on tools.json"
 	@echo "  make gate-list           Print the gate's contract one-liner"
+	@echo "  make pack-gate           Enforce the Discovery Pack contract (Story 10.18 / DC-10) on tools.json packs.discovery.entries[]"
+	@echo "  make pack-gate-list      Print the pack gate's contract one-liner"
 	@echo "  make shell-drift         Verify every page's chrome matches assets/shell/chrome.html"
 	@echo "  make shell-a11y          Verify <main aria-label> + cobalt tokens in base.css"
 	@echo "  make measure-fouc        Best-effort 50ms no-FOUC check on index.html"
@@ -135,6 +137,19 @@ gate:
 # touching the repo. Useful as a quick reference in the shell.
 gate-list:
 	@$(PYTHON) scripts/tool-contract-gate.py --list
+
+# `pack-gate` applies the Discovery Pack contract (Story 10.18 / DC-10)
+# to every entry in tools.json → packs.discovery.entries[]. Exit 0 = all
+# entries pass; 1 = at least one entry violates the contract; 2 = tools.json
+# missing or unparseable. See docs/ci-gate.md §8 (Pack Gate) for the
+# full contract.
+pack-gate:
+	@$(PYTHON) scripts/pack-gate.py
+
+# `pack-gate-list` prints the pack gate's contract one-liner without
+# touching the repo. Useful as a quick reference in the shell.
+pack-gate-list:
+	@$(PYTHON) scripts/pack-gate.py --list
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.

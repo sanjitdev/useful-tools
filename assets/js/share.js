@@ -1,12 +1,15 @@
 /* ============================================
-   Handy Tools — share.js (Story 2.5)
+   Handy Tools — share.js (Story 2.5 + Story 10.11)
    Per-Tool Share Dialog with URL + Print + Embed.
    The Shell exposes `HT.share` so every Tool can
    present the canonical URL, a print-friendly
    view, and an <iframe> embed snippet — no
-   per-tool implementation drift. Composes on
-   HT.copyToClipboard (utils.js) + HT.toast +
-   HT.homeGrid.entries (splice). ES2018.
+   per-tool implementation drift. Story 10.11
+   adds HT.share.copy(state, opts) — Promise-
+   returning copy helper consumed by the Discovery
+   result card's wireActions (results.js). AD-14
+   frozen; composed only on HT.copyToClipboard
+   (utils.js) + HT.toast. ES2018.
    ============================================ */
 
 (function () {
@@ -466,6 +469,64 @@
   }
 
   // -------------------------------------------------------------
+  // HT.share.copy(state, opts) — Promise-returning clipboard
+  // helper consumed by Story 10.10's wireActions (results.js).
+  // Resolves with the copied text on success, rejects on
+  // clipboard failure. The two callers are:
+  //   1. Share button — opts.shareUrl omitted; build canonical
+  //      URL from state.archetype + opts.slug.
+  //   2. Challenge button — opts.shareUrl already supplied
+  //      (HT.challenge.link output); copy verbatim.
+  // AD-14: pure delegation to HT.copyToClipboard; no DOM/state
+  // mutation outside the existing copy machinery.
+  // -------------------------------------------------------------
+
+  function copy(state, opts) {
+    opts = opts || {};
+    var text;
+    if (opts.shareUrl) {
+      // Challenge-link path — caller already built the URL.
+      text = String(opts.shareUrl);
+    } else if (state && typeof state.shareUrl === 'string') {
+      text = state.shareUrl;
+    } else {
+      // Fallback: build canonical share URL from opts.slug +
+      // state.archetype using the same shape HT.results.shareUrl
+      // exposes. We don't import results.js (it would loop) — we
+      // compose the path ourselves.
+      var s = (opts && opts.slug) ? String(opts.slug) : '';
+      var a = (state && state.archetype) ? String(state.archetype) : '';
+      if (!s || !a) {
+        return Promise.reject(new Error('share.copy: missing slug or archetype'));
+      }
+      // window.location may be absent in unit-test sandboxes; guard.
+      var origin = (typeof window !== 'undefined' && window.location && window.location.origin)
+        ? window.location.origin : '';
+      var basePath = (typeof window !== 'undefined' && window.location && window.location.pathname)
+        ? window.location.pathname.replace(/[^/]*$/, '')
+        : '/';
+      text = origin + basePath + 'discovery/' + encodeURIComponent(s) +
+             '/?archetype=' + encodeURIComponent(a);
+    }
+    if (!HT.copyToClipboard) {
+      return Promise.reject(new Error('share.copy: HT.copyToClipboard unavailable'));
+    }
+    try {
+      // HT.copyToClipboard returns a Promise<void> (already toasts on
+      // success/failure). Flatten to a Promise<string> with the copied
+      // text so wireActions' .then(onFulfilled, onRejected) wiring
+      // continues to work.
+      var result = HT.copyToClipboard(text);
+      if (result && typeof result.then === 'function') {
+        return result.then(function () { return text; });
+      }
+      return Promise.resolve(text);
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
+
+  // -------------------------------------------------------------
   // Public surface — frozen per AD-14.
   // -------------------------------------------------------------
 
@@ -478,12 +539,13 @@
   Object.freeze(button);
   Object.freeze(mount);
   Object.freeze(print);
+  Object.freeze(copy);
   Object.freeze(_loadSchema);
 
   Object.defineProperties(HT, {
     share: {
       value: Object.freeze({
-        version: '1.8.0',
+        version: '1.9.0',
         url: url,
         embedCode: embedCode,
         hasShare: hasShare,
@@ -493,6 +555,7 @@
         button: button,
         mount: mount,
         print: print,
+        copy: copy,
         // Internal:
         _loadSchema: _loadSchema,
       }),

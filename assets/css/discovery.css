@@ -2,9 +2,13 @@
    Handy Tools — assets/css/discovery.css
    Story 10.6 (DC-5) — Discovery Pack chrome.
 
-   Defines the .discovery-pack-grid + .discovery-pack-card
-   classes used by the /packs/disc route (Story 10.9) and
-   by the "Discover Me" lane on the home grid (Story 10.8).
+   The /packs/disc route (Story 10.9) renders quiz cards using
+   the same `.tool-card` chrome as every other tool (defined in
+   components-core.css) — this stylesheet only carries the small
+   tweak needed to render the emoji glyph in place of the
+   regular SVG icon. Discovery quiz cards link to per-quiz
+   routes under /tools/packs/discovery/<slug>/index.html.
+
    Honors prefers-reduced-motion at the CSS layer
    (Story 10.14 H1) — all transitions collapse to instant
    when the user has the system preference set.
@@ -17,110 +21,49 @@
    table — Story x-3 / bundle-size-gate).
    ============================================ */
 
-/* The Discover Me lane renders as a single-row scroll on
-   desktop, 2-column grid on tablet, 1-column stack on mobile.
-   See EXPERIENCE.md §"Discover Me lane" for breakpoint rules. */
-.discovery-pack-grid {
-  display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 1rem;
-  margin: 1.5rem 0;
-  padding: 0;
-  list-style: none;
-}
-
-@media (min-width: 720px) {
-  .discovery-pack-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1080px) {
-  .discovery-pack-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-/* Card chrome: inherits the visual primitives from
-   .tool-card (components-core.css) but with a discovery-
-   specific emoji-first layout. Border + shadow match the
-   master 8/10 rubric (rubric-lint.py #5). */
-.discovery-pack-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--color-border, currentColor);
-  border-radius: 8px;
-  background: var(--color-surface, transparent);
-  text-decoration: none;
-  color: inherit;
-  transition: transform 120ms ease, box-shadow 120ms ease;
-}
-
-.discovery-pack-card:hover,
-.discovery-pack-card:focus-visible {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
-  outline: none;
-}
-
-.discovery-pack-card .emoji {
-  font-size: 48px;
+/* Discovery quiz card uses a brand glyph (emoji) instead of
+   the SVG stroke-icon every other tool uses. Override the
+   .tool-card-icon size + font so the emoji sits centred in
+   the 48×48 swatch and matches the visual weight of the
+   other icon SVGs. */
+.tool-card-icon--emoji {
+  font-size: 32px;
   line-height: 1;
 }
 
-.discovery-pack-card .title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.discovery-pack-card .badge {
-  display: inline-block;
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  border: 1px solid currentColor;
-  width: max-content;
-  opacity: 0.85;
+.tool-card:hover .tool-card-icon--emoji {
+  transform: scale(1.08);
 }
 
 /* Reduced-motion contract: drop the hover lift + shadow
    transition so the card responds instantly (no animation). */
 @media (prefers-reduced-motion: reduce) {
-  .discovery-pack-grid,
-  .discovery-pack-card {
+  .tool-card {
     transition: none !important;
   }
-  .discovery-pack-card:hover,
-  .discovery-pack-card:focus-visible {
+  .tool-card:hover {
     transform: none;
-    box-shadow: none;
+    box-shadow: var(--shadow-sm);
   }
 }
 
 /* Forced-colors (Windows High Contrast / forced-colors mode):
    keep the card chrome readable via system colors so the
-   border + text don't disappear (rubric #9 + Story 10.14 H1). */
+   border + text don't disappear (rubric #9 + Story 10.14 H1).
+   The base .tool-card rule in components-core.css already
+   uses color tokens; this rule guards the emoji swatch. */
 @media (forced-colors: active) {
-  .discovery-pack-card {
-    border-color: CanvasText;
+  .tool-card-icon--emoji {
     background: Canvas;
-    color: CanvasText;
-  }
-  .discovery-pack-card .badge {
-    border-color: CanvasText;
     color: CanvasText;
   }
 }
 
-/* Print: strip the lane (the user prints individual quiz
-   pages, not the lane). Mirrors the existing tool-card
-   print rule in print.css. */
+/* Print: quiz cards are skipped on print (the user prints
+   individual quiz pages, not the pack index). Mirrors the
+   existing tool-card print rule in print.css. */
 @media print {
-  .discovery-pack-grid,
-  .discovery-pack-card {
+  .pack-page-discovery-section {
     display: none !important;
   }
 }

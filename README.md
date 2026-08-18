@@ -111,6 +111,21 @@ visible error if the drift or a11y gates fail after regeneration. The
 hook is portable across macOS/Linux/Git-Bash-on-Windows (no Node
 required). See `scripts/hooks/README.md` for details.
 
+## Discovery Platform
+
+The "Discover Me" lane on the home grid and the `/packs/disc.html`
+pack page route you to the 6 hand-written personality and
+recommendation quizzes — spirit-animal, future-partner,
+what-would-you-do, decision-style, friend-match, car-finder. Each
+quiz is a self-contained route under `tools/packs/discovery/<slug>/`
+and runs the same 5 Shell-side modules lazily through
+`shell-thin.js`'s `makeProxy` factory.
+
+If you're adding a new quiz or extending one of the five APIs
+(`HT.scoring`, `HT.results`, `HT.challenge`, `HT.recommend`,
+`HT.catalog`), see [docs/discovery-platform.md](docs/discovery-platform.md)
+for the authoring guide, taxonomy rules, and privacy guarantees.
+
 ## Settings & preferences
 
 The header cog opens a settings modal that controls visual preferences for

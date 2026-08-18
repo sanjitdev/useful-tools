@@ -157,18 +157,26 @@
   }
 
   // Link to the per-quiz route under /packs/discovery/<slug>/.
-  // Depth from /packs/disc.html is one — so the relative path is
-  // 'discovery/<slug>/index.html'.
+  // Disc-page lives at /packs/disc.html; quiz packs live at
+  // /tools/packs/discovery/<slug>/index.html. Relative path must
+  // climb back to / first, then descend into /tools/packs/discovery/.
+  //
+  // Renders the same .tool-card chrome as assets/js/pack-page.js so
+  // Discovery quiz cards visually match every other tool card on the
+  // site. The emoji glyph is kept (no SVG icon — quizzes have a
+  // brand glyph rather than a stroke-icon).
   function buildDiscoveryCard(entry) {
-    var href = './discovery/' + escapeAttr(entry.slug) + '/index.html';
+    var href = '../tools/packs/discovery/' + escapeAttr(entry.slug) + '/index.html';
     var emoji = typeof entry.emoji === 'string' ? entry.emoji : '';
-    var category = typeof entry.category === 'string' ? entry.category : 'viral';
+    var desc = typeof entry.description === 'string' ? entry.description : '';
     return (
-      '<a class="discovery-pack-card" href="' + href + '"' +
+      '<a class="tool-card" href="' + href + '"' +
       ' data-quiz-slug="' + escapeAttr(entry.slug) + '">' +
-      '<span class="emoji" aria-hidden="true">' + escapeAttr(emoji) + '</span>' +
-      '<span class="title">' + escapeAttr(entry.title) + '</span>' +
-      '<span class="badge">' + escapeAttr(category) + '</span>' +
+      '<span class="tool-card-icon tool-card-icon--emoji" aria-hidden="true">' +
+      escapeAttr(emoji) +
+      '</span>' +
+      '<span class="tool-card-title">' + escapeAttr(entry.title) + '</span>' +
+      '<span class="tool-card-desc">' + escapeAttr(desc) + '</span>' +
       '</a>'
     );
   }
@@ -195,9 +203,9 @@
 
     if (entries.length === 0) {
       host.innerHTML =
-        '<div class="discovery-pack-card discovery-pack-card--empty" role="note" aria-label="No quizzes in this pack yet">' +
-        '<span class="title">No quizzes yet</span>' +
-        '<span class="badge">soon</span>' +
+        '<div class="tool-card tool-card--empty" role="note" aria-label="No quizzes in this pack yet">' +
+        '<span class="tool-card-title">No quizzes yet</span>' +
+        '<span class="tool-card-desc">Check back soon — pack pages populate as quizzes reach the 8/10 quality bar.</span>' +
         '</div>';
     } else {
       host.innerHTML = entries.map(buildDiscoveryCard).join('');

@@ -79,14 +79,17 @@ def main():
         "discovery-loader.js does NOT eagerly load any of the 5 modules",
     )
 
-    # 6, 7. CSS classes
+    # 6, 7. CSS classes — Discovery cards share the canonical .tool-card
+    # chrome with every other tool, so discovery.css only owns the small
+    # emoji-icon variant (.tool-card-icon--emoji) that scales the brand
+    # glyph to fit the regular icon swatch.
     check(
-        bool(css_src) and ".discovery-pack-grid" in css_src,
-        "discovery.css contains the .discovery-pack-grid class",
+        bool(css_src) and ".tool-card-icon--emoji" in css_src,
+        "discovery.css contains the .tool-card-icon--emoji class",
     )
     check(
-        bool(css_src) and ".discovery-pack-card" in css_src,
-        "discovery.css contains the .discovery-pack-card class",
+        bool(css_src) and ".pack-page-discovery-section" in css_src,
+        "discovery.css contains the .pack-page-discovery-section print rule",
     )
 
     # 8. honors prefers-reduced-motion

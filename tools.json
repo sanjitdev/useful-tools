@@ -6992,7 +6992,7 @@
           "description": "Eight questions reveal which animal archetype fits: Fox, Wolf, Owl, Turtle, Hawk, Bear, Deer, or Dragon.",
           "category": "viral",
           "emoji": "🦊",
-          "data": "./spirit-animal/data.json",
+          "data": "./tools/packs/discovery/spirit-animal/data.json",
           "modules": [
             {
               "kind": "scoring",
@@ -7030,7 +7030,7 @@
           "description": "Ten questions reveal the partner archetype that fits: Steady Flame, Bright Spark, Steady Oak, Quiet Tide, Wild Sky, or Open Road.",
           "category": "viral",
           "emoji": "💞",
-          "data": "./future-partner/data.json",
+          "data": "./tools/packs/discovery/future-partner/data.json",
           "modules": [
             {
               "kind": "scoring",
@@ -7069,7 +7069,7 @@
           "description": "Eight ethical dilemmas reveal your instinct: Bold, Cautious, Curious, or Compassionate.",
           "category": "viral",
           "emoji": "🤔",
-          "data": "./what-would-you-do/data.json",
+          "data": "./tools/packs/discovery/what-would-you-do/data.json",
           "modules": [
             {
               "kind": "scoring",
@@ -7107,7 +7107,7 @@
           "description": "Seven questions reveal how you decide: Intuitive, Analytical, Collaborative, Spontaneous, or Deliberative.",
           "category": "viral",
           "emoji": "🧭",
-          "data": "./decision-style/data.json",
+          "data": "./tools/packs/discovery/decision-style/data.json",
           "modules": [
             {
               "kind": "scoring",
@@ -7145,7 +7145,7 @@
           "description": "Nine questions reveal your friendship archetype: Ride-or-Die, Confidant, Spark, Warm Presence, Memory Keeper, or Playmaker.",
           "category": "viral",
           "emoji": "🤝",
-          "data": "./friend-match/data.json",
+          "data": "./tools/packs/discovery/friend-match/data.json",
           "modules": [
             {
               "kind": "scoring",
@@ -7183,7 +7183,7 @@
           "description": "Twelve questions reveal the kind of car that fits how you actually drive: Commuter, Family Hauler, Road-Tripper, Eco-Conscious, Budget-First, Tech-Lover, Adventure-Ready, or Luxury-Comfort.",
           "category": "utility",
           "emoji": "🚗",
-          "data": "./car-finder/data.json",
+          "data": "./tools/packs/discovery/car-finder/data.json",
           "modules": [
             {
               "kind": "scoring",
@@ -7207,9 +7207,167 @@
               }
             },
             {
+              "kind": "catalog",
+              "config": {
+                "domain": "car"
+              }
+            },
+            {
               "kind": "challenge",
               "config": {
                 "match-scorer": "scoring-diff",
+                "expiry-days": 30,
+                "show-axis-bars": true
+              }
+            }
+          ]
+        },
+        {
+          "slug": "fortune-cookie",
+          "title": "Fortune Cookie",
+          "description": "Eight quick questions reveal your fortune-cookie voice: Classic, Zen, Rebel's, Scholar's, Heart's, or Trickster's.",
+          "category": "viral",
+          "emoji": "🥠",
+          "data": "./tools/packs/discovery/fortune-cookie/data.json",
+          "modules": [
+            {
+              "kind": "scoring",
+              "config": {
+                "trait-ids": [
+                  "warmth",
+                  "mischief",
+                  "wisdom",
+                  "surprise"
+                ],
+                "default-archetype": "classic"
+              }
+            },
+            {
+              "kind": "results",
+              "config": {
+                "variant": "archetype",
+                "trait-cap": 4,
+                "show-contrarian": true
+              }
+            },
+            {
+              "kind": "challenge",
+              "config": {
+                "match-scorer": "jaccard",
+                "expiry-days": 30,
+                "show-axis-bars": true
+              }
+            }
+          ]
+        },
+        {
+          "slug": "time-traveler-therapist",
+          "title": "Time-Traveler Therapist",
+          "description": "Ten quick questions reveal the kind of therapist you'd be across centuries: Counselor, Historian, Storyteller, Scientist, or Mystic.",
+          "category": "viral",
+          "emoji": "🛋️",
+          "data": "./tools/packs/discovery/time-traveler-therapist/data.json",
+          "modules": [
+            {
+              "kind": "scoring",
+              "config": {
+                "trait-ids": [
+                  "curiosity",
+                  "empathy",
+                  "imagination",
+                  "pragmatism"
+                ],
+                "default-archetype": "counselor"
+              }
+            },
+            {
+              "kind": "results",
+              "config": {
+                "variant": "archetype",
+                "trait-cap": 4,
+                "show-contrarian": true
+              }
+            },
+            {
+              "kind": "challenge",
+              "config": {
+                "match-scorer": "jaccard",
+                "expiry-days": 30,
+                "show-axis-bars": true
+              }
+            }
+          ]
+        },
+        {
+          "slug": "dream-job",
+          "title": "Dream Job",
+          "description": "Nine questions reveal the job archetype that fits: Artisan, Pioneer, Steward, Scholar, Diplomat, or Maverick.",
+          "category": "viral",
+          "emoji": "🛠️",
+          "data": "./tools/packs/discovery/dream-job/data.json",
+          "modules": [
+            {
+              "kind": "scoring",
+              "config": {
+                "trait-ids": [
+                  "autonomy",
+                  "craft",
+                  "impact",
+                  "stability"
+                ],
+                "default-archetype": "artisan"
+              }
+            },
+            {
+              "kind": "results",
+              "config": {
+                "variant": "archetype",
+                "trait-cap": 4,
+                "show-contrarian": true
+              }
+            },
+            {
+              "kind": "challenge",
+              "config": {
+                "match-scorer": "jaccard",
+                "expiry-days": 30,
+                "show-axis-bars": true
+              }
+            }
+          ]
+        },
+        {
+          "slug": "last-meal",
+          "title": "Last Meal",
+          "description": "Seven quick questions reveal your last-meal archetype: Grandmother's Kitchen, Quiet Sushi Counter, Loud Trattoria, Picnic Blanket, or Midnight Diner.",
+          "category": "viral",
+          "emoji": "🥣",
+          "data": "./tools/packs/discovery/last-meal/data.json",
+          "modules": [
+            {
+              "kind": "scoring",
+              "config": {
+                "trait-ids": [
+                  "simplicity",
+                  "generosity",
+                  "memory",
+                  "indulgence"
+                ],
+                "default-archetype": "grandmother"
+              }
+            },
+            {
+              "kind": "results",
+              "config": {
+                "variant": "archetype",
+                "trait-cap": 4,
+                "show-contrarian": true
+              }
+            },
+            {
+              "kind": "challenge",
+              "config": {
+                "match-scorer": "jaccard",
                 "expiry-days": 30,
                 "show-axis-bars": true
               }

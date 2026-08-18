@@ -10,8 +10,8 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.27.0',
-  generated: '2026-08-17',
+  version: '1.29.0',
+  generated: '2026-08-18',
   entries: Object.freeze([
     Object.freeze({
       name: 'HT.boot',
@@ -623,6 +623,13 @@ window.HT.__apiContract = Object.freeze({
       notes: 'Story 2.5. Convenience API for tools that want a Print affordance without the full Share dialog UI (e.g. legacy tools with a custom #print-btn). Calls window.print() directly — Shell\'s @media print block hides chrome so the tool\'s <main> prints cleanly. Allowlisted by shell-bounds-check.py so tools can use this without bypassing the bypass gate.',
     }),
     Object.freeze({
+      name: 'HT.share.copy',
+      signature: '(state: {archetype?: string, shareUrl?: string}, opts: {slug?: string, shareUrl?: string}) => Promise<string>',
+      stability: 'stable',
+      module: 'assets/js/share.js',
+      notes: 'Story 10.11. Promise-returning clipboard helper consumed by HT.results.wireActions (Discovery result card). Resolves with the copied text on success; rejects with Error when state/opts are missing required fields or HT.copyToClipboard is unavailable. When opts.shareUrl is supplied (challenge-link flow from HT.challenge.link), it is copied verbatim. Otherwise the canonical share URL is built from opts.slug + state.archetype. Composes only on HT.copyToClipboard — no direct navigator.clipboard or document access.',
+    }),
+    Object.freeze({
       name: 'HT.share._loadSchema',
       signature: '(slug: string) => {embedMinWidth: number, embedMinHeight: number, embedBadgeDefault: boolean, title: string} | null',
       stability: 'internal',
@@ -747,6 +754,13 @@ window.HT.__apiContract = Object.freeze({
       stability: 'stable',
       module: 'assets/js/catalog.js',
       notes: 'DC-4 (Discovery Pack Epic / Story 10.5) — domain catalog lookup. list() returns the canonical {car: N, bike: N} count map (>= 10 each per the DC-4 contract). lazyLoad(domain) returns the frozen entry list for a single domain. The data is bundled as JSON in assets/data/ (cars.json, bikes.json, catalog-profiles.json) — the catalog is intentionally local (no fetch, no http URLs) so the offline file:// path works the same as the GitHub Pages path. _entries + _profiles are internal handles used by HT.recommend.match; tools should call HT.recommend.match, not HT.catalog directly. Read-only (Object.defineProperty writable:false configurable:false). Page-conditional — loaded by the shell-thin Proxy factory alongside HT.recommend on first match() call. Bundle target: ≤ 4 KB gz. Smoke harness: scripts/_smoke_recommend.js.',
+    }),
+    Object.freeze({
+      name: 'HT.challengeReceiver',
+      signature: 'Readonly<{landing: (quizSlug: string, host: HTMLElement, opts?: {blob?: string, reveal?: boolean, onToggle?: (reveal: boolean) => void}) => {ok: boolean, code?: "malformed"|"spec-mismatch"|"expired"|"no-blob", message?: string, blob?: string, payload?: object, banner?: HTMLElement, slug?: string}, compareView: (quizSlug: string, selfA: Readonly<{[qid: string]: string|number}>, selfB: Readonly<{[qid: string]: string|number}>, host: HTMLElement) => void, getChallengeBlob: () => string|null, stashLocalAnswers: (quizSlug: string, answers: Readonly<{[qid: string]: string|number}>) => void, readLocalAnswers: (quizSlug: string) => Readonly<{[qid: string]: string|number}>|null}>',
+      stability: 'stable',
+      module: 'assets/js/challenge-receiver.js',
+      notes: 'Story 10.12 — receiver-side landing hook for challenge URLs. When a quiz page is loaded with `?c=<blob>` (or `#c=<blob>`), the receiver: (1) calls HT.challenge.verify() to gate on malformed/expired/spec-mismatch, (2) renders a privacy-default consent banner ("Challenge from a friend: take the quiz blind [default] | show me what they got first"), and (3) on quiz completion stashes the local answers and surfaces a CTA to the compare view. compareView() renders the 3-band compatibility card on the per-quiz compare.html route. Privacy contract: the seeder\'s archetype + blind spot are NEVER auto-shown — the receiver always lands in "blind" mode unless the user opts in. Stash/read round-trips via localStorage under the `ht.challenge.local.<slug>` key. Read-only (Object.defineProperty writable:false configurable:false). Page-conditional — loaded on quiz routes that opt into receiver flow (compare.html loads it directly). Bundle target: ≤ 2 KB gz. Smoke harness: scripts/_smoke_challenge_receiver.js.',
     }),
   ]),
 });

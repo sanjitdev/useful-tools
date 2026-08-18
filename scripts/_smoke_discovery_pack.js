@@ -142,11 +142,11 @@ const desc = Object.getOwnPropertyDescriptor(ctx.HT, 'discovery');
 check(desc && desc.writable === false && desc.configurable === false,
       'HT.discovery descriptor: writable:false, configurable:false');
 
-// 5. list() resolves to a frozen array of the 6 registered entries.
+// 5. list() resolves to a frozen array of the 10 registered entries.
 ctx.HT.discovery.list().then(function (list) {
   check(Array.isArray(list), 'list() returns an Array');
   check(Object.isFrozen(list), 'list() result is frozen');
-  check(list.length === 6, 'list() returns 6 entries (got ' + list.length + ')');
+  check(list.length === 10, 'list() returns 10 entries (got ' + list.length + ')');
 
   // 6. Each entry carries the canonical shape.
   const expectedSlugs = [
@@ -156,6 +156,11 @@ ctx.HT.discovery.list().then(function (list) {
   const slugs = list.map(function (e) { return e.slug; });
   let allPresent = expectedSlugs.every(function (s) { return slugs.indexOf(s) !== -1; });
   check(allPresent, 'list() carries all 6 expected slugs (got ' + slugs.join(',') + ')');
+  // (Story 10.7 follow-up — DC-7 4-quiz deficit closed; list() now has
+  // 10 entries. The expectedSlugs list above covers the original 6; the
+  // 4 new slugs (fortune-cookie, time-traveler-therapist, dream-job,
+  // last-meal) come from the same registration path and are not
+  // asserted by name.)
 
   let allCanonical = list.every(function (e) {
     return typeof e.slug === 'string'
@@ -222,13 +227,15 @@ ctx.HT.discovery.list().then(function (list) {
             'gzipped size of discovery-loader.js <= 2,000 bytes (got ' + gzSize + ')');
 
       // 13. assets/css/discovery.css exists + honors prefers-reduced-motion
-      //     + declares the .discovery-pack-grid + .discovery-pack-card classes.
+      //     + declares the emoji-icon variant (.tool-card-icon--emoji) used
+      //     by Discovery quiz cards (the cards themselves use the regular
+      //     .tool-card chrome shared with every other tool).
       const cssPath = path.join(REPO_ROOT, 'assets/css/discovery.css');
       const css = fs.readFileSync(cssPath, 'utf8');
-      check(css.indexOf('.discovery-pack-grid') !== -1,
-            'discovery.css declares .discovery-pack-grid');
-      check(css.indexOf('.discovery-pack-card') !== -1,
-            'discovery.css declares .discovery-pack-card');
+      check(css.indexOf('.tool-card-icon--emoji') !== -1,
+            'discovery.css declares .tool-card-icon--emoji');
+      check(css.indexOf('@media (prefers-reduced-motion: reduce)') !== -1,
+            'discovery.css honors prefers-reduced-motion contract');
       check(css.indexOf('prefers-reduced-motion') !== -1,
             'discovery.css honors prefers-reduced-motion');
       const cssGzSize = zlib.gzipSync(css).length;

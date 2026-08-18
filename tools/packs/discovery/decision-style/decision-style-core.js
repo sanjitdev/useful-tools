@@ -161,63 +161,13 @@
     return n;
   }
 
-  function renderReveal(answers, scored) {
-    var arch = (scored && scored.archetype) ? scored.archetype : null;
-    var traits = (scored && scored.traits) ? scored.traits : {};
-    var wrap = el('div', { class: 'disc-reveal', 'data-print': 'result' });
-    var hero = el('div', { class: 'disc-reveal-hero' });
-    hero.appendChild(el('div', { class: 'disc-reveal-emoji', text: arch ? arch.emoji : '✨' }));
-    hero.appendChild(el('h2', { class: 'disc-reveal-label', text: arch ? arch.label : 'Result' }));
-    if (arch && arch.tagline) hero.appendChild(el('p', { class: 'disc-reveal-tagline', text: arch.tagline }));
-    wrap.appendChild(hero);
 
-    var traitIds = SCORING_SPEC.traits;
-    var bars = el('ul', { class: 'disc-trait-bars' });
-    for (var i = 0; i < traitIds.length; i += 1) {
-      var tid = traitIds[i];
-      var pct = Math.round((typeof traits[tid] === 'number') ? traits[tid] : 0);
-      var row = el('li', { class: 'disc-trait-bar' });
-      var labelRow = el('div', { class: 'disc-trait-bar-label' });
-      labelRow.appendChild(el('span', { class: 'disc-trait-bar-name', text: TRAIT_LABELS[tid] || tid }));
-      labelRow.appendChild(el('span', { class: 'disc-trait-bar-pct', text: pct + '%' }));
-      row.appendChild(labelRow);
-      var track = el('div', { class: 'disc-trait-bar-track', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(pct) });
-      var fill = el('div', { class: 'disc-trait-bar-fill', 'data-pct': String(pct) });
-      fill.style.width = '0%';
-      track.appendChild(fill);
-      row.appendChild(track);
-      bars.appendChild(row);
-    }
-    wrap.appendChild(bars);
 
-    if (arch && arch.blindSpot) {
-      var bl = el('aside', { class: 'disc-blind-spot' });
-      bl.appendChild(el('h3', { class: 'disc-blind-spot-title', text: 'Blind spot' }));
-      bl.appendChild(el('p', { class: 'disc-blind-spot-body', text: arch.blindSpot }));
-      wrap.appendChild(bl);
-    }
 
-    var actions = el('div', { class: 'disc-actions', 'data-print': 'ignore' });
-    var resetBtn = el('button', { type: 'button', class: 'btn btn-primary', 'data-action': 'reset', text: 'Take it again' });
-    actions.appendChild(resetBtn);
-    wrap.appendChild(actions);
-    return wrap;
-  }
-
-  function animateBars(host) {
-    if (!host) return;
-    var reduced = false;
-    try { reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) {}
-    var fills = host.querySelectorAll('.disc-trait-bar-fill');
-    for (var i = 0; i < fills.length; i += 1) {
-      var f = fills[i];
-      var pct = parseFloat(f.getAttribute('data-pct') || '0');
-      if (reduced) { f.style.width = pct + '%'; }
-      else { (function (fill, target) { window.requestAnimationFrame(function () { fill.style.width = target + '%'; }); })(f, pct); }
-    }
-  }
 
   function boot() {
+    var QUIZ_SLUG = 'decision-style';
+
     var mount = document.getElementById('quiz-mount');
     if (!mount) return;
     if (!window.HT || !window.HT.quiz || typeof window.HT.quiz.open !== 'function') { mount.textContent = 'HT.quiz failed to load.'; return; }
@@ -226,33 +176,85 @@
       mount: mount, questions: QUESTIONS,
       onChange: function () {},
       onComplete: function (answers) {
-        var scored = window.HT.scoring.score(answers, SCORING_SPEC);
+        // Bug fix (2026-08-18): shell-thin.js exposes HT.scoring and
+        // HT.results as Proxy stubs that lazy-load their underlying
+        // modules (scoring.js, results.js) on first property access.
+        // Both proxies return a Promise when the lazy-load + ready
+        // chain resolves — they do NOT return the synchronous result
+        // synchronously. The previous code treated the return value as
+        // a synchronous object, which led to a rendered card built
+        // from `undefined` archetype/traits and a Promise being
+        // passed to body.appendChild() — visibly empty card.
+        // Fix: chain .then() so the real scored data + rendered card
+        // arrive after the lazy-load resolves.
+        Promise.resolve(window.HT.scoring.score(answers, SCORING_SPEC))
+          .then(function (scored) {
         // HT.scoring.score returns only {id,label,emoji,default}; recover
         // tagline/blindSpot from the inlined SCORING_SPEC by arch.id.
-        if (scored && scored.archetype && scored.archetype.id && SCORING_SPEC.archetypes) {
+        // FROZEN-FIX (2026-08-18): scoring.js returns Object.freeze({...})
+        // so scored.archetype is non-writable. Build a local mutable
+        // `resolvedArch` instead of mutating scored.archetype.
+        var resolvedArch = scored && scored.archetype;
+        if (resolvedArch && resolvedArch.id && SCORING_SPEC.archetypes) {
           for (var ai = 0; ai < SCORING_SPEC.archetypes.length; ai += 1) {
-            if (SCORING_SPEC.archetypes[ai].id === scored.archetype.id) {
-              scored.archetype = SCORING_SPEC.archetypes[ai];
+            if (SCORING_SPEC.archetypes[ai].id === resolvedArch.id) {
+              resolvedArch = SCORING_SPEC.archetypes[ai];
               break;
             }
           }
         }
-        var reveal = renderReveal(answers, scored);
+        return Promise.resolve(window.HT.results.render(
+          { archetype: resolvedArch, traits: scored && scored.traits },
+          {
+            slug: QUIZ_SLUG,
+            title: (resolvedArch && resolvedArch.tagline) || '',
+            conflict: (resolvedArch && resolvedArch.blindSpot) || '',
+            wireActions: true
+          }
+        ));
+        }).then(function (reveal) {
+        // Insert into the reveal body slot the quiz shell creates.
         var body = mount.querySelector('.quiz-reveal .quiz-reveal-body');
         if (body) {
           body.innerHTML = '';
           body.appendChild(reveal);
+          // Wire Reset inside the newly mounted reveal.
           var resetBtn = body.querySelector('[data-action="reset"]');
           if (resetBtn) {
-            resetBtn.setAttribute('aria-label', 'Reset Decision Style quiz');
+            resetBtn.setAttribute('aria-label', 'Reset decision style quiz');
             resetBtn.addEventListener('click', function () {
               try { handle.close(); } catch (_) {}
               boot();
             });
             resetBtn.focus();
           }
-          animateBars(body);
+          // Story 10.12 — on completion during a challenge flow, stash
+          // local answers and redirect to the compare view.
+          if (window.HT.challengeReceiver) {
+            var blob = window.HT.challengeReceiver.getChallengeBlob();
+            if (blob) {
+              window.HT.challengeReceiver.stashLocalAnswers(QUIZ_SLUG, answers);
+              var compareUrl = './compare.html?c=' + encodeURIComponent(blob);
+              var cta = document.createElement('a');
+              cta.href = compareUrl;
+              cta.className = 'btn btn-primary challenge-compare-cta';
+              cta.setAttribute('role', 'button');
+              cta.textContent = 'See your compatibility →';
+              cta.style.marginTop = '0.75rem';
+              cta.style.display = 'inline-block';
+              var actions = body.querySelector('.quiz-result-actions');
+              if (actions) {
+                actions.appendChild(cta);
+                cta.focus();
+              }
+            }
+          }
         }
+        }).then(undefined, function (e) {
+          // Surface the lazy-load failure so the user sees an explanation
+          // instead of an empty card with no console.
+          try { console.error('decision-style: result render failed:', e); } catch (_) {}
+        });
       }
     });
   }
