@@ -7068,7 +7068,7 @@
           "title": "What Would You Do?",
           "description": "Eight ethical dilemmas reveal your instinct: Bold, Cautious, Curious, or Compassionate.",
           "category": "viral",
-          "emoji": "�",
+          "emoji": "🤔",
           "data": "./what-would-you-do/data.json",
           "modules": [
             {

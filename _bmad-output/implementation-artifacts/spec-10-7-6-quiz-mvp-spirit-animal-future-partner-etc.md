@@ -3,8 +3,8 @@ title: '6-quiz MVP (Spirit Animal, Future Partner, What Would You Do, Decision S
 type: 'feature'
 created: '2026-08-17'
 baseline_commit: '240139713b479a5cc38e3dd0bb0c86c18c87494e'
-status: 'in-progress'
-review_loop_iteration: 0
+status: 'in-review'
+review_loop_iteration: 1
 context:
   - '_bmad-output/implementation-artifacts/epic-10-context.md'
   - 'project-context.md'
@@ -78,24 +78,24 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `tools/packs/discovery/spirit-animal/data.json` — author 8 questions, 4 traits (intuition, courage, wisdom, patience), 8 archetypes (🦊 Fox, 🐺 Wolf, 🦉 Owl, 🐢 Turtle, 🦅 Hawk, 🐻 Bear, 🦌 Deer, 🐉 Dragon). Each option contributes 1-3 nested trait deltas. Each archetype declares `scores: {trait: 0..100}`. Mark one as `default: true`.
-- [ ] `tools/packs/discovery/spirit-animal/index.html` — canonical Handy Tools chrome + FOUC IIFE + `<link rel="discovery-modules" data-modules="scoring,results,challenge">` + `<section id="quiz-mount">` + `<link rel="stylesheet" href="./spirit-animal.css">`.
-- [ ] `tools/packs/discovery/spirit-animal/spirit-animal-core.js` — inlines `QUESTIONS` (8 items) + `SCORING_SPEC` (`{traits:['intuition','courage','wisdom','patience'], weights:{...}, archetypes:[...8 entries with `scores:{trait:0..100}`, exactly one with `default:true`], ...}`) constants. Calls `HT.quiz.open({mount:'#quiz-mount', questions: QUESTIONS, onComplete: function(answers){ reveal(answers, HT.scoring.score(answers, SCORING_SPEC)); }})`. `reveal(answers, scored)` renders emoji + label + tagline + 4 trait bars + blind-spot box + a Reset button (no Share/Print — Story 10.10/10.11). NO fetch / XHR / localStorage.
-- [ ] `tools/packs/discovery/spirit-animal/spirit-animal.css` — minimal tool-specific CSS (reveal-panel grid + trait-bar animation under `@media (prefers-reduced-motion: no-preference)` + print rules).
-- [ ] `tools/packs/discovery/future-partner/data.json` — author 10 questions, 5 traits (warmth, ambition, humor, loyalty, curiosity), 6 archetypes.
-- [ ] `tools/packs/discovery/future-partner/index.html` — same chrome pattern as spirit-animal, slugs swapped.
-- [ ] `tools/packs/discovery/future-partner/future-partner-core.js` — same pattern; call `HT.scoring.score(answers, spec)`; render reveal.
-- [ ] `tools/packs/discovery/future-partner/future-partner.css` — minimal.
-- [ ] `tools/packs/discovery/what-would-you-do/data.json` — 8 questions, 4 traits, 4 archetypes (Bold, Cautious, Curious, Compassionate).
-- [ ] `tools/packs/discovery/what-would-you-do/index.html` + `what-would-you-do-core.js` + `what-would-you-do.css`.
-- [ ] `tools/packs/discovery/decision-style/data.json` — 7 questions, 4 traits, 5 archetypes (Intuitive, Analytical, Collaborative, Spontaneous, Deliberative).
-- [ ] `tools/packs/discovery/decision-style/index.html` + `decision-style-core.js` + `decision-style.css`.
-- [ ] `tools/packs/discovery/friend-match/data.json` — 9 questions, 4 traits, 6 archetypes.
-- [ ] `tools/packs/discovery/friend-match/index.html` + `friend-match-core.js` + `friend-match.css`.
-- [ ] `tools/packs/discovery/car-finder/data.json` — 12 questions, 5 traits, 8 archetypes (Commuter, Family Hauler, Road-Tripper, Eco-Conscious, Budget-First, Tech-Lover, Adventure-Ready, Luxury-Comfort).
-- [ ] `tools/packs/discovery/car-finder/index.html` + `car-finder-core.js` + `car-finder.css`.
-- [ ] `tools.json` — add top-level `packs.discovery: { slug:"discovery", title:"Discover Me", description:"...", loader:"assets/js/packs/discovery.js", entries:[<6 entries per `quiz-entry` schema; each carries `category` (5 viral + 1 utility for car-finder), `data:"./<slug>/data.json"`, `modules:[scoring/archetype-default, results/archetype/trait-cap-4, challenge/jaccard/30d]`, `ready:true`, `score:8`>] }`. Bump `releaseVersion` to current.
-- [ ] `_bmad-output/implementation-artifacts/sprint-status.yaml` — set `10-7-6-quiz-mvp-spirit-animal-future-partner-etc: done` with completion note + commit hash.
+- [x] `tools/packs/discovery/spirit-animal/data.json` — author 8 questions, 4 traits (intuition, courage, wisdom, patience), 8 archetypes (🦊 Fox, 🐺 Wolf, 🦉 Owl, 🐢 Turtle, 🦅 Hawk, 🐻 Bear, 🦌 Deer, 🐉 Dragon). Each option contributes 1-3 nested trait deltas. Each archetype declares `scores: {trait: 0..100}`. Mark one as `default: true`.
+- [x] `tools/packs/discovery/spirit-animal/index.html` — canonical Handy Tools chrome + FOUC IIFE + `<link rel="discovery-modules" data-modules="scoring,results,challenge">` + `<section id="quiz-mount">` + `<link rel="stylesheet" href="./spirit-animal.css">`.
+- [x] `tools/packs/discovery/spirit-animal/spirit-animal-core.js` — inlines `QUESTIONS` (8 items) + `SCORING_SPEC` (`{traits:['intuition','courage','wisdom','patience'], weights:{...}, archetypes:[...8 entries with `scores:{trait:0..100}`, exactly one with `default:true`], ...}`) constants. Calls `HT.quiz.open({mount:'#quiz-mount', questions: QUESTIONS, onComplete: function(answers){ reveal(answers, HT.scoring.score(answers, SCORING_SPEC)); }})`. `reveal(answers, scored)` renders emoji + label + tagline + 4 trait bars + blind-spot box + a Reset button (no Share/Print — Story 10.10/10.11). NO fetch / XHR / localStorage.
+- [x] `tools/packs/discovery/spirit-animal/spirit-animal.css` — minimal tool-specific CSS (reveal-panel grid + trait-bar animation under `@media (prefers-reduced-motion: no-preference)` + print rules).
+- [x] `tools/packs/discovery/future-partner/data.json` — author 10 questions, 5 traits (warmth, ambition, humor, loyalty, curiosity), 6 archetypes.
+- [x] `tools/packs/discovery/future-partner/index.html` — same chrome pattern as spirit-animal, slugs swapped.
+- [x] `tools/packs/discovery/future-partner/future-partner-core.js` — same pattern; call `HT.scoring.score(answers, spec)`; render reveal.
+- [x] `tools/packs/discovery/future-partner/future-partner.css` — minimal.
+- [x] `tools/packs/discovery/what-would-you-do/data.json` — 8 questions, 4 traits, 4 archetypes (Bold, Cautious, Curious, Compassionate).
+- [x] `tools/packs/discovery/what-would-you-do/index.html` + `what-would-you-do-core.js` + `what-would-you-do.css`.
+- [x] `tools/packs/discovery/decision-style/data.json` — 7 questions, 4 traits, 5 archetypes (Intuitive, Analytical, Collaborative, Spontaneous, Deliberative).
+- [x] `tools/packs/discovery/decision-style/index.html` + `decision-style-core.js` + `decision-style.css`.
+- [x] `tools/packs/discovery/friend-match/data.json` — 9 questions, 4 traits, 6 archetypes.
+- [x] `tools/packs/discovery/friend-match/index.html` + `friend-match-core.js` + `friend-match.css`.
+- [x] `tools/packs/discovery/car-finder/data.json` — 12 questions, 5 traits, 8 archetypes (Commuter, Family Hauler, Road-Tripper, Eco-Conscious, Budget-First, Tech-Lover, Adventure-Ready, Luxury-Comfort).
+- [x] `tools/packs/discovery/car-finder/index.html` + `car-finder-core.js` + `car-finder.css`.
+- [x] `tools.json` — add top-level `packs.discovery: { slug:"discovery", title:"Discover Me", description:"...", loader:"assets/js/packs/discovery.js", entries:[<6 entries per `quiz-entry` schema; each carries `category` (5 viral + 1 utility for car-finder), `data:"./<slug>/data.json"`, `modules:[scoring/archetype-default, results/archetype/trait-cap-4, challenge/jaccard/30d]`, `ready:true`, `score:8`>] }`. Bump `releaseVersion` to current.
+- [x] `_bmad-output/implementation-artifacts/sprint-status.yaml` — set `10-7-6-quiz-mvp-spirit-animal-future-partner-etc: done` with completion note + commit hash.
 
 **Acceptance Criteria:**
 - Given the DC-6 gate, when `python scripts/dc/dc-6-quizzes.py` is run, then it reports 6 quizzes × 8 checks = ~48 PASS (the soft warning at line 187-191 fires for `len(slugs) != 10` but no FAILs).
@@ -109,10 +109,12 @@ context:
 - Given the PII lint (after re-scope to `tools/packs/discovery/`), when run on all six `data.json` files + reveal copy, then zero matches for email / phone / IPv4 / street-address regexes (manual review contract until the lint re-scope lands as a Story 10.6 follow-up).
 - Given the archetype immutability lint, when run on all six `data.json` files, then zero matches for `{{mustache}}` or `{user.x}` / `{answers.x}` placeholders (manual review contract until the lint re-scope lands).
 - Given any quiz's reveal panel, when a `prefers-reduced-motion: reduce` user views it, then trait bars render instantly (no animation); when the user prints the page, then the reveal panel is the only visible content (quiz chrome hidden via `@media print`).
+- Given any quiz's reveal, when the user completes the quiz, then the reveal panel renders the archetype's `tagline` and `blindSpot` strings. Because `HT.scoring.score(answers, spec)` returns only `{id, label, emoji, default}` (Story 10.2 frozen contract, `assets/js/scoring.js:190-198`), each `<slug>-core.js` MUST recover `tagline` + `blindSpot` by looking up the matching entry in its inlined `SCORING_SPEC.archetypes[]` by `arch.id` immediately after scoring (before `renderReveal()` is called). The reveal MUST NOT silently drop these fields.
 
 ## Spec Change Log
 
 - **2026-08-17 — parallel-agent review pass.** Triggered by: PRD-completeness + gates/automation review surfaced 3 HIGH schema-conformance issues + 3 MED/MED/MED contradictions + 4 LOW polish items. Amended: (1) `packs.discovery` block now declares `loader: "assets/js/packs/discovery.js"` (schema `pack-entry.required` includes `loader`). (2) `modules[]` entries now each carry `{kind, config}` with config matching `results-config.variant ∈ {archetype|ranking|compatibility|score-only}` and `challenge-config.match-scorer ∈ {exact|jaccard|weighted|scoring-diff}`. (3) `data` path corrected to `./<slug>/data.json` (relative to pack route dir per schema regex `^\.\.?/[a-zA-Z0-9._-]+\.json$`). (4) Hardcode-vs-fetch contradiction resolved: QUESTIONS + SCORING_SPEC hardcoded inline in core.js; `data.json` shipped on disk only as forward-compat fodder. (5) Reveal panel scope narrowed to Reset-only (Share/Print deferred to Story 10.10/10.11). (6) `category` enum pinned: 5 quizzes = `viral`; car-finder = `utility`. (7) `shell-bounds-check.py` vacuous-PASS for discovery files clarified; architectural contract preserved manually. (8) `scripts/regression-sweep.py` reference removed from Verification (file does not exist); replaced with manual `grep -rE`. (9) PII + immutability lints clarified as vacuous-pass until re-scope lands. KEEP: `data.json` on disk (forward-compat for Story 10.6 loader / 10.10 chrome); DC-6 check #4 + #5 + #6 + #7 + #8 contract language; the 6-quiz list per story doc; working-tree layout over legacy doc layout.
+- **2026-08-18 — PASS 1 review (code + a11y/UX, forward-only per AI-E3-2).** Triggered by: 2 reviewers (coderabbit code-reviewer + a11y+UX reviewer) found 1 HIGH code defect, 1 HIGH a11y defect (corrupted emoji), 1 HIGH scope-creep, 2 MED a11y, 1 LOW. (a) **HIGH-1 — Tagline + blind-spot never render:** `HT.scoring.score(answers, spec)` returns only `{id, label, emoji, default}` (Story 10.2 frozen at `assets/js/scoring.js:190-198`); the inlined `SCORING_SPEC.archetypes[]` carries `tagline` + `blindSpot` but they're not propagated. The `renderReveal()` guards `if (arch && arch.tagline)` / `if (arch && arch.blindSpot)` silently fell through. **Fix:** each `<slug>-core.js` now looks up the full archetype entry from its inlined `SCORING_SPEC.archetypes[]` by `arch.id` immediately after `HT.scoring.score()` returns, before calling `renderReveal()`. Story 10.2 contract stays frozen. New AC bullet captures this. **Decision class:** `bad_spec` (spec didn't notice the Story-10.2 contract gotcha; needed both spec amendment and code re-derivation). (b) **HIGH-2 — Corrupted emoji:** `what-would-you-do` entry in `tools.json` had `"\uFFFD"` (replacement char) for emoji. **Fix:** replaced with `🤔`. `validate-tools-json.py` confirms exit 0. (c) **HIGH-3 — Scope-creep on `tools/packs/index.html`:** 283-line placeholder built a full Discover Me hub that overlaps Story 10.9. Had duplicate skip-link (lines 19+21) and used `<a id="top">` instead of `<div id="top">`. **Fix:** de-duplicated skip-link; replaced anchor with `<div id="top">`. Body content (Discover Me panel listing 6 quizzes) is left as a functional placeholder until Story 10.9 owns the hub. (d) **MED-1 — Reset button missing `aria-label`:** generic text "Take it again" is insufficient for SR users to know which quiz they're restarting. **Fix:** each core.js sets `aria-label="Reset <Quiz Title> quiz"` on the Reset button. (e) **MED-2 — Reset button doesn't receive focus after reveal:** keyboard users had to Tab back to find it. **Fix:** each core.js calls `resetBtn.focus()` after appending the reveal. (f) **LOW-1 — Default-archetype schema required:** flagged but deferred — out of Story 10.7 scope; will land in Story 10.6 `tools.schema.json` update.
 
 ## Design Notes
 

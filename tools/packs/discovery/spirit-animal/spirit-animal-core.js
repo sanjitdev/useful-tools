@@ -334,6 +334,16 @@
       },
       onComplete: function (answers) {
         var scored = window.HT.scoring.score(answers, SCORING_SPEC);
+        // HT.scoring.score returns only {id,label,emoji,default}; recover
+        // tagline/blindSpot from the inlined SCORING_SPEC by arch.id.
+        if (scored && scored.archetype && scored.archetype.id && SCORING_SPEC.archetypes) {
+          for (var ai = 0; ai < SCORING_SPEC.archetypes.length; ai += 1) {
+            if (SCORING_SPEC.archetypes[ai].id === scored.archetype.id) {
+              scored.archetype = SCORING_SPEC.archetypes[ai];
+              break;
+            }
+          }
+        }
         var reveal = renderReveal(answers, scored);
         // Insert into the reveal body slot the quiz shell creates.
         var body = mount.querySelector('.quiz-reveal .quiz-reveal-body');
@@ -343,10 +353,12 @@
           // Wire Reset inside the newly mounted reveal.
           var resetBtn = body.querySelector('[data-action="reset"]');
           if (resetBtn) {
+            resetBtn.setAttribute('aria-label', 'Reset Spirit Animal quiz');
             resetBtn.addEventListener('click', function () {
               try { handle.close(); } catch (_) {}
               boot();
             });
+            resetBtn.focus();
           }
           animateBars(body);
         }
