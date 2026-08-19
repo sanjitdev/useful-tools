@@ -260,19 +260,24 @@
   scrollbar-gutter: stable;
 }
 
+/* The row. Two-column layout:
+     [32px icon swatch]  [title + description, flex 1]  [chevron, opacity 0]
+   The icon swatch is the visual anchor; the chevron is the "Enter to open"
+   affordance and fades in on hover/aria-selected. The category dot is
+   carried by the icon swatch's gradient ring (see data-cat rules below). */
 .shell-header-search-list [role="option"] {
   position: relative;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.625rem 0.875rem 0.625rem 1.5rem;
+  padding: 0.5rem 0.75rem 0.5rem 0.75rem;
   margin: 1px 0;
   cursor: pointer;
   color: var(--ht-search-text);
   font-size: 0.9375rem;
   line-height: 1.4;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 12px;
   background-color: transparent;
   text-align: left;
   width: 100%;
@@ -283,51 +288,257 @@
     transform 0.12s ease;
 }
 
-/* The category accent dot. Sits at the left edge of the row as a
-   small colored indicator. The color is driven by data-cat set
-   in buildToolOption (shell.js). */
+/* Category accent dot. Hidden in this redesign — the icon swatch
+   carries the category color via its tinted background gradient
+   (see `.shell-header-search-row-icon`). The `::before` slot is
+   kept empty so existing data-cat selectors remain valid
+   documentation if the dot is reintroduced later. */
 .shell-header-search-list [role="option"]::before {
+  content: none;
+}
+
+/* ---------- row icon swatch ---------- */
+
+/* 32×32 rounded-square icon anchor. The container carries the
+   category-tinted gradient ring; the inline <svg>/<img> inside
+   paints the glyph. Falls back to a neutral ring when no data-cat
+   is set. The icon scales 1.04× on aria-selected for a subtle
+   "press" cue. */
+.shell-header-search-row-icon {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ht-cat-default) 18%, var(--ht-search-surface)) 0%,
+    color-mix(in srgb, var(--ht-cat-default) 4%, var(--ht-search-surface)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--ht-cat-default) 22%, var(--ht-search-surface));
+  color: var(--ht-cat-default);
+  box-shadow: 0 1px 0 rgba(15, 17, 23, 0.04) inset;
+  transition: transform 0.16s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.16s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Per-category tinting. The `data-cat` selector on the parent
+   <li> inherits down via descendant combinator. */
+.shell-header-search-list [role="option"][data-cat="developer"] .shell-header-search-row-icon {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ht-cat-developer) 18%, var(--ht-search-surface)) 0%,
+    color-mix(in srgb, var(--ht-cat-developer) 4%, var(--ht-search-surface)) 100%
+  );
+  border-color: color-mix(in srgb, var(--ht-cat-developer) 22%, var(--ht-search-surface));
+  color: var(--ht-cat-developer);
+}
+.shell-header-search-list [role="option"][data-cat="finance"] .shell-header-search-row-icon {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ht-cat-finance) 18%, var(--ht-search-surface)) 0%,
+    color-mix(in srgb, var(--ht-cat-finance) 4%, var(--ht-search-surface)) 100%
+  );
+  border-color: color-mix(in srgb, var(--ht-cat-finance) 22%, var(--ht-search-surface));
+  color: var(--ht-cat-finance);
+}
+.shell-header-search-list [role="option"][data-cat="converters-calculators"] .shell-header-search-row-icon {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ht-cat-converters-calculators) 18%, var(--ht-search-surface)) 0%,
+    color-mix(in srgb, var(--ht-cat-converters-calculators) 4%, var(--ht-search-surface)) 100%
+  );
+  border-color: color-mix(in srgb, var(--ht-cat-converters-calculators) 22%, var(--ht-search-surface));
+  color: var(--ht-cat-converters-calculators);
+}
+.shell-header-search-list [role="option"][data-cat="study"] .shell-header-search-row-icon {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ht-cat-study) 18%, var(--ht-search-surface)) 0%,
+    color-mix(in srgb, var(--ht-cat-study) 4%, var(--ht-search-surface)) 100%
+  );
+  border-color: color-mix(in srgb, var(--ht-cat-study) 22%, var(--ht-search-surface));
+  color: var(--ht-cat-study);
+}
+.shell-header-search-list [role="option"][data-cat="time"] .shell-header-search-row-icon {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ht-cat-time) 18%, var(--ht-search-surface)) 0%,
+    color-mix(in srgb, var(--ht-cat-time) 4%, var(--ht-search-surface)) 100%
+  );
+  border-color: color-mix(in srgb, var(--ht-cat-time) 22%, var(--ht-search-surface));
+  color: var(--ht-cat-time);
+}
+.shell-header-search-list [role="option"][data-cat="fun"] .shell-header-search-row-icon {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ht-cat-fun) 18%, var(--ht-search-surface)) 0%,
+    color-mix(in srgb, var(--ht-cat-fun) 4%, var(--ht-search-surface)) 100%
+  );
+  border-color: color-mix(in srgb, var(--ht-cat-fun) 22%, var(--ht-search-surface));
+  color: var(--ht-cat-fun);
+}
+.shell-header-search-list [role="option"][data-cat="household"] .shell-header-search-row-icon {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ht-cat-household) 18%, var(--ht-search-surface)) 0%,
+    color-mix(in srgb, var(--ht-cat-household) 4%, var(--ht-search-surface)) 100%
+  );
+  border-color: color-mix(in srgb, var(--ht-cat-household) 22%, var(--ht-search-surface));
+  color: var(--ht-cat-household);
+}
+.shell-header-search-list [role="option"][data-cat="health-lifestyle"] .shell-header-search-row-icon {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ht-cat-health-lifestyle) 18%, var(--ht-search-surface)) 0%,
+    color-mix(in srgb, var(--ht-cat-health-lifestyle) 4%, var(--ht-search-surface)) 100%
+  );
+  border-color: color-mix(in srgb, var(--ht-cat-health-lifestyle) 22%, var(--ht-search-surface));
+  color: var(--ht-cat-health-lifestyle);
+}
+.shell-header-search-list [role="option"][data-cat="cooking"] .shell-header-search-row-icon {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ht-cat-cooking) 18%, var(--ht-search-surface)) 0%,
+    color-mix(in srgb, var(--ht-cat-cooking) 4%, var(--ht-search-surface)) 100%
+  );
+  border-color: color-mix(in srgb, var(--ht-cat-cooking) 22%, var(--ht-search-surface));
+  color: var(--ht-cat-cooking);
+}
+
+/* The glyph inside the swatch. Both <svg> (inline) and <img>
+   (referenced SVG asset) are supported. Sized at 18×18 so it sits
+   in the center with comfortable breathing room. */
+.shell-header-search-row-icon svg,
+.shell-header-search-row-icon img {
+  display: block;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+
+/* When the icon is just a colored block (no glyph), keep the
+   rounded-square as the only visual cue. The block stays subtle so
+   the title is still the primary scan target. */
+.shell-header-search-row-icon[data-empty="1"]::after {
   content: "";
-  position: absolute;
-  left: 0.625rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--ht-cat-default);
-  box-shadow: 0 0 0 2px var(--ht-search-surface);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background-color: currentColor;
+  opacity: 0.45;
 }
 
-.shell-header-search-list [role="option"][data-cat="developer"]::before {
-  background-color: var(--ht-cat-developer);
+/* Hover + selected state for the icon swatch. The selected state
+   scales the swatch 1.04× and brightens the ring/border. */
+.shell-header-search-list [role="option"]:hover .shell-header-search-row-icon {
+  box-shadow: 0 1px 0 rgba(15, 17, 23, 0.06) inset;
 }
-.shell-header-search-list [role="option"][data-cat="finance"]::before {
-  background-color: var(--ht-cat-finance);
-}
-.shell-header-search-list [role="option"][data-cat="converters-calculators"]::before {
-  background-color: var(--ht-cat-converters-calculators);
-}
-.shell-header-search-list [role="option"][data-cat="study"]::before {
-  background-color: var(--ht-cat-study);
-}
-.shell-header-search-list [role="option"][data-cat="time"]::before {
-  background-color: var(--ht-cat-time);
-}
-.shell-header-search-list [role="option"][data-cat="fun"]::before {
-  background-color: var(--ht-cat-fun);
-}
-.shell-header-search-list [role="option"][data-cat="household"]::before {
-  background-color: var(--ht-cat-household);
-}
-.shell-header-search-list [role="option"][data-cat="health-lifestyle"]::before {
-  background-color: var(--ht-cat-health-lifestyle);
-}
-.shell-header-search-list [role="option"][data-cat="cooking"]::before {
-  background-color: var(--ht-cat-cooking);
+.shell-header-search-list [role="option"][aria-selected="true"] .shell-header-search-row-icon {
+  transform: scale(1.04);
+  border-color: color-mix(in srgb, currentColor 38%, var(--ht-search-surface));
+  box-shadow: 0 1px 2px rgba(15, 17, 23, 0.08) inset, 0 0 0 3px var(--ht-search-accent-soft);
 }
 
+/* ---------- row text column (title + description) ---------- */
+
+/* Title stays single-line, truncated with ellipsis. Description is
+   a one-line snippet, muted, also truncated. The matched substring
+   in either field is bolded by `.shell-palette-title strong` (or by
+   inline <strong> injected by buildDescriptionFragment in
+   shell.js when matched in description). */
+.shell-header-search-row-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.shell-header-search-list [role="option"] .shell-palette-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  color: var(--ht-search-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.005em;
+}
+
+.shell-header-search-list [role="option"] .shell-palette-title strong {
+  color: var(--ht-search-accent);
+  font-weight: 600;
+}
+
+.shell-header-search-list [role="option"] .shell-header-search-row-desc {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--ht-search-text-muted);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.005em;
+}
+
+.shell-header-search-list [role="option"] .shell-header-search-row-desc strong {
+  color: var(--ht-search-accent);
+  font-weight: 600;
+  background-color: var(--ht-search-accent-soft);
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+/* Matched-in-X chip is now a floating element on the right edge of
+   the row, replacing the old inline position. Hidden when not
+   needed to keep the layout clean for title-matches. */
+.shell-header-search-list [role="option"] .shell-palette-match {
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--ht-search-text-muted);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: var(--ht-search-surface-2);
+  border: 1px solid var(--ht-search-border);
+  white-space: nowrap;
+  margin-left: auto;
+  align-self: center;
+  letter-spacing: 0.02em;
+}
+
+/* Right-edge chevron. Hidden by default; fades in on hover or
+   aria-selected to hint "Enter to open". Uses the accent color so
+   it reads as an action affordance, not decoration. */
+.shell-header-search-row-chevron {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ht-search-accent);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  pointer-events: none;
+}
+
+.shell-header-search-list [role="option"]:hover .shell-header-search-row-chevron,
+.shell-header-search-list [role="option"][aria-selected="true"] .shell-header-search-row-chevron {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Hover + selected + focus states. */
 .shell-header-search-list [role="option"]:hover {
   background-color: var(--ht-search-surface-2);
 }
@@ -341,6 +552,7 @@
   background-color: var(--ht-search-accent-soft);
   border-color: var(--ht-search-accent-soft-strong);
   color: var(--ht-search-text);
+  box-shadow: 0 1px 2px rgba(47, 91, 255, 0.08);
 }
 
 .shell-header-search-list [role="option"][aria-selected="true"]::before {

@@ -96,6 +96,9 @@
     var description = tool.description || '';
     var keywords = Array.isArray(tool.keywords) ? tool.keywords.join(' ') : '';
     var category = tool.category || '';
+    // Icon path (repo-relative) is carried verbatim; chrome-header-search
+    // resolves it to a page-depth-aware URL via HT.search.resolveAssetUrl.
+    var icon = (typeof tool.icon === 'string') ? tool.icon : '';
     var rawPriority = tool['search-priority'];
     // Reject NaN and non-finite numbers explicitly — NaN passes the
     // `typeof === 'number'` check but breaks every sort comparator
@@ -113,6 +116,11 @@
       keywordsNorm: normalize(keywords),
       slugNorm: normalize(slug),
       category: category,
+      // Icon path (repo-relative, e.g. "assets/icons/quiz-preview.svg").
+      // Carried into the result so chrome-header-search can render the
+      // icon swatch. resolveAssetUrl in shell.js prefixes the right
+      // number of `../` for the current page depth.
+      icon: tool.icon || '',
       categoryNorm: normalize(category),
       searchPriority: searchPriority
     };
@@ -274,7 +282,14 @@
           slug: entry.slug,
           title: entry.title,
           score: ranked.score,
-          matchedField: ranked.matchedField
+          matchedField: ranked.matchedField,
+          // Carry the rich fields too so the row builder in
+          // chrome-header-search can render the icon swatch and the
+          // description snippet. The fields are already on the index
+          // entry (see buildIndexEntry) so this is a no-cost copy.
+          description: entry.description,
+          category: entry.category,
+          icon: entry.icon
         });
       }
     }
@@ -433,6 +448,46 @@
   search.version = VERSION;
   search._normalize = normalize;
   search._isEmbedMode = isEmbedMode;
+
+  // Resolve a repo-root-relative path to a URL the current page can
+  // fetch. The chrome (header search, packs, etc.) splices the same
+  // way across depths: root pages (index.html), /packs/, /tools/, and
+  // /tools/packs/discovery/. Each depth needs a different number of
+  // `../` so the URL resolves to the same asset on disk.
+  //
+  // Examples (relative → effective):
+  //   index.html           → depth 0 → "assets/icons/x.svg"
+  //   packs/fun.html       → depth 1 → "../assets/icons/x.svg"
+  //   tools/qr/.../html    → depth 1 → "../assets/icons/x.svg"
+  //   tools/packs/discovery/car-finder/.../html → depth 3 → "../../../assets/icons/x.svg"
+  //
+  // Caller passes a path that does NOT start with `/` (e.g. the
+  // literal value in tools.json's `icon` field); absolute paths are
+  // returned unchanged.
+  search.resolveAssetUrl = function resolveAssetUrl(relative) {
+    if (typeof relative !== 'string' || relative.length === 0) return '';
+    if (relative.charAt(0) === '/' || /^[a-z][a-z0-9+\-.]*:/i.test(relative)) {
+      return relative;
+    }
+    try {
+      if (typeof window === 'undefined' || !window.location || !window.location.pathname) {
+        return relative;
+      }
+      var path = window.location.pathname;
+      // Strip the query string and hash so trailing slashes don't
+      // confuse the depth count.
+      var cleanPath = path.split('?')[0].split('#')[0];
+      // Count the number of directory segments after the leading '/'.
+      // '/index.html' → 0; '/packs/fun.html' → 1; '/a/b/c/file.html' → 2.
+      var segments = cleanPath.split('/').filter(function (s) { return s.length > 0; });
+      var depth = Math.max(0, segments.length - 1);
+      var prefix = '';
+      for (var i = 0; i < depth; i++) prefix += '../';
+      return prefix + relative;
+    } catch (e) {
+      return relative;
+    }
+  };
 
   // Palette bold-match hook. Returns the [start, end] of the first matching
   // tier of `query` inside `fieldValue` — INDICES INTO THE RAW (original)

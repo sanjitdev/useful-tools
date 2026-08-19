@@ -109,6 +109,24 @@ def main():
          'HT.headerSearch.close() hides panel' in text),
         ('Test 14 (embed mode hides the inline search)',
          'embed mode hides the inline search' in text),
+        # Story 10.20 patch #3 — polished result rows (icon swatch +
+        # description + chevron + per-category tint).
+        ('Test 15 (row shape: icon swatch + text col + chevron + data-cat)',
+         'row shape' in text and '.shell-header-search-row-icon' in text
+         and '.shell-header-search-row-text' in text
+         and '.shell-header-search-row-chevron' in text
+         and 'data-cat=' in text),
+        ('Test 16 (CSS row-icon + row-text + row-desc + row-chevron + per-cat tint rules)',
+         'CSS row shape' in text
+         and '.shell-header-search-row-icon' in text
+         and '.shell-header-search-row-text' in text
+         and '.shell-header-search-row-desc' in text
+         and '.shell-header-search-row-chevron' in text
+         # The actual CSS is fetched at runtime; the harness file
+         # should reference all 5 class names + a per-cat tint
+         # pattern (data-cat="developer" preceding row-icon) that
+         # the runtime regex will use.
+         and re.search(r'data-cat="developer".{0,40}shell-header-search-row-icon', text, re.DOTALL) is not None),
         # Always fail-loud under CI: catch regressions that re-introduce
         # the `if (isCi) failed += 1` gate that the palette harness also
         # pins down (a CI gate that early-returns defeats the harness).

@@ -1523,16 +1523,75 @@
     li.setAttribute('data-slug', match.slug);
     if (match.category) {
       // data-cat attribute is the lowercased, hyphen-friendly category
-      // slug used by chrome-header-search.css to tint the leading dot
+      // slug used by chrome-header-search.css to tint the icon swatch
       // (Developer → cobalt, Study → amber, Fun → rose, etc.).
       li.setAttribute('data-cat', String(match.category).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
     }
     li.setAttribute('aria-selected', 'false');
 
+    // ---- Icon swatch (leading visual anchor) ----
+    // 32×32 rounded square carrying the tool's icon glyph (inline <img>
+    // pointing at /assets/icons/<slug>.svg). Falls back to a tinted
+    // block when no icon path is on the index entry. The img element
+    // is decorative — the row's aria-label already names the tool.
+    const icon = document.createElement('span');
+    icon.className = 'shell-header-search-row-icon';
+    if (match.icon) {
+      // Path in tools.json is repo-relative ("assets/icons/x.svg").
+      // HT.search.resolveAssetUrl prefixes the right number of `../`
+      // segments for the current page depth (root / packs / tools /
+      // discovery depth-3). Absolute paths / URLs pass through.
+      const iconUrl = (typeof HT !== 'undefined' && HT.search && typeof HT.search.resolveAssetUrl === 'function')
+        ? HT.search.resolveAssetUrl(match.icon)
+        : match.icon;
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = iconUrl;
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.setAttribute('aria-hidden', 'true');
+      // If the icon 404s (missing asset), fall back to the tinted block
+      // via a one-shot error handler. The img stays in the DOM so the
+      // flex layout doesn't shift when the error fires.
+      img.addEventListener('error', function onIconError() {
+        icon.setAttribute('data-empty', '1');
+        img.removeEventListener('error', onIconError);
+      }, { once: true });
+      icon.appendChild(img);
+    } else {
+      icon.setAttribute('data-empty', '1');
+    }
+    li.appendChild(icon);
+
+    // ---- Text column: title + description snippet ----
+    // Title is single-line + truncated. Description (if present) is
+    // a one-line snippet, muted. When the match is in `description`
+    // we use buildDescriptionFragment to bold the matched range,
+    // mirroring the title-match pattern so the user can see WHERE
+    // their query hit.
+    const textCol = document.createElement('span');
+    textCol.className = 'shell-header-search-row-text';
+
     const titleEl = document.createElement('span');
     titleEl.className = 'shell-palette-title';
     titleEl.appendChild(buildMatchFragment(match.title, match.matchedField, match._query || ''));
-    li.appendChild(titleEl);
+    textCol.appendChild(titleEl);
+
+    // Description snippet. Only rendered when the match has a
+    // description field. Recent-tool rows (no query) skip this so
+    // the listbox stays compact when nothing is being searched.
+    if (match.description && typeof match.description === 'string' && match.description.trim()) {
+      const descEl = document.createElement('span');
+      descEl.className = 'shell-header-search-row-desc';
+      descEl.appendChild(buildDescriptionFragment(
+        match.description,
+        match.matchedField,
+        match._query || ''
+      ));
+      textCol.appendChild(descEl);
+    }
+
+    li.appendChild(textCol);
 
     if (match.matchedField && match.matchedField !== 'title') {
       const meta = document.createElement('span');
@@ -1540,6 +1599,19 @@
       meta.textContent = 'matched in ' + match.matchedField;
       li.appendChild(meta);
     }
+
+    // ---- Right-edge chevron (Enter to open affordance) ----
+    // Hidden by default; fades in on hover or aria-selected. The SVG
+    // uses currentColor so the icon adopts the accent tint without a
+    // separate stylesheet rule.
+    const chevron = document.createElement('span');
+    chevron.className = 'shell-header-search-row-chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    chevron.innerHTML =
+      '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M5.5 3.5l5 4.5-5 4.5"/>' +
+      '</svg>';
+    li.appendChild(chevron);
 
     // aria-label per AC-4: <title> — match in <field>: '<substring>'.
     // The substring is the actual text that matched (raw, not normalized),
@@ -1565,6 +1637,33 @@
     }
     li.setAttribute('aria-label', ariaLabel);
     return li;
+  }
+
+  // Build the description fragment with a <strong> wrap around the
+  // matched range when matchedField === 'description'. Otherwise
+  // returns the plain text. Mirrors buildMatchFragment so the two
+  // bolded-text paths share the same convention. The description is
+  // trimmed to a single line by the CSS (text-overflow: ellipsis)
+  // so we don't slice here.
+  function buildDescriptionFragment(description, matchedField, query) {
+    const frag = document.createDocumentFragment();
+    if (matchedField !== 'description') {
+      frag.appendChild(document.createTextNode(description));
+      return frag;
+    }
+    if (typeof HT !== 'undefined' && HT.search && typeof HT.search._matchRange === 'function') {
+      const range = HT.search._matchRange(query, description);
+      if (range && range.end > range.start && range.end <= description.length) {
+        if (range.start > 0) frag.appendChild(document.createTextNode(description.slice(0, range.start)));
+        const strong = document.createElement('strong');
+        strong.textContent = description.slice(range.start, range.end);
+        frag.appendChild(strong);
+        if (range.end < description.length) frag.appendChild(document.createTextNode(description.slice(range.end)));
+        return frag;
+      }
+    }
+    frag.appendChild(document.createTextNode(description));
+    return frag;
   }
 
   // Build the title fragment with a <strong> wrap around the matched range.

@@ -339,6 +339,59 @@
             }
             document.documentElement.removeAttribute('data-embed');
           } catch (err) { fail('embed mode', err.message); }
+
+          // ---- Test 15: result-row shape (icon swatch + description + chevron) ----
+          // Story 10.20 patch #3: every result row carries a leading icon
+          // swatch (.shell-header-search-row-icon with <img>), a text column
+          // (.shell-header-search-row-text holding .shell-palette-title +
+          // .shell-header-search-row-desc when the match has a description),
+          // and a right-edge chevron (.shell-header-search-row-chevron).
+          // The row's data-cat attribute drives the category-tinted icon
+          // background (set in buildToolOption via match.category).
+          try {
+            const listbox = document.getElementById('header-search-listbox');
+            const opt = listbox ? listbox.querySelector('[role="option"]') : null;
+            if (!opt) {
+              fail('row shape', 'no option rendered');
+            } else {
+              const icon = opt.querySelector('.shell-header-search-row-icon');
+              const text = opt.querySelector('.shell-header-search-row-text');
+              const title = opt.querySelector('.shell-palette-title');
+              const chevron = opt.querySelector('.shell-header-search-row-chevron');
+              const dataCat = opt.getAttribute('data-cat');
+              if (!icon || !text || !title || !chevron) {
+                fail('row shape (icon/text/title/chevron)',
+                  'icon=' + !!icon + ', text=' + !!text + ', title=' + !!title + ', chevron=' + !!chevron);
+              } else if (!dataCat) {
+                fail('row data-cat', 'data-cat missing — category tinting will fall back');
+              } else {
+                pass('row shape: icon swatch + text col (title/desc) + chevron + data-cat="' + dataCat + '"');
+              }
+            }
+          } catch (err) { fail('row shape', err.message); }
+
+          // ---- Test 16: chrome-header-search.css has the icon-swatch + chevron styles ----
+          // Regression guard for the row redesign. If a future refactor drops
+          // either class, the row falls back to plain text + dot.
+          try {
+            const cssRes = await fetch('../assets/css/chrome-header-search.css');
+            if (cssRes.ok) {
+              const cssText = await cssRes.text();
+              const hasRowIcon = /\.shell-header-search-row-icon\b/.test(cssText);
+              const hasRowText = /\.shell-header-search-row-text\b/.test(cssText);
+              const hasRowDesc = /\.shell-header-search-row-desc\b/.test(cssText);
+              const hasRowChevron = /\.shell-header-search-row-chevron\b/.test(cssText);
+              const hasPerCatTint = /\[data-cat="developer"\]\s+\.shell-header-search-row-icon\b/.test(cssText);
+              if (hasRowIcon && hasRowText && hasRowDesc && hasRowChevron && hasPerCatTint) {
+                pass('CSS: row-icon + row-text + row-desc + row-chevron + per-cat tint rules all present');
+              } else {
+                fail('CSS row shape',
+                  'row-icon=' + hasRowIcon + ', row-text=' + hasRowText + ', row-desc=' + hasRowDesc + ', row-chevron=' + hasRowChevron + ', per-cat tint=' + hasPerCatTint);
+              }
+            } else {
+              fail('CSS row shape', 'css fetch http ' + cssRes.status);
+            }
+          } catch (err) { fail('CSS row shape', err.message); }
         } catch (err) {
           fail('outer', err && err.message);
         }
