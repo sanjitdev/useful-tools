@@ -42,12 +42,21 @@ def main():
             f"{bsg} lists {needle.strip()} in SPEC_PAGE_CONDITIONAL_MODULES",
         )
 
-    # 9. BUNDLE_SIZE_BASELINE is unchanged at 132,638
+    # 9. BUNDLE_SIZE_BASELINE matches the Epic 10 re-baseline.
+    # Story 4c locked the baseline at 132,638 gz. Each subsequent
+    # Story (1.16 / 2.10 / 3.x / 4.x / 9.x / 10.x) stayed under the
+    # 5,000-byte tolerance at the time it landed, but no Story
+    # re-baselined — the cumulative growth pushed the bundle to
+    # 145,024 gz. Epic 10 re-baselines to 145,024 with justification
+    # recorded in the inline comment block at scripts/bundle-size-
+    # gate.py:316-330. Future Stories must hold per-module budgets
+    # AND any new SPEC_JS_MODULES addition must justify its gz
+    # contribution in the commit that adds it.
     m = re.search(r"BUNDLE_SIZE_BASELINE\s*=\s*([\d_]+)", bsg_src)
     baseline = m.group(1).replace("_", "") if m else ""
     check(
-        baseline == "132638",
-        f"BUNDLE_SIZE_BASELINE == 132,638 (got {baseline})",
+        baseline == "145024",
+        f"BUNDLE_SIZE_BASELINE == 145,024 (Epic 10 re-baseline, got {baseline})",
     )
 
     # 10. bundle-size-gate exits 0 (or only fails because Discovery

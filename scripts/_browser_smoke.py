@@ -326,8 +326,15 @@ def _assert_pack_or_control(page_id: str, dom: str):
         # After pack-grid.js mounts, the home page must render a pack
         # card linking to /packs/disc.html — Discover Me is listed
         # alongside every other pack (Travel / Finance / etc.).
+        # The href may be root-absolute (/packs/disc.html), subpath-
+        # relative (../../packs/disc.html when hosted under a project
+        # page), or fully-resolved (http://host/packs/disc.html) after
+        # the browser applies document.baseURI to the relative form.
+        # All three resolve to the same target at runtime; the regex
+        # accepts any of them so the gate stays meaningful across
+        # deployment topologies.
         has_disc_card = bool(re.search(
-            r'<a[^>]+class="pack-card"[^>]+href="/packs/disc\.html"',
+            r'<a[^>]+class="pack-card"[^>]+href="(?:https?://[^/]+)?(?:(?:\.\./)*/?)?packs/disc\.html"',
             dom))
         _record(has_disc_card,
                 "[home] pack grid renders a card linking to /packs/disc.html")

@@ -74,16 +74,36 @@ OLD_HEADER_SEARCH_RE = re.compile(
 # chrome-header-search.css <link> after the last existing stylesheet
 # <link> so the pill input + dropdown panel are styled at first paint
 # without waiting for the lazy HT.headerSearch.open() trigger.
-DISCOVERY_HEADER_SEARCH_CSS_LINK = (
-    '<link rel="stylesheet" '
-    'href=\"../../../../assets/css/chrome-header-search.css\">'
-)
+#
+# IMPORTANT: the relative-path depth depends on the page's location in
+# the repo (DC-14 contract — /packs/<slug>.html is depth 1, so the link
+# is `../assets/css/...`; tools/packs/discovery/<slug>/index.html is
+# depth 4, so the link is `../../../../assets/css/...`). Use
+# build_header_search_css_link(rel_path) to build the correct prefix
+# per page — never hardcode a single depth.
+def build_header_search_css_link(rel_path: str) -> str:
+    """Build the chrome-header-search.css <link> tag with the correct
+    relative-path prefix for the given page.
+
+    rel_path: repo-relative path of the HTML page (e.g.
+              'packs/disc.html' or 'tools/packs/discovery/spirit-animal/index.html').
+    """
+    parts = Path(rel_path).parent.parts
+    depth = len(parts)
+    prefix = "../" * depth
+    return (
+        '<link rel="stylesheet" '
+        'href="' + prefix + 'assets/css/chrome-header-search.css">'
+    )
 
 
-def splice_discovery_header_search_css(text: str) -> str:
+def splice_discovery_header_search_css(text: str, rel_path: str) -> str:
     """Idempotently inject the eager chrome-header-search.css <link>
     into a discovery tool page <head>. Re-runs are no-ops once the link
     is present.
+
+    rel_path: repo-relative path of the HTML page being spliced — used
+              to compute the correct relative-path depth for the link.
     """
     if "chrome-header-search.css" in text:
         return text
@@ -94,7 +114,7 @@ def splice_discovery_header_search_css(text: str) -> str:
         return text
     last = matches[-1]
     end = last.end()
-    return text[:end] + "\n  " + DISCOVERY_HEADER_SEARCH_CSS_LINK + text[end:]
+    return text[:end] + "\n  " + build_header_search_css_link(rel_path) + text[end:]
 
 PAGES = [
     "packs/developer.html",
@@ -184,7 +204,8 @@ def main() -> int:
                 new_text = splice_discovery_header_search_css(
                     text[: m_old.start()]
                     + "      " + hs_block + "\n      "
-                    + text[m_old.end():]
+                    + text[m_old.end():],
+                    rel,
                 )
                 reason = "re-spliced: removed Show all actions CTA"
                 if args.dry_run:
@@ -221,14 +242,16 @@ def main() -> int:
             new_text = splice_discovery_header_search_css(
                 text[: m_legacy.start()]
                 + "      " + hs_block + "\n      "
-                + text[m_legacy.end():]
+                + text[m_legacy.end():],
+                rel,
             )
             reason = "spliced from shell-search-trigger button"
         elif m_old:
             new_text = splice_discovery_header_search_css(
                 text[: m_old.start()]
                 + "      " + hs_block + "\n      "
-                + text[m_old.end():]
+                + text[m_old.end():],
+                rel,
             )
             reason = "re-spliced from old header-search markup"
         else:
