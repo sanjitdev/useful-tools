@@ -373,7 +373,21 @@
     const variant = (opts && opts.variant) || 'icon';
     if (variant === 'icon') {
       btn.className = 'share-button btn--icon';
-      btn.textContent = '↗';
+      // The de-facto "share" icon across the modern web — three nodes
+      // (top-left dot, bottom-right dot) joined by an up-right arrow
+      // exiting a rounded rectangle. Used by iOS/macOS, Material Design,
+      // GitHub, Twitter, Slack, Notion, WhatsApp Web, etc. Stroke matches
+      // the chrome weight used by .shell-* SVGs (1.8, currentColor) so
+      // theme + size follow the same conventions as the rest of the
+      // shell. The icon is 24×24 inside the 36×36 .btn--icon box.
+      btn.innerHTML =
+        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" ' +
+        'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" ' +
+        'stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M12 3v12"/>' +
+          '<path d="M8 7l4-4 4 4"/>' +
+          '<rect x="6" y="13" width="12" height="8" rx="2"/>' +
+        '</svg>';
       btn.setAttribute('aria-label', 'Share tool (s)');
     } else if (variant === 'link') {
       btn.className = 'share-button btn--link';
