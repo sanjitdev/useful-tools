@@ -83,7 +83,7 @@
       slug: 'discovery',
       title: 'Discover Me',
       description: 'Six hand-written personality and recommendation quizzes — find your archetype.',
-      href: '/packs/disc.html',
+      href: packBase() + 'packs/disc.html',
       icon: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'
     }
   ];
@@ -217,6 +217,32 @@
       .replace(/>/g, '&gt;');
   }
 
+  // Subpath-safe base resolver. Mirrors the pattern in shell.js /
+  // global-chords.js — walk two parents up from this script's URL to
+  // find the site root. Falls back to HT.__siteBase (set by shell.js)
+  // when currentScript is unavailable; falls back to '/' otherwise so
+  // the pack card still navigates somewhere reasonable.
+  var PACK_GRID_SCRIPT_URL = (function () {
+    try {
+      if (typeof document !== 'undefined' && document.currentScript && document.currentScript.src) {
+        return document.currentScript.src;
+      }
+    } catch (_) { /* no-op */ }
+    return '';
+  })();
+
+  function packBase() {
+    if (PACK_GRID_SCRIPT_URL) {
+      try {
+        return new URL('../../', PACK_GRID_SCRIPT_URL).href;
+      } catch (_) { /* fall through */ }
+    }
+    if (typeof window !== 'undefined' && window.HT && typeof window.HT.__siteBase === 'function') {
+      try { return window.HT.__siteBase(); } catch (_) { /* fall through */ }
+    }
+    return '/';
+  }
+
   // Trust boundary: PACK_DEFINITIONS[].icon is authored inline in this
   // file (not user-supplied, not fetched). We deliberately inject the
   // SVG string via innerHTML into the icon slot — every other field in
@@ -228,7 +254,7 @@
     // Allow PACK_DEFINITIONS to override the href (used by the
     // Discovery pack, whose page lives at /packs/disc.html while
     // the JSON slug is "discovery"). Default: `/packs/<slug>.html`.
-    const href = pack.href || ('/packs/' + pack.slug + '.html');
+    const href = pack.href || (packBase() + 'packs/' + pack.slug + '.html');
 
     const card = document.createElement('a');
     card.className = 'pack-card';
