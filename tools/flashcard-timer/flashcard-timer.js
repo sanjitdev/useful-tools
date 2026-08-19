@@ -307,8 +307,10 @@
         else startTimer();
       } else if (k === 'r' || k === 'R') {
         ev.preventDefault();
-        if (ev.shiftKey) resetTimer();
-        else stopTimer();
+        // tools.json shortcut label is "Reset". Plain r/R → resetTimer.
+        // Shift+R is unchanged (also resetTimer — redundant for parity
+        // with the prior behavior, kept to avoid surprising muscle memory).
+        resetTimer();
       } else if (k === '1') {
         ev.preventDefault();
         if (recallIn) recallIn.focus();

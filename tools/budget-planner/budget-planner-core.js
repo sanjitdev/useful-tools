@@ -178,4 +178,58 @@
     Object.freeze(core);
     window.HT.budgetPlannerCore = core;
   }
+
+  // Boot — DOMContentLoaded → lazy-load handlers.js → init().
+  // Mirrors the recipe-scaler / paint-calculator boot pattern
+  // (recipe-scaler-core.js:212-233, paint-calculator-core.js:119-130).
+  function boot() {
+    if (typeof window === 'undefined') return;
+    if (window.HT && typeof window.HT.lazyLoadTool === 'function') {
+      window.HT.lazyLoadTool('budget-planner', './budget-planner-handlers.js').then(function () {
+        if (typeof window.budgetPlannerInit === 'function') {
+          try { window.budgetPlannerInit(); }
+          catch (err) {
+            if (typeof console !== 'undefined' && console.warn) {
+              console.warn('budget-planner-core: budgetPlannerInit threw', err);
+            }
+          }
+        }
+      }).catch(function (err) {
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('budget-planner-core: lazyLoadTool rejected', err);
+        }
+      });
+      return;
+    }
+    // Fallback — direct script insertion if HT.lazyLoadTool is
+    // not registered (e.g. smoke-harness contexts). The script tag
+    // uses defer=true so it runs before DOMContentLoaded.
+    var s = document.createElement('script');
+    s.src = './budget-planner-handlers.js';
+    s.defer = true;
+    s.onload = function () {
+      if (typeof window.budgetPlannerInit === 'function') {
+        try { window.budgetPlannerInit(); }
+        catch (err) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('budget-planner-core: budgetPlannerInit threw', err);
+          }
+        }
+      }
+    };
+    s.onerror = function () {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('budget-planner-core: budget-planner-handlers.js failed to load');
+      }
+    };
+    document.head.appendChild(s);
+  }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot, { once: true });
+    } else {
+      boot();
+    }
+  }
 })();

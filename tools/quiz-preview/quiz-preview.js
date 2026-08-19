@@ -273,6 +273,33 @@
 
   function boot() {
     mountQuiz();
+    wireShortcuts();
+  }
+
+  // Keyboard shortcut declared in tools.json shortcuts[]:
+  //   r = Reset quiz (re-mount from card 0).
+  // Skip when typing in editable elements so the user's input isn't
+  // hijacked. Modifiers (Ctrl/Cmd/Alt) are bypassed to avoid stomping
+  // browser chords.
+  function wireShortcuts() {
+    if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+    document.addEventListener('keydown', function (evt) {
+      if (!evt || evt.ctrlKey || evt.metaKey || evt.altKey) return;
+      var t = evt.target;
+      var tag = (t && t.tagName) ? String(t.tagName).toLowerCase() : '';
+      var editable = tag === 'input' || tag === 'textarea' || tag === 'select' ||
+                     (t && t.isContentEditable === true);
+      if (editable) return;
+      var k = (typeof evt.key === 'string') ? evt.key.toLowerCase() : '';
+      if (k === 'r') {
+        evt.preventDefault();
+        // Re-mount from card 0 — same path as the reveal-panel reset button.
+        // `handle` is local to mountQuiz so we can't close the prior quiz
+        // instance here; mountQuiz() re-creates the panel and rebinds
+        // share/print/reset listeners to the new handle.
+        try { mountQuiz(); } catch (_) {}
+      }
+    });
   }
 
   // Boot on DOMContentLoaded. shell.js may publish 'shell:ready' later;

@@ -710,5 +710,37 @@
     });
 
     render();
+    wireShortcuts();
   };
+
+  // Keyboard shortcuts declared in tools.json shortcuts[]:
+  //   s = Load sample ($100 in 2000), r = Reset to defaults.
+  // Routed to the Shell's HT.sampleData.fill / HT.reset.run helpers
+  // (see comment at line 591-594) — those own the canonical Sample /
+  // Reset UX. Skip when typing in editable elements so the user's input
+  // isn't hijacked. Modifiers (Ctrl/Cmd/Alt) are bypassed to avoid
+  // stomping browser chords (Cmd+S save, Ctrl+R reload, etc.).
+  function wireShortcuts() {
+    if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+    document.addEventListener('keydown', function (evt) {
+      if (!evt || evt.ctrlKey || evt.metaKey || evt.altKey) return;
+      var t = evt.target;
+      var tag = (t && t.tagName) ? String(t.tagName).toLowerCase() : '';
+      var editable = tag === 'input' || tag === 'textarea' || tag === 'select' ||
+                     (t && t.isContentEditable === true);
+      if (editable) return;
+      var k = (typeof evt.key === 'string') ? evt.key.toLowerCase() : '';
+      if (k === 's') {
+        if (HT.sampleData && typeof HT.sampleData.fill === 'function') {
+          evt.preventDefault();
+          try { HT.sampleData.fill(); } catch (_) { /* defensive */ }
+        }
+      } else if (k === 'r') {
+        if (HT.reset && typeof HT.reset.run === 'function') {
+          evt.preventDefault();
+          try { HT.reset.run(); } catch (_) { /* defensive */ }
+        }
+      }
+    });
+  }
 })();

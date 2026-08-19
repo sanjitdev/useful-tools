@@ -223,7 +223,8 @@
   }
 
   // -------------------------------------------------------------
-  // Keyboard shortcuts (s = sample, r = reset)
+  // Keyboard shortcuts (s = sample, r = reset, p = print, c = copy share URL)
+  // tools.json shortcuts[]: s, r, p, c.
   // -------------------------------------------------------------
   function onKeydown(ev) {
     if (!ev) return;
@@ -234,6 +235,8 @@
     var key = ev.key;
     if (key === 's' || key === 'S') { ev.preventDefault(); onSampleClick(); }
     else if (key === 'r' || key === 'R') { ev.preventDefault(); onResetClick(); }
+    else if (key === 'p' || key === 'P') { ev.preventDefault(); onPrintClick(); }
+    else if (key === 'c' || key === 'C') { ev.preventDefault(); onShareClick(); }
   }
 
   // -------------------------------------------------------------

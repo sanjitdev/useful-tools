@@ -96,61 +96,47 @@
     </header>
 
     <div class="panel">
-      <div class="panel-title">Shape</div>
-      <div class="av-shape-tabs" role="radiogroup" aria-label="Shape">
-        <label><input type="radio" name="av-shape" data-av-shape="rectangle" checked><span class="tab-label">Rectangle</span></label>
-        <label><input type="radio" name="av-shape" data-av-shape="triangle"><span class="tab-label">Triangle</span></label>
-        <label><input type="radio" name="av-shape" data-av-shape="circle"><span class="tab-label">Circle</span></label>
-        <label><input type="radio" name="av-shape" data-av-shape="l-shape"><span class="tab-label">L-shape</span></label>
-        <label><input type="radio" name="av-shape" data-av-shape="box-3d"><span class="tab-label">Box 3D</span></label>
-        <label><input type="radio" name="av-shape" data-av-shape="cylinder-3d"><span class="tab-label">Cylinder 3D</span></label>
+      <div class="panel-title">Income</div>
+      <div class="bp-income-row">
+        <label class="field-label" for="bp-income">Monthly income</label>
+        <span class="bp-dollar">$</span>
+        <input id="bp-income" class="input bp-amount-input" data-bp-key="income" type="number" min="0" step="any" value="0" aria-label="Monthly income">
       </div>
 
-      <div class="grid-2">
-        <div data-av-shape-group="rectangle">
-          <div class="field"><label class="field-label" for="av-rw">Width</label><input id="av-rw" class="input" data-av-key="w" type="number" min="0" step="any" value="12"></div>
-          <div class="field"><label class="field-label" for="av-rh">Height</label><input id="av-rh" class="input" data-av-key="h" type="number" min="0" step="any" value="10"></div>
-        </div>
-        <div data-av-shape-group="triangle" hidden>
-          <div class="field"><label class="field-label" for="av-tb">Base</label><input id="av-tb" class="input" data-av-key="b" type="number" min="0" step="any" value="10"></div>
-          <div class="field"><label class="field-label" for="av-th">Height</label><input id="av-th" class="input" data-av-key="h" type="number" min="0" step="any" value="8"></div>
-        </div>
-        <div data-av-shape-group="circle" hidden>
-          <div class="field"><label class="field-label" for="av-cr">Radius</label><input id="av-cr" class="input" data-av-key="r" type="number" min="0" step="any" value="5"></div>
-        </div>
-        <div data-av-shape-group="l-shape" hidden>
-          <div class="field"><label class="field-label" for="av-r1w">Rect 1 width</label><input id="av-r1w" class="input" data-av-key="r1w" type="number" min="0" step="any" value="10"></div>
-          <div class="field"><label class="field-label" for="av-r1h">Rect 1 height</label><input id="av-r1h" class="input" data-av-key="r1h" type="number" min="0" step="any" value="8"></div>
-          <div class="field"><label class="field-label" for="av-r2w">Rect 2 width</label><input id="av-r2w" class="input" data-av-key="r2w" type="number" min="0" step="any" value="6"></div>
-          <div class="field"><label class="field-label" for="av-r2h">Rect 2 height</label><input id="av-r2h" class="input" data-av-key="r2h" type="number" min="0" step="any" value="4"></div>
-        </div>
-        <div data-av-shape-group="box-3d" hidden>
-          <div class="field"><label class="field-label" for="av-bw">Width</label><input id="av-bw" class="input" data-av-key="w" type="number" min="0" step="any" value="6"></div>
-          <div class="field"><label class="field-label" for="av-bh">Height</label><input id="av-bh" class="input" data-av-key="h" type="number" min="0" step="any" value="4"></div>
-          <div class="field"><label class="field-label" for="av-bd">Depth</label><input id="av-bd" class="input" data-av-key="d" type="number" min="0" step="any" value="3"></div>
-        </div>
-        <div data-av-shape-group="cylinder-3d" hidden>
-          <div class="field"><label class="field-label" for="av-cyr">Radius</label><input id="av-cyr" class="input" data-av-key="r" type="number" min="0" step="any" value="2"></div>
-          <div class="field"><label class="field-label" for="av-cyh">Height</label><input id="av-cyh" class="input" data-av-key="h" type="number" min="0" step="any" value="5"></div>
-        </div>
-      </div>
-
-      <div class="av-unit-tabs" role="radiogroup" aria-label="Units">
-        <label><input type="radio" name="av-unit" data-av-unit="ft" checked> Imperial (ft)</label>
-        <label><input type="radio" name="av-unit" data-av-unit="m"> Metric (m)</label>
-      </div>
+      <div class="panel-title" style="margin-top: var(--space-3);">Categories</div>
+      <table class="budget-results" aria-label="Budget categories">
+        <thead>
+          <tr><th>Category</th><th style="text-align:right;">Amount</th><th></th></tr>
+        </thead>
+        <tbody id="bp-rows"></tbody>
+      </table>
 
       <div class="paint-actions" style="margin-top: var(--space-3);">
+        <button type="button" class="btn btn--ghost" data-action="add">+ Add category</button>
         <button type="button" class="btn btn-primary" data-action="sample">Load sample</button>
-        <button type="button" class="btn" data-action="reset">Reset</button>
-        <button type="button" class="btn" data-action="print">Print</button>
-        <button type="button" class="btn" data-action="share">Copy share URL</button>
+        <button type="button" class="btn btn--ghost" data-action="reset">Reset</button>
+        <button type="button" class="btn btn--ghost" data-action="print">Print</button>
+        <button type="button" class="btn btn--ghost" data-action="share">Copy share URL</button>
       </div>
     </div>
 
-    <div class="result-card">
-      <div class="result-card-title">Result</div>
-      <div id="av-result" aria-live="polite"></div>
+    <div class="bp-summary panel" aria-live="polite">
+      <div class="bp-summary-row">
+        <span class="bp-summary-label">Total expenses</span>
+        <span class="bp-summary-value" id="bp-total-expenses">$0.00</span>
+      </div>
+      <div class="bp-summary-row">
+        <span class="bp-summary-label">Savings</span>
+        <span class="bp-summary-value" id="bp-savings" data-sign="positive">$0.00</span>
+      </div>
+      <div class="bp-summary-row">
+        <span class="bp-summary-label">Savings rate</span>
+        <span class="bp-summary-value" id="bp-savings-rate">0.00%</span>
+      </div>
+      <div class="bp-summary-row bp-summary-final">
+        <span class="bp-summary-label">Discretionary funds</span>
+        <span class="bp-summary-value" id="bp-discretionary" data-sign="positive">$0.00</span>
+      </div>
     </div>
   </main>
   <!-- shell:print-footer (Story 3.10) -->
@@ -413,6 +399,6 @@
   <script src="../../assets/js/global-chords.js" defer></script>
   <script src="../../assets/js/ht-lazy.js"></script>
   <script src="../../assets/js/shell-thin.js" defer></script>
-  <script src="./area-volume-core.js"></script>
+  <script src="./budget-planner-core.js"></script>
 </body>
 </html>

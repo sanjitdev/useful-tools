@@ -1425,6 +1425,37 @@
     if (state.mode === 'plan') renderPlan();
     wireQuizToggle();
     wireDatePickers();
+    wireShortcuts();
+  }
+
+  // Keyboard shortcut declared in tools.json shortcuts[]:
+  //   r = Reset plan targets to WHO optimal (only available in the
+  //       Plan tab; ignored elsewhere to avoid surprising the user).
+  // Skip when typing in editable elements so the user's input isn't
+  // hijacked. Modifiers (Ctrl/Cmd/Alt) are bypassed to avoid stomping
+  // browser chords.
+  function wireShortcuts() {
+    if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+    document.addEventListener('keydown', function (evt) {
+      if (!evt || evt.ctrlKey || evt.metaKey || evt.altKey) return;
+      var t = evt.target;
+      var tag = (t && t.tagName) ? String(t.tagName).toLowerCase() : '';
+      var editable = tag === 'input' || tag === 'textarea' || tag === 'select' ||
+                     (t && t.isContentEditable === true);
+      if (editable) return;
+      var k = (typeof evt.key === 'string') ? evt.key.toLowerCase() : '';
+      if (k !== 'r') return;
+      if (!els.planReset) return;
+      // The Plan tab is hidden in embed mode (applyEmbedMode removes it);
+      // also skip if the Plan tab isn't the active mode.
+      if (state.mode !== 'plan') return;
+      evt.preventDefault();
+      try {
+        state.planTargets = planDefaultTargets();
+        persistPlan();
+        renderPlan();
+      } catch (_) { /* defensive */ }
+    });
   }
 
   /* Story 9.19 — opt the 2 DOB inputs into HT.datePicker (lazy via

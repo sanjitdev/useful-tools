@@ -197,6 +197,29 @@
     wireEvents();
     render();
     writeUrlState();
+    wireShortcuts();
+  }
+
+  // Keyboard shortcuts declared in tools.json shortcuts[]:
+  //   s = Load sample, r = Reset, p = Print, c = Copy share URL.
+  // Skip when typing in editable elements so the user's input isn't
+  // hijacked. Modifiers (Ctrl/Cmd/Alt) are bypassed to avoid stomping
+  // browser chords (Ctrl+P print, Cmd+S save, etc.).
+  function wireShortcuts() {
+    if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+    document.addEventListener('keydown', function (evt) {
+      if (!evt || evt.ctrlKey || evt.metaKey || evt.altKey) return;
+      var t = evt.target;
+      var tag = (t && t.tagName) ? String(t.tagName).toLowerCase() : '';
+      var editable = tag === 'input' || tag === 'textarea' || tag === 'select' ||
+                     (t && t.isContentEditable === true);
+      if (editable) return;
+      var k = (typeof evt.key === 'string') ? evt.key.toLowerCase() : '';
+      if (k === 's') { onSampleClick(); evt.preventDefault(); }
+      else if (k === 'r') { onResetClick(); evt.preventDefault(); }
+      else if (k === 'p') { onPrintClick(); evt.preventDefault(); }
+      else if (k === 'c') { onShareClick(); evt.preventDefault(); }
+    });
   }
 
   if (typeof window !== 'undefined') {
