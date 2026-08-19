@@ -759,11 +759,16 @@ assert(
   'glyphs=' + (recalcRow && JSON.stringify(findAll(recalcRow, 'kbd').map(function (k) { return k.textContent; })))
 );
 
-// Global section has all 10 rows.
+// Global section has all 11 rows.
+// Story 10.20: GLOBAL_SHORTCUTS gained a 2nd entry — "Open advanced
+// search" (Cmd+Shift+K) was added when the inline header-search became
+// the primary / Cmd+K surface, and the advanced modal palette became
+// a fallback chord. The first entry's label also changed from
+// "Open command palette" to "Open search" (mirrors the inline UX).
 const globalRows = findAll(dom.globalList, 'li');
 assert(
-  'global section rendered all 10 hardcoded rows',
-  globalRows.length === 10,
+  'global section rendered all 11 hardcoded rows',
+  globalRows.length === 11,
   'length=' + globalRows.length
 );
 
@@ -1204,7 +1209,7 @@ setTimeout(function () {
   );
   assert(
     'non-matching rows are [hidden] after filter (Patch 5)',
-    fr.hiddenCount === 9
+    fr.hiddenCount === 10
   );
   assert(
     'live region announces "1 shortcut shown" after filter (Patch 5)',
@@ -1234,7 +1239,7 @@ setTimeout(function () {
       );
       assert(
         'all rows [hidden] when filter has no matches (Patch 5)',
-        er.hiddenCount === 10
+        er.hiddenCount === 11
       );
 
       // ── Phase 3: clear filter → all rows visible.
@@ -1244,7 +1249,7 @@ setTimeout(function () {
         setTimeout(function () {
           assert(
             'clearing filter restores all rows visible (Patch 5)',
-            visibleRowCount() === 10,
+            visibleRowCount() === 11,
             'visible=' + visibleRowCount()
           );
           handle.close();

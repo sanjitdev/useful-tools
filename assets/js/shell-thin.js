@@ -166,6 +166,12 @@
     history: 'assets/js/history.js',
     urlState: 'assets/js/url.js',
     palette: 'assets/js/palette-actions.js',
+    // Story 10.20 — inline header search. The JS lives in shell.js (no
+    // separate module), so the URL here is unused by the Proxy; the
+    // Proxy stub still loads chrome-header-search.css on first
+    // property access. shell.js overrides this stub with the real
+    // `HT.headerSearch = {open, close, toggle, isOpen}` API.
+    headerSearch: '',
     // Story 4 Phase 4 — re-enable chrome features that the slim Tier 1
     // sweep stripped from the eager script block. Each of these
     // namespaces is consumed by shell.js boot() (Sample/Reset → mount,
@@ -298,6 +304,12 @@
   const TIER2_CSS = {
     history:     'assets/css/chrome-history.css',
     palette:     'assets/css/chrome-palette.css',
+    // Story 10.20 patch — chrome-header-search.css is now loaded EAGERLY
+    // via the page <head> (spliced by scripts/shell-template.py) so the
+    // pill input + dropdown are styled at first paint. No lazy-load
+    // here; eager load avoids the FOUC where the input rendered as a
+    // default <input type="search"> until first click.
+    headerSearch: '',
     sampleData:  'assets/css/chrome-confirm-share.css',
     share:       'assets/css/chrome-confirm-share.css',
     exportData:  '',
@@ -388,6 +400,15 @@
   HT.history  = makeProxy(TIER2_URLS.history, 'history');
   HT.urlState = makeProxy(TIER2_URLS.urlState, 'urlState');
   HT.palette  = makeProxy(TIER2_URLS.palette, 'palette');
+  // Story 10.20 — inline header search. The JS lives directly in shell.js
+  // (no separate module), but the CSS still needs lazy-load on first open.
+  // We make a Proxy stub keyed off the `headerSearch` namespace so that
+  // any property access on `HT.headerSearch` (e.g., from shell.js's boot()
+  // guard or from a tool page that touches the namespace) triggers
+  // lazyLoadCss(chrome-header-search.css). shell.js overrides this stub
+  // with the real `HT.headerSearch = {open, close, toggle, isOpen}` API
+  // at boot, so subsequent property accesses hit the real object.
+  HT.headerSearch = makeProxy(TIER2_URLS.headerSearch, 'headerSearch');
   // Story 4 Phase 4: re-enable lazy-load for the chrome namespaces
   // that the slim Tier 1 sweep stripped from the eager script block.
   // Each Proxy property access transparently triggers the lazy-load
@@ -482,7 +503,18 @@
     // tool pages (tools/<slug>/index.html) reach the same
     // assets/ directory as the home page. See SCRIPT_URL / resolveUrl
     // at the top of this IIFE.
-    safeLazyLoad(resolveUrl('assets/js/shell.js'));
+    //
+    // shell.js is also loaded via the static
+    // `<script src="assets/js/shell.js" defer>` tag on every chrome
+    // page. ht-lazy's `loaded` Set doesn't track static-tag loads, so
+    // without this skip the static load + lazy load race would inject
+    // a duplicate <script>, causing shell.js's IIFE to re-enter and
+    // throw "Cannot redefine property: provide" at line 159. shell.js
+    // has its own re-entry guard, but skipping the duplicate network
+    // request is cheaper than re-running the IIFE.
+    if (!window.__htShellBootStarted) {
+      safeLazyLoad(resolveUrl('assets/js/shell.js'));
+    }
     // Story 4b Phase 1: shell-*.js orchestrators (extracted from
     // shell.js boot() call sites) must be available by the time
     // shell.js boot() runs. They're tiny (~400 B each) and only

@@ -193,6 +193,17 @@ a:hover {
   font-size: 16px;
 }
 
+/* Story 10.20 — the inline header search lives inside the right-side
+   .shell-header-nav. Pad the nav with a flex layout so the search
+   wraps against the right edge and the trailing icons (theme,
+   locale, settings) sit beside it cleanly. */
+.shell-header-nav {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .shell-search-trigger,
 .shell-locale,
 .shell-settings,

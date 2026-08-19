@@ -96,6 +96,14 @@ CHROME_REL = Path("assets/shell/chrome.html")
 PALETTE_REL = Path("assets/shell/palette.html")
 SETTINGS_REL = Path("assets/shell/settings.html")
 HELP_REL = Path("assets/shell/help.html")
+# Story 10.20: inline header-search include. The drift check verifies
+# the rendered bytes match the canonical source (chrome.html carries
+# the include inline, AND the bytes also live in
+# assets/shell/header-search.html as a separate canonical source for
+# future standalone evolution). The byte-substring check is
+# sufficient — the structural DOM walk covers the include as part of
+# `<header class="site-header">` landmark comparison.
+HEADER_SEARCH_REL = Path("assets/shell/header-search.html")
 TOOLS_JSON_REL = Path("tools.json")
 # Story 3.10: the help overlay (UX-DR-6, FR-7) is a single shared DOM
 # node mounted on every page, in the same chrome-template pattern as
@@ -626,6 +634,36 @@ def load_help_region(root: Path) -> str:
     return match.group(1)
 
 
+def load_header_search_region(root: Path) -> str:
+    """Story 10.20: extract the inline header-search region bytes from
+    assets/shell/header-search.html (byte-substring check).
+
+    The header-search bytes are mounted inline in chrome.html's
+    `<header class="site-header">` landmark, so the structural DOM
+    walk already catches drift via the site-header comparison. This
+    function exists so the drift check can also verify the
+    `assets/shell/header-search.html` canonical source itself
+    (a missing-region error means a developer edited the
+    chrome.html bytes without updating the standalone source, or
+    vice versa)."""
+    hs_path = root / HEADER_SEARCH_REL
+    if not hs_path.is_file():
+        sys.stderr.write(f"shell-drift-check: missing {hs_path}\n")
+        sys.exit(2)
+    hs_text = hs_path.read_text(encoding="utf-8")
+    match = re.search(
+        r"<!-- shell:header-search -->\s*(.*?)\s*<!-- /shell:header-search -->",
+        hs_text,
+        re.DOTALL,
+    )
+    if not match:
+        sys.stderr.write(
+            "shell-drift-check: header-search.html missing shell:header-search markers\n"
+        )
+        sys.exit(2)
+    return match.group(1)
+
+
 def load_tools_json_inline(root: Path) -> str:
     """Reconstruct the inline tools.json block bytes (the file://
     fallback for the data-driven home-grid renderer). Mirrors
@@ -884,6 +922,7 @@ def scan_page(
     palette_bytes: str,
     settings_bytes: str,
     help_bytes: str,
+    header_search_bytes: str,
     tools_json_inline_bytes: str,
     manifest_sha: str,
     tier1_anchors: tuple[str, str, str, str, str, str],
@@ -1102,6 +1141,20 @@ def scan_page(
             "expected": "help region",
             "actual": None,
         })
+    # Story 10.20: header-search bytes are mounted inline in chrome.html
+    # (as part of the `<header class="site-header">` landmark), so the
+    # structural DOM walk already catches drift via the site-header
+    # comparison. The byte-substring check below is a redundant
+    # cross-check: it surfaces a `chrome.html` was edited but
+    # `header-search.html` was not (or vice versa) bug class early.
+    if header_search_bytes not in page_text:
+        diffs.append({
+            "kind": "missing_header_search_region",
+            "region": "chrome",
+            "path": "header-search",
+            "expected": "header-search region",
+            "actual": None,
+        })
 
     ok = len(diffs) == 0
     return ok, diffs, page_landmarks
@@ -1113,6 +1166,7 @@ def scan(
     palette_bytes: str,
     settings_bytes: str,
     help_bytes: str,
+    header_search_bytes: str,
     tools_json_inline_bytes: str,
     manifest_sha: str,
     tier1_anchors: tuple[str, str, str, str, str, str],
@@ -1146,6 +1200,7 @@ def scan(
             palette_bytes,
             settings_bytes,
             help_bytes,
+            header_search_bytes,
             tools_json_inline_bytes,
             manifest_sha,
             tier1_anchors,
@@ -1197,6 +1252,7 @@ def main(argv: list[str]) -> int:
     palette_bytes = load_palette_region(root)
     settings_bytes = load_settings_region(root)
     help_bytes = load_help_region(root)
+    header_search_bytes = load_header_search_region(root)
     tools_json_inline_bytes = load_tools_json_inline(root)
     _manifest_inner, manifest_sha = load_manifest_bytes(root)
 
@@ -1220,6 +1276,7 @@ def main(argv: list[str]) -> int:
         palette_bytes,
         settings_bytes,
         help_bytes,
+        header_search_bytes,
         tools_json_inline_bytes,
         manifest_sha,
         tier1_anchors,

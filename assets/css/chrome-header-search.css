@@ -1,0 +1,538 @@
+/* =============================================
+   Handy Tools — chrome-header-search.css
+   Story 10.20 — Inline header search bar (UX rewrite).
+   Eagerly loaded via <link rel="stylesheet"> on every page (the
+   pill input + dropdown panel are styled at first paint).
+   Inline (non-modal) dropdown panel anchored under the header
+   input.
+
+   Redesign (Story 10.20 patch): the input is always visible
+   inside an input-wrap. The icon sits inside the wrap as a
+   leading visual cue. The wrap is the layout anchor for the
+   absolutely-positioned panel below it. Simpler, more
+   discoverable, and matches GitHub / Linear / Notion conventions.
+
+   Polish (Story 10.20 patch #2): refined glass-like input pill,
+   layered shadow + smooth slide on the dropdown panel, and
+   category accent dots on each option row. All a11y invariants
+   preserved (forced-colors, reduced-motion, sr-only live region).
+   ============================================= */
+
+/* ---------- design tokens ---------- */
+
+:root {
+  /* Dropdown / panel palette. We deliberately split the dropdown
+     surface from the chrome background so the panel reads as a
+     distinct "floating surface" rather than chrome. */
+  --ht-search-surface: #ffffff;
+  --ht-search-surface-2: #f6f7fb;
+  --ht-search-border: rgba(15, 17, 23, 0.08);
+  --ht-search-border-strong: rgba(15, 17, 23, 0.14);
+  --ht-search-shadow:
+    0 1px 2px rgba(15, 17, 23, 0.05),
+    0 4px 12px rgba(15, 17, 23, 0.08),
+    0 20px 48px rgba(15, 17, 23, 0.18);
+  --ht-search-text: #1a1d29;
+  --ht-search-text-muted: rgba(26, 29, 41, 0.6);
+  --ht-search-accent: #2F5BFF;
+  --ht-search-accent-soft: rgba(47, 91, 255, 0.10);
+  --ht-search-accent-soft-strong: rgba(47, 91, 255, 0.18);
+  --ht-search-divider: rgba(15, 17, 23, 0.06);
+
+  /* Category accent dots — kept lightweight so the panel still
+     reads as monochrome chrome. Each value matches the closest
+     cobalt/utility token so dark mode stays cohesive. */
+  --ht-cat-developer: #2F5BFF;
+  --ht-cat-finance: #0d8a5e;
+  --ht-cat-converters-calculators: #6b46c1;
+  --ht-cat-study: #d97706;
+  --ht-cat-time: #475569;
+  --ht-cat-fun: #db2777;
+  --ht-cat-household: #0ea5e9;
+  --ht-cat-health-lifestyle: #16a34a;
+  --ht-cat-cooking: #ea580c;
+  --ht-cat-default: #94a3b8;
+}
+
+:root[data-theme="dark"] {
+  --ht-search-surface: #1a1d29;
+  --ht-search-surface-2: #232635;
+  --ht-search-border: rgba(232, 234, 240, 0.10);
+  --ht-search-border-strong: rgba(232, 234, 240, 0.18);
+  --ht-search-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.35),
+    0 20px 48px rgba(0, 0, 0, 0.55);
+  --ht-search-text: #e8eaf0;
+  --ht-search-text-muted: rgba(232, 234, 240, 0.6);
+  --ht-search-accent: #7898ff;
+  --ht-search-accent-soft: rgba(120, 152, 255, 0.18);
+  --ht-search-accent-soft-strong: rgba(120, 152, 255, 0.28);
+  --ht-search-divider: rgba(232, 234, 240, 0.08);
+
+  --ht-cat-developer: #7898ff;
+  --ht-cat-finance: #34d399;
+  --ht-cat-converters-calculators: #a78bfa;
+  --ht-cat-study: #fbbf24;
+  --ht-cat-time: #94a3b8;
+  --ht-cat-fun: #f472b6;
+  --ht-cat-household: #38bdf8;
+  --ht-cat-health-lifestyle: #4ade80;
+  --ht-cat-cooking: #fb923c;
+  --ht-cat-default: #64748b;
+}
+
+/* ---------- input wrap (the pill) ---------- */
+
+.shell-header-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 0 0.25rem;
+}
+
+.shell-header-search-input-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 240px;
+  max-width: 32vw;
+  height: 38px;
+  padding: 0 0.875rem 0 2.375rem;
+  background-color: var(--ht-search-surface-2);
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  border: 1px solid var(--ht-search-border-strong);
+  border-radius: 999px;
+  box-shadow: 0 1px 0 rgba(15, 17, 23, 0.04);
+  transition:
+    border-color 0.14s ease,
+    background-color 0.14s ease,
+    box-shadow 0.14s ease,
+    width 0.18s cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root[data-theme="dark"] .shell-header-search-input-wrap {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.shell-header-search-input-wrap:hover {
+  background-color: var(--ht-search-surface);
+  border-color: var(--ht-search-accent-soft-strong);
+  box-shadow:
+    0 1px 2px rgba(15, 17, 23, 0.06),
+    0 4px 12px rgba(47, 91, 255, 0.08);
+}
+
+.shell-header-search-input-wrap:focus-within {
+  background-color: var(--ht-search-surface);
+  border-color: var(--ht-search-accent);
+  box-shadow:
+    0 0 0 4px var(--ht-search-accent-soft),
+    0 1px 2px rgba(15, 17, 23, 0.06),
+    0 4px 16px rgba(47, 91, 255, 0.18);
+  width: 320px;
+  max-width: 40vw;
+}
+
+/* ---------- icon (leading visual cue) ---------- */
+
+.shell-header-search-icon {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ht-search-text-muted);
+  pointer-events: none;
+  transition: color 0.14s ease;
+}
+
+.shell-header-search-input-wrap:focus-within .shell-header-search-icon {
+  color: var(--ht-search-accent);
+}
+
+/* ---------- the input itself ---------- */
+
+.shell-header-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--ht-search-text);
+  font-family: inherit;
+  letter-spacing: 0.005em;
+}
+
+.shell-header-search-input::placeholder {
+  color: var(--ht-search-text-muted);
+  transition: color 0.14s ease;
+}
+
+.shell-header-search-input:focus::placeholder {
+  color: var(--ht-search-text-muted);
+  opacity: 0.7;
+}
+
+/* ---------- the dropdown panel ---------- */
+
+.shell-header-search-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 360px;
+  max-width: 92vw;
+  max-height: 70vh;
+  background-color: var(--ht-search-surface);
+  border: 1px solid var(--ht-search-border);
+  border-radius: 16px;
+  box-shadow: var(--ht-search-shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 60;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.985);
+  transform-origin: top right;
+  pointer-events: none;
+  transition:
+    opacity 0.16s ease,
+    transform 0.18s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.shell-header-search[data-open="true"] .shell-header-search-panel {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.shell-header-search-panel[hidden] {
+  display: none;
+}
+
+/* The arrow/tail pointing up at the input. Drawn with a tiny
+   pseudo-element so the panel feels anchored to the wrap. */
+.shell-header-search-panel::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  right: 28px;
+  width: 14px;
+  height: 14px;
+  background-color: var(--ht-search-surface);
+  border-top: 1px solid var(--ht-search-border);
+  border-left: 1px solid var(--ht-search-border);
+  transform: rotate(45deg);
+  border-top-left-radius: 3px;
+  pointer-events: none;
+}
+
+.shell-header-search-panel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 27px;
+  width: 16px;
+  height: 8px;
+  background-color: var(--ht-search-surface);
+  pointer-events: none;
+}
+
+/* ---------- listbox (the rows) ---------- */
+
+.shell-header-search-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  overflow-y: auto;
+  max-height: calc(70vh - 60px);
+  scrollbar-gutter: stable;
+}
+
+.shell-header-search-list [role="option"] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem 0.625rem 1.5rem;
+  margin: 1px 0;
+  cursor: pointer;
+  color: var(--ht-search-text);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background-color: transparent;
+  text-align: left;
+  width: 100%;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease,
+    transform 0.12s ease;
+}
+
+/* The category accent dot. Sits at the left edge of the row as a
+   small colored indicator. The color is driven by data-cat set
+   in buildToolOption (shell.js). */
+.shell-header-search-list [role="option"]::before {
+  content: "";
+  position: absolute;
+  left: 0.625rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--ht-cat-default);
+  box-shadow: 0 0 0 2px var(--ht-search-surface);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.shell-header-search-list [role="option"][data-cat="developer"]::before {
+  background-color: var(--ht-cat-developer);
+}
+.shell-header-search-list [role="option"][data-cat="finance"]::before {
+  background-color: var(--ht-cat-finance);
+}
+.shell-header-search-list [role="option"][data-cat="converters-calculators"]::before {
+  background-color: var(--ht-cat-converters-calculators);
+}
+.shell-header-search-list [role="option"][data-cat="study"]::before {
+  background-color: var(--ht-cat-study);
+}
+.shell-header-search-list [role="option"][data-cat="time"]::before {
+  background-color: var(--ht-cat-time);
+}
+.shell-header-search-list [role="option"][data-cat="fun"]::before {
+  background-color: var(--ht-cat-fun);
+}
+.shell-header-search-list [role="option"][data-cat="household"]::before {
+  background-color: var(--ht-cat-household);
+}
+.shell-header-search-list [role="option"][data-cat="health-lifestyle"]::before {
+  background-color: var(--ht-cat-health-lifestyle);
+}
+.shell-header-search-list [role="option"][data-cat="cooking"]::before {
+  background-color: var(--ht-cat-cooking);
+}
+
+.shell-header-search-list [role="option"]:hover {
+  background-color: var(--ht-search-surface-2);
+}
+
+.shell-header-search-list [role="option"]:focus-visible {
+  outline: 2px solid var(--ht-search-accent);
+  outline-offset: -2px;
+}
+
+.shell-header-search-list [role="option"][aria-selected="true"] {
+  background-color: var(--ht-search-accent-soft);
+  border-color: var(--ht-search-accent-soft-strong);
+  color: var(--ht-search-text);
+}
+
+.shell-header-search-list [role="option"][aria-selected="true"]::before {
+  transform: translateY(-50%) scale(1.15);
+  box-shadow: 0 0 0 2px var(--ht-search-accent-soft);
+}
+
+/* The title and "matched in X" meta text inherit from
+   shell-palette.css which is the source of truth for option-row
+   typography. Here we only adjust font weight + truncate long
+   titles cleanly. */
+.shell-header-search-list [role="option"] .shell-palette-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shell-header-search-list [role="option"] .shell-palette-title strong {
+  color: var(--ht-search-accent);
+  font-weight: 600;
+}
+
+.shell-header-search-list [role="option"] .shell-palette-match {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ht-search-text-muted);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: var(--ht-search-surface-2);
+  border: 1px solid var(--ht-search-border);
+  white-space: nowrap;
+}
+
+/* Empty-state row */
+.shell-header-search-empty {
+  padding: 1.75rem 1rem;
+  color: var(--ht-search-text-muted);
+  text-align: center;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* ---------- footer ---------- */
+
+/* Story 10.20 followup: the footer now only carries the chord hints
+   (no "Show all actions" CTA). It still reads as a distinct surface
+   row — bordered top + surface-2 background — so the visual
+   hierarchy of panel = [listbox | footer] is preserved. */
+.shell-header-search-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border-top: 1px solid var(--ht-search-divider);
+  font-size: 0.78rem;
+  color: var(--ht-search-text-muted);
+  background-color: var(--ht-search-surface-2);
+}
+
+.shell-header-search-footer-hints {
+  letter-spacing: 0.01em;
+}
+
+.shell-header-search-footer-hints kbd,
+.shell-header-search-footer-hints .kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  margin: 0 1px;
+  font-size: 0.72rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background-color: var(--ht-search-surface);
+  border: 1px solid var(--ht-search-border-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--ht-search-text);
+  vertical-align: 1px;
+  line-height: 1.4;
+}
+
+/* ---------- screen-reader-only live region ---------- */
+
+.shell-sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* ---------- embed mode ---------- */
+
+:root[data-embed="1"] .shell-header-search {
+  display: none;
+}
+
+/* ---------- forced-colors (Windows High Contrast) ---------- */
+
+@media (forced-colors: active) {
+  .shell-header-search-input-wrap {
+    border: 2px solid CanvasText;
+    background-image: none;
+  }
+  .shell-header-search-input-wrap:focus-within {
+    border: 2px solid Highlight;
+    outline: 2px solid Highlight;
+    outline-offset: 1px;
+  }
+  .shell-header-search-panel {
+    border: 2px solid CanvasText;
+    box-shadow: none;
+  }
+  .shell-header-search-panel::before,
+  .shell-header-search-panel::after {
+    display: none;
+  }
+  .shell-header-search-list [role="option"] {
+    border: 1px solid transparent;
+  }
+  .shell-header-search-list [role="option"][aria-selected="true"] {
+    background-color: Highlight;
+    color: HighlightText;
+    border: 2px solid CanvasText;
+  }
+  .shell-header-search-list [role="option"]::before {
+    background-color: CanvasText;
+    box-shadow: none;
+  }
+  .shell-header-search-list [role="option"][aria-selected="true"]::before {
+    background-color: HighlightText;
+  }
+}
+
+/* ---------- reduced-motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-header-search-input-wrap,
+  .shell-header-search-panel,
+  .shell-header-search-list [role="option"],
+  .shell-header-search-list [role="option"]::before {
+    transition: none !important;
+    transform: none !important;
+    animation: none !important;
+  }
+  .shell-header-search-panel {
+    opacity: 1;
+  }
+  .shell-header-search[data-open="false"] .shell-header-search-panel {
+    opacity: 0;
+  }
+}
+
+/* ---------- mobile ---------- */
+
+@media (max-width: 640px) {
+  .shell-header-search-input-wrap {
+    width: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+  .shell-header-search-input {
+    display: none;
+  }
+  .shell-header-search-icon {
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .shell-header-search-input-wrap:focus-within {
+    width: 220px;
+    padding: 0 0.875rem 0 2.375rem;
+    justify-content: flex-start;
+  }
+  .shell-header-search-input-wrap:focus-within .shell-header-search-input {
+    display: block;
+  }
+  .shell-header-search-input-wrap:focus-within .shell-header-search-icon {
+    left: 0.875rem;
+    transform: translateY(-50%);
+  }
+  .shell-header-search-panel {
+    width: calc(100vw - 2rem);
+    right: -1rem;
+  }
+  .shell-header-search-panel::before,
+  .shell-header-search-panel::after {
+    right: 14px;
+  }
+}

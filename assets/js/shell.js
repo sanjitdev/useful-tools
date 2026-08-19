@@ -9,6 +9,35 @@
 (function () {
   'use strict';
 
+  // Re-entry guard. shell.js is loaded via the static
+  // `<script src="assets/js/shell.js" defer>` tag AND via
+  // shell-thin.js's `safeLazyLoad('shell.js')` on DOMContentLoaded.
+  // The two loaders don't share state — ht-lazy's `loaded` Set only
+  // tracks URLs it inserted itself, not URLs that arrived via a static
+  // <script> tag — so the second load fires regardless. Without this
+  // guard, the second invocation throws "Cannot redefine property:
+  // provide" (line 159's Object.defineProperties) AND would also
+  // rewire every event listener, double-fire HT.boot(), and generally
+  // produce duplicated chrome behavior. Skip the IIFE entirely on
+  // re-entry — the first load did everything correctly.
+  //
+  // Flag chosen (HT.__booted) instead of a fresh top-level flag so
+  // a future maintainer who deletes the static <script> tag still
+  // gets the same protection (boot() sets HT.__booted=true at the
+  // end of its run; if boot() never fires, __booted stays falsy and
+  // we still re-run the IIFE — that's the right fall-back).
+  if (window.HT && window.HT.__booted) {
+    return;
+  }
+  // Secondary guard: the defineProperties path runs BEFORE HT.boot()
+  // and would still throw on a partial-re-entry scenario (e.g., boot()
+  // threw midway through a previous load, leaving HT.provide defined
+  // but __booted false). Detect this case via the same flag.
+  if (window.__htShellBootStarted) {
+    return;
+  }
+  window.__htShellBootStarted = true;
+
   // The soft handoff flag (Subtask 4.4) is set as the very first
   // statement. (2026-08-15: theme.js was deleted in Story 2.10 cleanup;
   // the flag is preserved so any stale page cached in a user's browser
@@ -710,6 +739,34 @@
 
   let paletteState = null;
   // paletteState = { callingElement, activeIndex, clickOutsideInstalled }
+  // headerSearchState mirrors the palette state for the inline header search
+  // (Story 10.20). Same shape; the header-search render uses top-8 + tools
+  // only while the modal palette uses top-5 + tools + actions.
+  let headerSearchState = null;
+
+  // Helper: resolve the chrome listbox node for the current consumer.
+  // The palette overlay uses #palette-listbox; the inline header search
+  // uses #header-search-listbox. Both render paths share the same builder
+  // functions (buildToolOption, buildMatchFragment, buildEmptyRow) but
+  // apply different `cap` and `showActions` policy.
+  function getConsumerNodes(opts) {
+    if (opts && opts.listboxId) {
+      const listbox = document.getElementById(opts.listboxId);
+      const input = opts.inputId ? document.getElementById(opts.inputId) : null;
+      const live = opts.liveId ? document.getElementById(opts.liveId) : null;
+      return { listbox, input, live };
+    }
+    return {
+      listbox: document.getElementById('palette-listbox'),
+      input: document.getElementById('palette-input'),
+      live: document.getElementById('palette-live'),
+    };
+  }
+
+  function getConsumerState(opts) {
+    if (opts && opts.listboxId === 'header-search-listbox') return headerSearchState;
+    return paletteState;
+  }
 
   function wirePalette() {
     // The palette node is the static include from assets/shell/palette.html
@@ -718,21 +775,32 @@
     // generator), we silently skip — the palette is a Shell concern, not a
     // hard requirement for tool functionality.
     const palette = document.getElementById('palette');
-    if (!palette) {
-      console.warn('shell.palette: missing #palette node; palette disabled');
+    const headerSearch = document.getElementById('header-search');
+    if (!palette && !headerSearch) {
+      console.warn('shell.palette: missing #palette and #header-search nodes; chrome disabled');
       return;
     }
 
-    // Populate the initial empty state. Recent-tools data is read on open
-    // (not at boot) so the list reflects whatever localStorage holds at the
-    // moment the user opens the palette.
+    // Populate the initial empty state for the modal palette. Recent-tools
+    // data is read on open (not at boot) so the list reflects whatever
+    // localStorage holds at the moment the user opens the palette.
     const listbox = document.getElementById('palette-listbox');
-    if (listbox && !listbox.children.length) {
+    if (palette && listbox && !listbox.children.length) {
       const empty = document.createElement('li');
       empty.className = 'shell-palette-empty';
       empty.setAttribute('role', 'presentation');
       empty.textContent = 'No recent tools yet';
       listbox.appendChild(empty);
+    }
+
+    // Same for the inline header-search dropdown.
+    const headerListbox = document.getElementById('header-search-listbox');
+    if (headerSearch && headerListbox && !headerListbox.children.length) {
+      const empty = document.createElement('li');
+      empty.className = 'shell-header-search-empty';
+      empty.setAttribute('role', 'presentation');
+      empty.textContent = 'No recent tools yet';
+      headerListbox.appendChild(empty);
     }
 
     // Capture-phase keydown listener: runs BEFORE tool page handlers can
@@ -747,9 +815,26 @@
     const input = document.getElementById('palette-input');
     if (input) input.addEventListener('keydown', onPaletteInputKey);
 
+    const headerInput = document.getElementById('header-search-input');
+    if (headerInput) {
+      headerInput.addEventListener('keydown', onHeaderSearchInputKey);
+      // Story 10.20 redesign: input is always visible. Focusing the input
+      // (mouse click OR keyboard Tab) opens the search panel. The icon
+      // is now an SVG inside the input wrap — it has no separate click
+      // handler. Click-outside + Escape handle close.
+      headerInput.addEventListener('focus', function () { openHeaderSearch(); });
+    }
+
     // Listbox click: each <li role="option"> carries data-slug; clicking
     // navigates to /tools/<slug>.
     if (listbox) listbox.addEventListener('click', onPaletteListClick);
+    if (headerListbox) headerListbox.addEventListener('click', onHeaderSearchListClick);
+
+    // Story 10.20 followup: the "Show all actions" link was dropped
+    // from the inline search dropdown footer (UX-DR followup #2). The
+    // modal overlay still exists and remains reachable via Cmd+Shift+K
+    // for users who want the action group, but it's no longer promoted
+    // from the header search surface.
   }
 
   function onPaletteChord(event) {
@@ -757,24 +842,24 @@
     // via CSS, but the listener is still installed; defense in depth).
     if (isEmbedMode()) return;
 
-    // ⌘K (macOS) / Ctrl+K (others). The chord must require the modifier
-    // that matches the platform — pressing plain "k" (no modifier) MUST
-    // NOT open palette, because that's how users type the letter into
-    // search inputs and any focused element on the page. The previous
-    // comparison (event.metaKey === isMacUser) inverted the intent: on
-    // non-Mac platforms it accepted metaKey === false (i.e. no modifier
-    // at all), so plain "k" fired the palette on every keypress.
+    // Story 10.20: chord routing.
+    //   Cmd+K / Ctrl+K → inline header search (tools only, top-8).
+    //   Cmd+Shift+K / Ctrl+Shift+K → modal palette overlay (tools + actions).
+    //   `/` from outside any text input → inline header search.
     //
-    // Don't fire if a modifier other than shift is also pressed —
-    // Cmd+Shift+K, Ctrl+Alt+K, etc. are not reserved and shouldn't open
-    // the palette.
+    // The "must require the modifier that matches the platform" rule still
+    // applies: pressing plain "k" (no modifier) MUST NOT open any search,
+    // because that's how users type the letter into search inputs and any
+    // focused element on the page.
     const isMacUser = window.navigator && /Mac/i.test(window.navigator.platform);
+    const mod = isMacUser ? event.metaKey : event.ctrlKey;
+    const otherMod = isMacUser ? event.ctrlKey : event.metaKey;
+
     const isKChord =
       (event.key === 'k' || event.key === 'K') &&
-      (isMacUser ? event.metaKey : event.ctrlKey) &&
-      !(isMacUser ? event.ctrlKey : event.metaKey) &&
-      !event.altKey;
-    const chord = isKChord;
+      mod && !otherMod && !event.altKey;
+    const isAdvancedChord =
+      isKChord && event.shiftKey;
 
     // `/` from outside any text input. The chord only fires when the user
     // is not currently typing into a text-entry field.
@@ -786,13 +871,28 @@
       (target && target.isContentEditable);
     const isSlashChord = event.key === '/' && !isTextInput && !event.metaKey && !event.ctrlKey && !event.altKey;
 
-    if (chord || isSlashChord) {
+    if (isKChord || isSlashChord) {
       event.preventDefault();
-      if (paletteState) {
-        // Palette already open — focus stays on the input (no-op).
+      if (isAdvancedChord) {
+        // Cmd+Shift+K → modal overlay (tools + actions, top-5).
+        if (paletteState) return; // already open
+        openPalette();
         return;
       }
-      openPalette();
+      // Cmd+K or `/` → inline header search (tools only, top-8).
+      if (headerSearchState) {
+        // Inline search already open — focus stays on the input.
+        const headerInput = document.getElementById('header-search-input');
+        if (headerInput) headerInput.focus();
+        return;
+      }
+      openHeaderSearch();
+      // openHeaderSearch is idempotent and does NOT auto-focus (it's
+      // also called from the input's own 'focus' event, where re-focusing
+      // would steal focus). Chord handlers need to focus the input
+      // explicitly to route the user to the search surface.
+      const headerInputEl = document.getElementById('header-search-input');
+      if (headerInputEl) headerInputEl.focus();
     }
   }
 
@@ -881,6 +981,382 @@
     const live = document.getElementById('palette-live');
     if (live) live.textContent = '';
     paletteState = null;
+  }
+
+  /* ============================================
+     Inline Header Search (Story 10.20)
+     ============================================
+     Inline header dropdown anchored under the search input. Same render
+     engine as the modal palette (HT.search + readRecentTools) but with
+     a different cap and a different action policy:
+       - Top-8 (modal palette uses top-5)
+       - Tools only — no action group (modal palette renders actions)
+     Escape COLLAPSES the input back to the icon (per UX-DR-19). Click
+     outside also collapses. Focus restoration goes to the icon button.
+
+     The two consumers share the same render helpers; the consumer opts
+     are passed through getConsumerNodes() / getConsumerState() so the
+     existing buildToolOption / buildMatchFragment / announceResultCount
+     / renderSearchResults / renderRecentTools paths can be reused. */
+
+  function openHeaderSearch() {
+    if (isEmbedMode()) return;
+    if (headerSearchState) return; // idempotent
+
+    // Touch HT.headerSearch so the Proxy stub in shell-thin.js fires its
+    // lazyLoadCss('chrome-header-search.css') round-trip. After this
+    // first touch the CSS is in the cache; subsequent opens are
+    // synchronous-looking. (shell.js then overrides the Proxy with the
+    // real API below, so subsequent property accesses hit the real
+    // object.)
+    try { void HT.headerSearch; } catch (_) { /* no-op */ }
+
+    // Per UX-DR-3, palette and settings are mutually exclusive — opening
+    // one closes the other. shell.js owns the coordination; CSS does not
+    // enforce it (see components.css modal section comment).
+    if (settingsState) closeSettings();
+    if (paletteState) closePalette();
+
+    const wrapper = document.getElementById('header-search');
+    const input = document.getElementById('header-search-input');
+    const icon = document.getElementById('header-search-icon');
+    const panel = document.getElementById('header-search-panel');
+    if (!wrapper || !input || !panel) return;
+
+    // Story 10.20 redesign: the input is the focus anchor (always visible,
+    // tabindex=0 in markup). The icon is an SVG visual cue inside the wrap,
+    // not a focusable button. Track the previously-focused element so
+    // closeHeaderSearch can restore focus correctly.
+    headerSearchState = {
+      callingElement: (icon && document.activeElement === icon) ? null : document.activeElement,
+      activeIndex: -1,
+      activeKind: null,
+      clickOutsideInstalled: false,
+      inputInstalled: false,
+    };
+
+    // Wire the input listener once per open (removed on close). 50ms debounce
+    // matches the modal palette so the two consumers feel similar.
+    input.addEventListener('input', onHeaderSearchInput);
+    headerSearchState.inputInstalled = true;
+
+    // Initial render: recent tools (empty query → no search).
+    renderHeaderSearchList('');
+
+    // Show the panel. data-open="true" toggles the CSS-driven width/box
+    // animation on the input-wrap. [hidden] toggle on the panel uses
+    // the same a11y pattern as the modal palette.
+    wrapper.setAttribute('data-open', 'true');
+    if (icon && typeof icon.setAttribute === 'function') {
+      // SVG icon — best-effort aria expansion flag (the input owns the
+      // authoritative aria-expanded).
+      try { icon.setAttribute('aria-expanded', 'true'); } catch (_) { /* ignore */ }
+    }
+    input.setAttribute('aria-expanded', 'true');
+    panel.removeAttribute('hidden');
+    input.value = '';
+    input.setAttribute('aria-activedescendant', '');
+    // input.focus() is the caller's responsibility: openHeaderSearch is
+    // invoked either from the input's own 'focus' event (no need to
+    // re-focus) or from a chord handler (which will .focus() the input
+    // immediately after openHeaderSearch returns). Re-focusing here on
+    // every focus event would steal focus from legitimate user typing.
+
+    // Install click-outside listener (capture phase so we run before any
+    // tool page handler that might preventDefault).
+    document.addEventListener('click', onHeaderSearchClickOutside, { capture: true });
+    headerSearchState.clickOutsideInstalled = true;
+  }
+
+  function closeHeaderSearch() {
+    if (!headerSearchState) return; // idempotent
+    const wrapper = document.getElementById('header-search');
+    const input = document.getElementById('header-search-input');
+    const icon = document.getElementById('header-search-icon');
+    const panel = document.getElementById('header-search-panel');
+    if (wrapper) {
+      wrapper.setAttribute('data-open', 'false');
+    }
+    if (icon && typeof icon.setAttribute === 'function') {
+      try { icon.setAttribute('aria-expanded', 'false'); } catch (_) { /* ignore */ }
+    }
+    if (panel) panel.setAttribute('hidden', '');
+    if (input) {
+      input.setAttribute('aria-expanded', 'false');
+      input.setAttribute('aria-activedescendant', '');
+      input.value = '';
+      if (headerSearchState.inputInstalled) {
+        input.removeEventListener('input', onHeaderSearchInput);
+      }
+    }
+    // Restore focus to the calling element OR the input itself. The input
+    // is the canonical anchor for the inline search (UX-DR-19); if the
+    // user opened it via `/` or Cmd+K from elsewhere, restore to whatever
+    // was focused before.
+    const ce = headerSearchState.callingElement;
+    let restoreTarget = null;
+    if (ce && typeof ce.focus === 'function' && document.body.contains(ce) && ce !== input) {
+      restoreTarget = ce;
+    } else if (input) {
+      restoreTarget = input;
+    } else {
+      restoreTarget = document.getElementById('main');
+    }
+    if (restoreTarget) {
+      try { restoreTarget.focus(); } catch (_) { /* ignore */ }
+    }
+    if (headerSearchState.clickOutsideInstalled) {
+      document.removeEventListener('click', onHeaderSearchClickOutside, { capture: true });
+    }
+    // Clear the live region on close so a stale announcement doesn't carry
+    // over to the next open.
+    const live = document.getElementById('header-search-live');
+    if (live) live.textContent = '';
+    headerSearchState = null;
+  }
+
+  function onHeaderSearchClickOutside(event) {
+    if (!headerSearchState) return;
+    const wrapper = document.getElementById('header-search');
+    if (!wrapper) return;
+    if (wrapper.contains(event.target)) return; // click inside → ignore
+    closeHeaderSearch();
+  }
+
+  function onHeaderSearchInputKey(event) {
+    if (!headerSearchState) return;
+    // Escape: collapse the input (don't full-close with restore focus
+    // to a non-existent anchor — we restore focus to the icon button
+    // which is the inline-search trigger).
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeHeaderSearch();
+      return;
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveActiveHeader(event.key === 'ArrowDown' ? 1 : -1);
+      return;
+    }
+    if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault();
+      const opts = getHeaderNavigableOptions();
+      if (opts.length === 0) return;
+      setActiveIndexHeader(event.key === 'Home' ? 0 : opts.length - 1);
+      return;
+    }
+    // Tab / Shift+Tab are no-ops per the WAI-ARIA 1.2 combobox/listbox
+    // pattern (UX-DR-19). Arrow keys navigate; Tab moves focus *out of*
+    // the search.
+    if (event.key === 'Tab') {
+      // Don't preventDefault — let the browser move focus normally so
+      // keyboard users can traverse the page. The dropdown stays open
+      // but loses focus (the IX is the same as Vercel/Linear).
+      return;
+    }
+    if (event.key === 'Enter') {
+      const idx = headerSearchState.activeIndex;
+      if (idx < 0) return; // no active option → no-op
+      const listbox = document.getElementById('header-search-listbox');
+      if (!listbox) return;
+      const opts = listbox.querySelectorAll('[role="option"]');
+      const target = opts[idx];
+      if (!target) return;
+      // The inline dropdown has no action group; everything is a tool.
+      const slug = target.getAttribute('data-slug');
+      if (!slug) return;
+      closeHeaderSearch();
+      window.location.assign('/tools/' + slug);
+    }
+  }
+
+  function onHeaderSearchListClick(event) {
+    if (!headerSearchState) return;
+    const li = event.target.closest('[role="option"]');
+    if (!li) return;
+    const slug = li.getAttribute('data-slug');
+    if (!slug) return;
+    closeHeaderSearch();
+    window.location.assign('/tools/' + slug);
+  }
+
+  function getHeaderNavigableOptions() {
+    const listbox = document.getElementById('header-search-listbox');
+    if (!listbox) return [];
+    return Array.from(listbox.querySelectorAll('[role="option"]'));
+  }
+
+  function setActiveIndexHeader(idx) {
+    if (!headerSearchState) return;
+    const opts = getHeaderNavigableOptions();
+    if (opts.length === 0) {
+      headerSearchState.activeIndex = -1;
+      headerSearchState.activeKind = null;
+      const input = document.getElementById('header-search-input');
+      if (input) input.setAttribute('aria-activedescendant', '');
+      return;
+    }
+    const clamped = idx < 0 ? 0 : idx >= opts.length ? opts.length - 1 : idx;
+    headerSearchState.activeIndex = clamped;
+    const opt = opts[clamped];
+    headerSearchState.activeKind = opt.getAttribute('data-kind') || null;
+    opts.forEach((o, i) => o.setAttribute('aria-selected', i === clamped ? 'true' : 'false'));
+    const input = document.getElementById('header-search-input');
+    if (input) input.setAttribute('aria-activedescendant', opt.id);
+    // Scroll the active row into view inside the scrollable list.
+    if (typeof opt.scrollIntoView === 'function') {
+      opt.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  function moveActiveHeader(delta) {
+    if (!headerSearchState) return;
+    const opts = getHeaderNavigableOptions();
+    if (opts.length === 0) return;
+    setActiveIndexHeader(headerSearchState.activeIndex < 0
+      ? (delta > 0 ? 0 : opts.length - 1)
+      : headerSearchState.activeIndex + delta);
+  }
+
+  // Input listener (installed per-open by openHeaderSearch, removed on close).
+  let inputDebounceTimerHeader = null;
+  function onHeaderSearchInput() {
+    if (!headerSearchState) return;
+    const input = document.getElementById('header-search-input');
+    if (!input) return;
+    const value = input.value;
+    if (inputDebounceTimerHeader) clearTimeout(inputDebounceTimerHeader);
+    inputDebounceTimerHeader = setTimeout(() => {
+      inputDebounceTimerHeader = null;
+      renderHeaderSearchList(value);
+    }, 50);
+  }
+
+  // Dispatch: empty query → recent tools; non-empty → search results.
+  // Top-8 cap; tools only (no action group).
+  function renderHeaderSearchList(query) {
+    const q = (typeof query === 'string' ? query : '').trim();
+    if (q === '') {
+      renderHeaderRecentTools();
+      announceHeaderResultCount('', 0);
+      setActiveIndexHeader(-1);
+      return;
+    }
+    Promise.resolve(HT.search(q)).then((results) => {
+      // Guard: the search may have closed while the async fetch was in
+      // flight. Re-check before touching the DOM.
+      if (!headerSearchState) return;
+      renderHeaderSearchResults(q, results || []);
+      const toolCount = (results || []).slice(0, 8).length;
+      announceHeaderResultCount(q, toolCount);
+      setActiveIndexHeader(-1);
+    });
+  }
+
+  function renderHeaderRecentTools() {
+    const listbox = document.getElementById('header-search-listbox');
+    if (!listbox) return [];
+    while (listbox.firstChild) listbox.removeChild(listbox.firstChild);
+    const recent = readRecentTools();
+    if (recent.length === 0) {
+      listbox.appendChild(buildHeaderEmptyRow('No recent tools yet'));
+      return [];
+    }
+    recent.slice(0, 8).forEach((slug, idx) => {
+      const li = document.createElement('li');
+      li.id = 'header-search-opt-' + idx;
+      li.className = 'shell-header-search-option';
+      li.setAttribute('role', 'option');
+      li.setAttribute('data-kind', 'tool');
+      li.setAttribute('data-slug', slug);
+      li.setAttribute('aria-selected', 'false');
+      const title = slugToTitle(slug);
+      const titleEl = document.createElement('span');
+      titleEl.className = 'shell-header-search-title';
+      titleEl.textContent = title;
+      li.appendChild(titleEl);
+      li.setAttribute('aria-label', title);
+      listbox.appendChild(li);
+    });
+    return Math.min(recent.length, 8);
+  }
+
+  function renderHeaderSearchResults(query, results) {
+    const listbox = document.getElementById('header-search-listbox');
+    if (!listbox) return;
+    while (listbox.firstChild) listbox.removeChild(listbox.firstChild);
+    const toolRows = (results || []).slice(0, 8);
+    toolRows.forEach((match, idx) => {
+      const localMatch = Object.assign({}, match, { _query: query });
+      listbox.appendChild(buildHeaderToolOption(localMatch, idx));
+    });
+    const totalOptions = listbox.querySelectorAll('[role="option"]').length;
+    if (totalOptions === 0) {
+      listbox.appendChild(buildHeaderEmptyRow("No tools match '" + query + "'"));
+    }
+  }
+
+  function buildHeaderEmptyRow(text) {
+    const li = document.createElement('li');
+    li.className = 'shell-header-search-empty';
+    li.setAttribute('role', 'presentation');
+    li.textContent = text;
+    return li;
+  }
+
+  function buildHeaderToolOption(match, idx) {
+    const li = document.createElement('li');
+    li.id = 'header-search-opt-' + idx;
+    li.className = 'shell-header-search-option';
+    li.setAttribute('role', 'option');
+    li.setAttribute('data-kind', 'tool');
+    li.setAttribute('data-slug', match.slug);
+    li.setAttribute('aria-selected', 'false');
+
+    const titleEl = document.createElement('span');
+    titleEl.className = 'shell-header-search-title';
+    titleEl.appendChild(buildMatchFragment(match.title, match.matchedField, match._query || ''));
+    li.appendChild(titleEl);
+
+    if (match.matchedField && match.matchedField !== 'title') {
+      const meta = document.createElement('span');
+      meta.className = 'shell-header-search-match';
+      meta.textContent = 'matched in ' + match.matchedField;
+      li.appendChild(meta);
+    }
+
+    let ariaLabel;
+    if (match.matchedField === 'title') {
+      const range = (typeof HT !== 'undefined' && HT.search && typeof HT.search._matchRange === 'function')
+        ? HT.search._matchRange(match._query || '', match.title)
+        : null;
+      const sub = (range && range.end > range.start && range.end <= match.title.length)
+        ? match.title.slice(range.start, range.end)
+        : '';
+      ariaLabel = sub
+        ? match.title + " — match in title: '" + sub + "'"
+        : match.title + ' — match in title';
+    } else if (match.matchedField) {
+      ariaLabel = match.title + ' — matched in ' + match.matchedField;
+    } else {
+      ariaLabel = match.title;
+    }
+    li.setAttribute('aria-label', ariaLabel);
+    return li;
+  }
+
+  function announceHeaderResultCount(query, toolCount) {
+    const live = document.getElementById('header-search-live');
+    if (!live) return;
+    if (!query) {
+      live.textContent = '';
+      return;
+    }
+    if (toolCount === 0) {
+      live.textContent = "No tools match '" + query + "'. Try a shorter query.";
+      return;
+    }
+    live.textContent = toolCount + ' tool' + (toolCount === 1 ? '' : 's');
   }
 
   function onPaletteClickOutside(event) {
@@ -1045,6 +1521,12 @@
     li.setAttribute('role', 'option');
     li.setAttribute('data-kind', 'tool');
     li.setAttribute('data-slug', match.slug);
+    if (match.category) {
+      // data-cat attribute is the lowercased, hyphen-friendly category
+      // slug used by chrome-header-search.css to tint the leading dot
+      // (Developer → cobalt, Study → amber, Fun → rose, etc.).
+      li.setAttribute('data-cat', String(match.category).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
+    }
     li.setAttribute('aria-selected', 'false');
 
     const titleEl = document.createElement('span');
@@ -1819,6 +2301,16 @@
     // stubbing `HT.theme.cycle` / `HT.settings.clearAll` (the public
     // surface the actions delegate to). If a future Story needs a
     // read-only view of the registry, expose `Object.freeze({..._actions})`.
+  });
+
+  // Public header-search API (Story 10.20). The inline dropdown is the
+  // primary search surface; the modal palette remains as the advanced
+  // surface for the action group.
+  HT.headerSearch = Object.freeze({
+    open: openHeaderSearch,
+    close: closeHeaderSearch,
+    toggle: () => (headerSearchState ? closeHeaderSearch() : openHeaderSearch()),
+    isOpen: () => Boolean(headerSearchState),
   });
 
   // Module-level view-source state — declared BEFORE the boot invocation

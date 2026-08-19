@@ -90,6 +90,14 @@ SETTINGS_REL = Path("assets/shell/settings.html")
 # overlay is a single shared DOM node mounted on every page — the same
 # chrome-template convention as palette.html and settings.html.
 HELP_REL = Path("assets/shell/help.html")
+# Story 10.20: inline header-search include. The inline search input
+# (icon button + collapsible input + dropdown panel) replaces the
+# legacy `.shell-search-trigger` button. Mounted as a chrome sub-part
+# in chrome.html AND maintained as a separate canonical source
+# (assets/shell/header-search.html) so the markup can evolve
+# independently. The shell-template splices the same bytes into every
+# page; the drift check byte-matches the rendered output.
+HEADER_SEARCH_REL = Path("assets/shell/header-search.html")
 TOOLS_JSON_REL = Path("tools.json")
 
 TOOLS_JSON_INLINE_START = "<!-- ht:tools-json-inline-start -->"
@@ -137,6 +145,16 @@ CHROME_PRINT_FOOTER_RE = re.compile(
 )
 PALETTE_REGION_RE = re.compile(
     r"<!-- shell:palette -->\s*(.*?)\s*<!-- /shell:palette -->", re.DOTALL
+)
+# Story 10.20: the inline header-search region marker. Mirrors the
+# palette include — the inline search is now a separate chrome source
+# (assets/shell/header-search.html) that the shell-template splices into
+# the chrome-place where the legacy `.shell-search-trigger` button used
+# to live. The drift check byte-matches the rendered output, so the
+# markers must be present in both the canonical source AND every
+# generated page.
+HEADER_SEARCH_REGION_RE = re.compile(
+    r"<!-- shell:header-search -->\s*(.*?)\s*<!-- /shell:header-search -->", re.DOTALL
 )
 SETTINGS_REGION_RE = re.compile(
     r"<!-- shell:settings -->\s*(.*?)\s*<!-- /shell:settings -->", re.DOTALL
@@ -262,7 +280,7 @@ def strip_duplicate_includes(source: str) -> str:
     return new_source
 
 
-def splice_chrome_includes(source: str, palette_html: str, settings_html: str, help_html: str) -> str:
+def splice_chrome_includes(source: str, palette_html: str, header_search_html: str, settings_html: str, help_html: str) -> str:
     """Replace any stale palette + settings + help include blocks at the
     tail of the page with the canonical bytes — without overwriting the
     page body. Returns `source` unchanged when the bytes already match
@@ -273,10 +291,19 @@ def splice_chrome_includes(source: str, palette_html: str, settings_html: str, h
     `<script>` tags in tool, pack, and quality pages.
 
     Story: post-Story-9.19 drift fix. When the chrome sources
-    (palette.html / settings.html / help.html) evolve, the legacy
-    shell-template byte-aligned rewrite nukes the tool body because it
-    anchors on `<a class="shell-skip"` → `</footer>`. This targeted
-    splice fixes the chrome-includes drift without disturbing the body.
+    (palette.html / settings.html / help.html / header-search.html)
+    evolve, the legacy shell-template byte-aligned rewrite nukes the
+    tool body because it anchors on `<a class="shell-skip"` → `</footer>`.
+    This targeted splice fixes the chrome-includes drift without
+    disturbing the body.
+
+    Note: the header-search include lives INSIDE `<header class="site-header">`
+    and is therefore covered by the byte-aligned chrome rewrite (the
+    header landmark carries the include as part of its body). This
+    splicer's `header_search_html` argument is unused for the tail
+    splice — but kept in the signature so future diagnostics / header
+    rewrites can pivot on it. The footer-tail splice only re-emits
+    palette + settings + help.
     """
     footer_close = source.find("</footer>")
     if footer_close == -1:
@@ -300,7 +327,7 @@ def splice_chrome_includes(source: str, palette_html: str, settings_html: str, h
     return head + trailing + tail_stripped.lstrip("\n")
 
 
-def read_chrome(root: Path) -> tuple[str, str, str, str, str, str, str]:
+def read_chrome(root: Path) -> tuple[str, str, str, str, str, str, str, str]:
     """Return (skip_link_html, header_html, footer_html, palette_html,
     settings_html, help_html, print_footer_html).
 
@@ -348,6 +375,28 @@ def read_chrome(root: Path) -> tuple[str, str, str, str, str, str, str]:
         )
         sys.exit(2)
     palette_html = palette_match.group(1)
+
+    # Story 10.20: inline header-search include. Read the canonical
+    # source from assets/shell/header-search.html (separate file so the
+    # markup can evolve independently of chrome.html). The shell-template
+    # splice replaces the legacy `.shell-search-trigger` button with
+    # this block — the heredoc-shelled chrome.html consumed verbatim
+    # already carries the bytes, but the legacy button needs to be
+    # stripped from any page that pre-dates the UX rewrite (Story 10.20).
+    header_search_path = root / HEADER_SEARCH_REL
+    if not header_search_path.is_file():
+        sys.stderr.write(
+            f"shell-template: missing header-search source at {header_search_path}\n"
+        )
+        sys.exit(2)
+    header_search_text = header_search_path.read_text(encoding="utf-8")
+    header_search_match = HEADER_SEARCH_REGION_RE.search(header_search_text)
+    if not header_search_match:
+        sys.stderr.write(
+            "shell-template: header-search.html missing shell:header-search markers\n"
+        )
+        sys.exit(2)
+    header_search_html = header_search_match.group(1)
 
     # Read the settings include verbatim from its own canonical source.
     # Same convention as palette — the settings modal is a single shared
@@ -402,6 +451,7 @@ def read_chrome(root: Path) -> tuple[str, str, str, str, str, str, str]:
         header_html,
         footer_html,
         palette_html,
+        header_search_html,
         settings_html,
         help_html,
         print_footer_html,
@@ -553,6 +603,7 @@ def transform(
     header_html: str,
     footer_html: str,
     palette_html: str,
+    header_search_html: str,
     settings_html: str,
     help_html: str,
     head_script: str,
@@ -573,6 +624,13 @@ def transform(
     #    embedded header/footer bytes no longer match chrome.html, fall
     #    through to a byte-aligned in-place replacement anchored on the
     #    skip-link start and </footer> end.
+    #
+    #    Story 10.20: `header_search_html` is unused in this swap because
+    #    chrome.html's header region already carries the
+    #    `<!-- shell:header-search -->` block (it's spliced in chrome.html
+    #    itself, not from a separate source). The argument exists so the
+    #    future header-rewrite path can pivot on it (e.g., a header-only
+    #    rewrite that re-emits the chrome header without touching body).
     new_source, n = LEGACY_HEADER_RE.subn(
         skip_html + "\n  " + header_html + "\n  ", new_source, count=1
     )
@@ -593,25 +651,51 @@ def transform(
                 or settings_dup
             )
         ):
-            # Strip every marker-delimited palette/settings block before
-            # the byte-aligned rewrite — the canonical blocks are
-            # re-appended by the rewrite itself.
+            # Story 10.20 followup: the previous implementation naively
+            # replaced the slice from `<a class="shell-skip"` to the
+            # FIRST `</footer>` with skip + header + footer + palette +
+            # settings + help. That clobbered `<main>` body and the
+            # print-footer — the first `</footer>` is the print-footer
+            # close (print-footer precedes site-footer in chrome.html).
+            # Surgical rewrite: replace the `<header class="site-header">`
+            # and `<footer class="site-footer">` blocks in place,
+            # preserving `<main>`, the print-footer, and any other
+            # landmarks between them.
             new_source = strip_duplicate_includes(new_source)
-            anchor_start = new_source.find('<a class="shell-skip"')
-            anchor_end = new_source.find('</footer>', anchor_start)
-            if anchor_start == -1 or anchor_end == -1:
+            site_header_re = re.compile(
+                r'<header\s+class="site-header"[^>]*>.*?</header>',
+                re.DOTALL,
+            )
+            site_footer_re = re.compile(
+                r'<footer\s+class="site-footer"[^>]*>.*?</footer>',
+                re.DOTALL,
+            )
+            if not site_header_re.search(new_source):
                 sys.stderr.write(
-                    "shell-template: skip link + footer found but cannot anchor "
-                    "byte-aligned rewrite\n"
+                    "shell-template: skip link + footer found but no "
+                    "<header class=\"site-header\"> to rewrite\n"
                 )
                 return source
-            anchor_end += len('</footer>')
-            replacement = (
-                skip_html + "\n  " + header_html + "\n  "
-                + footer_html + "\n\n  " + palette_html + "\n\n  "
-                + settings_html + "\n\n  " + help_html + "\n\n  "
+            if not site_footer_re.search(new_source):
+                sys.stderr.write(
+                    "shell-template: skip link + footer found but no "
+                    "<footer class=\"site-footer\"> to rewrite\n"
+                )
+                return source
+            new_source = site_header_re.sub(header_html, new_source, count=1)
+            new_source = site_footer_re.sub(footer_html, new_source, count=1)
+            site_footer_end = new_source.find('</footer>')
+            if site_footer_end == -1:
+                sys.stderr.write(
+                    "shell-template: chrome rewrite lost the site-footer\n"
+                )
+                return source
+            site_footer_end += len('</footer>')
+            tail = (
+                "\n\n  " + palette_html + "\n\n  "
+                + settings_html + "\n\n  " + help_html
             )
-            new_source = new_source[:anchor_start] + replacement + new_source[anchor_end:]
+            new_source = new_source[:site_footer_end] + tail + new_source[site_footer_end:]
             # Skip steps 3-4 below — the in-place rewrite replaced everything.
             n = 1  # tell the next step "we successfully replaced chrome"
             # Run step 5 cleanup on this path too (script tag ordering).
@@ -1112,6 +1196,56 @@ def splice_print_css(source: str) -> str:
     )
 
 
+# Story 10.20 patch: the chrome-header-search.css is loaded eagerly on
+# every page (rather than lazily on first HT.headerSearch.open() call)
+# so the pill input + dropdown panel are fully styled at first paint.
+# Without this, the input renders as a default <input type="search">
+# until the user clicks, which reads as "unstyled" and breaks the
+# always-visible design contract. Same idempotent pattern as
+# splice_print_css.
+HEADER_SEARCH_CSS_LINK_PATTERN = (
+    '<link rel="stylesheet" href="../../assets/css/chrome-header-search.css">'
+)
+HEADER_SEARCH_CSS_LINK_OK_RE = re.compile(
+    r'<link\s+rel="stylesheet"\s+href="\.\./\.\./assets/css/chrome-header-search\.css">'
+)
+HEADER_SEARCH_CSS_HOME_PATTERN = (
+    '<link rel="stylesheet" href="assets/css/chrome-header-search.css">'
+)
+
+
+def splice_header_search_css(source: str) -> str:
+    """Insert the chrome-header-search.css <link> eagerly (Story 10.20).
+
+    Idempotent — if the link is already present, returns the source
+    unchanged. Otherwise inserts immediately after the last existing
+    `<link rel="stylesheet" ...>` in the <head>. If no stylesheet
+    link is found, appends immediately before `</head>`.
+    """
+    if HEADER_SEARCH_CSS_LINK_OK_RE.search(source) or HEADER_SEARCH_CSS_HOME_PATTERN in source:
+        return source
+    # Tool pages use the `../../assets/...` prefix; the home page
+    # (at the repo root) uses root-relative paths.
+    if '../../assets/css/' in source or '../../assets/js/' in source:
+        link_pattern = HEADER_SEARCH_CSS_LINK_PATTERN
+    else:
+        link_pattern = HEADER_SEARCH_CSS_HOME_PATTERN
+    matches = list(
+        re.finditer(r'<link\s+rel="stylesheet"\s+[^>]*>', source, re.IGNORECASE)
+    )
+    if matches:
+        last = matches[-1]
+        end = last.end()
+        return source[:end] + "\n  " + link_pattern + source[end:]
+    head_end = source.find("</head>")
+    if head_end == -1:
+        sys.stderr.write(
+            "shell-template: chrome-header-search.css splice skipped — no </head> anchor\n"
+        )
+        return source
+    return source[:head_end] + "  " + link_pattern + "\n  " + source[head_end:]
+
+
 # Story 3.11: targeted splice for the static View-source chrome region.
 # Pages chrome-aligned BEFORE Story 3.11 shipped a single placeholder
 # `<span aria-disabled="true">View source</span>`; Story 3.11 promotes
@@ -1167,6 +1301,7 @@ def process_file(
     header_html: str,
     footer_html: str,
     palette_html: str,
+    header_search_html: str,
     settings_html: str,
     help_html: str,
     print_footer_html: str,
@@ -1361,6 +1496,12 @@ def process_file(
     # A separate idempotent splice inserts just the footer block when
     # it's missing.
     print_footer_ok = bool(CHROME_PRINT_FOOTER_RE.search(source))
+    # Story 10.20 patch: chrome-header-search.css <link> must be eagerly
+    # present in <head> so the inline search pill + dropdown panel are
+    # styled at first paint (no FOUC where the input looks default-
+    # browser until first click). Excluded from `full_ok` so a missing
+    # link triggers a separate targeted write via splice_header_search_css.
+    header_search_css_ok = bool(HEADER_SEARCH_CSS_LINK_OK_RE.search(source))
     full_ok = (
         chrome_ok
         and palette_ok
@@ -1382,6 +1523,7 @@ def process_file(
         and tools_json_inline_ok
         and print_css_ok
         and print_footer_ok
+        and header_search_css_ok
     )
     # Find the IIFE block on the FIRST `<script>` opener in <head>. The IIFE
     # is always the first inline `<script>` in every page (it must run
@@ -1467,6 +1609,24 @@ def process_file(
                 sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
                 sys.exit(3)
             print(f"  wrote {path.relative_to(root)}  (print.css link)")
+            return True
+
+    # Story 10.20 patch: targeted chrome-header-search.css <link> splice.
+    # When the page is otherwise chrome-aligned but missing the eager
+    # chrome-header-search.css <link>, inject it after the last
+    # existing stylesheet <link>. Idempotent.
+    if print_basic_ok and not header_search_css_ok:
+        new_source = splice_header_search_css(source)
+        if new_source != source:
+            if dry_run:
+                print(f"  would-write {path.relative_to(root)}  (chrome-header-search.css link only)")
+                return True
+            try:
+                path.write_text(new_source, encoding="utf-8")
+            except OSError as exc:
+                sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
+                sys.exit(3)
+            print(f"  wrote {path.relative_to(root)}  (chrome-header-search.css link)")
             return True
 
     # Story 3.10: targeted print-footer splice — when the page is
@@ -1937,7 +2097,7 @@ def process_file(
             or help_html not in source
         )
     ):
-        new_source = splice_chrome_includes(source, palette_html, settings_html, help_html)
+        new_source = splice_chrome_includes(source, palette_html, header_search_html, settings_html, help_html)
         if new_source != source:
             if dry_run:
                 print(
@@ -1963,6 +2123,7 @@ def process_file(
         header_html=header_html,
         footer_html=footer_html,
         palette_html=palette_html,
+        header_search_html=header_search_html,
         settings_html=settings_html,
         help_html=help_html,
         head_script=head_script,
@@ -2080,6 +2241,11 @@ def regenerate_home(
     home_print_css_ok = (
         '<link rel="stylesheet" href="assets/css/print.css" media="print">' in source
     )
+    # Story 10.20 patch: chrome-header-search.css <link> on the home
+    # page (root-relative path, no `../../`). Mirrors the home_print_css_ok
+    # gate above; the splice call uses splice_header_search_css which
+    # auto-detects prefix from `../../assets/css/` presence.
+    header_search_css_home_ok = HEADER_SEARCH_CSS_HOME_PATTERN in source
     # Story 3.10: print-footer block must be present (mirrors
     # `print_footer_ok` in process_file).
     print_footer_ok = bool(CHROME_PRINT_FOOTER_RE.search(source))
@@ -2113,6 +2279,7 @@ def regenerate_home(
         and site_config_first_in_source
         and home_print_css_ok
         and print_footer_ok
+        and header_search_css_home_ok
     )
     # Also require the canonical FOUC IIFE byte sequence to be present.
     # Without this, a home page that was generated before Story 1.5
@@ -2179,6 +2346,22 @@ def regenerate_home(
                 sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
                 sys.exit(3)
             print(f"  wrote {path.relative_to(root)}  (print.css link)")
+            return True
+
+    # Story 10.20 patch: home page targeted chrome-header-search.css
+    # splice — same logic as the tool-page branch above.
+    if home_print_basic_ok and not header_search_css_home_ok:
+        new_source = splice_header_search_css(source)
+        if new_source != source:
+            if dry_run:
+                print(f"  would-write {path.relative_to(root)}  (chrome-header-search.css link only)")
+                return True
+            try:
+                path.write_text(new_source, encoding="utf-8")
+            except OSError as exc:
+                sys.stderr.write(f"shell-template: write failed for {path}: {exc}\n")
+                sys.exit(3)
+            print(f"  wrote {path.relative_to(root)}  (chrome-header-search.css link)")
             return True
 
     # Story 3.10: home page targeted print-footer splice — same logic
@@ -2669,22 +2852,59 @@ def regenerate_home(
         # palette include block stranded below </footer> in the preserved
         # tail. Strip every marker-delimited palette/settings block first
         # so the rewrite produces exactly one canonical include.
+        #
+        # Story 10.20 followup: the previous implementation naively replaced
+        # the slice from `<a class="shell-skip"` to the FIRST `</footer>`
+        # with `skip + home_header + footer + palette + settings + help`.
+        # That clobbered the `<main>` body and the print-footer — the
+        # first `</footer>` after the skip link is the print-footer close
+        # (the print-footer precedes the site-footer in chrome.html), so
+        # the splice cut mid-page and threw away the home grid section.
+        # Surgical rewrite: replace ONLY the `<header class="site-header">`
+        # block and the `<footer class="site-footer">` block in place,
+        # preserving `<main>`, the print-footer, and any other landmarks
+        # between them.
         new_source = strip_duplicate_includes(source)
-        new_chrome = (
-            skip_html + "\n  " + home_header + "\n  "
-            + footer_html + "\n\n  " + palette_html + "\n\n  "
-            + settings_html + "\n\n  " + help_html + "\n\n  "
+        # 1. Replace the existing `<header class="site-header">...</header>`
+        #    with the canonical home_header bytes.
+        site_header_re = re.compile(
+            r'<header\s+class="site-header"[^>]*>.*?</header>',
+            re.DOTALL,
         )
-        anchor_start = new_source.find('<a class="shell-skip"')
-        anchor_end = new_source.find('</footer>', anchor_start)
-        if anchor_start == -1 or anchor_end == -1:
+        if not site_header_re.search(new_source):
             sys.stderr.write(
-                "shell-template: home page chrome markers found but cannot anchor "
-                "byte-aligned rewrite\n"
+                "shell-template: home page chrome markers found but no "
+                "<header class=\"site-header\"> to rewrite\n"
             )
             return False
-        anchor_end += len('</footer>')
-        new_source = new_source[:anchor_start] + new_chrome + new_source[anchor_end:]
+        new_source = site_header_re.sub(home_header, new_source, count=1)
+        # 2. Replace the existing `<footer class="site-footer">...</footer>`
+        #    with the canonical footer_html bytes.
+        site_footer_re = re.compile(
+            r'<footer\s+class="site-footer"[^>]*>.*?</footer>',
+            re.DOTALL,
+        )
+        if not site_footer_re.search(new_source):
+            sys.stderr.write(
+                "shell-template: home page chrome markers found but no "
+                "<footer class=\"site-footer\"> to rewrite\n"
+            )
+            return False
+        new_source = site_footer_re.sub(footer_html, new_source, count=1)
+        # 3. Append the palette / settings / help includes after the
+        #    site-footer (preserves any tail the page already had).
+        site_footer_end = new_source.find('</footer>')
+        if site_footer_end == -1:
+            sys.stderr.write(
+                "shell-template: home page chrome rewrite lost the site-footer\n"
+            )
+            return False
+        site_footer_end += len('</footer>')
+        tail = (
+            "\n\n  " + palette_html + "\n\n  "
+            + settings_html + "\n\n  " + help_html
+        )
+        new_source = new_source[:site_footer_end] + tail + new_source[site_footer_end:]
     else:
         # Legacy path: replace <div id="site-header"></div> with skip+header.
         new_header_block = skip_html + "\n  " + home_header + "\n  "
@@ -2866,7 +3086,7 @@ def main(argv: list[str]) -> int:
         if args.root
         else find_repo_root(Path(__file__).parent)
     )
-    skip_html, header_html, footer_html, palette_html, settings_html, help_html, print_footer_html = read_chrome(root)
+    skip_html, header_html, footer_html, palette_html, header_search_html, settings_html, help_html, print_footer_html = read_chrome(root)
     head_script = read_head_snippet(root)
     tools_json_inline = read_tools_json_inline(root)
     storage_registry_manifest = read_storage_registry_manifest(root)
@@ -2921,6 +3141,7 @@ def main(argv: list[str]) -> int:
             header_html=header_html,
             footer_html=footer_html,
             palette_html=palette_html,
+            header_search_html=header_search_html,
             settings_html=settings_html,
             help_html=help_html,
             print_footer_html=print_footer_html,

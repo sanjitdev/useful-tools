@@ -229,7 +229,13 @@
   // platform-correct glyph via kbdGlyphs(). The matcher uses the same
   // array via the `shortcuts` export on HT_HELP_OVERLAY_INIT.
   var GLOBAL_SHORTCUTS = Object.freeze([
-    Object.freeze({ keys: Object.freeze(['Mod', 'K']), label: 'Open command palette' }),
+    // Story 10.20: the Cmd+K chord now opens the inline header search
+    // (tools only, top-8). Cmd+Shift+K opens the modal palette overlay
+    // (tools + actions). The "Mod+K" entry still describes the primary
+    // discovery surface — the inline search — so the label is updated
+    // to reflect the new UX.
+    Object.freeze({ keys: Object.freeze(['Mod', 'K']), label: 'Open search' }),
+    Object.freeze({ keys: Object.freeze(['Mod', 'Shift', 'K']), label: 'Open advanced search' }),
     Object.freeze({ keys: Object.freeze(['?']), label: 'Toggle this help overlay' }),
     Object.freeze({ keys: Object.freeze(['Esc']), label: 'Close overlay / dialog' }),
     Object.freeze({ keys: Object.freeze(['g', 'h']), label: 'Go to home' }),

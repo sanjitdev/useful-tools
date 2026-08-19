@@ -77,7 +77,7 @@ function assert(label, cond, detail) {
    the synthesized fixture pages. */
 function extractShellRegion(htmlText) {
   const m = htmlText.match(
-    /<!-- shell:(\w+) -->\s*([\s\S]*?)\s*<!-- \/shell:\1 -->/
+    /<!-- shell:([\w-]+) -->\s*([\s\S]*?)\s*<!-- \/shell:\1 -->/
   );
   if (!m) throw new Error('missing shell region in chrome source');
   return m[2];
@@ -90,6 +90,14 @@ const SETTINGS_BYTES = extractShellRegion(
 );
 const HELP_BYTES = extractShellRegion(
   fs.readFileSync(path.join(REPO_ROOT, 'assets', 'shell', 'help.html'), 'utf8')
+);
+// Story 10.20: every page now carries the inline header-search region
+// (mounted inside the chrome header — the drift check verifies the
+// bytes appear verbatim on every page). The synthetic fixture chrome
+// must include them too so the canonical-fixture / quality-fixture
+// assertions (which expect "ok") find the bytes the gate looks for.
+const HEADER_SEARCH_BYTES = extractShellRegion(
+  fs.readFileSync(path.join(REPO_ROOT, 'assets', 'shell', 'header-search.html'), 'utf8')
 );
 
 /* === Helpers ===
@@ -109,6 +117,9 @@ const HEADER_HTML =
   '      <span>Handy Tools</span>\n' +
   '    </a>\n' +
   '  </div>\n' +
+  '  <!-- shell:header-search -->\n' +
+  '  ' + HEADER_SEARCH_BYTES + '\n' +
+  '  <!-- /shell:header-search -->\n' +
   '</header>';
 const MAIN_HTML =
   '<main id="main" class="shell-main" aria-label="{page_label}" tabindex="-1">\n' +
@@ -215,6 +226,12 @@ function buildTempRepo() {
   copyFileSync('assets/shell/palette.html', root);
   copyFileSync('assets/shell/settings.html', root);
   copyFileSync('assets/shell/help.html', root);
+  // Story 10.20: header-search.html is the canonical source for the
+  // inline header-search region. The drift check byte-matches it on
+  // every page; copy it into the synthetic repo so the gate's
+  // load_header_search_region can extract the bytes the test pages now
+  // carry (see HEADER_HTML).
+  copyFileSync('assets/shell/header-search.html', root);
 
   fs.writeFileSync(path.join(root, 'assets', 'js', 'site-config.js'), '// smoke stub\n');
   fs.writeFileSync(path.join(root, 'assets', 'js', 'storage-registry.js'), '// smoke stub\n');

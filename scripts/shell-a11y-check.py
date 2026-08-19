@@ -361,6 +361,41 @@ PALETTE_LIVE_REGION_RE = re.compile(
     r'\s+aria-live="polite"\s+aria-atomic="true"',
     re.IGNORECASE,
 )
+# Story 10.20 — Inline Header Search ARIA invariants (UX-DR-19 combobox
+# 1.2 listbox). The inline dropdown is a separate DOM node mounted
+# inside the chrome header; it carries `role="search"` on the wrapper
+# and `role="combobox"` on the input (the inline search uses WAI-ARIA
+# 1.2 semantics, which the existing palette overlay does not). Both
+# surfaces must coexist (palette overlay + header-search dropdown) so
+# the existing palette regexes are kept and new ones are added below.
+HEADER_SEARCH_WRAPPER_RE = re.compile(
+    r'<div\s+class="shell-header-search"\s+id="header-search"\s+role="search"\s+'
+    r'data-open="false"',
+    re.IGNORECASE,
+)
+HEADER_SEARCH_INPUT_RE = re.compile(
+    r'<input\s+class="shell-header-search-input"\s+id="header-search-input"\s+type="search"\s+'
+    r'role="combobox"\s+aria-controls="header-search-listbox"\s+'
+    r'aria-expanded="false"\s+aria-autocomplete="list"',
+    re.IGNORECASE,
+)
+HEADER_SEARCH_LISTBOX_RE = re.compile(
+    r'<ul\s+class="shell-header-search-list"\s+id="header-search-listbox"\s+role="listbox"',
+    re.IGNORECASE,
+)
+HEADER_SEARCH_PANEL_HIDDEN_RE = re.compile(
+    r'<div\s+class="shell-header-search-panel"\s+id="header-search-panel"[^>]*\bhidden\b',
+    re.IGNORECASE,
+)
+# The header-search live region lives in the panel and announces
+# result counts the same way the modal palette does. The region must
+# be present in the static markup so SR users hear announcements as
+# soon as the inline search opens.
+HEADER_SEARCH_LIVE_REGION_RE = re.compile(
+    r'<div\s+id="header-search-live"\s+class="[^"]*\bshell-sr-only\b[^"]*"'
+    r'\s+aria-live="polite"\s+aria-atomic="true"',
+    re.IGNORECASE,
+)
 # Story 3.1 AC-9: the forced-colors 2px cursor border is keyed off
 # `[aria-selected="true"]`. The rule must land in components.css so the
 # stroke applies to the JS-rendered option `<li>`s the moment JS sets
@@ -475,6 +510,100 @@ def check_palette_aria(path: Path, root: Path) -> list[str]:
                 "(AI-17 / Story 3.1 AC-9: non-cursor rows must remain "
                 "distinguishable from the Highlight+HighlightText cursor row)"
             )
+    return violations
+
+
+HEADER_SEARCH_FORCED_RULE_RE = re.compile(
+    r"\.[\w-]*shell-header-search-list[^{]*\[aria-selected\s*=\s*[\"']true[\"']\][^{]*"
+    r"\{[^}]*border\s*:\s*[^;}]*solid\s+CanvasText[^}]*\}",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def check_header_search_aria(path: Path, root: Path) -> list[str]:
+    """Story 10.20 — Inline Header Search ARIA invariants (UX-DR-19
+    combobox 1.2 listbox). The inline dropdown is a separate DOM node
+    mounted inside the chrome header — it carries `role="search"` on
+    the wrapper and `role="combobox"` on the input (WAI-ARIA 1.2
+    semantics; the modal palette still uses 1.1). Both surfaces must
+    coexist so the existing palette check is preserved and the
+    header-search check is added below.
+
+    The structural assertions close the gap where shell-drift-check.py
+    would only byte-match the header-search region without verifying
+    the ARIA wiring is correct (role names, aria-controls, aria-expanded
+    initial state, [hidden] on the panel, live region for SR users).
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [f"cannot read file: {exc}"]
+    violations: list[str] = []
+
+    wrappers = HEADER_SEARCH_WRAPPER_RE.findall(text)
+    if len(wrappers) == 0:
+        violations.append(
+            "missing <div class=\"shell-header-search\" role=\"search\" data-open=\"false\"> wrapper"
+        )
+    elif len(wrappers) > 1:
+        violations.append(
+            f"found {len(wrappers)} <div id=\"header-search\"> wrappers; expected exactly 1"
+        )
+
+    inputs = HEADER_SEARCH_INPUT_RE.findall(text)
+    if len(inputs) == 0:
+        violations.append(
+            "missing <input class=\"shell-header-search-input\" role=\"combobox\" "
+            "aria-controls=\"header-search-listbox\" aria-expanded=\"false\">"
+        )
+    elif len(inputs) > 1:
+        violations.append(
+            f"found {len(inputs)} <input id=\"header-search-input\"> elements; expected exactly 1"
+        )
+
+    listboxes = HEADER_SEARCH_LISTBOX_RE.findall(text)
+    if len(listboxes) == 0:
+        violations.append("missing <ul id=\"header-search-listbox\" role=\"listbox\">")
+    elif len(listboxes) > 1:
+        violations.append(
+            f"found {len(listboxes)} <ul id=\"header-search-listbox\"> elements; expected exactly 1"
+        )
+
+    # The static markup MUST carry the `hidden` attribute on the panel
+    # so the inline search is collapsed by default. JS strips it on
+    # openHeaderSearch().
+    if wrappers and not HEADER_SEARCH_PANEL_HIDDEN_RE.search(text):
+        violations.append(
+            "header-search panel is missing the `hidden` attribute in static markup "
+            "(must be collapsed by default; JS opens via removeAttribute)"
+        )
+
+    # The header-search live region must be present in the static markup
+    # so SR users hear result counts as soon as the inline search opens.
+    if wrappers and not HEADER_SEARCH_LIVE_REGION_RE.search(text):
+        violations.append(
+            "header-search is missing #header-search-live live region with aria-live=\"polite\" "
+            "(UX-DR-18 / Story 10.20: SR users must hear result counts)"
+        )
+
+    # Verify the chrome-header-search.css forced-colors 2px cursor border
+    # exists (mirrors the palette check). The selectors are scoped to
+    # .shell-header-search-list (the inline listbox) instead of
+    # .shell-palette-list.
+    if wrappers:
+        hs_css = root / "assets" / "css" / "chrome-header-search.css"
+        try:
+            css_text = hs_css.read_text(encoding="utf-8")
+        except OSError:
+            css_text = ""
+        if css_text and not HEADER_SEARCH_FORCED_RULE_RE.search(css_text):
+            violations.append(
+                "chrome-header-search.css is missing the forced-colors 2px cursor border "
+                "on .shell-header-search-list [role=\"option\"][aria-selected=\"true\"] "
+                "(AI-17 / Story 10.20: non-cursor rows must remain "
+                "distinguishable from the Highlight+HighlightText cursor row)"
+            )
+
     return violations
 
 
@@ -751,6 +880,7 @@ def main(argv: list[str]) -> int:
         failures += emit(check_main_aria_label(path, root), rel, "<main aria-label> content")
         failures += emit(check_fouc_script(path, canonical_iife), rel, "inline FOUC IIFE")
         failures += emit(check_palette_aria(path, root), rel, "palette ARIA wiring")
+        failures += emit(check_header_search_aria(path, root), rel, "header-search ARIA wiring")
         failures += emit(check_settings_modal_aria(path), rel, "settings modal ARIA wiring")
         failures += emit(check_help_aria(path), rel, "help overlay ARIA wiring")
 
