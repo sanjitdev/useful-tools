@@ -375,6 +375,14 @@ fillChildren(mainNode, mainContent);
 // the tab-order invariant ("#shell-skip is first") without re-walking
 // the chrome. The marker makes it obvious in the report that this is
 // a stub.
+//
+// The real chrome.html skip-link carries visible text
+// "Skip to main content" (verified in assets/shell/chrome.html).
+// We mirror that text on the stub so `_hasAccessibleName` in a11y.js
+// reports an accessible name (visible-text for <a>) and the audit's
+// `missingAria` count stays at zero. Without this, every tool
+// misreports `gaps.missingAria: 1 element(s)` for the synthetic
+// stub — a script-level false positive affecting all 50 tools.
 const skipLinkNode = makeNode('a');
 skipLinkNode.attrs = {{
   class: 'shell-skip',
@@ -382,6 +390,7 @@ skipLinkNode.attrs = {{
   href: '#main',
   'data-a11y-stub': 'skip-link',
 }};
+skipLinkNode._text = 'Skip to main content';
 const bodyNode = makeNode('body');
 bodyNode.children = [skipLinkNode, mainNode];
 
