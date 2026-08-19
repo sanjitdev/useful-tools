@@ -77,15 +77,44 @@
     else console.warn('palette-actions.settings.open: HT.settings.open missing and no .shell-settings button');
   }
 
+  // Subpath-safe base resolver. palette-actions.js is loaded from
+  // <site-root>/assets/js/palette-actions.js (same depth as shell.js).
+  // Walk up two directories from this script's URL to find the site
+  // root so the palette navigation actions work on github.io subpath
+  // deployments. Falls back to HT.__siteBase (set by shell.js) when
+  // currentScript is unavailable; falls back to '/' otherwise.
+  var PALETTE_SCRIPT_URL = (function () {
+    try {
+      if (typeof document !== 'undefined' && document.currentScript && document.currentScript.src) {
+        return document.currentScript.src;
+      }
+    } catch (_) { /* no-op */ }
+    return '';
+  })();
+
+  function paletteBase() {
+    if (PALETTE_SCRIPT_URL) {
+      try {
+        return new URL('../../', PALETTE_SCRIPT_URL).href;
+      } catch (_) { /* fall through */ }
+    }
+    if (typeof window !== 'undefined' && window.HT && typeof window.HT.__siteBase === 'function') {
+      try { return window.HT.__siteBase(); } catch (_) { /* fall through */ }
+    }
+    return '/';
+  }
+
+  var BASE = paletteBase();
+
   function runOpenPrivacy() {
     // Matches the chrome.html footer link ("/privacy"). Both routes
     // resolve through the static server (no .html suffix) — see
     // assets/shell/chrome.html:41.
-    navigate('/privacy');
+    navigate(BASE + 'privacy');
   }
 
   function runOpenQuality() {
-    navigate('/quality.html');
+    navigate(BASE + 'quality.html');
   }
 
   function runClearData() {

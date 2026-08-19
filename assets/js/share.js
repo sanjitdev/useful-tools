@@ -106,10 +106,18 @@
     _requireSlug(slug);
     const schema = _loadSchema(slug);
     if (!schema) return '';
+    // location.origin strips the github.io subpath; the share iframe
+    // URL must include it so the embed works on deployments like
+    // https://sanjitdev.github.io/useful-tools/. Compute the base
+    // from the current pathname — strip the trailing /<page> segment
+    // and fall back to '/' on the rare case there's no path info.
     const origin = (typeof location !== 'undefined' && location.origin)
       ? location.origin
       : '';
-    const src = origin + '/tools/' + slug + '/';
+    const pathBase = (typeof location !== 'undefined' && location.pathname)
+      ? location.pathname.replace(/\/[^/]*$/, '/')
+      : '/';
+    const src = origin + pathBase + 'tools/' + slug + '/';
     const w = Math.max(240, schema.embedMinWidth);
     const h = Math.max(240, schema.embedMinHeight);
     const title = _escapeAttr(schema.title || slug);

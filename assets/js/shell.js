@@ -47,6 +47,37 @@
 
   const HT = (window.HT = window.HT || {});
 
+  // Site root resolver (subpath-safe). shell.js is loaded from
+  // <site-root>/assets/js/shell.js on every page. Resolving the script
+  // URL via document.currentScript and walking up two directories
+  // yields the site root regardless of how the project is hosted
+  // (https://sanjitdev.github.io/useful-tools/, a custom domain at /,
+  // or local file://). All navigation paths in shell.js route through
+  // siteBase() + relative path so the chrome works under any subpath.
+  const SCRIPT_URL_SHELL = (function () {
+    try {
+      if (typeof document !== 'undefined' && document.currentScript && document.currentScript.src) {
+        return document.currentScript.src;
+      }
+    } catch (_) { /* no-op */ }
+    return '';
+  })();
+
+  function siteBase() {
+    if (!SCRIPT_URL_SHELL) return '/';
+    try {
+      // assets/js/shell.js → site root is two parents up.
+      return new URL('../../', SCRIPT_URL_SHELL).href;
+    } catch (_) {
+      return '/';
+    }
+  }
+
+  // Expose for the other chrome modules (global-chords.js,
+  // palette-actions.js, share.js) so they can build subpath-safe
+  // navigation URLs without re-deriving the script URL.
+  HT.__siteBase = siteBase;
+
   /* ============================================
      Story 1.14 — HT.provide / HT.use / HT.net
      ============================================
@@ -1166,7 +1197,7 @@
       const slug = target.getAttribute('data-slug');
       if (!slug) return;
       closeHeaderSearch();
-      window.location.assign('/tools/' + slug);
+      window.location.assign(siteBase() + 'tools/' + slug + '/');
     }
   }
 
@@ -1177,7 +1208,7 @@
     const slug = li.getAttribute('data-slug');
     if (!slug) return;
     closeHeaderSearch();
-    window.location.assign('/tools/' + slug);
+    window.location.assign(siteBase() + 'tools/' + slug + '/');
   }
 
   function getHeaderNavigableOptions() {
@@ -1419,7 +1450,7 @@
       }
       const slug = target.getAttribute('data-slug');
       if (!slug) return;
-      window.location.assign('/tools/' + slug);
+      window.location.assign(siteBase() + 'tools/' + slug + '/');
     }
   }
 
@@ -1441,7 +1472,7 @@
     // Close then navigate. The close path restores focus but the navigation
     // happens immediately, so the focus restore is moot for this branch.
     closePalette();
-    window.location.assign('/tools/' + slug);
+    window.location.assign(siteBase() + 'tools/' + slug + '/');
   }
 
   function getNavigableOptions() {

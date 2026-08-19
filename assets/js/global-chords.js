@@ -129,30 +129,61 @@
    * pathname. The handle exposes the static array for tests + the
    * help-overlay renderer (future).
    */
+  // Subpath-safe base resolver. global-chords.js is loaded from
+  // <site-root>/assets/js/global-chords.js on every page (same depth as
+  // shell.js). Walk up two directories from this script's URL to find
+  // the site root so the chord targets work on github.io subpath
+  // deployments (e.g. https://sanjitdev.github.io/useful-tools/).
+  // Falls back to HT.__siteBase (set by shell.js) when currentScript is
+  // unavailable (smoke harness, HMR); falls back to '/' when neither is
+  // available so the chord still navigates somewhere reasonable.
+  var CHORD_SCRIPT_URL = (function () {
+    try {
+      if (typeof document !== 'undefined' && document.currentScript && document.currentScript.src) {
+        return document.currentScript.src;
+      }
+    } catch (_) { /* no-op */ }
+    return '';
+  })();
+
+  function chordBase() {
+    if (CHORD_SCRIPT_URL) {
+      try {
+        return new URL('../../', CHORD_SCRIPT_URL).href;
+      } catch (_) { /* fall through */ }
+    }
+    if (typeof window !== 'undefined' && window.HT && typeof window.HT.__siteBase === 'function') {
+      try { return window.HT.__siteBase(); } catch (_) { /* fall through */ }
+    }
+    return '/';
+  }
+
+  var BASE = chordBase();
+
   var CHORDS = [
     Object.freeze({
       keys: Object.freeze(['g', 'h']),
       label: 'Go to home',
-      route: '/index.html',
-      goto: function () { navigate('/index.html'); },
+      route: BASE + 'index.html',
+      goto: function () { navigate(BASE + 'index.html'); },
     }),
     Object.freeze({
       keys: Object.freeze(['g', 'p']),
       label: 'Go to packs',
-      route: '/index.html#packs',
-      goto: function () { navigate('/index.html#packs'); },
+      route: BASE + 'index.html#packs',
+      goto: function () { navigate(BASE + 'index.html#packs'); },
     }),
     Object.freeze({
       keys: Object.freeze(['g', 'q']),
       label: 'Go to quality',
-      route: '/quality.html',
-      goto: function () { navigate('/quality.html'); },
+      route: BASE + 'quality.html',
+      goto: function () { navigate(BASE + 'quality.html'); },
     }),
     Object.freeze({
       keys: Object.freeze(['g', 'v']),
       label: 'Go to privacy',
-      route: '/privacy',
-      goto: function () { navigate('/privacy'); },
+      route: BASE + 'privacy',
+      goto: function () { navigate(BASE + 'privacy'); },
     }),
     Object.freeze({
       keys: Object.freeze(['g', 's']),
