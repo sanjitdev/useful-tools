@@ -57,10 +57,11 @@
     var is3d = result.is3d;
     var fromUnit = is3d ? (state.params.unit === 'm' ? 'm3' : 'ft3') : (state.params.unit === 'm' ? 'm2' : 'ft2');
     var toUnit = fromUnit;
+    var otherUnit = (state.params.unit === 'm') ? (is3d ? 'ft3' : 'ft2') : (is3d ? 'm3' : 'm2');
     var displayed = core.convertUnits(result.value, fromUnit, toUnit);
     var unitLabel = is3d ? (state.params.unit === 'm' ? 'm³' : 'ft³') : (state.params.unit === 'm' ? 'm²' : 'ft²');
     var otherLabel = is3d ? (state.params.unit === 'm' ? 'ft³' : 'm³') : (state.params.unit === 'm' ? 'ft²' : 'm²');
-    var otherValue = core.convertUnits(result.value, fromUnit, fromUnit === (state.params.unit === 'm' ? 'm3' : 'ft3') ? (state.params.unit === 'm' ? 'ft3' : 'm3') : fromUnit);
+    var otherValue = core.convertUnits(result.value, fromUnit, otherUnit);
 
     var html = '<div class="av-result-primary">';
     html += '<div class="av-result-label">' + (is3d ? 'Volume' : 'Area') + '</div>';
@@ -204,8 +205,3 @@
     window.areaVolumeInit = init;
   }
 })();
-
-if (typeof window !== 'undefined') {
-  window.areaVolumeInit = window.areaVolumeInit || function () {};
-  window.areaVolumeInit();
-}

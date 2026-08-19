@@ -19,8 +19,13 @@
 
   function load() {
     var d = HT.storage.get(STORAGE, null);
-    if (d && Array.isArray(d.tasks)) return d;
-    return { tasks: [] };
+    if (!d || !Array.isArray(d.tasks)) return { tasks: [] };
+    // Drop persisted tasks with an unknown quadrant (corrupt or
+    // removed-quadrant data) so they don't become invisible.
+    d.tasks = d.tasks.filter(function (t) {
+      return t && QUADRANTS.indexOf(t.quadrant) >= 0;
+    });
+    return d;
   }
 
   function save(d) { HT.storage.set(STORAGE, d); }
@@ -97,8 +102,11 @@
 
   function move(id, delta) {
     var d = load();
+    var found = d.tasks.find(function (x) { return x.id === id; });
+    if (!found) return;
+    var foundQuadrant = found.quadrant;
     var inQuadrant = d.tasks
-      .filter(function (t) { return t.quadrant === d.tasks.find(function (x) { return x.id === id; }).quadrant; })
+      .filter(function (t) { return t.quadrant === foundQuadrant; })
       .sort(function (a, b) { return a.order - b.order; });
     var idx = inQuadrant.findIndex(function (t) { return t.id === id; });
     var newIdx = idx + delta;
@@ -163,6 +171,15 @@
     save({ tasks: [] });
     render();
   });
+
+  // Sanity check that the four quadrant DOM roots exist; warn if not
+  // so partial HMR or partial-page loads surface clearly.
+  var missingQuadrants = QUADRANTS.filter(function (q) {
+    return !document.querySelector('[data-list="' + q + '"]');
+  });
+  if (missingQuadrants.length && console && console.warn) {
+    console.warn('eisenhower-matrix: missing quadrant DOM for', missingQuadrants);
+  }
 
   render();
 })();

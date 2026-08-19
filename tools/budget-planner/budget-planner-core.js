@@ -88,22 +88,34 @@
   }
 
   function encodeBase64(s) {
-    if (typeof btoa === 'function') {
-      var utf8 = unescape(encodeURIComponent(JSON.stringify(s)));
-      return btoa(utf8);
-    }
-    return '';
+    if (typeof btoa !== 'function') return '';
+    try {
+      var json = JSON.stringify(s);
+      // Prefer TextEncoder when available (modern, handles surrogate pairs);
+      // fall back to unescape(encodeURIComponent(...)) for environments that
+      // lack TextEncoder but provide unescape (older runtimes, jsdom, etc.).
+      if (typeof TextEncoder !== 'undefined') {
+        var bytes = new TextEncoder().encode(json);
+        var bin = '';
+        for (var i = 0; i < bytes.length; i += 1) bin += String.fromCharCode(bytes[i]);
+        return btoa(bin);
+      }
+      return btoa(unescape(encodeURIComponent(json)));
+    } catch (e) { return ''; }
   }
 
   function decodeBase64(s) {
-    if (typeof atob === 'function') {
-      try {
-        var binary = atob(s);
-        var json = decodeURIComponent(escape(binary));
+    if (typeof atob !== 'function') return null;
+    try {
+      var binary = atob(s);
+      if (typeof TextDecoder !== 'undefined') {
+        var bytes = new Uint8Array(binary.length);
+        for (var j = 0; j < binary.length; j += 1) bytes[j] = binary.charCodeAt(j);
+        var json = new TextDecoder().decode(bytes);
         return JSON.parse(json);
-      } catch (e) { return null; }
-    }
-    return null;
+      }
+      return JSON.parse(decodeURIComponent(escape(binary)));
+    } catch (e) { return null; }
   }
 
   function encodeState(state) {

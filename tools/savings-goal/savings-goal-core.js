@@ -54,7 +54,7 @@
     var totalContrib = 0;
     var totalInterest = 0;
     var pctComplete = target > 0 ? (starting / target) * 100 : 0;
-    var pctComplete = Math.max(0, Math.min(100, pctComplete));
+    pctComplete = Math.max(0, Math.min(100, pctComplete));
 
     if (target > 0 && months > 0) {
       var r = (rate / 100) / 12;
@@ -73,7 +73,7 @@
         if (monthly < 0) monthly = 0;
         totalContrib = monthly * n;
         totalInterest = (monthly * n + starting) - target;
-        if (totalInterest < 0) totalInterest = 0;
+        // Surface shortfall as negative interest rather than clamping to 0.
       }
     }
 

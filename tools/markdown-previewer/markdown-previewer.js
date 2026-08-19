@@ -39,7 +39,8 @@
     // Links [text](url) — only http(s)/relative; reject javascript:
     s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (_, text, url) {
       if (!/^(https?:\/\/|mailto:|\/|#|\.\.?\/)/i.test(url)) return text;
-      return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + text + '</a>';
+      var safeUrl = String(url).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+      return '<a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">' + text + '</a>';
     });
     return s;
   }

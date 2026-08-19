@@ -38,6 +38,10 @@
     if (hasLower) charset += 26;
     if (hasUpper) charset += 26;
     if (hasDigit) charset += 10;
+    // Symbol charset estimate: ~33 printable ASCII symbols
+    // (covers the common !@#$%^&* etc. subset). Sufficient for
+    // a rough entropy estimate; the regex above also matches a
+    // few extra printable chars but the rounding effect is small.
     if (hasSymbol) charset += 33;
 
     var entropy = length > 0 ? length * Math.log2(charset || 1) : 0;
@@ -71,17 +75,18 @@
   }
 
   function fmtTime(seconds) {
+    var YEAR_SECS = 86400 * 365.25;
     if (!isFinite(seconds) || seconds <= 0) return '—';
     if (seconds < 1) return 'less than a second';
     if (seconds < 60) return Math.round(seconds) + ' seconds';
     if (seconds < 3600) return Math.round(seconds / 60) + ' minutes';
     if (seconds < 86400) return Math.round(seconds / 3600) + ' hours';
     if (seconds < 86400 * 30) return Math.round(seconds / 86400) + ' days';
-    if (seconds < 86400 * 365) return Math.round(seconds / (86400 * 30)) + ' months';
-    if (seconds < 86400 * 365 * 1000) return Math.round(seconds / (86400 * 365)) + ' years';
-    if (seconds < 86400 * 365 * 1e6) return HT.formatNumber(Math.round(seconds / (86400 * 365 * 1000))) + ' thousand years';
-    if (seconds < 86400 * 365 * 1e9) return HT.formatNumber(Math.round(seconds / (86400 * 365 * 1e6))) + ' million years';
-    if (seconds < 86400 * 365 * 1e12) return HT.formatNumber(Math.round(seconds / (86400 * 365 * 1e9))) + ' billion years';
+    if (seconds < YEAR_SECS) return Math.round(seconds / (86400 * 30)) + ' months';
+    if (seconds < YEAR_SECS * 1000) return Math.round(seconds / YEAR_SECS) + ' years';
+    if (seconds < YEAR_SECS * 1e6) return HT.formatNumber(Math.round(seconds / (YEAR_SECS * 1000))) + ' thousand years';
+    if (seconds < YEAR_SECS * 1e9) return HT.formatNumber(Math.round(seconds / (YEAR_SECS * 1e6))) + ' million years';
+    if (seconds < YEAR_SECS * 1e12) return HT.formatNumber(Math.round(seconds / (YEAR_SECS * 1e9))) + ' billion years';
     return 'effectively forever';
   }
 

@@ -137,10 +137,16 @@
 
     state.running = true;
     setStartEnabled(false);
-    document.querySelectorAll('input[type="checkbox"]').forEach(function (el) { el.disabled = true; });
-    document.querySelectorAll('select, input[type="number"]').forEach(function (el) {
-      if (el.id !== 'human-preset' && el.id !== 'human-custom') el.disabled = true;
-    });
+    var setupPanel = HT.$('#setup-panel');
+    var animalGrid = HT.$('#animal-grid');
+    if (animalGrid) {
+      animalGrid.querySelectorAll('input[type="checkbox"]').forEach(function (el) { el.disabled = true; });
+    }
+    if (setupPanel) {
+      setupPanel.querySelectorAll('select, input[type="number"]').forEach(function (el) {
+        if (el.id !== 'human-preset' && el.id !== 'human-custom') el.disabled = true;
+      });
+    }
     HT.$('#human-toggle').disabled = true;
     HT.$('#human-preset').disabled = true;
     HT.$('#human-custom').disabled = true;
@@ -277,8 +283,14 @@
     HT.$('#race-clock').textContent = '00.00s';
     HT.$('#race-clock').classList.remove('is-done');
 
-    document.querySelectorAll('input[type="checkbox"]').forEach(function (el) { el.disabled = false; });
-    document.querySelectorAll('input[type="number"]').forEach(function (el) { el.disabled = false; });
+    var animalGridReset = HT.$('#animal-grid');
+    if (animalGridReset) {
+      animalGridReset.querySelectorAll('input[type="checkbox"]').forEach(function (el) { el.disabled = false; });
+    }
+    var setupPanelReset = HT.$('#setup-panel');
+    if (setupPanelReset) {
+      setupPanelReset.querySelectorAll('input[type="number"]').forEach(function (el) { el.disabled = false; });
+    }
     HT.$('#human-preset').disabled = !HT.$('#human-toggle').checked;
     HT.$('#human-custom').disabled = !(HT.$('#human-toggle').checked && HT.$('#human-preset').value === 'custom');
     HT.$('#race-duration').disabled = false;
@@ -344,7 +356,13 @@
 
     HT.$('#human-toggle').addEventListener('change', onHumanToggle);
     HT.$('#human-preset').addEventListener('change', onHumanPresetChange);
-    HT.$('#human-custom').addEventListener('input', function () { /* live clamp */ });
+    HT.$('#human-custom').addEventListener('input', function (e) {
+      var v = parseFloat(e.target.value);
+      if (isFinite(v)) {
+        var clamped = clamp(v, C.HUMAN_MIN_KMH, C.HUMAN_MAX_KMH);
+        if (clamped !== v) e.target.value = clamped;
+      }
+    });
 
     HT.$('#race-duration').addEventListener('change', onDurationChange);
 

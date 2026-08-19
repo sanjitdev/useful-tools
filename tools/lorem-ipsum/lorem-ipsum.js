@@ -133,7 +133,7 @@
   HT.$('#generate').addEventListener('click', generateAndShow);
   HT.$('#copy').addEventListener('click', function () {
     var html = HT.$('#html').checked;
-    var text = html ? outEl.textContent : outEl.textContent;
+    var text = outEl.textContent;
     // For HTML mode, copy the actual HTML (re-serialize preview)
     if (html) {
       var preview = outEl.firstChild;

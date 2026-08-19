@@ -229,6 +229,12 @@
     writeUrlState();
   }
 
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
   function populateSelects() {
     if (!currentRates) return;
     var codes = Object.keys(currentRates).sort();
@@ -237,7 +243,7 @@
     if (!fromEl || !toEl) return;
     var opts = '';
     for (var i = 0; i < codes.length; i += 1) {
-      opts += '<option value="' + codes[i] + '">' + codes[i] + '</option>';
+      opts += '<option value="' + escapeHtml(codes[i]) + '">' + escapeHtml(codes[i]) + '</option>';
     }
     fromEl.innerHTML = opts;
     toEl.innerHTML = opts;

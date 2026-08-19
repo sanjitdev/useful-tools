@@ -174,7 +174,7 @@
     document.addEventListener('keydown', function (ev) {
       // Ignore when typing in inputs/textareas
       var target = ev.target;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.tagName === 'BUTTON')) {
         return;
       }
       if (ev.key === 'g' || ev.key === 'G') {

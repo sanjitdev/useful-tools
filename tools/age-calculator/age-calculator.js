@@ -154,6 +154,8 @@
       warningEl.textContent = 'This date of birth is in the future.';
       HT.$('#age-primary').textContent = '—';
       HT.$('#age-sub').textContent = 'Future date selected.';
+      ['#t-years', '#t-months', '#t-weeks', '#t-days', '#t-hours', '#t-minutes', '#t-seconds', '#next-bday', '#born-dow']
+        .forEach(function (sel) { HT.$(sel).textContent = '—'; });
       return;
     }
 
@@ -269,12 +271,15 @@
     wireDatePickers();
   }
 
-  // Live "seconds" ticking
-  setInterval(function () {
-    if (HT.$('[data-tab-panel="from-dob"]').style.display !== 'none') {
+  // Live "seconds" ticking — clean up on page hide so we don't leak
+  // intervals when this tool is re-evaluated.
+  var ageTickId = setInterval(function () {
+    var panel = HT.$('[data-tab-panel="from-dob"]');
+    if (panel && panel.style.display !== 'none') {
       updateFromDOB();
     }
   }, 1000);
+  window.addEventListener('pagehide', function () { clearInterval(ageTickId); });
 
   updateFromDOB();
   updateTargetAge();

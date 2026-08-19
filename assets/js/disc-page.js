@@ -131,9 +131,15 @@
     );
   }
 
-  // Filter the discovery entries block. Entries without an explicit
-  // `ready` field are treated as ready (the discovery block is a
-  // content registry, not a release tracker like the 50 tools).
+  // Filter the discovery entries block.
+  //
+  // Convention: `ready` is an opt-in release flag. An entry with
+  // `ready` undefined is treated as ready (matches the pack-grid
+  // convention introduced in pack-grid.js). Only `ready === false`
+  // explicitly excludes the entry. This lets the discovery content
+  // registry omit the field for entries that are ready to ship.
+  function isReady(entry) { return entry.ready !== false; }
+
   function filterDiscoveryEntries(payload) {
     var packs = (payload && payload.packs) || {};
     var disc = packs.discovery || {};
@@ -142,7 +148,7 @@
     for (var i = 0; i < entries.length; i += 1) {
       var e = entries[i];
       if (!isValidDiscoveryEntry(e)) continue;
-      if (e.ready === false) continue;
+      if (!isReady(e)) continue;
       out.push(e);
     }
     return out;
@@ -166,11 +172,14 @@
   // site. The emoji glyph is kept (no SVG icon — quizzes have a
   // brand glyph rather than a stroke-icon).
   function buildDiscoveryCard(entry) {
-    var href = '../tools/packs/discovery/' + escapeAttr(entry.slug) + '/index.html';
+    // encodeURIComponent on slug handles slashes / non-URL-safe chars in
+    // slug values (e.g. nested categories). escapeAttr alone only
+    // handles HTML attribute-context escaping.
+    var href = '../tools/packs/discovery/' + encodeURIComponent(entry.slug) + '/index.html';
     var emoji = typeof entry.emoji === 'string' ? entry.emoji : '';
     var desc = typeof entry.description === 'string' ? entry.description : '';
     return (
-      '<a class="tool-card" href="' + href + '"' +
+      '<a class="tool-card" href="' + escapeAttr(href) + '"' +
       ' data-quiz-slug="' + escapeAttr(entry.slug) + '">' +
       '<span class="tool-card-icon tool-card-icon--emoji" aria-hidden="true">' +
       escapeAttr(emoji) +
@@ -198,20 +207,24 @@
     var section = document.getElementById(SECTION_ID);
     if (!host || !section) return;
 
+    // Capture host reference at the top of the function so concurrent
+    // mutations to `host` (e.g. via a re-entrant render() call) can't
+    // race the while-loop below.
+    var mountTarget = host;
     // Replace any prior render — render() is idempotent across re-fetches.
-    while (host.firstChild) host.removeChild(host.firstChild);
+    while (mountTarget.firstChild) mountTarget.removeChild(mountTarget.firstChild);
 
     if (entries.length === 0) {
-      host.innerHTML =
+      mountTarget.innerHTML =
         '<div class="tool-card tool-card--empty" role="note" aria-label="No quizzes in this pack yet">' +
         '<span class="tool-card-title">No quizzes yet</span>' +
         '<span class="tool-card-desc">Check back soon — pack pages populate as quizzes reach the 8/10 quality bar.</span>' +
         '</div>';
     } else {
-      host.innerHTML = entries.map(buildDiscoveryCard).join('');
+      mountTarget.innerHTML = entries.map(buildDiscoveryCard).join('');
     }
     section.removeAttribute('hidden');
-    host.setAttribute('data-mounted', 'true');
+    mountTarget.setAttribute('data-mounted', 'true');
   }
 
   // Live snapshot used to populate HT.discPage.entries.
@@ -220,18 +233,33 @@
   function publishApi() {
     if (typeof window === 'undefined') return;
     var HT = (window.HT = window.HT || {});
-    // Direct assignment mirrors assets/js/pack-page.js's pattern. The
-    // snapshot VALUE is Object.frozen so consumers can't mutate it; the
-    // descriptor is writable so re-publishing on each successful mount
-    // (idempotency contract) actually lands. AD-14 is satisfied at the
-    // value level — the public surface is frozen, the property can be
-    // re-snapshotted to reflect the latest render.
-    HT.discPage = Object.freeze({
-      render: render,
-      entries: liveEntries,
-      ready: Boolean(liveEntries),
-      version: VERSION,
-    });
+    // Mirror AD-14 Object.defineProperty pattern. Install once with
+    // writable: false, configurable: false so a subsequent call cannot
+    // clobber the frozen API. The snapshot VALUE is frozen on each
+    // publish so consumers cannot mutate it, and the descriptor is
+    // immutable to satisfy AD-14 (Quiz, Share, etc.).
+    try {
+      Object.defineProperty(HT, 'discPage', {
+        value: Object.freeze({
+          render: render,
+          entries: liveEntries,
+          ready: Boolean(liveEntries),
+          version: VERSION,
+        }),
+        writable: false,
+        configurable: false,
+        enumerable: true,
+      });
+    } catch (_) {
+      try {
+        HT.discPage = Object.freeze({
+          render: render,
+          entries: liveEntries,
+          ready: Boolean(liveEntries),
+          version: VERSION,
+        });
+      } catch (__) { /* no-op */ }
+    }
   }
 
   function render() {

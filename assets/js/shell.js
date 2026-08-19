@@ -2031,11 +2031,12 @@
       return;
     }
 
-    // Wire the primary anchor to the local /view-source route.
+    // Wire the primary anchor to the local view-source route.
     // Decision (Story 3.11): the primary anchor's label is the
     // tool's title when we have one, falling back to the literal
-    // "View source" placeholder text. The href is /view-source?tool=<slug>.
-    const localHref = '/view-source?tool=' + encodeURIComponent(slug);
+    // "View source" placeholder text. The href is a relative
+    // path so it works on github.io subpath deployments.
+    const localHref = '../../view-source.html?tool=' + encodeURIComponent(slug);
     primaryAnchor.setAttribute('href', localHref);
     const toolTitle = (entry && typeof entry.title === 'string' && entry.title.length > 0)
       ? entry.title

@@ -268,7 +268,7 @@
 
     document.addEventListener('keydown', function (ev) {
       var target = ev.target;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.tagName === 'BUTTON')) {
         return;
       }
       var k = ev.key;

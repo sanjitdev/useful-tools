@@ -299,6 +299,17 @@
   border-color: var(--color-danger);
 }
 
+.input.is-invalid:focus {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 20%, transparent);
+}
+
+@media (forced-colors: active) {
+  .input:focus, .select:focus, .textarea:focus {
+    outline: 2px solid Highlight;
+  }
+}
+
 .textarea {
   resize: vertical;
   min-height: 120px;

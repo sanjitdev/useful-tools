@@ -200,7 +200,7 @@
     }
     // Prime audio on first Start click (user gesture)
     if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume().catch(function () { /* swallow */ });
+      audioCtx.resume().catch(function () { flashDisplay(); });
     }
     mode = 'running';
     if (intervalId) clearInterval(intervalId);
@@ -327,4 +327,8 @@
   remainingMs = totalMs;
   wire();
   render();
+  window.addEventListener('pagehide', function () {
+    if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    if (flashTimeoutId) { clearTimeout(flashTimeoutId); flashTimeoutId = null; }
+  });
 })();

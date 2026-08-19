@@ -62,6 +62,11 @@
   font-family: inherit;
 }
 
+.shell-palette-input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .shell-palette-input::placeholder {
   color: var(--color-text-muted, rgba(26, 29, 41, 0.55));
 }
@@ -89,6 +94,11 @@
   color: var(--color-text, #1a1d29);
   font-size: 0.9375rem;
   line-height: 1.4;
+}
+
+.shell-palette-list [role="option"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
 /* Story 3.2: action row layout. The icon is a 16×16 inline SVG that

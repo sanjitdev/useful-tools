@@ -107,7 +107,7 @@
       html +=
         '<div class="habit-card" data-id="' + habit.id + '">' +
           '<div class="habit-head">' +
-            '<span class="habit-emoji">' + (habit.emoji || '•') + '</span>' +
+            '<span class="habit-emoji">' + escapeHtml(habit.emoji || '•') + '</span>' +
             '<span class="habit-name">' + escapeHtml(habit.name) + '</span>' +
             '<div class="habit-stats">' +
               '<div>Streak: <strong>' + streak + '</strong></div>' +

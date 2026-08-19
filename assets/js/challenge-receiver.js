@@ -36,7 +36,15 @@
     }
     var payload;
     try {
-      payload = JSON.parse(atob(blob.replace(/-/g, '+').replace(/_/g, '/')));
+      // url-safe base64 → standard base64, then decode.
+      var b64 = blob.replace(/-/g, '+').replace(/_/g, '/');
+      var decoded;
+      try {
+        decoded = atob(b64);
+      } catch (e) {
+        return { ok: false, code: 'malformed', message: 'blob is not valid base64' };
+      }
+      payload = JSON.parse(decoded);
     } catch (e) {
       return { ok: false, code: 'malformed', message: 'blob could not be decoded' };
     }
@@ -93,8 +101,21 @@
   }
 
   // aria-live announcement (a11y B2).
+  // Track the active timeout so subsequent calls cancel the prior one.
+  var _announceTimer = null;
+  var _announceLive = null;
   function announce(text) {
     try {
+      // Clear any pending removal from a prior announcement.
+      if (_announceTimer !== null) {
+        try { clearTimeout(_announceTimer); } catch (_) {}
+        _announceTimer = null;
+      }
+      // Remove the previous live region (if it survived) before creating
+      // a new one — keeps the DOM tidy and avoids duplicate announcements.
+      if (_announceLive && _announceLive.parentNode) {
+        try { _announceLive.parentNode.removeChild(_announceLive); } catch (_) {}
+      }
       var live = document.createElement('div');
       live.setAttribute('role', 'status');
       live.setAttribute('aria-live', 'polite');
@@ -102,9 +123,12 @@
       live.className = 'challenge-announce-visually-hidden';
       live.textContent = text;
       document.body.appendChild(live);
+      _announceLive = live;
       // Remove after the SR has had a chance to read it.
-      setTimeout(function () {
+      _announceTimer = setTimeout(function () {
         try { live.parentNode && live.parentNode.removeChild(live); } catch (_) {}
+        _announceTimer = null;
+        if (_announceLive === live) _announceLive = null;
       }, 4000);
     } catch (_) {}
   }
@@ -190,7 +214,15 @@
     try {
       var key = STORAGE_PREFIX + quizSlug;
       window.localStorage.setItem(key, JSON.stringify(answers));
-    } catch (_) {}
+    } catch (e) {
+      // Quota errors (and other localStorage failures) — surface a toast
+      // so the user knows their answers aren't persisted.
+      try {
+        if (HT.toast && typeof HT.toast.warn === 'function') {
+          HT.toast.warn('Couldn\u2019t save your answers locally. They\u2019ll stay on this page only.');
+        }
+      } catch (_) {}
+    }
   }
 
   function readLocalAnswers(quizSlug) {

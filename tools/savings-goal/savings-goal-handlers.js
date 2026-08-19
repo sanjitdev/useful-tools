@@ -29,7 +29,7 @@
     var keys = ['target', 'months', 'starting', 'rate'];
     for (var i = 0; i < keys.length; i += 1) {
       var el = document.querySelector('[data-sg-key="' + keys[i] + '"]');
-      if (el && el.value !== '') state[keys[i]] = el.value;
+      if (el) state[keys[i]] = el.value;
     }
   }
 

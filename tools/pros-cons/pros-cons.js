@@ -137,6 +137,7 @@
   function addItem(side) {
     var inputId = side === 'pros' ? '#pc-pro-input' : '#pc-con-input';
     var input = HT.$(inputId);
+    if (!input) return;
     var text = input.value.trim();
     if (!text) { HT.toast('Type an item first'); return; }
     var d = load();
@@ -149,11 +150,14 @@
 
   // ----- Wire up -----
 
-  HT.$('#pc-question').addEventListener('input', function () {
-    var d = load();
-    d.question = HT.$('#pc-question').value;
-    save(d);
-  });
+  var questionEl = HT.$('#pc-question');
+  if (questionEl) {
+    questionEl.addEventListener('input', function () {
+      var d = load();
+      d.question = questionEl.value;
+      save(d);
+    });
+  }
 
   HT.$('#pc-pro-add').addEventListener('click', function () { addItem('pros'); });
   HT.$('#pc-con-add').addEventListener('click', function () { addItem('cons'); });

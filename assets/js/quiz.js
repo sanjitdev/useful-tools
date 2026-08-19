@@ -760,8 +760,8 @@
     }
   }
 
-  function onStackChange(ev) {
-    var stack = ev.target;
+  function onStackChange() {
+    var stack = this;
     var state = stack && stack._state;
     if (!state) return;
     var card = stack.querySelector('.quiz-card');
@@ -1027,7 +1027,11 @@
       // Wire events
       stack.addEventListener('click', onCardClick);
       stack.addEventListener('keydown', onCardKeydown);
-      stack.addEventListener('DOMSubtreeModified', onStackChange);
+      // Use MutationObserver instead of deprecated DOMSubtreeModified.
+      if (typeof MutationObserver !== 'undefined') {
+        state._stackObserver = new MutationObserver(onStackChange);
+        state._stackObserver.observe(stack, { childList: true, subtree: true });
+      }
       footer.addEventListener('click', onFooterClick);
       document.addEventListener('keydown', onDocKeydown);
 
@@ -1110,6 +1114,10 @@
     if (!state || state._destroyed) return;
     if (state.section && state.section.parentNode) {
       state.section.parentNode.removeChild(state.section);
+    }
+    if (state._stackObserver) {
+      try { state._stackObserver.disconnect(); } catch (_) {}
+      state._stackObserver = null;
     }
     document.removeEventListener('keydown', onDocKeydown);
     state._destroyed = true;

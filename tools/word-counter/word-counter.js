@@ -21,7 +21,8 @@
     var wordMatches = text.match(/\S+/g) || [];
     var words = wordMatches.length;
 
-    // Sentences: count terminators (. ! ?) that end a non-space char
+    // Sentences: count terminators (. ! ?) that end a non-space char.
+// Empty text → 0 sentences; non-empty text with no terminators → 1.
     var sentences = 0;
     var trimmed = text.trim();
     if (trimmed.length > 0) {

@@ -448,6 +448,41 @@ def strip_data_slug(main_node: ChromeNode) -> None:
         main_node.attrs.pop("data-slug", None)
 
 
+def normalize_footer_href(root: ChromeNode) -> None:
+    """Strip the leading `../` segments from `href` values inside the
+    site-footer nav. chrome.html stores depth-2 relative paths
+    (`../../quality.html`); pack / quality / view-source pages at
+    different depths substitute the appropriate prefix but the link
+    TARGET is the same — `quality.html` at the repo root. Normalize
+    both sides to the canonical depth-2 form so per-depth paths don't
+    trigger drift. (Per-page <footer> render is still correct because
+    each page has its own depth-aware prefix; this only affects the
+    drift comparison.)"""
+    footer = find_landmark(root, is_site_footer)
+    if footer is None:
+        return
+    def walk(node: ChromeNode) -> None:
+        if node.tag == "a":
+            href = node.attrs.get("href", "")
+            # Only normalize relative-repo-root paths (those that don't
+            # start with http://, https://, #, mailto:, etc.). Strip
+            # every leading `../` and `./` so `../../quality.html`,
+            # `../quality.html`, and `./quality.html` all collapse to
+            # `quality.html`.
+            if (
+                href
+                and not href.startswith(("http://", "https://", "#", "mailto:", "tel:", "/"))
+            ):
+                stripped = href
+                while stripped.startswith(("../", "./")):
+                    stripped = stripped[3:] if stripped.startswith("../") else stripped[2:]
+                node.attrs["href"] = stripped
+            return
+        for child in node.children:
+            walk(child)
+    walk(footer)
+
+
 def normalize_aria_hidden_print_footer(footer_node: ChromeNode) -> None:
     """Print-footer markup includes aria-hidden="true" on every chrome
     subtree — the script, the populate script, and the <footer>. All
@@ -492,6 +527,7 @@ def load_canonical_chrome(root: Path) -> dict:
     # the same normalizations to each per-page subtree.
     normalize_brand_href(chrome_root)
     normalize_main_aria_label(chrome_root)
+    normalize_footer_href(chrome_root)
 
     return {
         "skip": skip,
@@ -862,6 +898,7 @@ def scan_page(
     page_root = parse_html(page_text)
     normalize_brand_href(page_root)
     normalize_main_aria_label(page_root)
+    normalize_footer_href(page_root)
 
     kind = page_kind(page_rel)
 

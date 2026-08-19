@@ -35,7 +35,9 @@
    */
   function splitLines(text) {
     if (text == null) return [];
-    const parts = String(text).split('\n');
+    // Normalize CRLF / CR → LF so .\n and .\r\n boundaries align.
+    const normalized = String(text).replace(/\r\n?/g, '\n');
+    const parts = normalized.split('\n');
     if (parts.length > 0 && parts[parts.length - 1] === '') parts.pop();
     return parts;
   }

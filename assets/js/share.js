@@ -261,6 +261,8 @@
       try { _state.dlg.dlg.parentNode.removeChild(_state.dlg.dlg); } catch (_) { /* no-op */ }
       _state.dlg = null;
     }
+    // Clear stale button reference so a rebuilt dialog gets a fresh one.
+    _state.button = null;
     const built = _buildDialog(slug, opts || {});
     const host = (typeof document !== 'undefined' && document.body)
       ? document.body
@@ -495,7 +497,15 @@
       // exposes. We don't import results.js (it would loop) — we
       // compose the path ourselves.
       var s = (opts && opts.slug) ? String(opts.slug) : '';
-      var a = (state && state.archetype) ? String(state.archetype) : '';
+      // state.archetype may be a string OR an object {id, label, emoji}.
+      // String(obj) yields '[object Object]', so unwrap object form first.
+      var arch = state && state.archetype;
+      var a = '';
+      if (arch) {
+        if (typeof arch === 'string') a = arch;
+        else if (arch && typeof arch === 'object' && arch.id) a = String(arch.id);
+        else a = String(arch);
+      }
       if (!s || !a) {
         return Promise.reject(new Error('share.copy: missing slug or archetype'));
       }

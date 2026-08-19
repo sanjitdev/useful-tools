@@ -98,7 +98,7 @@
   function formatFraction(n) {
     if (!Number.isFinite(n)) return String(n);
     var EPS = 1e-9;
-    if (Math.abs(n) < EPS) return '0';
+    if (Math.abs(n) < EPS) return n < 0 ? '-0' : '0';
     var sign = n < 0 ? '-' : '';
     var x = Math.abs(n);
     var whole = Math.floor(x);
@@ -126,7 +126,7 @@
   // -------------------------------------------------------------
   // parseLine (AC-1 regex) — matches "<qty> [<unit>] <ingredient>"
   // -------------------------------------------------------------
-  var PARSE_LINE_RE = /^([0-9]+\/[0-9]+|[0-9]+(?:\s+[0-9]+\/[0-9]+)?|[0-9]*\.[0-9]+)(?:\s+(\S+))?\s*(.*)$/;
+  var PARSE_LINE_RE = /^([0-9]+\s*\/\s*[0-9]+|[0-9]+(?:\s+[0-9]+\s*\/\s*[0-9]+)?|[0-9]*\.[0-9]+)(?:\s+(\S+))?\s*(.*)$/;
 
   function parseLine(line) {
     if (line == null) return null;

@@ -58,11 +58,19 @@
     var e = new Date(end.getFullYear(), end.getMonth(), end.getDate());
     var count = 0;
     var cur = new Date(d.getTime());
-    var stop = includeEnd ? new Date(e.getTime() + 86400000) : e;
+    var stop;
+    if (includeEnd) {
+      stop = new Date(e.getTime());
+      stop.setDate(stop.getDate() + 1);
+    } else {
+      stop = e;
+    }
     while (cur < stop) {
       var dow = cur.getDay();
       if (dow !== 0 && dow !== 6) count++;
-      cur = new Date(cur.getTime() + 86400000);
+      // Use setDate(+1) rather than ms arithmetic so DST transitions
+      // don't shift the calendar day by an hour.
+      cur.setDate(cur.getDate() + 1);
     }
     return count;
   }
@@ -77,8 +85,10 @@
   function setText(id, val) { HT.$(id).textContent = val; }
 
   function update() {
-    warnEl.style.display = 'none';
-    warnEl.textContent = '';
+    if (warnEl) {
+      warnEl.style.display = 'none';
+      warnEl.textContent = '';
+    }
 
     var s = parseDate(startInput.value);
     var e = parseDate(endInput.value);

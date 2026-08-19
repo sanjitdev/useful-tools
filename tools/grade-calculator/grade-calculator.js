@@ -71,8 +71,8 @@
     HT.qsa('.row', rowsEl).forEach(function (rowEl) {
       var id = rowEl.getAttribute('data-id');
       HT.qs('.name', rowEl).addEventListener('input', function () { updateRow(id, 'name', HT.qs('.name', rowEl).value); recompute(); });
-      HT.qs('.weight', rowEl).addEventListener('input', function () { updateRow(id, 'weight', parseFloat(HT.qs('.weight', rowEl).value) || 0); recompute(); });
-      HT.qs('.score', rowEl).addEventListener('input', function () { updateRow(id, 'score', parseFloat(HT.qs('.score', rowEl).value) || 0); recompute(); });
+      HT.qs('.weight', rowEl).addEventListener('input', function () { updateRow(id, 'weight', (HT.parseLocaleFloat ? HT.parseLocaleFloat(HT.qs('.weight', rowEl).value) : parseFloat(String(HT.qs('.weight', rowEl).value).replace(',', '.'))) || 0); recompute(); });
+      HT.qs('.score', rowEl).addEventListener('input', function () { updateRow(id, 'score', (HT.parseLocaleFloat ? HT.parseLocaleFloat(HT.qs('.score', rowEl).value) : parseFloat(String(HT.qs('.score', rowEl).value).replace(',', '.'))) || 0); recompute(); });
       HT.qs('.remove', rowEl).addEventListener('click', function () {
         var rows = loadRows().filter(function (x) { return x.id !== id; });
         saveRows(rows);
@@ -99,7 +99,7 @@
       var w = isFinite(r.weight) ? r.weight : 0;
       var s = isFinite(r.score) ? r.score : 0;
       totalWeight += w;
-      if (r.score !== '' && r.score !== null && r.score !== undefined && isFinite(s)) {
+      if (isFinite(s)) {
         weighted += w * s;
         anyScore = true;
       }
@@ -151,8 +151,8 @@
   var neededEl = HT.$('#needed-result');
 
   HT.$('#compute-needed').addEventListener('click', function () {
-    var target = parseFloat(targetEl.value);
-    var fw = parseFloat(fwEl.value);
+    var target = (HT.parseLocaleFloat ? HT.parseLocaleFloat(targetEl.value) : parseFloat(String(targetEl.value).replace(',', '.')));
+    var fw = (HT.parseLocaleFloat ? HT.parseLocaleFloat(fwEl.value) : parseFloat(String(fwEl.value).replace(',', '.')));
     var rows = loadRows();
 
     var totalWeight = 0, weighted = 0;
@@ -182,6 +182,11 @@
     if (denom === 0) {
       neededEl.style.display = 'block';
       neededEl.innerHTML = '<div class="result-main">—</div><div class="result-sub">No weights defined.</div>';
+      return;
+    }
+    if (fw === 0) {
+      neededEl.style.display = 'block';
+      neededEl.innerHTML = '<div class="result-main">—</div><div class="result-sub">Final exam weight is 0%; nothing to compute.</div>';
       return;
     }
     var neededScore = (target * denom - weighted) / fw;

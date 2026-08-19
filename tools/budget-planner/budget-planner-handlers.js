@@ -58,7 +58,7 @@
       var c = state.categories[i];
       html += '<tr data-bp-cat-row="' + c.id + '">';
       html += '<td class="bp-cell-name"><input class="input" data-bp-cat-name type="text" value="' + escapeAttr(c.name) + '" aria-label="Category name"></td>';
-      html += '<td class="bp-cell-amount"><span class="bp-dollar">$</span><input class="input bp-amount-input" data-bp-cat-amount type="number" min="0" step="any" value="' + (typeof c.amount === 'number' ? c.amount : 0) + '" aria-label="Category amount"></td>';
+      html += '<td class="bp-cell-amount"><span class="bp-dollar">$</span><input class="input bp-amount-input" data-bp-cat-amount type="number" min="0" step="any" value="' + escapeAttr(String(typeof c.amount === 'number' ? c.amount : 0)) + '" aria-label="Category amount"></td>';
       html += '<td class="bp-cell-actions"><button type="button" class="btn-icon" data-bp-delete="' + c.id + '" aria-label="Delete ' + escapeAttr(c.name) + '">×</button></td>';
       html += '</tr>';
     }
@@ -177,9 +177,10 @@
 
   function onShareClick() {
     if (!navigator.clipboard || !navigator.clipboard.writeText) return;
-    if (window.HT && window.HT.toast) window.HT.toast('Copied share URL');
     var url = window.location.href;
-    navigator.clipboard.writeText(url).catch(function () {});
+    navigator.clipboard.writeText(url).then(function () {
+      if (window.HT && window.HT.toast) window.HT.toast('Copied share URL');
+    }).catch(function () {});
   }
 
   function wireEvents() {
@@ -236,8 +237,3 @@
     window.budgetPlannerInit = init;
   }
 })();
-
-if (typeof window !== 'undefined') {
-  window.budgetPlannerInit = window.budgetPlannerInit || function () {};
-  window.budgetPlannerInit();
-}

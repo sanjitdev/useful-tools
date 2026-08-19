@@ -1,0 +1,28 @@
+--- I. HT.results.wireActions is exposed ---
+  PASS  HT.results.wireActions is a function on the frozen public API
+--- II. wireActions attaches Share + Challenge listeners ---
+  PASS  card has a .quiz-result-actions node with data-print="ignore"
+  PASS  actions row has a [data-action="share"] button
+  PASS  actions row has a [data-action="challenge"] button
+  PASS  Share button has a click listener attached
+  PASS  Challenge button has a click listener attached
+--- III. Share click invokes HT.share.copy ---
+  PASS  Share button click invoked HT.share.copy (got 1 calls)
+--- III.b. Share click toast (sync HT.share.copy) ---
+  PASS  Share button click surfaced a toast notification (got 1 toast calls)
+--- IV. Challenge click invokes HT.challenge.link + share ---
+  PASS  Challenge button click invoked HT.challenge.link (got 1 calls)
+  PASS  Challenge button click invoked HT.share.copy for the resulting URL
+--- V. Challenge button hidden when HT.challenge is absent ---
+  PASS  Challenge button is hidden when HT.challenge is absent (utility-category opt-out)
+  PASS  Challenge button has aria-hidden="true" when hidden
+--- VI. wireActions idempotency ---
+  PASS  wireActions is idempotent — second call did not double-bind (1 → 1)
+--- VII. shell-bounds-check — no bare clipboard / localStorage / fetch ---
+  PASS  results.js contains no navigator.clipboard / localStorage / fetch / XHR / window.print
+--- VIII. bundle-size-gate — results.js ≤ 6 KB gz ---
+  PASS  gzipped results.js ≤ 6,144 bytes (got 5094)
+  PASS  scripts/bundle-size-gate.py still lists results.js in SPEC_PAGE_CONDITIONAL_MODULES
+  PASS  at least one assertion ran (vacuous-pass guard)
+
+JSON:{"story": "10.10", "pass": 17, "fail": 0}

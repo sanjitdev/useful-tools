@@ -29,6 +29,7 @@
 </head>
 <body>
   <a class="shell-skip" href="#main">Skip to main content</a>
+
   <header class="site-header" role="banner" aria-label="Handy Tools">
   <div class="container">
     <a class="shell-brand" href="#top">
@@ -56,7 +57,6 @@
   </div>
 </header>
 
-  
   <main id="main" class="shell-main" aria-label="Handy Tools home" tabindex="-1">
     <div id="top"></div>
 
@@ -151,7 +151,7 @@
      and is meaningful AT content (aria-hidden removed when populated). -->
 <div class="shell-palette" id="palette" role="combobox" aria-haspopup="listbox" aria-owns="palette-listbox" aria-expanded="false" aria-label="Command palette" hidden>
   <div class="shell-palette-panel">
-    <input class="shell-palette-input" id="palette-input" type="search" role="searchbox" aria-controls="palette-listbox" aria-activedescendant="" aria-autocomplete="list" placeholder="Search tools…" autocomplete="off" spellcheck="false" />
+    <input class="shell-palette-input" id="palette-input" type="search" role="searchbox" aria-controls="palette-listbox" aria-activedescendant="" aria-autocomplete="list" aria-label="Search tools" placeholder="Search tools…" autocomplete="off" spellcheck="false" />
     <ul class="shell-palette-list" id="palette-listbox" role="listbox" aria-label="Tools">
       <li class="shell-palette-empty" role="presentation">No recent tools yet</li>
     </ul>
@@ -191,7 +191,7 @@
       <button type="button" class="shell-settings-modal__close" aria-label="Close settings" data-settings-dismiss>×</button>
     </header>
 
-    <form class="shell-settings-modal__body" id="shell-settings-form" onsubmit="return false;">
+    <form class="shell-settings-modal__body" id="shell-settings-form">
 
       <!-- 1. Theme (LIVE — single <select> per Story 3.5 AC-1) -->
       <div class="shell-settings-field" data-setting-key="ht.theme">
@@ -321,7 +321,7 @@
       <h3 id="help-global-heading">Global shortcuts</h3>
       <ul class="shell-help-list" id="help-global-list" role="list"></ul>
     </section>
-    <p class="shell-help-empty" id="help-empty" role="presentation" hidden>No shortcuts match.</p>
+    <p class="shell-help-empty" id="help-empty" hidden>No shortcuts match.</p>
     <p class="shell-help-foot">Press <kbd>?</kbd> to close · <kbd>/</kbd> to filter · <kbd>Esc</kbd> to leave the filter</p>
   </div>
 </div>
@@ -348,9 +348,8 @@
   <footer class="site-footer" role="contentinfo" aria-label="Site information">
   <div class="container">
     <nav class="shell-footer-nav" aria-label="Footer">
-      <a href="/privacy">Privacy</a>
-      <a href="/quality">Quality</a>
-      <a href="/view-source?tool=" data-view-source-link>View source</a>
+      <a href="../../quality.html">Quality</a>
+      <a href="../../view-source.html" data-view-source-link>View source</a>
       <a href="" rel="noopener noreferrer" data-view-source-github hidden>View on GitHub</a>
       <a href="https://github.com/sanjitdev/useful-tools" rel="noopener noreferrer">GitHub</a>
     </nav>
@@ -379,6 +378,10 @@
   <!-- ht:tools-json-inline-end --><script src="assets/js/site-config.js"></script>
   <script src="assets/js/storage-registry.js"></script>
   <script src="assets/js/utils.js"></script>
+  <script src="assets/js/palette-actions.js"></script>
+  <script src="assets/js/shell.js" defer></script>
+  <script src="assets/js/search.js" defer></script>
+  <script src="assets/js/help-overlay.js" defer></script>
   <script src="assets/js/ht-lazy.js"></script>
   <script src="assets/js/shell-thin.js" defer></script>
   <!-- ht:storage-registry-manifest-start -->

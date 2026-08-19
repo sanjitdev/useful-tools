@@ -55,10 +55,19 @@
       return addMonths(date, count);
     }
     if (perYear === 26) {
-      return addMonths(date, Math.floor((count * 12) / 26));
+      // Bi-weekly = every 14 days; iterate by 14 to avoid month drift.
+      var d14 = new Date(date.getTime());
+      d14.setDate(d14.getDate() + count * 14);
+      return d14;
     }
-    // weekly
-    return addMonths(date, Math.floor((count * 12) / 52));
+    if (perYear === 52) {
+      // Weekly = every 7 days; iterate by 7.
+      var d7 = new Date(date.getTime());
+      d7.setDate(d7.getDate() + count * 7);
+      return d7;
+    }
+    // Fallback: month approximation for other cadences.
+    return addMonths(date, Math.floor((count * 12) / perYear));
   }
 
   function calcPayment(principal, annualRatePct, n, totalPayments) {

@@ -110,7 +110,7 @@
       var doi = doiIn ? (doiIn.value || '').trim() : '';
       if (doi && HT.citation.validateDoi(doi)) {
         doiLink.textContent = doi;
-        doiLink.href = 'https://doi.org/' + doi;
+        doiLink.href = 'https://doi.org/' + encodeURI(doi);
         doiLinkWrap.hidden = false;
       } else {
         doiLinkWrap.hidden = true;

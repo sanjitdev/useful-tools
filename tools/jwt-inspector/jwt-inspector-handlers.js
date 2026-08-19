@@ -38,6 +38,16 @@
   var HT = window.HT;
 
   // ---------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ---------------------------------------------------------------
   // Element references
   // ---------------------------------------------------------------
 
@@ -98,22 +108,22 @@
     var html = '';
     html += '<section class="jwt-header jwt-decoded-section">';
     html += '<h3>Header</h3>';
-    html += '<pre><code>' + prettyJson(decoded.header.parsed) + '</code></pre>';
+    html += '<pre><code>' + escapeHtml(prettyJson(decoded.header.parsed)) + '</code></pre>';
     html += '</section>';
     html += '<section class="jwt-payload jwt-decoded-section">';
     html += '<h3>Payload</h3>';
-    html += '<pre><code>' + prettyJson(decoded.payload.parsed) + '</code></pre>';
+    html += '<pre><code>' + escapeHtml(prettyJson(decoded.payload.parsed)) + '</code></pre>';
     html += '</section>';
     html += '<section class="jwt-signature jwt-decoded-section">';
     html += '<h3>Signature</h3>';
-    html += '<code class="jwt-sig">' + String(signatureB64url || '') + '</code>';
+    html += '<code class="jwt-sig">' + escapeHtml(signatureB64url) + '</code>';
     html += '</section>';
     decodedEl.innerHTML = html;
   }
 
   function renderError(msg) {
     if (!decodedEl) return;
-    decodedEl.innerHTML = '<p class="jwt-error" role="alert">' + String(msg || 'Failed to decode JWT') + '</p>';
+    decodedEl.innerHTML = '<p class="jwt-error" role="alert">' + escapeHtml(msg || 'Failed to decode JWT') + '</p>';
   }
 
   // ---------------------------------------------------------------
@@ -310,8 +320,17 @@
 
     lastDecoded = decoded;
     var segs = token.split('.');
+    if (segs.length < 3) {
+      renderError('JWT must have 3 segments (header.payload.signature).');
+      return;
+    }
     var headerAndPayload = new TextEncoder().encode(segs[0] + '.' + segs[1]);
-    var signatureBytes = HT.jwt.base64urlDecode(segs[2]);
+    var signatureBytes;
+    try {
+      signatureBytes = HT.jwt.base64urlDecode(segs[2]);
+    } catch (e) {
+      signatureBytes = new Uint8Array(0);
+    }
     lastSignature = signatureBytes;
     var alg = HT.jwt.getAlg(decoded);
     lastAlg = alg;

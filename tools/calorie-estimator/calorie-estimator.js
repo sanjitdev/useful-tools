@@ -55,15 +55,15 @@
     var active = HT.$('[data-tab-panel="metric"]').style.display !== 'none' ? 'metric' : 'imperial';
     var cm, kg;
     if (active === 'metric') {
-      cm = parseFloat(HT.$('#h-cm').value);
-      kg = parseFloat(HT.$('#w-kg').value);
+      cm = Math.max(0, parseFloat(HT.$('#h-cm').value) || 0);
+      kg = Math.max(0, parseFloat(HT.$('#w-kg').value) || 0);
     } else {
-      var ft = parseFloat(HT.$('#h-ft').value);
-      var inch = parseFloat(HT.$('#h-in').value);
-      var lb = parseFloat(HT.$('#w-lb').value);
-      var totalIn = (isFinite(ft) ? ft : 0) * 12 + (isFinite(inch) ? inch : 0);
+      var ft = Math.max(0, parseFloat(HT.$('#h-ft').value) || 0);
+      var inch = Math.max(0, parseFloat(HT.$('#h-in').value) || 0);
+      var lb = Math.max(0, parseFloat(HT.$('#w-lb').value) || 0);
+      var totalIn = ft * 12 + inch;
       cm = totalIn * 2.54;
-      kg = (isFinite(lb) ? lb : 0) * 0.45359237;
+      kg = lb * 0.45359237;
     }
     return { cm: cm, kg: kg, active: active };
   }
@@ -159,11 +159,9 @@
   var handler = HT.debounce(render, 30);
 
   function attachInputs() {
-    var active = HT.$('[data-tab-panel="metric"]').style.display !== 'none' ? 'metric' : 'imperial';
-    var root = HT.$('[data-tab-panel="' + active + '"]');
+    var root = document.body;
     HT.qsa('input, select', root).forEach(function (el) {
       el.addEventListener('input', handler);
-      el.addEventListener('change', render);
     });
   }
 

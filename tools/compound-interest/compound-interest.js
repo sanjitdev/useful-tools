@@ -106,13 +106,21 @@
 
   function render() {
     var principal = parseFloat(fields.principal.value) || 0;
-    var monthly = parseFloat(fields.monthly.value) || 0;
+    var monthlyRaw = parseFloat(fields.monthly.value) || 0;
+    if (monthlyRaw < 0) {
+      if (HT && HT.toast) HT.toast('Negative monthly contributions are clamped to $0.');
+      monthlyRaw = 0;
+    }
+    var monthly = monthlyRaw;
     var ratePct = parseFloat(fields.rate.value);
     var years = parseInt(fields.years.value, 10);
     var n = parseInt(fields.frequency.value, 10);
     var contribWhen = fields.contribWhen.value;
 
-    if (!isFinite(ratePct) || ratePct < 0) ratePct = 0;
+    if (!isFinite(ratePct) || ratePct < 0) {
+      if (HT && HT.toast) HT.toast('Negative rates are clamped to 0% for this calculator.');
+      ratePct = 0;
+    }
     if (!isFinite(years) || years < 0) years = 0;
     if (!isFinite(n) || n < 1) n = 1;
     years = Math.min(years, 100);

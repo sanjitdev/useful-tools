@@ -257,6 +257,8 @@
             try {
               // Reopen the quiz at card 0
               handle.close();
+            } catch (_) {}
+            try {
               mountQuiz();
             } catch (_) {}
           });

@@ -1285,13 +1285,22 @@
       if (!state.isOpen) return;
       var key = e.key;
       // Switch columns: Tab = forward, Shift+Tab = backward.
+      // Only intercept Tab when focus is on hour/minute buttons so other
+      // focusable elements (close, etc.) can still receive Tab.
       if (key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        e.preventDefault();
-        state.focusedUnit = e.shiftKey
-          ? (state.focusedUnit === 'minute' ? 'hour' : 'minute')
-          : (state.focusedUnit === 'hour' ? 'minute' : 'hour');
-        _renderTimeGrid(state);
-        _focusTimeCell(state);
+        var t = e.target;
+        var onTimeBtn = t && t.classList && (
+          t.classList.contains('time-picker-hour') ||
+          t.classList.contains('time-picker-minute')
+        );
+        if (onTimeBtn) {
+          e.preventDefault();
+          state.focusedUnit = e.shiftKey
+            ? (state.focusedUnit === 'minute' ? 'hour' : 'minute')
+            : (state.focusedUnit === 'hour' ? 'minute' : 'hour');
+          _renderTimeGrid(state);
+          _focusTimeCell(state);
+        }
         return;
       }
       if (key === 'ArrowLeft' || key === 'ArrowRight') {
@@ -2130,9 +2139,11 @@
       // Source input — don't close (user clicked the input that
       // opened the picker; the focus/click handler will keep it open).
       if (st.input && target === st.input) return;
-      // Truly outside — close.
+      // Truly outside — close ALL open instances (multi-picker case).
       _lastCloseTs = now;
-      _closeDialog(st);
+      for (var i = 0; i < INSTANCES.length; i += 1) {
+        if (INSTANCES[i].isOpen) _closeDialog(INSTANCES[i]);
+      }
     }
     document.addEventListener('mousedown', handleOutsideClick, true);
     document.addEventListener('pointerdown', handleOutsideClick, true);

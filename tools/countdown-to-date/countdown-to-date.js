@@ -234,5 +234,8 @@
   });
 
   renderTick();
-  setInterval(renderTick, 1000);
+  var cdIntervalId = setInterval(renderTick, 1000);
+  // Clean up the interval when the page is hidden or unloaded to avoid leaks
+  // when this script is re-evaluated (HMR, hot navigation, etc.).
+  window.addEventListener('pagehide', function () { clearInterval(cdIntervalId); });
 })();

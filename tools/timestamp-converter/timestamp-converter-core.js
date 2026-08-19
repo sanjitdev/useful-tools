@@ -107,6 +107,7 @@
   }
 
   function toIso8601(ms) {
+    if (!isFinite(ms)) return '';
     return new Date(ms).toISOString();
   }
 
@@ -115,6 +116,7 @@
   }
 
   function toHumanUtc(ms) {
+    if (!isFinite(ms)) return '';
     return new Date(ms).toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
   }
 

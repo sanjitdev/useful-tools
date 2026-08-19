@@ -108,7 +108,7 @@
         contributions.push({ label: 'Healthy BMI', delta: 0.6 });
       } else {
         sum += -1.2;
-        contributions.push({ label: 'BMI < 18.5 (underweight)', delta: -1.2 });
+        contributions.push({ label: 'BMI under 18.5 (underweight)', delta: -1.2 });
       }
     }
 
@@ -770,7 +770,7 @@
     if (state.answers && Object.keys(state.answers).length > 0) {
       var qa = state.answers;
       var qdob = qa.dob ? new Date(qa.dob) : null;
-      var qage = qdob ? Math.floor((Date.now() - qdob.getTime()) / (365.25 * 86400000)) : NaN;
+      var qage = qdob ? Math.floor((Date.now() - qdob.getTime()) / (365.2425 * 86400000)) : NaN;
       var qbmi = (isFinite(qa.height) && isFinite(qa.weight) && qa.height > 0)
         ? qa.weight / Math.pow(qa.height / 100, 2)
         : NaN;
@@ -794,7 +794,7 @@
 
     var dobStr = dateStr('dob');
     var dob = dobStr ? new Date(dobStr) : null;
-    var age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 86400000)) : NaN;
+    var age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.2425 * 86400000)) : NaN;
 
     var heightCm = num('height');
     var weightKg = num('weight');
@@ -1093,11 +1093,21 @@
     var rect = btn.getBoundingClientRect();
     tip.style.top = (window.scrollY + rect.bottom + 6) + 'px';
     tip.style.left = (window.scrollX + rect.left) + 'px';
-    setTimeout(function () {
-      document.addEventListener('click', onDocClickForTooltip, true);
-      document.addEventListener('keydown', onEscForTooltip, true);
-    }, 0);
+    // Attach listeners immediately so they're in place even if the user
+    // closes the tooltip synchronously (i.e., before any setTimeout would
+    // fire). The openPad flag swallows the click that opened the tooltip
+    // so we don't immediately close it again.
+    var openPad = true;
+    document.addEventListener('click', onDocClickForTooltip, true);
+    document.addEventListener('keydown', onEscForTooltip, true);
     function onDocClickForTooltip(e) {
+      if (openPad) {
+        if (tip.contains(e.target) || btn.contains(e.target)) {
+          openPad = false;
+          return;
+        }
+        openPad = false;
+      }
       if (tip.contains(e.target) || btn.contains(e.target)) return;
       closePlanTooltip();
       document.removeEventListener('click', onDocClickForTooltip, true);

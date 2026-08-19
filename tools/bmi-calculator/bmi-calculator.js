@@ -36,7 +36,9 @@
 
   function update() {
     var heightM, weightKg;
-    var activePanel = HT.$('[data-tab-panel="metric"]').style.display !== 'none' ? 'metric' : 'imperial';
+    var activeTab = HT.qs('#unit-tabs [aria-selected="true"]');
+    var activePanel = activeTab ? activeTab.getAttribute('data-tab') : 'metric';
+    if (activePanel !== 'metric' && activePanel !== 'imperial') activePanel = 'metric';
 
     if (activePanel === 'metric') {
       var cm = parseFloat(hCm.value);
@@ -101,7 +103,6 @@
   var h = HT.debounce(update, 60);
   [hCm, wKg, hFt, hIn, wLb].forEach(function (el) {
     el.addEventListener('input', h);
-    el.addEventListener('change', update);
   });
 
   HT.makeTabs(HT.$('#unit-tabs'));

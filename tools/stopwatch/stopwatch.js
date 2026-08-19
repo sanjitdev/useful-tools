@@ -181,7 +181,7 @@
     tStart.textContent = tRunning ? 'Running…' : (tRemain === 0 ? 'Restart' : 'Start');
     tStart.disabled = false;
     tPause.disabled = !tRunning;
-    tReset.disabled = (tRunning && tRemain === tInitial);
+    tReset.disabled = false;
   }
 
   function readInputs() {

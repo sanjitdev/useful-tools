@@ -101,13 +101,16 @@
   }
 
   // Build a single trait bar: <label> <track> <fill> <value>.
+  // The fill width is set via a data-pct attribute (paired with a CSS
+  // rule that uses [data-pct] for width) so we don't need inline
+  // style attributes — the CSS rule lives in the result stylesheet.
   function traitBar(traitId, score) {
     var pct = clamp100(score);
     var label = el('span', { class: 'quiz-result-trait-label' }, [traitId]);
     var track = el('span', { class: 'quiz-result-trait-track' });
     var fill  = el('span', {
       class: 'quiz-result-trait-fill',
-      style: 'width:' + pct.toFixed(1) + '%',
+      'data-pct': pct.toFixed(1),
       'aria-hidden': 'true',
     });
     track.appendChild(fill);

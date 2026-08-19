@@ -285,5 +285,6 @@
   renderCities();
   renderMeeting();
   tick();
-  setInterval(tick, 1000);
+  var tickId = setInterval(tick, 1000);
+  window.addEventListener('pagehide', function () { clearInterval(tickId); });
 })();

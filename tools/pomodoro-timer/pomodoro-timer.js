@@ -15,7 +15,14 @@
   function loadState() {
     var saved = HT.storage.get(STORAGE, null);
     if (saved && saved.durations && saved.phase && saved.endAt) {
-      return saved;
+      // Validate numeric ranges so corrupted storage doesn't
+      // poison the UI (e.g. negative remainingMs, out-of-range cycle).
+      if (typeof saved.remainingMs !== 'number' || saved.remainingMs < 0 ||
+          typeof saved.cycle !== 'number' || saved.cycle < 1) {
+        // fall through to defaults
+      } else {
+        return saved;
+      }
     }
     return {
       durations: Object.assign({}, DEFAULT_DURATIONS),
@@ -187,6 +194,7 @@
   btnApply.addEventListener('click', applyDurations);
 
   // Tick at a fine interval to keep display accurate
-  setInterval(tick, 250);
+  var tickId = setInterval(tick, 250);
+  window.addEventListener('pagehide', function () { clearInterval(tickId); });
   render();
 })();

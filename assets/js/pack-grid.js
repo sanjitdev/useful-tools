@@ -155,11 +155,17 @@
     // tool lists it (tools[].pack[]), OR it has entries under
     // `packs.<slug>.entries[]` (the latter is how Discovery is shipped
     // — see tools.json → packs.discovery.entries[]).
+    //
+    // Convention (mirrors disc-page.js): an entry with `ready` undefined is
+    // treated as ready. Only `ready === false` explicitly excludes the
+    // entry. This lets schema-lite entries omit the field without
+    // disappearing from the grid.
+    const isReady = function (entry) { return entry.ready !== false; };
     const toolsByPack = Object.create(null);
     const entries = (data && Array.isArray(data.tools)) ? data.tools : [];
     for (let i = 0; i < entries.length; i += 1) {
       const entry = entries[i];
-      if (!isValidEntry(entry) || entry.ready !== true) continue;
+      if (!isValidEntry(entry) || !isReady(entry)) continue;
       for (let j = 0; j < entry.pack.length; j += 1) {
         const slug = entry.pack[j];
         if (!toolsByPack[slug]) toolsByPack[slug] = [];
@@ -181,7 +187,7 @@
         if (!entry || typeof entry !== 'object') continue;
         if (typeof entry.slug !== 'string' || entry.slug.length === 0) continue;
         if (typeof entry.title !== 'string' || entry.title.length === 0) continue;
-        if (entry.ready === false) continue;
+        if (!isReady(entry)) continue;
         toolsByPack[packSlug].push({ slug: entry.slug, title: entry.title });
       }
     }
@@ -211,37 +217,53 @@
       .replace(/>/g, '&gt;');
   }
 
+  // Trust boundary: PACK_DEFINITIONS[].icon is authored inline in this
+  // file (not user-supplied, not fetched). We deliberately inject the
+  // SVG string via innerHTML into the icon slot — every other field in
+  // buildPackCard is escaped. To avoid mixing escaped and unescaped
+  // markup in a single string, we mount the card via createElement in
+  // mount() instead of innerHTML.
   function buildPackCard(pack) {
     const labelSuffix = pack.toolCount === 1 ? ' tool' : ' tools';
     // Allow PACK_DEFINITIONS to override the href (used by the
     // Discovery pack, whose page lives at /packs/disc.html while
     // the JSON slug is "discovery"). Default: `/packs/<slug>.html`.
     const href = pack.href || ('/packs/' + pack.slug + '.html');
-    return (
-      '<a class="pack-card" href="' +
-      escapeAttr(href) +
-      '" data-pack-slug="' +
-      escapeAttr(pack.slug) +
-      '" data-pack-count="' +
-      String(pack.toolCount) +
-      '">' +
-      '<span class="pack-card-icon">' +
-      pack.icon +
-      '</span>' +
-      '<span class="pack-card-body">' +
-      '<span class="pack-card-title">' +
-      escapeAttr(pack.title) +
-      '</span>' +
-      '<span class="pack-card-desc">' +
-      escapeAttr(pack.description || '') +
-      '</span>' +
-      '<span class="pack-card-count">' +
-      String(pack.toolCount) +
-      labelSuffix +
-      '</span>' +
-      '</span>' +
-      '</a>'
-    );
+
+    const card = document.createElement('a');
+    card.className = 'pack-card';
+    card.setAttribute('href', href);
+    card.setAttribute('data-pack-slug', pack.slug);
+    card.setAttribute('data-pack-count', String(pack.toolCount));
+
+    const iconSlot = document.createElement('span');
+    iconSlot.className = 'pack-card-icon';
+    // Trusted SVG markup (see trust boundary above). We use innerHTML
+    // here only because the SVG string is part of the static build
+    // input, never derived from user data.
+    iconSlot.innerHTML = pack.icon;
+    card.appendChild(iconSlot);
+
+    const body = document.createElement('span');
+    body.className = 'pack-card-body';
+
+    const titleEl = document.createElement('span');
+    titleEl.className = 'pack-card-title';
+    titleEl.textContent = pack.title;
+    body.appendChild(titleEl);
+
+    const descEl = document.createElement('span');
+    descEl.className = 'pack-card-desc';
+    descEl.textContent = pack.description || '';
+    body.appendChild(descEl);
+
+    const countEl = document.createElement('span');
+    countEl.className = 'pack-card-count';
+    countEl.textContent = String(pack.toolCount) + labelSuffix;
+    body.appendChild(countEl);
+
+    card.appendChild(body);
+    return card;
   }
 
   function mount(data) {
@@ -265,7 +287,9 @@
       return;
     }
 
-    host.innerHTML = packs.map(buildPackCard).join('');
+    for (let i = 0; i < packs.length; i += 1) {
+      host.appendChild(buildPackCard(packs[i]));
+    }
     section.removeAttribute('hidden');
     host.setAttribute('data-mounted', 'true');
   }
@@ -276,12 +300,31 @@
 
   function publishApi() {
     window.HT = window.HT || {};
-    window.HT.packGrid = Object.freeze({
-      render: render,
-      packs: livePacks,
-      ready: Boolean(livePacks),
-      version: VERSION
-    });
+    // Mirror AD-14 Object.defineProperty pattern (quiz.js / disc-page.js):
+    // install once with writable: false, configurable: false so a
+    // subsequent call cannot clobber the frozen API.
+    try {
+      Object.defineProperty(window.HT, 'packGrid', {
+        value: Object.freeze({
+          render: render,
+          packs: livePacks,
+          ready: Boolean(livePacks),
+          version: VERSION
+        }),
+        writable: false,
+        configurable: false,
+        enumerable: true
+      });
+    } catch (_) {
+      try {
+        window.HT.packGrid = Object.freeze({
+          render: render,
+          packs: livePacks,
+          ready: Boolean(livePacks),
+          version: VERSION
+        });
+      } catch (__) { /* no-op */ }
+    }
   }
 
   function render() {

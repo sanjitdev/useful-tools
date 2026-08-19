@@ -91,6 +91,7 @@
 
   var currentRotation = 0;
   var spinning = false;
+  var spinTimeoutId = null;
 
   function spin() {
     var data = load();
@@ -119,7 +120,11 @@
     wheel.style.transform = 'rotate(' + finalRot.toFixed(2) + 'deg)';
     currentRotation = finalRot;
 
-    setTimeout(function () {
+    // Clear any prior spin-completion timeout so re-spins don't
+    // double-fire their result handlers.
+    if (spinTimeoutId) clearTimeout(spinTimeoutId);
+    spinTimeoutId = setTimeout(function () {
+      spinTimeoutId = null;
       spinning = false;
       var chosen = data.options[idx];
       var resultEl = HT.$('#dw-result');

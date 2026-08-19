@@ -88,7 +88,8 @@
         recompute();
       });
       HT.qs('.credits', rowEl).addEventListener('input', function () {
-        var v = parseFloat(HT.qs('.credits', rowEl).value);
+        var raw = HT.qs('.credits', rowEl).value;
+        var v = HT.parseLocaleFloat ? HT.parseLocaleFloat(raw) : parseFloat(String(raw).replace(',', '.'));
         updateRow(id, 'credits', isFinite(v) ? v : 0);
         recompute();
       });
@@ -168,9 +169,12 @@
       }
     });
 
-    var prevCredits = parseFloat(HT.$('#prev-credits').value);
-    var prevGpa = parseFloat(HT.$('#prev-gpa').value);
-    var prevScale = parseFloat(HT.$('#prev-scale').value);
+    var prevCreditsRaw = HT.$('#prev-credits').value;
+    var prevGpaRaw = HT.$('#prev-gpa').value;
+    var prevScaleRaw = HT.$('#prev-scale').value;
+    var prevCredits = HT.parseLocaleFloat ? HT.parseLocaleFloat(prevCreditsRaw) : parseFloat(String(prevCreditsRaw).replace(',', '.'));
+    var prevGpa = HT.parseLocaleFloat ? HT.parseLocaleFloat(prevGpaRaw) : parseFloat(String(prevGpaRaw).replace(',', '.'));
+    var prevScale = HT.parseLocaleFloat ? HT.parseLocaleFloat(prevScaleRaw) : parseFloat(String(prevScaleRaw).replace(',', '.'));
 
     var prevGpaEl = HT.$('#cum-gpa');
     var prevSubEl = HT.$('#cum-gpa-sub');

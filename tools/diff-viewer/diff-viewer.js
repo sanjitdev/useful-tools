@@ -270,7 +270,14 @@
 
     var aTokens = split(granularity, a);
     var bTokens = split(granularity, b);
-    var ops = HT.diff.myersDiff(aTokens, bTokens, function (x, y) { return x === y; });
+    var ops;
+    if (HT.diff && typeof HT.diff.myersDiff === 'function') {
+      ops = HT.diff.myersDiff(aTokens, bTokens, function (x, y) { return x === y; });
+    } else {
+      outRegion.innerHTML = '<p class="diff-empty">Differ not available.</p>';
+      setStatus('', 'error');
+      return;
+    }
 
     var html;
     if (granularity === 'word' || granularity === 'char') {

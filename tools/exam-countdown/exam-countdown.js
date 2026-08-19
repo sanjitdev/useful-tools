@@ -59,7 +59,12 @@
   }
 
   function writeStorage(v) {
-    try { HT.storage.set(STORAGE_KEY, v); } catch (_) { /* ignore */ }
+    // Normalize to ISO so we don't persist browser-formatted
+    // `datetime-local` strings (locale-specific) — keeps the value
+    // portable across browsers and re-parsing reliable.
+    var d = parseTarget(v);
+    var out = d ? d.toISOString() : v;
+    try { HT.storage.set(STORAGE_KEY, out); } catch (_) { /* ignore */ }
   }
 
   // -------- Render --------
@@ -256,5 +261,6 @@
   init();
   wire();
   tick();
-  setInterval(tick, 1000);
+  var tickId = setInterval(tick, 1000);
+  window.addEventListener('pagehide', function () { clearInterval(tickId); });
 })();

@@ -199,8 +199,15 @@ def main():
                   f"{css_qpath} no longer declares .disc-actions {{ ... }} rule")
 
     # 6.5 /packs/<slug>.html relative-path correctness — pages live
-    # at /packs/ (1 level deep), assets live at /assets/ (root).
-    # href/src need exactly 2-up `../../` to land at the root.
+    # at /packs/ (1 level deep). Two valid depths are acceptable:
+    #   - 1-up `../` for /assets/, /index.html, /quality.html, etc.
+    #     (depth-1 root-relative targets — pack pages are one folder
+    #     below the repo root).
+    #   - 2-up `../../` for /tools/... references (e.g. the date-picker
+    #     lab link) where the target sits one more folder below root.
+    # 3-up `../../../` would land at the wrong root and is rejected.
+    # Skip cross-depth siblings (../packs/<other>/...) — those resolve
+    # within the same directory and are intentional.
     for page in ("disc", "travel", "finance", "study",
                  "developer", "household", "fun"):
         pack_path = f"packs/{page}.html"
@@ -215,10 +222,10 @@ def main():
             if not m:
                 continue
             n = m.group(1).count('/')
-            if n != 2:
+            if n not in (1, 2):
                 bad.append((ref, n))
         check(not bad,
-              f"{pack_path} has 2-up relative-path depths "
+              f"{pack_path} has 1- or 2-up relative-path depths "
               f"(found {len(bad)} assets with wrong depth)")
 
     # 7. gzipped size budgets

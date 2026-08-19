@@ -262,6 +262,44 @@ def strip_duplicate_includes(source: str) -> str:
     return new_source
 
 
+def splice_chrome_includes(source: str, palette_html: str, settings_html: str, help_html: str) -> str:
+    """Replace any stale palette + settings + help include blocks at the
+    tail of the page with the canonical bytes — without overwriting the
+    page body. Returns `source` unchanged when the bytes already match
+    (idempotent re-run).
+
+    Anchored after `</footer>` so the tool body / page chrome above is
+    left untouched. The blocks sit between `</footer>` and the trailing
+    `<script>` tags in tool, pack, and quality pages.
+
+    Story: post-Story-9.19 drift fix. When the chrome sources
+    (palette.html / settings.html / help.html) evolve, the legacy
+    shell-template byte-aligned rewrite nukes the tool body because it
+    anchors on `<a class="shell-skip"` → `</footer>`. This targeted
+    splice fixes the chrome-includes drift without disturbing the body.
+    """
+    footer_close = source.find("</footer>")
+    if footer_close == -1:
+        return source
+    insert_at = footer_close + len("</footer>")
+    # Strip existing palette / settings / help blocks between insert_at
+    # and the next stop boundary. The strip regexes consume trailing
+    # comment lines + the div itself.
+    head = source[:insert_at]
+    tail = source[insert_at:]
+    tail_stripped = ALL_PALETTE_INCLUDES_RE.sub("", tail)
+    tail_stripped = ALL_SETTINGS_INCLUDES_RE.sub("", tail_stripped)
+    tail_stripped = ALL_HELP_INCLUDES_RE.sub("", tail_stripped)
+    # Append canonical blocks at the tail boundary.
+    trailing = (
+        "\n\n  " + palette_html
+        + "\n\n  " + settings_html
+        + "\n\n  " + help_html
+        + "\n\n  "
+    )
+    return head + trailing + tail_stripped.lstrip("\n")
+
+
 def read_chrome(root: Path) -> tuple[str, str, str, str, str, str, str]:
     """Return (skip_link_html, header_html, footer_html, palette_html,
     settings_html, help_html, print_footer_html).
@@ -977,7 +1015,9 @@ def splice_inline_tools_json(source: str, tools_json_inline: str) -> str:
         TOOLS_JSON_INLINE_START in source
         and TOOLS_JSON_INLINE_END in source
     ):
-        out, _ = TOOLS_JSON_INLINE_RE.subn(tools_json_inline, source, count=1)
+        out, _ = TOOLS_JSON_INLINE_RE.subn(
+            lambda _m: tools_json_inline, source, count=1
+        )
         return out
     # No markers — inject as a free-standing block before a known anchor.
     anchor = '<script src="../../assets/js/home-grid.js" defer></script>'
@@ -1170,7 +1210,15 @@ def process_file(
         and '<footer class="site-footer" role="contentinfo"' in source
         and '<main id="main" class="shell-main"' in source
         and f'data-slug="{slug}"' in source
-        and 'src="../../assets/js/shell.js"' in source
+        # Story 9.13.1 transition: shell-thin.js replaced the always-
+        # loaded shell.js as the Tier 1 chrome loader. Every migrated
+        # page loads shell-thin.js (defer) and never the old shell.js.
+        # Accept either so the tool-page regeneration can find its
+        # anchor even on pages that haven't migrated.
+        and (
+            'src="../../assets/js/shell.js"' in source
+            or 'src="../../assets/js/shell-thin.js"' in source
+        )
         and header_html in source
         and footer_html in source
     )
@@ -1285,10 +1333,20 @@ def process_file(
     # synchronously without depending on home-grid.js (tool pages don't
     # load it). The block is identical to the home-page copy; drift-
     # check verifies byte equivalence via the same markers.
-    tools_json_inline_ok = (
-        TOOLS_JSON_INLINE_START in source
-        and TOOLS_JSON_INLINE_END in source
+    # Marker presence is necessary but not sufficient — the bytes
+    # between the markers must match the canonical serialization
+    # exactly. Drift-check enforces the same byte-match and would
+    # otherwise report missing_tools_json_inline.
+    inline_match = re.search(
+        TOOLS_JSON_INLINE_RE.pattern, source, re.DOTALL
     )
+    if inline_match is not None:
+        tools_json_inline_ok = inline_match.group(0) == tools_json_inline
+    else:
+        tools_json_inline_ok = (
+            TOOLS_JSON_INLINE_START in source
+            and TOOLS_JSON_INLINE_END in source
+        )
     # Story 3.10: print.css stylesheet <link> must be present in <head>.
     # Excluded from `full_ok` so a missing print link triggers a separate
     # targeted write — the print-only branch below splices it in without
@@ -1865,6 +1923,38 @@ def process_file(
         print(f"  wrote {path.relative_to(root)}  (aria-label={expected_label!r})")
         return True
 
+    # Chrome-includes drift fix (post-Story-9.19). When the palette /
+    # settings / help region bytes on this page no longer match the
+    # canonical chrome sources but the surrounding chrome (header,
+    # footer, IIFE) is otherwise aligned, splice only the trailing
+    # include blocks in place. The byte-aligned rewrite path above
+    # would overwrite the tool body — this targeted splice keeps it.
+    if (
+        chrome_ok
+        and (
+            palette_html not in source
+            or settings_html not in source
+            or help_html not in source
+        )
+    ):
+        new_source = splice_chrome_includes(source, palette_html, settings_html, help_html)
+        if new_source != source:
+            if dry_run:
+                print(
+                    f"  would-write {path.relative_to(root)}  "
+                    f"(chrome-includes only)"
+                )
+                return True
+            try:
+                path.write_text(new_source, encoding="utf-8")
+            except OSError as exc:
+                sys.stderr.write(
+                    f"shell-template: write failed for {path}: {exc}\n"
+                )
+                sys.exit(3)
+            print(f"  wrote {path.relative_to(root)}  (chrome-includes only)")
+            return True
+
     updated = transform(
         source,
         page_label=label,
@@ -2292,8 +2382,12 @@ def regenerate_home(
                 and TOOLS_JSON_INLINE_END in source
             )
             if start_match:
+                # Lambda replacement so Python doesn't interpret
+                # backslash escapes in the inline JSON (e.g. \n in the
+                # recipe-scaler sample). Plain string would silently
+                # shrink the replacement.
                 new_source, n = TOOLS_JSON_INLINE_RE.subn(
-                    tools_json_inline, new_source, count=1
+                    lambda _m: tools_json_inline, new_source, count=1
                 )
                 if n == 0:
                     sys.stderr.write(
@@ -2375,8 +2469,13 @@ def regenerate_home(
                             "markers by hand if this was accidental.\n"
                         )
                         return False
+                # Use a lambda replacement so Python doesn't interpret
+                # backslash escapes in the captured manifest (e.g. the
+                # JSON \u2014 em-dash sequences inside chrome.html). With a
+                # plain string replacement, `re.sub` would raise
+                # `re.error: bad escape \u …`.
                 new_source, n = REGISTRY_MANIFEST_INLINE_RE.subn(
-                    storage_registry_manifest, new_source, count=1
+                    lambda _m: storage_registry_manifest, new_source, count=1
                 )
                 if n == 0:
                     sys.stderr.write(
@@ -2692,7 +2791,7 @@ def regenerate_home(
         and TOOLS_JSON_INLINE_END in new_source
     ):
         new_source, _ = TOOLS_JSON_INLINE_RE.subn(
-            tools_json_inline, new_source, count=1
+            lambda _m: tools_json_inline, new_source, count=1
         )
     else:
         anchor = '<script src="assets/js/home-grid.js" defer></script>'
@@ -2713,8 +2812,13 @@ def regenerate_home(
         REGISTRY_MANIFEST_INLINE_START in new_source
         and REGISTRY_MANIFEST_INLINE_END in new_source
     ):
+        # Use a lambda replacement so Python doesn't interpret
+        # backslash escapes in the captured manifest (e.g. the JSON
+        # \u2014 em-dash sequences inside chrome.html). With a plain
+        # string replacement, `re.sub` would raise
+        # `re.error: bad escape \u …`.
         new_source, _ = REGISTRY_MANIFEST_INLINE_RE.subn(
-            storage_registry_manifest, new_source, count=1
+            lambda _m: storage_registry_manifest, new_source, count=1
         )
     else:
         anchor = '<script src="assets/js/home-grid.js" defer></script>'
@@ -2797,7 +2901,16 @@ def main(argv: list[str]) -> int:
     if args.tool:
         slugs = [args.tool]
     else:
-        slugs = sorted(p.name for p in tools_dir.iterdir() if p.is_dir())
+        # Exclude non-tool subdirectories: `packs/` is a list-of-packs
+        # page (kind=pack), and `date-picker-lab/` is a non-chrome
+        # helper page. Both have their own regeneration paths outside
+        # this loop and would fail the `data-slug="<slug>"` chrome_ok
+        # check if processed as tools.
+        non_tool_dirs = {"packs", "date-picker-lab"}
+        slugs = sorted(
+            p.name for p in tools_dir.iterdir()
+            if p.is_dir() and p.name not in non_tool_dirs
+        )
 
     print(f"shell-template: regenerating {len(slugs)} tool page(s)")
     for slug in slugs:

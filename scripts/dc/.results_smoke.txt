@@ -1,0 +1,28 @@
+  PASS  shell-thin.js loaded into vm sandbox
+  PASS  HT.results is an object exposed by the shell-thin factory
+  PASS  HT.results.render is callable (Proxy factory returns fn for every prop access)
+  PASS  first HT.results.render(...) call fires lazyLoad("...results.js")
+  PASS  concurrent render() calls return elements (lazy-load is single-flight)
+  PASS  render() returns an element-like object with attrs
+  PASS  card root carries data-print="result"
+  PASS  card root carries role="region"
+  PASS  card root carries aria-live="polite"
+  PASS  card root carries aria-atomic="true"
+  PASS  card root carries aria-labelledby pointing at the archetype h2
+  PASS  action row carries data-print="ignore"
+  PASS  contrarian line uses .quiz-result-contrarian with the conflict text
+  PASS  action row has a .button.share button
+  PASS  action row has a .button.challenge button
+  PASS  shareUrl returns a URL containing ?arch=<id> (got http://localhost/?arch=zen&quiz=zen-test)
+  PASS  shareUrl includes ?quiz=<slug> when opts.slug is set
+  PASS  copyText returns "<emoji> <label> — <trait> NN%" canonical format
+  PASS  copyText stays under 280 chars (got 40)
+  PASS  imageSnapshot throws Error("snapshot unavailable") per DC-2 contract
+  PASS  results.js contains no localStorage/fetch/XHR/HT.provide (shell-bounds contract)
+  PASS  scripts/bundle-size-gate.py lists results.js in SPEC_PAGE_CONDITIONAL_MODULES
+  PASS  scripts/bundle-size-gate.py lists result-card.css in SPEC_PAGE_CONDITIONAL_MODULES
+  PASS  assets/js/shell-thin.js TIER2_URLS includes 'assets/js/results.js'
+  PASS  assets/js/shell-thin.js TIER2_CSS includes 'assets/css/result-card.css'
+  PASS  at least one assertion ran (vacuous-pass guard)
+
+JSON:{"story": "DC-2", "pass": 26, "fail": 0}

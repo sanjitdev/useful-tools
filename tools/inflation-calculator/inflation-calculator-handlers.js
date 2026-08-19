@@ -54,7 +54,15 @@
     var value = amount * (toIdx / fromIdx);
     var cumulativePct = ((toIdx / fromIdx) - 1) * 100;
     var years = toYear - fromYear;
-    var avgAnnualPct = years > 0 ? (Math.pow(toIdx / fromIdx, 1 / years) - 1) * 100 : 0;
+    var avgAnnualPct;
+    if (years === 0) {
+      avgAnnualPct = 0;
+    } else if (years > 0) {
+      avgAnnualPct = (Math.pow(toIdx / fromIdx, 1 / years) - 1) * 100;
+    } else {
+      // Backward period: years < 0. Negate so the sign reflects deflation.
+      avgAnnualPct = -(Math.pow(toIdx / fromIdx, 1 / Math.abs(years)) - 1) * 100;
+    }
     var isProjected = toYear > LATEST_YEAR;
     return {
       value: value,
@@ -100,6 +108,7 @@
     var startIdx = indexFor(yearStart);
     var endIdx = indexFor(yearEnd);
     if (!startIdx || !endIdx) return null;
+    if (!(salaryStart > 0)) return null;
     var nominalChange = ((salaryEnd - salaryStart) / salaryStart) * 100;
     var inflationChange = ((endIdx / startIdx) - 1) * 100;
     var realChange = ((1 + nominalChange / 100) / (1 + inflationChange / 100) - 1) * 100;
@@ -519,7 +528,7 @@
     var to = state['ic-to'] || '';
     HT.history.push('inflation-calculator', {
       inputs: state,
-      result: (out.adjusted && out.adjusted.textContent) || '',
+      result: (out.adjusted && out.adjusted.textContent) ? out.adjusted.textContent : '',
       label: amount && from ? ('$' + amount + ' in ' + from + (to ? ' → ' + to : '')) : '',
     });
   }, 750);
@@ -683,6 +692,8 @@
   // -------------------------------------------------------------
 
   window.inflationCalculatorInit = function () {
+    if (window._icInited) return;
+    window._icInited = true;
     if (!HT.storage || !HT.$) return;
     var useFwd = HT.$('#ic-use-forward');
     if (fields.forwardRateWrap) {

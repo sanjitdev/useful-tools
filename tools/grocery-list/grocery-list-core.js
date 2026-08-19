@@ -66,6 +66,12 @@
   function encodeList(arr) {
     try {
       var json = JSON.stringify({ items: arr });
+      // Unicode-safe base64: prefer TextEncoder when available; fall back
+      // to unescape(encodeURIComponent(...)) for environments without
+      // TextEncoder (jsdom test envs, older runtimes).
+      if (typeof TextEncoder !== 'undefined') {
+        return btoa(String.fromCharCode.apply(null, new TextEncoder().encode(json)));
+      }
       return btoa(unescape(encodeURIComponent(json)));
     } catch (_) {
       return '';
@@ -74,7 +80,12 @@
 
   function decodeList(b64) {
     try {
-      var json = decodeURIComponent(escape(atob(b64)));
+      var json;
+      if (typeof TextDecoder !== 'undefined') {
+        json = new TextDecoder().decode(Uint8Array.from(atob(b64), function (c) { return c.charCodeAt(0); }));
+      } else {
+        json = decodeURIComponent(escape(atob(b64)));
+      }
       var parsed = JSON.parse(json);
       if (!parsed || !Array.isArray(parsed.items)) return [];
       return parsed.items.filter(function (it) {

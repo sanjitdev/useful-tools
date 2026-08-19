@@ -82,6 +82,7 @@
     var sizeAttr = svg.getAttribute('width');
     var viewBox = svg.getAttribute('viewBox');
     var n = sizeAttr ? parseInt(sizeAttr, 10) : (viewBox ? parseInt(viewBox.split(/\s+/)[1], 10) : 256);
+    if (!Number.isFinite(n)) n = 256;
     var scale = 4;
     var px = n * scale;
 
