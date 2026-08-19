@@ -514,6 +514,15 @@
   transform: scale(1.08);
 }
 
+/* Dark-mode: after home-grid.js inlines the icon SVGs (so
+   `stroke="currentColor"` inherits --color-accent from this element),
+   the chip background also needs to be brighter than the surface so
+   the bright glyph has somewhere to sit. Light mode keeps the pale
+   indigo chip from the base rule. */
+:root[data-theme="dark"] .tool-card-icon {
+  background: color-mix(in srgb, #a5b4fc 18%, #1e1b4b);
+}
+
 .tool-card-title {
   font-weight: 600;
   font-size: 1.0625rem;

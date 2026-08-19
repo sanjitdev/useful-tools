@@ -443,6 +443,61 @@
     section.removeAttribute('hidden');
     host.setAttribute('data-mounted', 'true');
     mountPinnedRow();
+    inlineIcons(host);
+  }
+
+  // Swap the <img src="...svg"> placeholders for inline <svg> markup so
+  // `stroke="currentColor"` resolves to the page's CSS color (which is
+  // driven by `data-theme`, not by the OS-level `prefers-color-scheme`).
+  // Without this, an SVG loaded via <img> defaults currentColor to black
+  // regardless of the active theme, so monochrome line-art icons render
+  // black-on-dark in dark mode and — when the OS dark preference fires
+  // inside an inline <style> block — bright-on-pale in light mode.
+  //
+  // Fetched in parallel via Promise.all. The initial <img> stays visible
+  // during the fetch (showing the icon at the wrong color for ~one tick),
+  // then is replaced atomically with the inline SVG. If a fetch fails we
+  // leave the <img> in place — the icon still shows, just theme-naive.
+  function inlineIcons(host) {
+    if (!host || typeof fetch !== 'function') return;
+    const imgs = host.querySelectorAll('.tool-card-icon img');
+    if (imgs.length === 0) return;
+    const tasks = [];
+    for (let i = 0; i < imgs.length; i += 1) {
+      tasks.push(inlineOneIcon(imgs[i]));
+    }
+    Promise.all(tasks).catch(function () { /* per-icon handler already swallowed */ });
+  }
+
+  function inlineOneIcon(img) {
+    const src = img && img.getAttribute('src');
+    if (!src) return Promise.resolve();
+    return fetch(src, { cache: 'force-cache' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.text();
+      })
+      .then(function (markup) {
+        // Strip the XML prolog if present; parse the rest as SVG.
+        const cleaned = String(markup)
+          .replace(/^\s*<\?xml[^?]*\?>\s*/, '')
+          .trim();
+        const doc = new DOMParser().parseFromString(cleaned, 'image/svg+xml');
+        const svg = doc.documentElement;
+        // parseFromString surfaces errors as a <parsererror> child of
+        // <svg> rather than throwing — guard against it.
+        if (!svg || svg.nodeName.toLowerCase() !== 'svg') return;
+        if (svg.getElementsByTagName('parsererror').length > 0) return;
+        // Inherit sizing from the replaced <img>. The original CSS rule
+        // `.tool-card-icon svg { width: 24px; height: 24px; }` already
+        // handles the inner sizing; we just need the <svg> to sit in the
+        // flex container like the <img> did.
+        svg.removeAttribute('width');
+        svg.removeAttribute('height');
+        svg.setAttribute('aria-hidden', 'true');
+        img.parentNode.replaceChild(svg, img);
+      })
+      .catch(function () { /* keep the <img> fallback */ });
   }
 
   // Live snapshot used to populate HT.homeGrid.entries. Updated on every
