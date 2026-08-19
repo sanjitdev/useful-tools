@@ -33,6 +33,7 @@ def main():
         '    "assets/js/recommend.js",',
         '    "assets/js/catalog.js",',
         '    "assets/js/packs/discovery-loader.js",',
+        '    "assets/js/share-card.js",',
         '    "assets/css/result-card.css",',
         '    "assets/css/discovery.css",',
     ]

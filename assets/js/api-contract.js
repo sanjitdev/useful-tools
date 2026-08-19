@@ -10,8 +10,8 @@
 window.HT = window.HT || {};
 
 window.HT.__apiContract = Object.freeze({
-  version: '1.29.0',
-  generated: '2026-08-18',
+  version: '1.30.0',
+  generated: '2026-08-19',
   entries: Object.freeze([
     Object.freeze({
       name: 'HT.boot',
@@ -761,6 +761,13 @@ window.HT.__apiContract = Object.freeze({
       stability: 'stable',
       module: 'assets/js/challenge-receiver.js',
       notes: 'Story 10.12 — receiver-side landing hook for challenge URLs. When a quiz page is loaded with `?c=<blob>` (or `#c=<blob>`), the receiver: (1) calls HT.challenge.verify() to gate on malformed/expired/spec-mismatch, (2) renders a privacy-default consent banner ("Challenge from a friend: take the quiz blind [default] | show me what they got first"), and (3) on quiz completion stashes the local answers and surfaces a CTA to the compare view. compareView() renders the 3-band compatibility card on the per-quiz compare.html route. Privacy contract: the seeder\'s archetype + blind spot are NEVER auto-shown — the receiver always lands in "blind" mode unless the user opts in. Stash/read round-trips via localStorage under the `ht.challenge.local.<slug>` key. Read-only (Object.defineProperty writable:false configurable:false). Page-conditional — loaded on quiz routes that opt into receiver flow (compare.html loads it directly). Bundle target: ≤ 2 KB gz. Smoke harness: scripts/_smoke_challenge_receiver.js.',
+    }),
+    Object.freeze({
+      name: 'HT.shareCard',
+      signature: 'Readonly<{ogSvg: (state: Readonly<{archetype: Readonly<{id: string, label?: string, emoji?: string}>, traits?: Readonly<{[trait: string]: number}>, tagline?: string, blindSpot?: string}>, opts?: {slug?: string, title?: string, bgColor?: string, fgColor?: string, accentColor?: string}) => string, downloadAsPng: (state: Readonly<{archetype: Readonly<{id: string, label?: string, emoji?: string}>, traits?: Readonly<{[trait: string]: number}>, tagline?: string, blindSpot?: string}>, opts?: {slug?: string, title?: string, shareUrl?: string}) => Promise<{ok: true, action: "png"|"text", blob?: Blob, text?: string, reason?: string}>, copyUrl: (state: Readonly<{archetype?: Readonly<{id: string, label?: string}>|string, shareUrl?: string}>, opts?: {slug?: string, shareUrl?: string}) => Promise<string>, print: (state?: object, opts?: object) => void}>',
+      stability: 'stable',
+      module: 'assets/js/share-card.js',
+      notes: 'Story 10.11 — share-card chrome with three actions: Copy URL, Download PNG (1200×630 OG SVG rasterized via canvas), Print (chrome-stripped). ogSvg() returns a 1200×630 SVG string with a <title> element as its first child so social-media platforms announce the archetype (not just "image"). The SVG is purely archetype-data — no PII, no user input. downloadAsPng() rasterizes the OG SVG via Image + Canvas + canvas.toBlob, then triggers a browser download. When canvas.toBlob is unavailable (per the spec — e.g. older test harnesses or non-secure contexts), downloadAsPng falls back to copyUrl() so the user still gets a share artifact (the canonical "Copy as text" path). copyUrl() composes only on HT.share.copy (and HT.copyToClipboard as a defensive fallback). print() calls window.print() — the existing shell @media print block hides the site header/footer/nav so the result card prints cleanly. Read-only (Object.defineProperty writable:false configurable:false). Page-conditional — loaded by the shell-thin Proxy factory on first HT.shareCard.* call. Bundle target: ≤ 4 KB gz. Smoke harness: scripts/_smoke_share_card.js.',
     }),
   ]),
 });

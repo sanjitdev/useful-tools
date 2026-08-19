@@ -42,8 +42,9 @@ STORIES = [
     ("DC-13", "dc-13-challenge-ux.py"),
     ("DC-14", "dc-14-result-card-actions.py"),
     ("DC-15", "dc-15-browser-render.py"),
+    ("DC-16", "dc-16-share-card.py"),
 ]
-EXPECTED_STORY_COUNT = 16
+EXPECTED_STORY_COUNT = 17
 
 
 def parse_last_json(out):

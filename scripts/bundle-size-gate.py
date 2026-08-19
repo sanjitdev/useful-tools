@@ -271,6 +271,10 @@ SPEC_PAGE_CONDITIONAL_MODULES = [
     "assets/js/packs/discovery-loader.js",
     "assets/js/disc-page.js",
     "assets/js/challenge-receiver.js",
+    # Story 10.11 — share-card chrome. Loaded by the shell-thin
+    # Proxy factory on first HT.shareCard.* call from the result
+    # card's wireActions (PNG download path). Budget: ≤ 4 KB gz.
+    "assets/js/share-card.js",
     "assets/css/result-card.css",
     "assets/css/discovery.css",
     "assets/css/compatibility-card.css",
