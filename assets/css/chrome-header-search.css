@@ -652,7 +652,7 @@
 
 /* ---------- embed mode ---------- */
 
-:root[data-embed="1"] .shell-header-search {
+:root[data-embed] .shell-header-search {
   display: none;
 }
 

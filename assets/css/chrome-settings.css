@@ -314,12 +314,12 @@
 
 /* Hide the settings cog in embed mode (AD-7). The same rule that hides
    the palette trigger also hides the cog, mirroring the precedent. */
-:root[data-embed="1"] .shell-settings {
+:root[data-embed] .shell-settings {
   display: none !important;
 }
 
 /* Hide the search trigger in embed mode (AD-7). */
-:root[data-embed="1"] .shell-search-trigger {
+:root[data-embed] .shell-search-trigger {
   display: none !important;
 }
 
@@ -327,7 +327,7 @@
    Embed iframe is a single tool, not a directory. The renderer still
    fetches tools.json but does not mount cards when isEmbedMode() returns
    true — this rule is the CSS side of the same guarantee. */
-:root[data-embed="1"] .home-grid-section {
+:root[data-embed] .home-grid-section {
   display: none !important;
 }
 

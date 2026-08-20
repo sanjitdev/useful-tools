@@ -44,9 +44,15 @@
 
   function _isEmbed() {
     try {
-      // MED-4 fix — accept HT_SHELL_EMBED as boolean true (shell.js's
-      // canonical form), the legacy number 1, or a truthy string
-      // ('1' / 'true'). The URL fallback covers the pre-boot path.
+      // Story 4.1 — accept the canonical signal on document.documentElement
+      // (set by the FOUC IIFE + _applyEmbedMode for both `?embed=1` and
+      // `?embed=<slug>`). The legacy URL fallback covers pre-FOUC paths
+      // (very early boot, no document available) and the pre-4.1 paths
+      // that didn't set the attribute.
+      if (typeof document !== 'undefined') {
+        var de = document.documentElement && document.documentElement.dataset && document.documentElement.dataset.embed;
+        if (de) return true;
+      }
       if (typeof window !== 'undefined' && window.HT_SHELL_EMBED) {
         const v = window.HT_SHELL_EMBED;
         if (v === true || v === 1 || v === '1' || v === 'true') return true;
@@ -323,6 +329,11 @@
   // -------------------------------------------------------------
 
   function push(slug, entry) {
+    // Embed mode: history writes are suppressed. Visitors inside an
+    // iframe on a third-party site should not pollute the host's
+    // history storage (and per AD-7 the embed is a self-contained
+    // instance that does not phone home). Reads remain allowed.
+    if (_isEmbed()) return null;
     _requireSlug(slug);
     // Verify the slug has a usable schema — surface missing-schema
     // as a soft warn + null return (consistent with Story 2.1 F-12
@@ -405,6 +416,10 @@
   // -------------------------------------------------------------
 
   function clear(slug, opts) {
+    // Embed mode: clear is a destructive write — refuse to wipe the
+    // host's storage from inside an iframe. Returns silently (consistent
+    // with the no-op AC-1 branch below).
+    if (_isEmbed()) return;
     _requireSlug(slug);
     const confirmRequested = !(opts && opts.confirm === false);
     const hasEntries = _readRaw(slug).length > 0;
@@ -442,6 +457,11 @@
   // -------------------------------------------------------------
 
   function restore(slug, idOrEntry, opts) {
+    // Embed mode: restore mutates the host-visible DOM via the urlState
+    // write path AND triggers a focus event — both are writes from the
+    // embed's perspective. Suppress here so the embed remains a clean
+    // tool surface (UX §10.4).
+    if (_isEmbed()) return;
     _requireSlug(slug);
     const arr = list(slug);
     // Story 3.6 — accept either a HistoryEntry object (new shape)

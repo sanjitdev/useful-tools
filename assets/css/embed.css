@@ -1,0 +1,19 @@
+/* Conditional chrome-hide for embed mode.
+   Loaded at runtime when document.documentElement carries [data-embed].
+   The injection lives in shell.js's embed boot path; this file is
+   intentionally NOT part of chrome.html so the shell-drift gate does
+   not fingerprint it. */
+
+[data-embed] header,
+[data-embed] footer,
+[data-embed] nav,
+[data-embed] .settings-cog,
+[data-embed] .palette,
+[data-embed] .history-panel,
+[data-embed] .theme-toggle,
+[data-embed] .shell-header-lab,
+[data-embed] .shell-header-search,
+[data-embed] .embed-suppress { display: none !important; }
+
+[data-embed] body { padding: 0 !important; margin: 0 !important; }
+[data-embed] main { padding-block: 0.5rem !important; }

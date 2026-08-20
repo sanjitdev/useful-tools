@@ -380,7 +380,7 @@ a:hover {
   }
 }
 
-html[data-embed="1"] .theme-toggle {
+html[data-embed] .theme-toggle {
   display: none !important;
 }
 

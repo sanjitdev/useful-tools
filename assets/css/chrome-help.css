@@ -290,7 +290,7 @@
   white-space: nowrap;
 }
 
-:root[data-embed="1"] .shell-help {
+:root[data-embed] .shell-help {
   display: none !important;
 }
 
