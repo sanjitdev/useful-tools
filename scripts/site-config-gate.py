@@ -70,7 +70,7 @@ EXPECTED_FIELDS_INTERNAL = (
 EXPECTED_FIELDS_PUBLIC = (
     "repoUrl", "blobBase", "defaultBranch", "brand", "defaultLocale",
 )
-EXPECTED_VERSION = "1.23.0"  # Story 1.11 follow-up (2026-08-15) bumped 1.22.0 → 1.23.0 for the 11 utils.js helpers promoted to HT.* (HT.qs, HT.$, HT.qsa, HT.fetch, HT.formatNumber, HT.formatDuration, HT.formatDurationHMS, HT.debounce, HT.toast, HT.copyToClipboard, etc.)
+EXPECTED_VERSION = "1.32.0"  # Story 4.2 (2026-08-20) bumped 1.31.0 → 1.32.0 for HT.embed.openModal entry + HT_EMBED_VERSION 1.0.0→1.1.0
 
 TOOL_SCRIPT_RE = re.compile(
     r'<script\s+src="\.\./\.\./assets/js/site-config\.js"></script>'

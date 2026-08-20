@@ -294,9 +294,282 @@
 
   function isEmbedMode() {
     try {
-      return new URLSearchParams(window.location.search).get('embed') === '1';
+      var em = embedMode();
+      return em.active;
     } catch (_) {
       return false;
+    }
+  }
+
+  // Returns the embed-mode descriptor { active: bool, slug: string|null }.
+  // Generalized for Story 4.1 — both `?embed=1` (legacy bare flag) and
+  // `?embed=<slug>` (Story 4.1) report active=true. The slug is the
+  // query value when non-empty AND not in the legacy-no-slug set
+  // {'1','true','0','false'}; null otherwise.
+  function embedMode() {
+    try {
+      var raw = new URLSearchParams(window.location.search).get('embed');
+      if (raw == null) return { active: false, slug: null };
+      if (raw === '' || raw === '1' || raw === 'true' || raw === '0' || raw === 'false') {
+        return { active: true, slug: null };
+      }
+      return { active: true, slug: raw };
+    } catch (_) {
+      return { active: false, slug: null };
+    }
+  }
+
+  // Returns the embed slug when ?embed=<slug> is present, or null for
+  // the bare ?embed=1 flag (no slug). Literal "1", "true", "0", "false", ""
+  // mean "embed mode without a slug".
+  function embedSlug() {
+    try {
+      return embedMode().slug;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Slug schema — kebab-case, leading letter, no path-traversal chars.
+  // Mirrors _requireSlug in history.js (line 78). Used to validate
+  // ?embed=<slug> before passing to history.replaceState / HT.boot
+  // dispatch.
+  var SLUG_SCHEMA = /^[a-z][a-z0-9-]*[a-z0-9]$/;
+
+  // Resolve a tool's HTML by slug. Loads the tool's index.html via
+  // fetch, swaps document content, and runs the tool's boot script.
+  // For Story 4.1 the home page is the dispatch entry point: when a
+  // host loads `/?embed=<slug>` the URL rewrite keeps the user on
+  // the home page, then this helper fetches + mounts the tool.
+  //
+  // Returns a Promise<void> that resolves when the tool has mounted
+  // (or rejects on fetch failure). Multiple embeds on one host page
+  // are independent (each iframe has its own window + dispatch).
+  function _mountToolFromEmbed(slug, rootEl) {
+    return new Promise(function (resolve, reject) {
+      try {
+        if (!rootEl) { resolve(); return; }
+        var href = '/tools/' + encodeURIComponent(slug) + '/index.html';
+        fetch(href, { credentials: 'same-origin' }).then(function (resp) {
+          if (!resp.ok) { resolve(); return; } // 404 — keep home content
+          return resp.text();
+        }).then(function (html) {
+          if (!html) { resolve(); return; }
+          // Parse the fetched HTML into the existing document. Strip
+          // the FOUC IIFE from the fetched HTML — the home page's
+          // FOUC IIFE has already run; running it again would
+          // re-set data-embed (idempotent) but also overwrite
+          // data-instance-uuid with a new UUID (bad — embed
+          // identity would change on fetch).
+          var stripped = html.replace(/<script>\s*\(function\(\)\{try\{var t=localStorage[\s\S]*?\}\)\(\);\s*<\/script>/, '');
+          // Replace rootEl with the fetched tool's <main> content.
+          rootEl.innerHTML = stripped;
+          // After content swap, run the tool's boot script(s). The
+          // tool loader discovers them via the data-slug attribute on
+          // the new <main> + the inline ht-tools-json-inline.
+          if (typeof HT !== 'undefined' && typeof HT.bootTool === 'function') {
+            try { HT.bootTool(slug, rootEl); } catch (_) { /* bootTool not registered */ }
+          }
+          resolve();
+        }).catch(function () { resolve(); });
+      } catch (e) {
+        resolve();
+      }
+    });
+  }
+
+  // 8-level-deep recursion-free UUIDv4 fallback for environments without
+  // crypto.randomUUID (very old Safari, jsdom). Math.random()-driven
+  // bytes formatted as a v4 — not cryptographically strong, but
+  // sufficient for the embed instance-uniqueness contract.
+  function _fallbackUuidV4() {
+    var bytes = new Array(16);
+    for (var i = 0; i < 16; i += 1) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+    bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 10
+    var hex = '';
+    for (var j = 0; j < 16; j += 1) {
+      var h = bytes[j].toString(16);
+      hex += h.length === 1 ? '0' + h : h;
+    }
+    return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) +
+      '-' + hex.slice(16, 20) + '-' + hex.slice(20, 32);
+  }
+
+  // No-op reflow helper; consumers (Story 4.6 embed demo) may replace
+  // window.__HT_EMBED_REFLOW__ at boot if they want per-tool responsive
+  // behavior. The ResizeObserver fires regardless.
+  function _defaultReflow() { /* no-op */ }
+
+  // Runtime-inject the conditional chrome-hide stylesheet. Called
+  // from applyEmbedMode() at boot. The link tag is marked
+  // data-embed-stylesheet="1" so tests can assert it landed.
+  function _injectEmbedStylesheet() {
+    try {
+      if (document.querySelector('link[data-embed-stylesheet="1"]')) return;
+      var href = _embedCssHref();
+      if (!href) return;
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = href;
+      link.setAttribute('data-embed-stylesheet', '1');
+      document.head.appendChild(link);
+    } catch (_) { /* head unavailable (very early) */ }
+  }
+
+  // Derive the relative path to assets/css/embed.css from
+  // window.location.pathname. Home page = '/assets/css/embed.css'.
+  // tool page = '../../assets/css/embed.css'. Packs + privacy +
+  // quality + offline live at '/...'; the same root-relative path
+  // works for them.
+  function _embedCssHref() {
+    try {
+      var p = window.location.pathname || '/';
+      // If we're under /tools/<slug>/ or /packs/<slug>/, the CSS
+      // lives two segments up.
+      if (/^\/(?:tools|packs)\/[^/]+\//.test(p)) return '../../assets/css/embed.css';
+      return 'assets/css/embed.css';
+    } catch (_) {
+      return 'assets/css/embed.css';
+    }
+  }
+
+  function _applyEmbedMode() {
+    var em = embedMode();
+    if (!em.active) return;
+    var slug = em.slug;
+    // Validate slug against the kebab-case schema. An invalid slug
+    // (e.g. path-traversal char, HTML, oversized) falls back to the
+    // bare ?embed=1 semantics (no rewrite, no HT.boot dispatch,
+    // data-embed="1" only).
+    if (slug && !SLUG_SCHEMA.test(slug)) {
+      try { console.warn('[embed] invalid slug rejected: ' + JSON.stringify(slug)); } catch (_) { /* */ }
+      slug = null;
+    }
+    if (!slug && !em.active) return;
+    // BFCache round-trip support — applyEmbedMode runs once per boot.
+    if (window.__HT_EMBED_APPLIED__) return;
+    window.__HT_EMBED_APPLIED__ = true;
+
+    // AD-7 + UX-DR-10 — the Tool itself does not know it is embedded.
+    // Set the canonical attribute synchronously (the head IIFE may
+    // have set data-embed already; either path is idempotent).
+    var root = document.documentElement;
+    root.setAttribute('data-embed', slug || '1');
+
+    // Story 4.1 review fix — theme lock is in-memory only. We do NOT
+    // mutate localStorage.ht.theme because the visitor's saved
+    // preference must survive an embed visit (returning to a
+    // non-embed page should restore the saved theme, not the
+    // forced system theme).
+    var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+    root.setAttribute('data-theme', mq && mq.matches ? 'dark' : 'light');
+
+    // Slug variant: rewrite the URL to the canonical tool path so
+    // the existing Tool loader picks up the request. history.replaceState
+    // avoids a navigation round-trip — the current page keeps rendering
+    // but location.pathname now reflects the tool URL.
+    if (slug) {
+      try {
+        var encodedSlug = encodeURIComponent(slug);
+        var next = '/tools/' + encodedSlug + '/index.html?embed=' + encodedSlug;
+        if (window.location.pathname !== ('/tools/' + encodedSlug + '/index.html')) {
+          window.history.replaceState({}, '', next);
+        }
+      } catch (_) { /* location.replaceState may be blocked (file://) */ }
+
+      // Generate instance UUID + window.name. The head IIFE may have
+      // already done this; either path is idempotent.
+      try {
+        var existing = root.getAttribute('data-instance-uuid');
+        if (!existing) {
+          var uuid = (typeof crypto !== 'undefined' && crypto && typeof crypto.randomUUID === 'function')
+            ? crypto.randomUUID()
+            : _fallbackUuidV4();
+          root.setAttribute('data-instance-uuid', uuid);
+        }
+        // Always overwrite window.name so the host reads the current
+        // instance UUID, even if a BFCache restore left a stale
+        // ht-embed-<old-uuid> name on the window.
+        window.name = 'ht-embed-' + root.getAttribute('data-instance-uuid');
+      } catch (_) { /* name may be readonly */ }
+    }
+
+    // Conditional chrome-hide stylesheet (one-time per page lifetime).
+    _injectEmbedStylesheet();
+
+    // Single ResizeObserver — created once, torn down on pagehide.
+    if (!window.__HT_RESIZE_OBSERVER__) {
+      try {
+        var reflow = (typeof window.__HT_EMBED_REFLOW__ === 'function')
+          ? window.__HT_EMBED_REFLOW__
+          : _defaultReflow;
+        var debounced = (typeof HT !== 'undefined' && HT.debounce)
+          ? HT.debounce(reflow, 100)
+          : (function (fn, ms) {
+              var t = null;
+              return function () {
+                if (t) clearTimeout(t);
+                t = setTimeout(fn, ms);
+              };
+            })(reflow, 100);
+        var ro = new ResizeObserver(debounced);
+        ro.observe(document.body);
+        window.__HT_RESIZE_OBSERVER__ = ro;
+      } catch (_) { /* ResizeObserver unavailable (jsdom) */ }
+    }
+
+    // Publish the instance-scoped embed API (Story 4.1 seam; full
+    // envelope lands in Story 4.3). The factory returns an independent
+    // frozen object per embed so multiple embeds on one host page do
+    // not share state (AD-7).
+    try {
+      if (typeof HT !== 'undefined' && HT.embed && typeof HT.embed.publish === 'function') {
+        window.__HT_EMBED_INSTANCE__ = HT.embed.publish({
+          instanceUuid: root.getAttribute('data-instance-uuid') || '',
+          slug: slug || null,
+        });
+      }
+    } catch (_) { /* HT.embed not yet loaded — slug rewrite still safe */ }
+
+    // BFCache / page teardown — disconnect observer + null out
+    // the instance reference. Register the listener once per
+    // page lifetime (BFCache round-trips reset __HT_EMBED_APPLIED__
+    // so a fresh addEventListener would leak — gate on the
+    // dedicated flag).
+    if (!window.__HT_EMBED_PAGEHIDE_INSTALLED__) {
+      window.__HT_EMBED_PAGEHIDE_INSTALLED__ = true;
+      window.addEventListener('pagehide', function () {
+        if (window.__HT_RESIZE_OBSERVER__) {
+          try { window.__HT_RESIZE_OBSERVER__.disconnect(); } catch (_) { /* */ }
+          window.__HT_RESIZE_OBSERVER__ = null;
+        }
+        if (window.__HT_EMBED_INSTANCE__ && typeof window.__HT_EMBED_INSTANCE__.destroy === 'function') {
+          try { window.__HT_EMBED_INSTANCE__.destroy(); } catch (_) { /* */ }
+        }
+        window.__HT_EMBED_INSTANCE__ = null;
+        window.__HT_EMBED_APPLIED__ = false;
+      });
+    }
+
+    // Story 4.1 T2(g) — when ?embed=<slug> is on the HOME page,
+    // mount the requested tool into <main> (the home grid is not
+    // the right surface for an embedded single tool). On a tool
+    // page (?embed=<slug> arrives at /tools/<slug>/index.html?embed=)
+    // the tool's own boot script handles mounting and we no-op.
+    if (slug) {
+      try {
+        var onHome = /^\/(?:index\.html)?$/.test(window.location.pathname)
+                     || window.location.pathname === '/';
+        if (onHome) {
+          var main = document.getElementById('main');
+          if (main) {
+            _mountToolFromEmbed(slug, main);
+          }
+        }
+      } catch (_) { /* mount dispatch may fail silently */ }
     }
   }
 
@@ -315,26 +588,12 @@
       main.setAttribute('aria-label', explicit);
     }
 
-    // ?embed=1 locks the theme to system-following: the toggle is hidden
-    // via CSS, the cycle is a no-op, and `data-theme` follows the OS via
-    // the media-query listener below (Story 1.6 spec; AD-7 line 115).
-    if (isEmbedMode()) {
-      // AD-7: signal the rest of the page (CSS hiding the help overlay +
-      // palette/settings triggers; the keyboard chord guards in
-      // help-overlay.js / palette-actions.js) that this is an embed.
-      // The CSS rules use :root[data-embed="1"] as a parallel hard
-      // signal — the JS path is the primary guard, but the CSS hides
-      // before JS boots (FOUC defense).
-      document.documentElement.setAttribute('data-embed', '1');
-      writeStoredMode('auto');
-      // The FOUC IIFE may have resolved a stale 'light' / 'dark' value
-      // from a prior session before we overwrote it to 'auto' above.
-      // Re-apply the OS preference synchronously so the embed page
-      // never paints with the wrong theme. The MutationObserver
-      // re-syncs aria-pressed automatically.
-      const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-      document.documentElement.setAttribute('data-theme', mq && mq.matches ? 'dark' : 'light');
-    }
+    // Embed-mode consolidation — handles both ?embed=1 (no slug) and
+    // ?embed=<slug>. Sets data-embed, locks theme to system, injects
+    // the conditional chrome-hide stylesheet, generates the instance
+    // UUID + window.name, registers a single ResizeObserver, and
+    // publishes the instance-scoped HT.embed API.
+    _applyEmbedMode();
 
     HT.shell = Object.freeze({
       version: '1.0.0',
@@ -478,6 +737,20 @@
       const shareSlug = main.getAttribute && main.getAttribute('data-slug');
       try { HT.shellShare.mount(shareSlug, main); }
       catch (err) { console.warn('shell.boot: HT.shellShare.mount failed', err); }
+    }
+
+    // Story 4.2: mount the per-tool embed modal trigger. The Shell
+    // wires this (NOT each tool) so the modal surface is consistent
+    // across every tool. Skipped in embed mode (AD-7) and when the
+    // slug has no embed-snippet block (HT.embed.mount checks).
+    //
+    // Call site extracted to shell-embed.js (mirrors the shell-share.js
+    // pattern from Story 4b Phase 1).
+    if (!isEmbedMode() && main && HT.shellEmbed
+        && typeof HT.shellEmbed.mount === 'function') {
+      const embedSlug = main.getAttribute && main.getAttribute('data-slug');
+      try { HT.shellEmbed.mount(embedSlug, main); }
+      catch (err) { console.warn('shell.boot: HT.shellEmbed.mount failed', err); }
     }
 
     // Story 1.7: install the command palette wiring (skip entirely in

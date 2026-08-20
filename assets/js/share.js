@@ -1,5 +1,5 @@
 /* ============================================
-   Handy Tools — share.js (Story 2.5 + Story 10.11)
+   Handy Tools — share.js (Story 2.5 + Story 10.11 + Story 4.2)
    Per-Tool Share Dialog with URL + Print + Embed.
    The Shell exposes `HT.share` so every Tool can
    present the canonical URL, a print-friendly
@@ -7,7 +7,10 @@
    per-tool implementation drift. Story 10.11
    adds HT.share.copy(state, opts) — Promise-
    returning copy helper consumed by the Discovery
-   result card's wireActions (results.js). AD-14
+   result card's wireActions (results.js). Story 4.2
+   adds an "Open embed modal" alternate entry point
+   that closes the Share dialog and opens the new
+   standalone embed modal (HT.embed.openModal). AD-14
    frozen; composed only on HT.copyToClipboard
    (utils.js) + HT.toast. ES2018.
    ============================================ */
@@ -194,6 +197,14 @@
           '<label id="share-embed-label" for="share-embed-input">Embed Code</label>' +
           '<textarea id="share-embed-input" readonly rows="3">' + _escapeAttr(embedValue) + '</textarea>' +
           '<button type="button" data-ht-action="share-copy-embed" class="btn btn--ghost">Copy embed code</button>' +
+          // Story 4.2 — alternate entry point to the standalone embed modal
+          // (per spec "or opens the embed action in the Share dialog —
+          // Story 3.9"). Renders after the existing Copy button so the
+          // legacy textarea path is still the primary surface. Clicking
+          // closes the Share dialog and opens HT.embed.openModal(slug) with
+          // the Share button as the sourceEl so focus returns there when
+          // the embed modal closes.
+          (hasEmbed ? '<button type="button" class="embed-modal-launch" data-ht-action="share-open-embed-modal">Open embed modal</button>' : '') +
         '</section>' +
       '</form>';
 
@@ -207,6 +218,8 @@
     const printBtn = dlg.querySelector('[data-ht-action="share-print"]');
     const copyEmbedBtn = dlg.querySelector('[data-ht-action="share-copy-embed"]');
     const closeBtn = dlg.querySelector('[data-ht-action="share-close"]');
+    // Story 4.2 — alternate entry point to the standalone embed modal.
+    const openEmbedModalBtn = dlg.querySelector('[data-ht-action="share-open-embed-modal"]');
 
     function _copyUrl() {
       try {
@@ -230,6 +243,23 @@
     if (printBtn) printBtn.addEventListener('click', _print);
     if (copyEmbedBtn) copyEmbedBtn.addEventListener('click', _copyEmbed);
     if (closeBtn) closeBtn.addEventListener('click', function () { close(); });
+
+    // Story 4.2 — clicking the launch button closes the Share dialog
+    // and opens the standalone embed modal. The Share button is the
+    // sourceEl so focus returns there when the embed modal closes
+    // (modal-stack UX convention).
+    if (openEmbedModalBtn) {
+      openEmbedModalBtn.addEventListener('click', function () {
+        try { close(); } catch (_) { /* no-op */ }
+        if (HT.embed && typeof HT.embed.openModal === 'function') {
+          const sourceEl = _state.button || opts.sourceEl || null;
+          try { HT.embed.openModal(slug, sourceEl); }
+          catch (err) {
+            try { console.warn('share: HT.embed.openModal failed', err); } catch (_) { /* */ }
+          }
+        }
+      });
+    }
 
     if (urlInput) {
       urlInput.addEventListener('focus', function () {
@@ -577,7 +607,7 @@
   Object.defineProperties(HT, {
     share: {
       value: Object.freeze({
-        version: '1.9.0',
+        version: '1.10.0',
         url: url,
         embedCode: embedCode,
         hasShare: hasShare,

@@ -1,0 +1,271 @@
+/* =============================================
+   Handy Tools — embed-modal.css (Story 4.2)
+   Standalone embed snippet modal. The dialog
+   surface mirrors assets/css/chrome-confirm-share.css
+   (Story 2.5 share dialog + Story 1.8 settings modal)
+   so all chrome modals read as the same family.
+
+   The dialog renders:
+     • <code class="embed-snippet">   (selectable snippet)
+     • <button data-action="copy-snippet">Copy</button>
+     • A live preview <iframe sandbox="allow-scripts
+       allow-same-origin"> below the snippet
+     • A close button + Esc/backdrop dismissal
+
+   ES2018 layout (logical properties + flex/grid);
+   forced-colors and dark-mode coverage mirror
+   chrome-confirm-share.css lines 65-72, 195-228.
+   ============================================= */
+
+dialog.embed-modal,
+dialog.embed-modal[open] {
+  /* Reset UA stylesheet defaults so our panel truly looks
+     like a panel. Same surface tokens as dialog.share-dialog. */
+  width: min(560px, calc(100vw - 32px));
+  max-width: var(--modal-width, 560px);
+  max-height: calc(100vh - 32px);
+  margin: auto;
+
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 12px 48px rgba(15, 17, 23, 0.25);
+
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+dialog.embed-modal[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+dialog.embed-modal .embed-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  padding: var(--space-5, 24px);
+  margin: 0;
+  min-width: 0;
+}
+
+dialog.embed-modal .embed-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+}
+
+dialog.embed-modal .embed-modal__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+dialog.embed-modal .embed-modal__close {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+dialog.embed-modal .embed-modal__close:hover {
+  background: var(--color-surface-2, rgba(0, 0, 0, 0.05));
+}
+
+dialog.embed-modal .embed-modal__desc {
+  margin: 0;
+  color: var(--color-text);
+  opacity: 0.8;
+  font-size: 0.95rem;
+}
+
+/* Snippet section — the <code class="embed-snippet"> is the
+   centerpiece; user can focus + select-all (Tab + Ctrl/Cmd+C). */
+dialog.embed-modal .embed-modal__snippet-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+dialog.embed-modal code.embed-snippet {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  padding: var(--space-3, 12px);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-2, rgba(0, 0, 0, 0.05));
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+  cursor: text;
+  max-height: 120px;
+  overflow: auto;
+}
+
+dialog.embed-modal code.embed-snippet:focus-visible {
+  outline: 2px solid var(--focus-ring, #0066cc);
+  outline-offset: 2px;
+}
+
+/* Actions row — the Copy button is the primary action. */
+dialog.embed-modal .embed-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  justify-content: flex-end;
+}
+
+dialog.embed-modal button[data-action="copy-snippet"] {
+  appearance: none;
+  background: var(--color-accent, #4f46e5);
+  color: var(--color-on-accent, #ffffff);
+  border: 1px solid var(--color-accent, #4f46e5);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+dialog.embed-modal button[data-action="copy-snippet"]:hover {
+  filter: brightness(1.05);
+}
+
+dialog.embed-modal button[data-action="copy-snippet"]:focus-visible {
+  outline: 2px solid var(--focus-ring, #0066cc);
+  outline-offset: 2px;
+}
+
+/* Live preview section — labeled "Live preview" above the
+   iframe (the label is aria-hidden; the iframe's title
+   attribute is the accessible name). */
+dialog.embed-modal .embed-modal__preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+dialog.embed-modal .embed-modal__preview-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  opacity: 0.75;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+dialog.embed-modal .embed-modal__preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2, 8px);
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-2, rgba(0, 0, 0, 0.04));
+}
+
+dialog.embed-modal .embed-modal__preview-frame {
+  display: block;
+  border: 0;
+  background: var(--color-surface, #ffffff);
+  max-width: 100%;
+}
+
+/* --- Backdrop --- */
+
+dialog.embed-modal::backdrop {
+  background-color: rgba(15, 17, 23, 0.45);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+/* --- Dark mode surface (mirrors chrome-confirm-share.css 195-206) --- */
+
+:root[data-theme="dark"] dialog.embed-modal {
+  background: var(--color-surface, #181b24);
+  border-color: var(--color-border, #2a2f3c);
+  color: var(--color-text, #e8eaf0);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="dark"] dialog.embed-modal::backdrop {
+  background-color: rgba(0, 0, 0, 0.55);
+}
+
+/* --- Forced-colors (Story 1.6 / WCAG 1.4.3 + 2.4.7) --- */
+
+@media (forced-colors: active) {
+  dialog.embed-modal {
+    background: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+    border-width: 2px;
+    box-shadow: none;
+  }
+  dialog.embed-modal::backdrop {
+    background-color: Canvas;
+  }
+  dialog.embed-modal .embed-modal__close,
+  dialog.embed-modal button[data-action="copy-snippet"] {
+    border-color: CanvasText;
+    color: CanvasText;
+    background: Canvas;
+    forced-color-adjust: none;
+  }
+  dialog.embed-modal code.embed-snippet {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+}
+
+/* --- Mobile (≤600px) — full-width sheet, matching settings modal --- */
+
+@media (max-width: 600px) {
+  dialog.embed-modal {
+    width: calc(100vw - 16px);
+    max-width: none;
+  }
+  dialog.embed-modal .embed-modal__preview-frame {
+    /* On narrow screens, scale the preview iframe down to fit
+       within the panel — preserves the 320x240 default size
+       visually but prevents horizontal scrolling. */
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+  }
+}
+
+/* --- Reduced motion (UX-DR-9: respect user preference) --- */
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.embed-modal::backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* --- Print (Story 3.10 — modal is never printed) --- */
+
+@media print {
+  dialog.embed-modal {
+    display: none !important;
+  }
+}

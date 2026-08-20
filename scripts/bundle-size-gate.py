@@ -164,6 +164,11 @@ SPEC_JS_MODULES = [
     "assets/js/shell-history.js",
     "assets/js/shell-share.js",
     "assets/js/shell-sample-data.js",
+    # Story 4.2 — shell-embed.js mirrors the shell-share.js pattern
+    # (boot-time mount of the per-tool Embed button). Loaded lazily
+    # alongside embed.js via the kickShellBoot() chrome namespace
+    # list. ~300 B raw / ~250 B gz.
+    "assets/js/shell-embed.js",
 ]
 
 # CSS modules — the chrome stylesheets loaded on every page. Story 1.5

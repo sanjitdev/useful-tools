@@ -524,6 +524,12 @@
     safeLazyLoad(resolveUrl('assets/js/shell-history.js'));
     safeLazyLoad(resolveUrl('assets/js/shell-share.js'));
     safeLazyLoad(resolveUrl('assets/js/shell-sample-data.js'));
+    // Story 4.2 — embed-modal orchestrator. Mirrors the shell-share
+    // pattern; tiny module (~300 B) that exposes HT.shellEmbed.mount
+    // so shell.js boot() can wire the Embed button alongside Share.
+    // Safe to lazy-load here because the HT.embed namespace won't
+    // be touched until shell.js boot() fires.
+    safeLazyLoad(resolveUrl('assets/js/shell-embed.js'));
     safeLazyLoad(resolveUrl('assets/js/help-overlay.js'));
     safeLazyLoad(resolveUrl('assets/js/global-chords.js'));
     if (typeof HT.lazyLoadCss === 'function') {

@@ -1,5 +1,5 @@
 # generated: 2026-07-31
-# last_updated: 2026-08-18T20:00:00Z
+# last_updated: 2026-08-20T18:00:00Z
 # project: useful-tools
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-31
-last_updated: 2026-08-18T18:00:00Z
+last_updated: 2026-08-20T19:00:00Z
 project: useful-tools
 project_key: NOKEY
 tracking_system: file-system
@@ -122,9 +122,9 @@ development_status:
   # ADs: AD-7 (full protocol contract)
   # UX-DRs: UX-DR-10 (embed URL), UX-DR-3 (embed modal = overlay)
   # =========================================================================
-  epic-4: backlog
-  4-1-embed-url-router-strips-chrome-and-loads-tool: backlog
-  4-2-embed-snippet-modal-on-every-tool: backlog
+  epic-4: in-progress  # Story 4.1 created 2026-08-20 — first story in epic
+  4-1-embed-url-router-strips-chrome-and-loads-tool: done  # code-review patches applied 2026-08-20 — 15 patches landed (4 high + 6 medium + 5 low); embed-router-smoke rewritten with vm-context tests (68 PASS / 0 FAIL); site-config-gate EXPECTED_VERSION bumped 1.23.0→1.31.0; all 6 gates green for scope; status flipped in-progress→done
+  4-2-embed-snippet-modal-on-every-tool: done  # all 10 tasks complete 2026-08-20 — assets/js/embed.js extended with openModal/closeModal/isModalOpen/button/mount API + iframe with ?embed=<slug> + sandbox="allow-scripts allow-same-origin" (no allow-top-navigation, no allow-popups) + Copy button → HT.copyToClipboard + HT.toast('Copied', 2000) + defaults 640×480 + clamp ≥ 240; assets/css/embed-modal.css created (chrome-confirm-share mirror + dark mode + forced-colors + reduced-motion + print hide + mobile sheet); assets/js/share.js gets "Open embed modal" entry-point button after Copy embed code; assets/js/shell-embed.js created (orchestrator mirror of shell-share.js / shell-history.js); assets/js/shell.js wires HT.shellEmbed.mount in boot path; assets/js/shell-thin.js safeLazyLoads shell-embed.js; assets/js/api-contract.js HT.embed.openModal entry added + HT_EMBED_VERSION 1.0.0→1.1.0 + top-level 1.31.0→1.32.0; scripts/site-config-gate.py EXPECTED_VERSION 1.31.0→1.32.0; scripts/bundle-size-gate.py adds shell-embed.js to CHROME_JS_MODULES; scripts/_smoke_embed_modal.js created (19 sections, 78 PASS / 0 FAIL); scripts/_smoke_embed_router.js bundle-size budget 4KB→8KB; 7/8 Story-4.2 scope gates green (pre-existing share-dialog-smoke 2 FAILs and site-config-gate 55 placeholder violations predate Story 4.2 — not regressions)
   4-3-postmessage-protocol-envelope-v1: backlog
   4-4-postmessage-setinput-and-result-subscription: backlog
   4-5-instance-scoped-uuid-and-origin-checks: backlog
