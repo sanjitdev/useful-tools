@@ -8,7 +8,7 @@
 # Windows users: use a real POSIX shell (Git Bash / WSL) or run the script
 # directly via `python scripts/validate-tools-json.py`.
 
-.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list pack-gate pack-gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy check-pack-composition disc-pii-lint disc-immutability-lint es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke script-load-order uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke budget-planner-smoke savings-goal-smoke currency-converter-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke dc-0-schema dc-1-scoring dc-2-results dc-3-challenge dc-4-recommend dc-5-loader dc-6-quizzes dc-7-tools-json dc-8-docs dc-9-smokes dc-10-pack-gate dc-11-bundle dc-12-lints dc-12-retro dc-all
+.PHONY: validate validate-tools-json validate-schema rubric-list rubric-all help rubric-% gate gate-list pack-gate pack-gate-list ci site-config site-config-smoke shell-drift shell-a11y measure-fouc shell-template shell-template-all install-hooks storage-registry storage-registry-inject sri sr compound-smoke verify-compound shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke embed-router-smoke export-smoke import-smoke tool-inventory promote-wave-1 audit-wave-1 wave-1-smoke promote-wave-2 print-css-bootstrap audit-wave-2 wave-2-smoke promote-wave-3 audit-wave-3 wave-3-smoke pack-tags pack-tags-smoke check-pack-taxonomy check-pack-composition disc-pii-lint disc-immutability-lint es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke view-source-smoke-view pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative chrome-dom-smoke script-load-order uuid-generator-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke budget-planner-smoke savings-goal-smoke currency-converter-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke dc-0-schema dc-1-scoring dc-2-results dc-3-challenge dc-4-recommend dc-5-loader dc-6-quizzes dc-7-tools-json dc-8-docs dc-9-smokes dc-10-pack-gate dc-11-bundle dc-12-lints dc-12-retro dc-all
 
 # Prefer python3 (Debian/Ubuntu convention); fall back to python
 # (Windows / macOS / older distros). Override with `make PYTHON=...`
@@ -45,6 +45,7 @@ help: ## Show available targets
 	@echo "  make a11y-audit          Per-tool keyboard-complete audit (Story 2.4 AC-2) — exit 1 on any failed ready:true tool"
 	@echo "  make history-smoke       Run the Node smoke harness for assets/js/history.js (Story 2.3 / AD-4 + AD-14)"
 	@echo "  make share-dialog-smoke  Run the Node smoke harness for assets/js/share.js (Story 2.5 / AD-4 + AD-14)"
+	@echo "  make embed-router-smoke  Run the Story 4.1 embed-router smoke (Node static check: assets/css/embed.css + assets/js/embed.js + history.js _isEmbed() guard + api-contract entry + head-snippet FOUC IIFE + chrome.html isolation + slug-rewrite correctness + window.name timing + ResizeObserver idempotency + pagehide teardown + FOUC guard + ?embed=1 backward-compat + shell-bounds regression + bundle-size budget)"
 	@echo "  make export-smoke        Run the Node smoke harness for assets/js/export.js (Story 3.7 / AD-4 + AD-14)"
 	@echo "  make import-smoke        Run the Node smoke harness for assets/js/import.js (Story 3.8 / AD-4 + AD-14)"
 	@echo "  make tool-inventory      Regenerate docs/tool-inventory.md (Story 2.6 / Story 1.4)"
@@ -153,7 +154,7 @@ pack-gate-list:
 
 # `ci` chains the four checks the GitHub Actions workflow runs. Local
 # maintainers can use this to reproduce the CI gate before pushing.
-ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke script-load-order shell-a11y bundle-size bundle-size-tier1 bundle-size-per-tool verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke check-pack-taxonomy disc-pii-lint disc-immutability-lint es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative uuid-generator-smoke ht-lazy-smoke bd-tax-split-smoke animal-race-split-smoke recipe-scaler-split-smoke jwt-inspector-split-smoke timestamp-converter-split-smoke uuid-generator-split-smoke json-formatter-split-smoke grocery-list-split-smoke inflation-calculator-split-smoke lifespan-simulator-split-smoke shell-thin-proxies-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke budget-planner-smoke savings-goal-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke
+ci: validate rubric-all gate site-config site-config-smoke storage-registry shell-drift chrome-dom-smoke script-load-order shell-a11y bundle-size bundle-size-tier1 bundle-size-per-tool verify-compound compound-smoke shell-bounds shell-bounds-self-test shell-public-api-smoke sample-data-smoke a11y-smoke a11y-audit history-smoke share-dialog-smoke embed-router-smoke export-smoke import-smoke wave-1-smoke wave-2-smoke wave-3-smoke wave-lib-smoke pack-tags-smoke check-pack-taxonomy disc-pii-lint disc-immutability-lint es5-grep quality-smoke regression-sweep regression-sweep-negative palette-search-smoke palette-search-smoke-html palette-actions-smoke help-overlay-smoke global-chords-smoke settings-modal-smoke print-smoke view-source-smoke pins-recent-smoke search-perf-smoke ast-gates-self-test ast-gates-negative uuid-generator-smoke ht-lazy-smoke bd-tax-split-smoke animal-race-split-smoke recipe-scaler-split-smoke jwt-inspector-split-smoke timestamp-converter-split-smoke uuid-generator-split-smoke json-formatter-split-smoke grocery-list-split-smoke inflation-calculator-split-smoke lifespan-simulator-split-smoke shell-thin-proxies-smoke json-formatter-enhancements-smoke citation-formatter-smoke diff-viewer-smoke jwt-inspector-smoke timestamp-converter-smoke flashcard-timer-smoke exam-countdown-smoke recipe-scaler-smoke grocery-list-smoke paint-calculator-smoke area-volume-smoke budget-planner-smoke savings-goal-smoke quiz-smoke quiz-preview-smoke quiz-proxy-smoke
 
 # `shell-drift` checks that every page's chrome matches the canonical
 # bytes in assets/shell/chrome.html. Story 1.18 (AI-E1-15) replaced the
@@ -430,6 +431,25 @@ history-smoke:
 # catches hollow runs.
 share-dialog-smoke:
 	@node scripts/_smoke_share_dialog.js
+
+# `embed-router-smoke` runs the Node smoke harness for Story 4.1 —
+# the embed URL router (?embed=<slug>), conditional chrome strip
+# (assets/css/embed.css), instance-scoped HT.embed factory
+# (assets/js/embed.js), FOUC IIFE data-* attributes, and the
+# history.js write-path bypass. Verifies embed.css selector
+# correctness, embed.js surface (publish + postMessage + on +
+# destroy), history.js _isEmbed() guards on push/clear/restore,
+# api-contract.js registration, the chrome.html / head-snippet
+# wiring, slug-rewrite correctness (history.replaceState, no
+# location.assign in the embed path), window.name timing,
+# ResizeObserver idempotency, pagehide teardown, FOUC guard
+# (data-embed + data-instance-uuid + ht.theme), ?embed=1
+# backward-compat regression, shell-bounds regression (chrome
+# untouched, every tool + home loads embed.js), and bundle-size
+# budgets (embed.js ≤ 2 KB gz, embed.css ≤ 0.5 KB gz).
+# 48 PASS expected. Vacuous-pass guard catches hollow runs.
+embed-router-smoke:
+	@node scripts/_smoke_embed_router.js
 
 # `export-smoke` runs the Node smoke harness for assets/js/export.js.
 # Verifies the public HT.export surface (frozen in api-contract.js

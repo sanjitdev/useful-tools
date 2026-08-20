@@ -25,6 +25,7 @@ on:
       - "scripts/_smoke_site_config.js"
       - "scripts/shell-bounds-check.py"
       - "scripts/_smoke_share_dialog.js"
+      - "scripts/_smoke_embed_router.js"
       - "scripts/_promote_wave_1.py"
       - "scripts/_audit_wave_1.py"
       - "scripts/_smoke_wave_1_pages.js"
@@ -88,6 +89,7 @@ on:
       - "assets/css/base.css"
       - "assets/css/components.css"
       - "assets/css/print.css"
+      - "assets/css/embed.css"
       - "index.html"
       - "quality.html"
       - "docs/quality-rubric.md"
@@ -112,6 +114,7 @@ on:
       - "scripts/_smoke_site_config.js"
       - "scripts/shell-bounds-check.py"
       - "scripts/_smoke_share_dialog.js"
+      - "scripts/_smoke_embed_router.js"
       - "scripts/_promote_wave_1.py"
       - "scripts/_audit_wave_1.py"
       - "scripts/_smoke_wave_1_pages.js"
@@ -175,6 +178,7 @@ on:
       - "assets/css/base.css"
       - "assets/css/components.css"
       - "assets/css/print.css"
+      - "assets/css/embed.css"
       - "index.html"
       - "quality.html"
       - "docs/quality-rubric.md"
@@ -344,6 +348,27 @@ jobs:
         # vacuous-pass guard (pass===0 && fail===0 → exit 1) means a
         # hollow run fails the gate.
         run: make share-dialog-smoke
+
+      - name: Smoke embed-router (Story 4.1)
+        # Story 4.1: static Node smoke verifying the embed URL
+        # router (?embed=<slug>), conditional chrome strip
+        # (assets/css/embed.css), instance-scoped HT.embed factory
+        # (assets/js/embed.js), FOUC IIFE data-* attributes, and the
+        # history.js write-path bypass. 48 PASS expected covering
+        # embed.css selector correctness, embed.js surface (publish
+        # + postMessage + on + destroy), history.js _isEmbed()
+        # guards on push/clear/restore, api-contract.js registration,
+        # the chrome.html / head-snippet wiring, slug-rewrite
+        # correctness (history.replaceState, no location.assign in
+        # the embed path), window.name timing, ResizeObserver
+        # idempotency, pagehide teardown, FOUC guard (data-embed +
+        # data-instance-uuid + ht.theme), ?embed=1 backward-compat
+        # regression, shell-bounds regression (chrome untouched,
+        # every tool + home loads embed.js), and bundle-size
+        # budgets (embed.js ≤ 2 KB gz, embed.css ≤ 0.5 KB gz). The
+        # script's vacuous-pass guard (pass===0 && fail===0 → exit
+        # 1) means a hollow run fails the gate.
+        run: make embed-router-smoke
 
       - name: Smoke wave-1 page wiring (Story 2.6)
         # Story 2.6: static Node smoke verifying each Wave-1 page

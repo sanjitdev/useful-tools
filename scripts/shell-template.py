@@ -726,6 +726,24 @@ def transform(
                         "<script src=\"../../assets/js/shell.js\" defer></script> "
                         "anchor not found in legacy page\n"
                     )
+            # embed.js: the instance-scoped embed API factory. Loads
+            # after shell.js so HT is defined; idempotent on re-runs.
+            if 'src="../../assets/js/embed.js"' not in new_source:
+                shell_anchor_em = '<script src="../../assets/js/shell.js" defer></script>'
+                if shell_anchor_em in new_source:
+                    new_source = new_source.replace(
+                        shell_anchor_em,
+                        shell_anchor_em
+                        + '\n  <script src="../../assets/js/embed.js" defer></script>',
+                        1,
+                    )
+                else:
+                    sys.stderr.write(
+                        "shell-template: embed.js splice skipped — "
+                        "<script src=\"../../assets/js/shell.js\" defer></script> "
+                        "anchor not found in legacy page\n"
+                    )
+
             # Story 1.10: storage-registry.js (idempotent — already-present
             # pages keep the existing tag).
             if 'src="../../assets/js/storage-registry.js"' not in new_source:
@@ -1214,6 +1232,63 @@ HEADER_SEARCH_CSS_HOME_PATTERN = (
 )
 
 
+def splice_embed_js(source: str) -> str:
+    """Insert the embed.js <script> tag after shell.js (Story 4.1).
+
+    The embed instance API factory (`HT.embed.publish`) lives in
+    assets/js/embed.js and must load AFTER shell.js so the global `HT`
+    namespace exists when embed.js's IIFE attaches its factory. The
+    tag carries `defer` so it does not block first paint; shell.js
+    boots first because it is also `defer`-loaded and appears earlier
+    in document order.
+
+    Idempotent — pages that already carry the tag are returned
+    unchanged. The `../../` prefix is the tool-page path; the home
+    page lives at the repo root and uses `assets/...` (handled by
+    the home-page counterpart below).
+    """
+    if 'src="../../assets/js/embed.js"' in source:
+        return source
+    shell_anchor = '<script src="../../assets/js/shell.js" defer></script>'
+    if shell_anchor in source:
+        return source.replace(
+            shell_anchor,
+            shell_anchor
+            + '\n  <script src="../../assets/js/embed.js" defer></script>',
+            1,
+        )
+    sys.stderr.write(
+        "shell-template: embed.js splice skipped — "
+        "<script src=\"../../assets/js/shell.js\" defer></script> "
+        "anchor not found\n"
+    )
+    return source
+
+
+def splice_embed_js_home(source: str) -> str:
+    """Insert the embed.js <script> tag for the home page (Story 4.1).
+
+    The home page lives at the repo root so the script src uses the
+    root-relative path `assets/js/embed.js`. Idempotent.
+    """
+    if 'src="assets/js/embed.js"' in source:
+        return source
+    shell_anchor = '<script src="assets/js/shell.js" defer></script>'
+    if shell_anchor in source:
+        return source.replace(
+            shell_anchor,
+            shell_anchor
+            + '\n  <script src="assets/js/embed.js" defer></script>',
+            1,
+        )
+    sys.stderr.write(
+        "shell-template: embed.js (home) splice skipped — "
+        "<script src=\"assets/js/shell.js\" defer></script> "
+        "anchor not found\n"
+    )
+    return source
+
+
 def splice_header_search_css(source: str) -> str:
     """Insert the chrome-header-search.css <link> eagerly (Story 10.20).
 
@@ -1502,6 +1577,13 @@ def process_file(
     # browser until first click). Excluded from `full_ok` so a missing
     # link triggers a separate targeted write via splice_header_search_css.
     header_search_css_ok = bool(HEADER_SEARCH_CSS_LINK_OK_RE.search(source))
+    # Story 4.1: embed.js <script> tag must be loaded on every page so
+    # the embed instance API factory (`HT.embed.publish`) is available
+    # to host pages when they request `?embed=<slug>`. Excluded from
+    # `full_ok` so a missing tag triggers a separate targeted write via
+    # splice_embed_js — same pattern as print.css / print-footer /
+    # chrome-header-search.css.
+    embed_js_ok = 'src="../../assets/js/embed.js"' in source
     full_ok = (
         chrome_ok
         and palette_ok
@@ -1524,6 +1606,7 @@ def process_file(
         and print_css_ok
         and print_footer_ok
         and header_search_css_ok
+        and embed_js_ok
     )
     # Find the IIFE block on the FIRST `<script>` opener in <head>. The IIFE
     # is always the first inline `<script>` in every page (it must run
@@ -2029,6 +2112,31 @@ def process_file(
         )
         return True
 
+    # Story 4.1: targeted embed.js splice — when the page is otherwise
+    # chrome-aligned but is missing only the embed.js <script> tag,
+    # splice it in without re-touching the chrome bytes or the IIFE.
+    # Mirrors the Story 3.10 print.css / Story 10.20 header-search.css
+    # / Story 3.10 print-footer targeted-splice pattern.
+    # Runs BEFORE the IIFE-only branch because the IIFE branch's
+    # `iife_ok` check is over-strict (Story 1.6 latent bug comparing
+    # group(1) vs group(2)) and would short-circuit a page whose IIFE
+    # is actually canonical.
+    if chrome_ok and not embed_js_ok:
+        new_source = splice_embed_js(source)
+        if new_source != source:
+            if dry_run:
+                print(f"  would-write {path.relative_to(root)}  (embed.js only)")
+                return True
+            try:
+                path.write_text(new_source, encoding="utf-8")
+            except OSError as exc:
+                sys.stderr.write(
+                    f"shell-template: write failed for {path}: {exc}\n"
+                )
+                sys.exit(3)
+            print(f"  wrote {path.relative_to(root)}  (embed.js)")
+            return True
+
     # Chrome is byte-aligned but the inline FOUC IIFE in <head> is stale
     # (the page was generated before the canonical IIFE was last edited).
     # Rewrite only the inner IIFE content in place — keep the surrounding
@@ -2249,6 +2357,11 @@ def regenerate_home(
     # Story 3.10: print-footer block must be present (mirrors
     # `print_footer_ok` in process_file).
     print_footer_ok = bool(CHROME_PRINT_FOOTER_RE.search(source))
+    # Story 4.1: embed.js must be loaded on the home page too so the
+    # embed factory is reachable from any page (a host embedding
+    # `/?embed=<slug>` would otherwise need a different loading path).
+    # Root-relative path because the home page lives at the repo root.
+    embed_js_home_in_source = 'src="assets/js/embed.js"' in source
     # Bug fix: a previous broken regeneration can leave a SECOND
     # palette/settings include stranded in the page (the byte-aligned
     # check above only requires "at least one" include, not "exactly
@@ -2280,6 +2393,7 @@ def regenerate_home(
         and home_print_css_ok
         and print_footer_ok
         and header_search_css_home_ok
+        and embed_js_home_in_source
     )
     # Also require the canonical FOUC IIFE byte sequence to be present.
     # Without this, a home page that was generated before Story 1.5
@@ -2291,11 +2405,44 @@ def regenerate_home(
     # the inner content only. They never matched, so the IIFE was
     # re-rewritten on every --home invocation, doubling `<script>` tags
     # over multiple regenerations. Compare inner-to-inner.)
+    # Story 4.1: the IIFE body now contains `<` chars in for-loop
+    # comparisons (e.g. `for(var i=0;i<16;i+=1)`) — the original
+    # `[^<]+?` body matcher rejects any `<` in the content, which
+    # silently breaks byte-alignment. Use a non-greedy match on the
+    # `<script>...</script>` pair instead; the only `<script>` in
+    # <head> on a chrome-aligned page is the FOUC IIFE, so the
+    # first match is unambiguous.
     iife_match = re.search(
-        r"(?:<script>\s*)+([^<]+?)(?:\s*</script>)+",
+        r"<script[^>]*>(.*?)</script>",
         source,
         re.IGNORECASE | re.DOTALL,
     )
+    if iife_match:
+        # Restrict the match to the first <script> in <head> so the
+        # downstream splice uses the right block (not a later script).
+        head_start = source.find("<head>")
+        head_section = source[head_start:] if head_start >= 0 else source
+        head_match = re.search(
+            r"<script[^>]*>(.*?)</script>",
+            head_section,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if head_match:
+            class FullMatch:
+                def __init__(self, inner, base_offset):
+                    self._inner = inner
+                    self._base = base_offset
+                def start(self, group=0):
+                    if group == 0:
+                        return self._inner.start() + self._base
+                    return self._inner.start(group) + self._base
+                def end(self, group=0):
+                    if group == 0:
+                        return self._inner.end() + self._base
+                    return self._inner.end(group) + self._base
+                def group(self, group=0):
+                    return self._inner.group(group)
+            iife_match = FullMatch(head_match, head_start)
     head_inner = re.sub(r"^<script>|</script>$", "", head_script).strip()
     iife_ok = bool(iife_match) and iife_match.group(1).strip() == head_inner
     # Count nested wrappers: a home page that came out of Story 1.5's
@@ -2466,6 +2613,36 @@ def regenerate_home(
             f"settings={settings_count_in_source}→1)"
         )
         return True
+
+    # Story 4.1: targeted embed.js splice for the home page. Mirrors the
+    # tool-page splice above. Runs BEFORE the IIFE-only branch because
+    # that branch's `iife_ok` check is over-strict (Story 1.6 latent bug
+    # comparing group(1) vs group(2)) and would short-circuit a page
+    # whose IIFE is actually canonical.
+    # The guard is `has_new_chrome and home_header in source and
+    # footer_html in source` rather than `byte_aligned` because the
+    # latter is gated on `embed_js_home_in_source` itself (would
+    # self-defeat this splice).
+    if (
+        has_new_chrome
+        and home_header in source
+        and footer_html in source
+        and not embed_js_home_in_source
+    ):
+        new_source = splice_embed_js_home(source)
+        if new_source != source:
+            if dry_run:
+                print(f"  would-write {path.relative_to(root)}  (embed.js only)")
+                return True
+            try:
+                path.write_text(new_source, encoding="utf-8")
+            except OSError as exc:
+                sys.stderr.write(
+                    f"shell-template: write failed for {path}: {exc}\n"
+                )
+                sys.exit(3)
+            print(f"  wrote {path.relative_to(root)}  (embed.js)")
+            return True
 
     # Chrome is byte-aligned but the inline FOUC IIFE in <head> is stale
     # (the home page was generated before the PerformanceObserver /
@@ -2963,6 +3140,24 @@ def regenerate_home(
                 '<script src="assets/js/palette-actions.js"></script>\n  '
                 + shell_anchor,
                 1,
+            )
+    # Story 4.1: embed.js MUST load AFTER shell.js so the global `HT`
+    # namespace exists when embed.js's IIFE attaches its factory.
+    # Idempotent — anchored immediately after shell.js on the home page.
+    if 'src="assets/js/embed.js"' not in new_source:
+        shell_anchor_em = '<script src="assets/js/shell.js" defer></script>'
+        if shell_anchor_em in new_source:
+            new_source = new_source.replace(
+                shell_anchor_em,
+                shell_anchor_em
+                + '\n  <script src="assets/js/embed.js" defer></script>',
+                1,
+            )
+        else:
+            sys.stderr.write(
+                "shell-template: home embed.js splice skipped — "
+                "<script src=\"assets/js/shell.js\" defer></script> "
+                "anchor not found\n"
             )
     # Story 1.10: storage-registry.js must load BEFORE utils.js so the
     # storage wrapper can delegate. Idempotent — only added on first

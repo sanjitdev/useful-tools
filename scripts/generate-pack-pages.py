@@ -325,6 +325,10 @@ def build_pack_page(root: Path, pack: dict) -> str:
         + "\n"
         + '  <script src="../assets/js/ht-lazy.js"></script>\n'
         + '  <script src="../assets/js/shell-thin.js" defer></script>\n'
+        # Story 4.1 — embed.js ships the HT.embed factory (instance-scoped
+        # postMessage bridge between iframe and parent). It must load after
+        # shell-thin.js so HT.embed is available before user-driven events.
+        + '  <script src="../assets/js/embed.js" defer></script>\n'
         + '  <script src="../assets/js/search.js" defer></script>\n'
         + '  <script src="../assets/js/help-overlay.js" defer></script>\n'
         + f'  <script src="{page_script}" defer></script>\n'

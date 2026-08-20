@@ -78,9 +78,15 @@ TITLE_RE = re.compile(r"<title>([^<]+)</title>", re.IGNORECASE | re.DOTALL)
 # Extract the inline `<script>...</script>` IIFE from head-snippet.html.
 # The IIFE is minified to a single line; the capture is non-greedy on
 # the closing tag so the next-comment block doesn't get pulled in.
+# Story 4.1: the IIFE body now contains `<` chars in for-loop
+# comparisons (e.g. `for(var i=0;i<16;i+=1)`); the original `[^<]+`
+# body matcher rejects any `<` in the content and silently fails.
+# Use a non-greedy match on the `<script>...</script>` pair instead;
+# the only `<script>` in head-snippet.html is the IIFE so the first
+# match is unambiguous.
 FOUC_SCRIPT_RE = re.compile(
-    r"<script>([^<]+)</script>",
-    re.IGNORECASE,
+    r"<script[^>]*>(.*?)</script>",
+    re.IGNORECASE | re.DOTALL,
 )
 
 # Mirror of shell-template.py's derive_display_name so the per-page
@@ -835,16 +841,18 @@ def check_base_css(path: Path) -> list[str]:
     if not dark_block_m:
         violations.append('no :root[data-theme="dark"] { ... } override block found')
 
-    # 3. Embed mode hides .theme-toggle via html[data-embed="1"]. The
+    # 3. Embed mode hides .theme-toggle via html[data-embed]. The
     # spec (Story 1.6) requires ?embed=1 to lock theme to system AND
-    # hide the toggle via CSS; the JS-side guards are verified at
-    # runtime, but a future edit to base.css can silently drop this
-    # rule without tripping any other check. The cobalt-token check
-    # above only inspects :root selectors; embed-mode is a separate
-    # selector so it lives in its own assertion.
-    if "html[data-embed=\"1\"] .theme-toggle" not in text:
+    # hide the toggle via CSS; Story 4.1 generalized the selector to
+    # html[data-embed] (any value: "1" or "<slug>") so per-slug CSS
+    # hooks can target the attribute directly. The JS-side guards are
+    # verified at runtime, but a future edit to base.css can silently
+    # drop this rule without tripping any other check. The cobalt-token
+    # check above only inspects :root selectors; embed-mode is a
+    # separate selector so it lives in its own assertion.
+    if "html[data-embed] .theme-toggle" not in text:
         violations.append(
-            'embed-mode CSS rule html[data-embed="1"] .theme-toggle '
+            'embed-mode CSS rule html[data-embed] .theme-toggle '
             "{ display: none !important } missing from base.css"
         )
 
