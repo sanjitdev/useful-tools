@@ -2,6 +2,13 @@
 
 Items deferred from earlier code reviews and not yet resolved.
 
+## Deferred from: code review of 4-1-embed-url-router-strips-chrome-and-loads-tool (2026-08-20)
+
+- **`scripts/site-config-gate.py` EXPECTED_VERSION drift** — gate expects `"1.23.0"`; api-contract.js declares `1.30.0`. 56 pre-existing site-config-gate violations (verified via `git stash` that count is identical pre- and post-Story-4.1). *Reason deferred: pre-existing drift before Story 4.1; the spec mandated an explicit `1.30.0 → 1.31.0` bump but the underlying EXPECTED_VERSION gap is a separate concern. Remediation tracked under `_bmad-output/implementation-artifacts/x-3-bundle-size-budget.md` and similar.* Recommended follow-up: a separate `x-N-site-config-version-sync.md` story that realigns site-config-gate.py with the current api-contract version and resolves the 56 violations (which appear unrelated to the embed feature).
+- **Vacuous-pass guard is vacuous** — `scripts/_smoke_embed_router.js:206` uses `pass > 0` as the guard, which passes for any harness that runs ≥ 1 check. Real vacuous-pass defense: `pass > 5` plus require at least one vm-context section. *Reason deferred: addressed by the High finding #4 (smoke harness rewrite) in the same review; both roll into one patch.*
+- **`embed.js` loaded `defer` instead of non-deferred** — Spec T5 said non-deferred; implementation uses defer. *Reason deferred: identical practical outcome (shell.js is also defer; ordering preserved). Spec Dev Notes documented the deviation.*
+- **`assets/shell/chrome.html` not modified** — Spec T6(a) said add embed.js to chrome.html; implementation uses per-page splice via `shell-template.py` + `generate-pack-pages.py` + `_fix_special_pages_iife.py`. *Reason deferred: identical practical outcome (embed.js loads unconditionally on every page). Spec Dev Notes documented the deviation.*
+
 ## Deferred from: code review of 1-10-storage-registry-with-namespaced-keys (2026-08-07)
 
 The full review (5 lenses, 72 findings) was run on Story 1.10 — 48 code/behavior findings addressed in-session; 24 structural/prose findings closed via editorial trim. The items below were either explicitly tagged "defer" by the review or surfaced as not-blocker during triage. All are recorded here for follow-up.
